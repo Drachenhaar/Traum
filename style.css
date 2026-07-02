@@ -65,9 +65,35 @@ body {
   pointer-events: none;
 }
 
-.bookText h1,
-.bookText p,
-.bookText button {
+.reveal {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+.bookText.visible .reveal-title {
+  animation: fadeUp 1.8s ease forwards;
+  animation-delay: 1.2s;
+}
+
+.bookText.visible .reveal-1 {
+  animation: fadeUp 1.8s ease forwards;
+  animation-delay: 2.8s;
+}
+
+.bookText.visible .reveal-2 {
+  animation: fadeUp 1.8s ease forwards;
+  animation-delay: 4.8s;
+}
+
+.bookText.visible .reveal-3 {
+  animation: fadeUp 1.8s ease forwards;
+  animation-delay: 7s;
+}
+
+.bookText.visible .reveal-button {
+  animation: fadeUp 1.8s ease forwards;
+  animation-delay: 9s;
+} {
   opacity: 0;
   transform: translateY(12px);
 }
