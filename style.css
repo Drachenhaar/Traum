@@ -1,0 +1,9 @@
+body{margin:0;background:#050811;color:#eee;font-family:system-ui;display:flex;justify-content:center;align-items:center;min-height:100vh}
+.dragoncore{text-align:center;padding:40px}
+.book-circle{width:220px;height:220px;border:1px solid rgba(255,215,120,.3);border-radius:50%;margin:20px auto;display:flex;justify-content:center;align-items:center;box-shadow:0 0 40px rgba(255,215,120,.1)}
+.core-light{width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,#fff7cf,#7cb8ff,#3f63ff);animation:breathe 5s infinite}
+h1{color:#e8c87b;font-weight:300;letter-spacing:.2em}
+.line{max-width:600px;margin:12px auto;line-height:1.7}
+button{margin-top:30px;padding:14px 28px;border-radius:999px;background:#1b2233;color:#f0d48c;border:1px solid #8d7442;cursor:pointer}
+.book-page{display:none;max-width:700px;text-align:left}
+@keyframes breathe{50%{transform:scale(1.08)}}
