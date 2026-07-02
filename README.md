@@ -1,22 +1,7 @@
-# Dragoncore 0.1 – Der erste Blick
+# Dragoncore 0.2 – Zum Buch gehen
 
-Dies ist die erste offizielle Version von Dragoncore.
+Lege dein großes Hintergrundbild hier ab:
 
-## Enthalten
+assets/backgrounds/dragoncore-master-4k.png
 
-- Startbildschirm mit dem ersten Buch-Ort
-- ruhiger Begrüßungstext
-- Button: „Das Buch öffnen“
-- erstes Kapitel: „Die erste Begegnung“
-- Hintergrundbild unter `assets/backgrounds/dragoncore-start.png`
-
-## Dateien
-
-- `index.html`
-- `style.css`
-- `script.js`
-- `assets/backgrounds/dragoncore-start.png`
-
-## Idee
-
-Dragoncore möchte nicht beeindrucken. Dragoncore möchte willkommen heißen.
+Danach funktioniert der sanfte Zoom zum Buch.
