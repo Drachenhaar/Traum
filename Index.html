@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+
+<html lang="de">
+
+<head>
+
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Dragoncore</title>
+
+  <style>
+
+    * {
+
+      box-sizing: border-box;
+
+    }
+
+    body {
+
+      margin: 0;
+
+      min-height: 100vh;
+
+      background:
+
+        radial-gradient(circle at center, rgba(110, 170, 255, 0.16), transparent 28%),
+
+        radial-gradient(circle at bottom, rgba(40, 80, 120, 0.22), transparent 45%),
+
+        #05070d;
+
+      color: #f3f1ea;
+
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+      overflow: hidden;
+
+    }
+
+    .screen {
+
+      min-height: 100vh;
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: center;
+
+      padding: 32px;
+
+      position: relative;
+
+    }
+
+    .core-wrap {
+
+      position: absolute;
+
+      inset: 0;
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: center;
+
+      pointer-events: none;
+
+    }
+
+    .core {
+
+      width: 110px;
+
+      height: 110px;
+
+      border-radius: 50%;
+
+      background:
+
+        radial-gradient(circle, #fff8d8 0%, #9fd4ff 28%, #4c7dff 52%, transparent 72%);
+
+      box-shadow:
+
+        0 0 35px rgba(160, 210, 255, 0.8),
+
+        0 0 90px rgba(100, 140, 255, 0.55),
+
+        0 0 160px rgba(80, 120, 255, 0.28);
+
+      animation: breathe 5s ease-in-out infinite;
+
+    }
+
+    .wave {
+
+      position: absolute;
+
+      width: 180px;
+
+      height: 180px;
+
+      border: 1px solid rgba(180, 220, 255, 0.18);
+
+      border-radius: 50%;
+
+      animation: wave 7s ease-out infinite;
+
+    }
+
+    .wave:nth-child(1) { animation-delay: 0s; }
+
+    .wave:nth-child(2) { animation-delay: 2.2s; }
+
+    .wave:nth-child(3) { animation-delay: 4.4s; }
+
+    @keyframes breathe {
+
+      0%, 100% { transform: scale(1); opacity: 0.88; }
+
+      50% { transform: scale(1.08); opacity: 1; }
+
+    }
+
+    @keyframes wave {
+
+      0% {
+
+        transform: scale(0.55);
+
+        opacity: 0.38;
+
+      }
+
+      100% {
+
+        transform: scale(4.8);
+
+        opacity: 0;
+
+      }
+
+    }
+
+    .content {
+
+      max-width: 720px;
+
+      text-align: center;
+
+      z-index: 2;
+
+      margin-top: 320px;
+
+    }
+
+    .line {
+
+      opacity: 0;
+
+      transform: translateY(10px);
+
+      font-size: clamp(1.15rem, 3vw, 1.8rem);
+
+      line-height: 1.45;
+
+      letter-spacing: 0.01em;
+
+      margin: 14px 0;
+
+      animation: appear 1.8s ease forwards;
+
+    }
+
+    .line:nth-child(1) { animation-delay: 0.7s; }
+
+    .line:nth-child(2) { animation-delay: 2.8s; }
+
+    .line:nth-child(3) { animation-delay: 5.2s; }
+
+    @keyframes appear {
+
+      to {
+
+        opacity: 1;
+
+        transform: translateY(0);
+
+      }
+
+    }
+
+    button {
+
+      margin-top: 34px;
+
+      padding: 14px 30px;
+
+      border-radius: 999px;
+
+      border: 1px solid rgba(255, 255, 255, 0.22);
+
+      background: rgba(255, 255, 255, 0.08);
+
+      color: #f3f1ea;
+
+      font-size: 1rem;
+
+      letter-spacing: 0.04em;
+
+      cursor: pointer;
+
+      opacity: 0;
+
+      animation: appear 1.6s ease forwards;
+
+      animation-delay: 7.4s;
+
+      backdrop-filter: blur(10px);
+
+      transition: background 0.3s ease, transform 0.3s ease;
+
+    }
+
+    button:hover {
+
+      background: rgba(255, 255, 255, 0.16);
+
+      transform: translateY(-2px);
+
+    }
+
+    .book {
+
+      display: none;
+
+      max-width: 760px;
+
+      z-index: 3;
+
+      background: rgba(8, 12, 22, 0.72);
+
+      border: 1px solid rgba(255, 255, 255, 0.12);
+
+      border-radius: 28px;
+
+      padding: 38px;
+
+      line-height: 1.8;
+
+      font-size: clamp(1rem, 2.5vw, 1.25rem);
+
+      backdrop-filter: blur(18px);
+
+      box-shadow: 0 0 80px rgba(0, 0, 0, 0.35);
+
+      animation: bookAppear 1.4s ease forwards;
+
+    }
+
+    .book h1 {
+
+      margin-top: 0;
+
+      font-size: 1.4rem;
+
+      font-weight: 500;
+
+      letter-spacing: 0.06em;
+
+      color: #d7e8ff;
+
+    }
+
+    @keyframes bookAppear {
+
+      from {
+
+        opacity: 0;
+
+        transform: translateY(18px);
+
+      }
+
+      to {
+
+        opacity: 1;
+
+        transform: translateY(0);
+
+      }
+
+    }
+
+    .hidden {
+
+      display: none;
+
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <main class="screen">
+
+    <div class="core-wrap">
+
+      <div class="wave"></div>
+
+      <div class="wave"></div>
+
+      <div class="wave"></div>
+
+      <div class="core"></div>
+
+    </div>
+
+    <section class="content" id="welcome">
+
+      <p class="line">Willkommen.</p>
+
+      <p class="line">Dies ist kein Ort, der von dir verlangt, jemand anderes zu werden.</p>
+
+      <p class="line">Vielleicht erinnert er dich einfach daran, wer du schon bist.</p>
+
+      <button id="beginButton">Beginnen</button>
+
+    </section>
+
+    <section class="book" id="book">
+
+      <h1>Kapitel 1 – Die erste Begegnung</h1>
+
+      <p>Manche Menschen suchen Antworten.</p>
+
+      <p>Andere suchen einen Ort.</p>
+
+      <p>Dragoncore wurde nicht erschaffen, um dir vorzuschreiben, wer du sein sollst.</p>
+
+      <p>Es möchte dir einen Raum geben, in dem du entdecken kannst, was bereits in dir lebt.</p>
+
+      <p>Wenn du bereit bist, gehen wir den ersten Schritt.</p>
+
+      <p>Nicht schneller, als es sich richtig anfühlt.</p>
+
+      <p>Nicht weiter, als du heute gehen möchtest.</p>
+
+      <p>Willkommen.</p>
+
+    </section>
+
+  </main>
+
+  <script>
+
+    const beginButton = document.getElementById("beginButton");
+
+    const welcome = document.getElementById("welcome");
+
+    const book = document.getElementById("book");
+
+    beginButton.addEventListener("click", () => {
+
+      welcome.classList.add("hidden");
+
+      book.style.display = "block";
+
+    });
+
+  </script>
+
+</body>
+
+</html>
