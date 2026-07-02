@@ -222,3 +222,15 @@ body {
   font-size: 1rem;
   backdrop-filter: blur(8px);
 }
+body.zoom-to-book .world {
+  transform: scale(2.8);
+  transition: transform 1.4s ease-in-out;
+}
+
+body.zoom-to-book .book-text,
+body.zoom-to-book .orb-layer,
+body.zoom-to-book .water-shimmer {
+  opacity: 0;
+  transition: opacity 0.7s ease;
+}
+
