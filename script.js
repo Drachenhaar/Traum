@@ -1,13 +1,1 @@
-const world = document.getElementById("world");
-const enterButton = document.getElementById("enterButton");
-const bookText = document.getElementById("bookText");
-
-enterButton.addEventListener("click", () => {
-  world.classList.add("zoomed");
-  enterButton.style.opacity = "0";
-  enterButton.style.pointerEvents = "none";
-
-  setTimeout(() => {
-    bookText.classList.add("visible");
-  }, 1600);
-});
+const world=document.getElementById('world');const btn=document.getElementById('enterButton');const items=[document.querySelector('.reveal-title'),document.querySelector('.reveal-1'),document.querySelector('.reveal-2'),document.querySelector('.reveal-3'),document.querySelector('.reveal-button')];const d=[1800,4200,7600,11200,15000];btn.onclick=()=>{world.classList.add('zoomed');btn.style.opacity='0';btn.style.pointerEvents='none';items.forEach((e,i)=>setTimeout(()=>e.classList.add('show'),d[i]));};
