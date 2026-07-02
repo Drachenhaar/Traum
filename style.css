@@ -1,5 +1,4 @@
-html,
-body {
+html, body {
   margin: 0;
   padding: 0;
   min-height: 100%;
@@ -13,19 +12,19 @@ body {
 .world {
   min-height: 100vh;
   background:
-    linear-gradient(rgba(0,0,0,.15), rgba(0,0,0,.35)),
+    linear-gradient(rgba(0,0,0,.06), rgba(0,0,0,.28)),
     url("assets/backgrounds/DC9D9291-52A5-43BA-9F8B-A3D1960C30E2.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  transition: transform 4s ease, filter 4s ease;
+  transition: transform 4.5s ease, filter 4.5s ease;
   overflow: hidden;
   position: relative;
 }
 
 .world.zoomed {
-  transform: scale(1.15);
-  filter: brightness(.93);
+  transform: scale(1.13);
+  filter: brightness(.92);
 }
 
 .overlay {
@@ -34,16 +33,18 @@ body {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding: 40px;
+  padding: 42px;
   z-index: 5;
 }
 
-button {
+#enterButton {
   padding: 14px 28px;
   border-radius: 999px;
-  background: rgba(20,20,20,.45);
-  color: #fff;
-  border: 1px solid rgba(255,255,255,.3);
+  background: rgba(20,20,20,.42);
+  color: #fff7df;
+  border: 1px solid rgba(255,255,255,.32);
+  font-size: 1rem;
+  transition: opacity 1.2s ease;
 }
 
 .bookText {
@@ -51,83 +52,72 @@ button {
   left: 50%;
   bottom: 10%;
   transform: translateX(-50%);
-  width: min(90vw,700px);
+  width: min(90vw, 720px);
   text-align: center;
   color: white;
-  opacity: 0;
-  transition: opacity 2s ease 1.5s;
   z-index: 6;
-}
-
-.bookText.visible {
-  opacity: 1;
-}
-
-h1 {
-  letter-spacing: .15em;
-}
-
-.orb-layer {
-  position: absolute;
-  inset: 0;
   pointer-events: none;
-  overflow: hidden;
-  z-index: 2;
 }
 
-.orb {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: rgba(255, 238, 180, 0.95);
-  box-shadow:
-    0 0 10px rgba(255, 230, 150, 0.9),
-    0 0 24px rgba(255, 210, 120, 0.45);
+.bookText h1,
+.bookText p,
+.bookText button {
   opacity: 0;
-  animation: orbFloat var(--duration) ease-in-out forwards;
+  transform: translateY(12px);
 }
 
-.orb.speaks {
-  width: 11px;
-  height: 11px;
+.bookText.visible h1 {
+  animation: fadeUp 1.8s ease forwards;
+  animation-delay: 1.2s;
 }
 
-.orb-message {
-  position: absolute;
-  transform: translate(-50%, -120%);
-  color: #fff4d4;
-  font-size: 0.9rem;
-  line-height: 1.4;
-  width: 220px;
-  text-align: center;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.75);
-  opacity: 0;
-  animation: messageAppear 5s ease forwards;
+.bookText.visible p:nth-of-type(1) {
+  animation: fadeUp 1.8s ease forwards;
+  animation-delay: 2.7s;
 }
 
-@keyframes orbFloat {
-  0% {
-    opacity: 0;
-    transform: translateY(18px) scale(0.6);
-  }
-  20% {
-    opacity: 0.9;
-  }
-  80% {
-    opacity: 0.75;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-80px) translateX(var(--drift)) scale(1.1);
-  }
+.bookText.visible p:nth-of-type(2) {
+  animation: fadeUp 1.8s ease forwards;
+  animation-delay: 4.5s;
 }
 
-@keyframes messageAppear {
-  0%, 100% {
-    opacity: 0;
-  }
-  20%, 75% {
+.bookText.visible p:nth-of-type(3) {
+  animation: fadeUp 1.8s ease forwards;
+  animation-delay: 6.5s;
+}
+
+.bookText.visible button {
+  animation: fadeUp 1.8s ease forwards;
+  animation-delay: 8.5s;
+  pointer-events: auto;
+}
+
+.bookText h1 {
+  font-size: clamp(2.4rem, 9vw, 5.4rem);
+  letter-spacing: .12em;
+  margin: 0 0 24px;
+}
+
+.bookText p {
+  font-size: clamp(1.05rem, 4vw, 1.5rem);
+  line-height: 1.5;
+  margin: 14px auto;
+  text-shadow: 0 2px 12px rgba(0,0,0,.75);
+}
+
+.bookText button {
+  margin-top: 24px;
+  padding: 13px 28px;
+  border-radius: 999px;
+  background: rgba(20,20,20,.38);
+  color: #fff7df;
+  border: 1px solid rgba(255,255,255,.3);
+  font-size: 1rem;
+}
+
+@keyframes fadeUp {
+  to {
     opacity: 1;
+    transform: translateY(0);
   }
 }
