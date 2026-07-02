@@ -1,33 +1,62 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dragoncore</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#07100b" />
+  <title>Dragoncore 0.1 – Der erste Blick</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<main class="dragoncore">
-<section class="welcome" id="welcome">
-<p class="subtitle">DAS BUCH DES WERDENS</p>
-<div class="book-circle"><div class="core-light"></div></div>
-<h1>DRAGONCORE</h1>
-<p class="line">Willkommen.</p>
-<p class="line">Dies ist kein Ort, der von dir verlangt, jemand anderes zu werden.</p>
-<p class="line">Vielleicht erinnert er dich einfach daran, wer du schon bist.</p>
-<button id="beginButton">✦ Beginnen</button>
-</section>
-<section class="book-page" id="bookPage">
-<h2>Kapitel 1 – Die erste Begegnung</h2>
-<p>Manche Menschen suchen Antworten.</p>
-<p>Andere suchen einen Ort.</p>
-<p>Dragoncore wurde nicht erschaffen, um dir vorzuschreiben, wer du sein sollst.</p>
-<p>Es möchte dir einen Raum geben, in dem du entdecken kannst, was bereits in dir lebt.</p>
-<p>Wenn du bereit bist, gehen wir den ersten Schritt.</p>
-<p>Nicht schneller, als es sich richtig anfühlt.</p>
-<p>Nicht weiter, als du heute gehen möchtest.</p>
-</section>
-</main>
-<script src="script.js"></script>
+  <main class="dragoncore" aria-label="Dragoncore Startbildschirm">
+    <div class="background" aria-hidden="true"></div>
+    <div class="veil" aria-hidden="true"></div>
+
+    <section class="welcome" id="welcome">
+      <p class="eyebrow">Das Buch des Werdens</p>
+      <h1>Dragoncore</h1>
+
+      <div class="divider" aria-hidden="true"></div>
+
+      <p class="welcome-title">Willkommen.</p>
+
+      <p class="welcome-text">
+        Dies ist kein Ort,<br />
+        der von dir verlangt,<br />
+        jemand anderes zu werden.
+      </p>
+
+      <p class="welcome-text soft">
+        Vielleicht erinnert er dich einfach daran,<br />
+        wer du schon bist.
+      </p>
+
+      <button id="openBook" class="book-button" type="button">
+        Das Buch öffnen
+      </button>
+
+      <p class="quiet-note">Nimm dir Zeit. Es eilt nicht.</p>
+    </section>
+
+    <section class="book-page" id="bookPage" aria-live="polite">
+      <div class="page-inner">
+        <p class="chapter-label">Kapitel 1</p>
+        <h2>Die erste Begegnung</h2>
+
+        <p>Manche Menschen suchen Antworten.</p>
+        <p>Andere suchen einen Ort.</p>
+        <p>Dragoncore wurde nicht erschaffen, um dir vorzuschreiben, wer du sein sollst.</p>
+        <p>Es möchte dir einen Raum geben, in dem du entdecken kannst, was bereits in dir lebt.</p>
+        <p>Wenn du bereit bist, gehen wir den ersten Schritt.</p>
+        <p>Nicht schneller, als es sich richtig anfühlt.</p>
+        <p>Nicht weiter, als du heute gehen möchtest.</p>
+        <p>Willkommen.</p>
+
+        <button id="closeBook" class="small-button" type="button">Zurück zum Ort</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
 </body>
 </html>

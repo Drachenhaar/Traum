@@ -1,9 +1,22 @@
-# Dragoncore v0.1 – The First Breath
+# Dragoncore 0.1 – Der erste Blick
 
-Erste öffentliche Version des Dragoncore-Fundaments.
+Dies ist die erste offizielle Version von Dragoncore.
 
-Enthalten:
-- Begrüßungsbildschirm
-- Buch-Kreis
-- Erstes Kapitel
-- Grundstruktur für zukünftige Erweiterungen
+## Enthalten
+
+- Startbildschirm mit dem ersten Buch-Ort
+- ruhiger Begrüßungstext
+- Button: „Das Buch öffnen“
+- erstes Kapitel: „Die erste Begegnung“
+- Hintergrundbild unter `assets/backgrounds/dragoncore-start.png`
+
+## Dateien
+
+- `index.html`
+- `style.css`
+- `script.js`
+- `assets/backgrounds/dragoncore-start.png`
+
+## Idee
+
+Dragoncore möchte nicht beeindrucken. Dragoncore möchte willkommen heißen.
