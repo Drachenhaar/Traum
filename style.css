@@ -23,8 +23,7 @@ body {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.28)),
-    url("assets/backgrounds/dragoncore-master-4k.png");
+    linear-gradient(rgba(0, 0, 0, 0.04), rgba(0, 0, 0, url("assets/backgrounds/DC9D9291-52A5-43BA-9F8B-A3D1960C30E2.png") ;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
