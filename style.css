@@ -14,4 +14,64 @@ position:relative;
 button{padding:14px 28px;border-radius:999px;background:rgba(20,20,20,.45);color:#fff;border:1px solid rgba(255,255,255,.3);}
 .bookText{position:absolute;left:50%;bottom:10%;transform:translateX(-50%);width:min(90vw,700px);text-align:center;color:white;opacity:0;transition:opacity 2s ease 1.5s;}
 .bookText.visible{opacity:1;}
-h1{letter-spacing:.15em;}
+h1{letter-spacing:..orb-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 2;
+}
+
+.orb {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 238, 180, 0.95);
+  box-shadow:
+    0 0 10px rgba(255, 230, 150, 0.9),
+    0 0 24px rgba(255, 210, 120, 0.45);
+  opacity: 0;
+  animation: orbFloat var(--duration) ease-in-out forwards;
+}
+
+.orb.speaks {
+  width: 11px;
+  height: 11px;
+}
+
+.orb-message {
+  position: absolute;
+  transform: translate(-50%, -120%);
+  color: #fff4d4;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  width: 220px;
+  text-align: center;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.75);
+  opacity: 0;
+  animation: messageAppear 5s ease forwards;
+}
+
+@keyframes orbFloat {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.6);
+  }
+  20% {
+    opacity: 0.9;
+  }
+  80% {
+    opacity: 0.75;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-80px) translateX(var(--drift)) scale(1.1);
+  }
+}
+
+@keyframes messageAppear {
+  0%, 100% { opacity: 0; }
+  20%, 75% { opacity: 1; }
+}
+
