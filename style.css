@@ -67,57 +67,31 @@ body {
 
 .reveal {
   opacity: 0;
-  transform: translateY(14px);
-}
-
-.bookText.visible .reveal-title {
-  animation: fadeUp 1.8s ease forwards;
-  animation-delay: 1.2s;
+  transform: translateY(.bookText.visible .reveal-title {
+  animation: fadeUp 2s ease forwards;
+  animation-delay: 1.5s;
 }
 
 .bookText.visible .reveal-1 {
-  animation: fadeUp 1.8s ease forwards;
-  animation-delay: 2.8s;
+  animation: fadeUp 2s ease forwards;
+  animation-delay: 4s;
 }
 
 .bookText.visible .reveal-2 {
-  animation: fadeUp 1.8s ease forwards;
-  animation-delay: 4.8s;
-}
-
-.bookText.visible .reveal-3 {
-  animation: fadeUp 1.8s ease forwards;
+  animation: fadeUp 2.2s ease forwards;
   animation-delay: 7s;
 }
 
+.bookText.visible .reveal-3 {
+  animation: fadeUp 2.2s ease forwards;
+  animation-delay: 11s;
+}
+
 .bookText.visible .reveal-button {
-  animation: fadeUp 1.8s ease forwards;
-  animation-delay: 9s;
-} {
-  opacity: 0;
-  transform: translateY(12px);
+  animation: fadeUp 2s ease forwards;
+  animation-delay: 14.5s;
 }
-
-.bookText.visible h1 {
-  animation: fadeUp 1.8s ease forwards;
-  animation-delay: 1.2s;
-}
-
-.bookText.visible p:nth-of-type(1) {
-  animation: fadeUp 1.8s ease forwards;
-  animation-delay: 2.7s;
-}
-
-.bookText.visible p:nth-of-type(2) {
-  animation: fadeUp 1.8s ease forwards;
-  animation-delay: 4.5s;
-}
-
-.bookText.visible p:nth-of-type(3) {
-  animation: fadeUp 1.8s ease forwards;
-  animation-delay: 6.5s;
-}
-
+  
 .bookText.visible button {
   animation: fadeUp 1.8s ease forwards;
   animation-delay: 8.5s;
