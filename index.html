@@ -2,19 +2,24 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Dragoncore 0.5 – Neues Fundament</title>
-  <link rel="stylesheet" href="style.css?v=06" />
+  <link rel="stylesheet" href="style.css?v=07" />
 </head>
 
 <body>
   <main class="scene">
     <div id="world" class="world"></div>
+    <div id="fogLayer" class="fog-layer"></div>
+    <div id="lightRayLayer" class="light-ray-layer"></div>
     <div class="water-shimmer"></div>
+    <div id="waterRingLayer" class="water-ring-layer"></div>
     <div id="creatureLayer" class="creature-layer"></div>
     <div id="orbLayer" class="orb-layer"></div>
+    <div id="leafLayer" class="leaf-layer"></div>
 
     <div class="ui-layer">
+      <button id="menuToggle" class="menu-toggle" aria-label="Oberfläche ein- oder ausblenden">☰</button>
       <button id="enterButton" class="enter-button">✦ Zum Buch gehen</button>
 
       <section class="book-text" aria-live="polite">
@@ -35,9 +40,15 @@
     </div>
   </main>
 
-  <script src="chronicle.js?v=06"></script>
-  <script src="thoughts.js?v=06"></script>
-  <script src="creatures.js?v=06"></script>
-  <script src="script.js?v=06"></script>
+  <script src="world-utils.js?v=07"></script>
+  <script src="chronicle.js?v=07"></script>
+  <script src="thoughts.js?v=07"></script>
+  <script src="fog.js?v=07"></script>
+  <script src="lightrays.js?v=07"></script>
+  <script src="leaves.js?v=07"></script>
+  <script src="waterrings.js?v=07"></script>
+  <script src="creatures.js?v=07"></script>
+  <script src="menu.js?v=07"></script>
+  <script src="script.js?v=07"></script>
 </body>
 </html>
