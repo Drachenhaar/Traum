@@ -298,10 +298,10 @@ body.zoom-to-book .water-shimmer {
 }
 
 .creature-koi {
-  left: 46%;
-  top: 62%;
-  width: 7%;
-  min-width: 40px;
+  left: 71%;
+  top: 47%;
+  width: 6%;
+  min-width: 36px;
   animation: koiDrift 22s ease-in-out infinite alternate;
 }
 
@@ -327,7 +327,7 @@ body.zoom-to-book .water-shimmer {
   }
 
   to {
-    transform: translate(6%, 3%) rotate(3deg);
+    transform: translate(-8%, 4%) rotate(3deg);
   }
 }
 
