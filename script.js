@@ -1,6 +1,10 @@
 const world = document.getElementById("world");
 const enterButton = document.getElementById("enterButton");
 const orbLayer = document.getElementById("orbLayer");
+const creatureLayer = document.getElementById("creatureLayer");
+
+const chronicle = new Chronicle();
+const thoughtGarden = new ThoughtGarden();
 
 const orbMessages = [
   "Es eilt nicht.",
@@ -55,9 +59,13 @@ function createOrb() {
   const speaks = Math.random() < 0.06;
 
   if (speaks) {
+    const pastThought = Math.random() < 0.35 ? thoughtGarden.randomPast() : null;
+
     const message = document.createElement("div");
     message.className = "orb-message";
-    message.textContent = orbMessages[Math.floor(Math.random() * orbMessages.length)];
+    message.textContent = pastThought
+      ? pastThought.content
+      : orbMessages[Math.floor(Math.random() * orbMessages.length)];
     message.style.left = x + "%";
     message.style.top = y + "%";
 
@@ -81,4 +89,8 @@ function startOrbs() {
 document.addEventListener("DOMContentLoaded", () => {
   enterButton.addEventListener("click", goToBook);
   startOrbs();
+
+  startPresenceTracking(chronicle);
+  initThoughtInput(thoughtGarden, chronicle);
+  initCreatures(creatureLayer);
 });

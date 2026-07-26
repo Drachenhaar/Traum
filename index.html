@@ -4,13 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dragoncore 0.5 – Neues Fundament</title>
-  <link rel="stylesheet" href="style.css?v=05" />
+  <link rel="stylesheet" href="style.css?v=06" />
 </head>
 
 <body>
   <main class="scene">
     <div id="world" class="world"></div>
     <div class="water-shimmer"></div>
+    <div id="creatureLayer" class="creature-layer"></div>
     <div id="orbLayer" class="orb-layer"></div>
 
     <div class="ui-layer">
@@ -23,9 +24,20 @@
         <p class="reveal" data-delay="12000">Vielleicht erinnert er dich einfach daran, wer du schon bist.</p>
         <button class="reveal open-book-button" data-delay="16000">Das Buch öffnen</button>
       </section>
+
+      <input
+        type="text"
+        id="thoughtInput"
+        class="thought-input"
+        placeholder="Ein Gedanke ..."
+        autocomplete="off"
+      />
     </div>
   </main>
 
-  <script src="script.js?v=05"></script>
+  <script src="chronicle.js?v=06"></script>
+  <script src="thoughts.js?v=06"></script>
+  <script src="creatures.js?v=06"></script>
+  <script src="script.js?v=06"></script>
 </body>
 </html>
