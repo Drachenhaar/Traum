@@ -17,12 +17,25 @@ function pickZone(zones) {
   return zones[Math.floor(Math.random() * zones.length)];
 }
 
+// Nicht jede Sichtung soll in der Chronik landen – nur die erste Begegnung
+// dieser Sitzung mit einer Art, damit die Chronik selten und bedeutungsvoll
+// bleibt statt bei jedem Auf- und Abtauchen neue Einträge zu erzeugen.
+function makeSessionEncounterLogger(chronicle, subjectType) {
+  let logged = false;
+  return function logOnce() {
+    if (logged || !chronicle) return;
+    logged = true;
+    chronicle.recordEncounter(subjectType);
+  };
+}
+
 // Der Koi schwimmt in unregelmäßigen Etappen innerhalb einer Wasserzone,
 // taucht dann ab (wird blasser/unschärfer, als wäre er tiefer im Wasser)
 // und erscheint nach einer Pause an anderer Stelle wieder – begleitet von
 // Wasserringen beim Ab- und Auftauchen.
-function runKoi(imgEl, waterRingLayer) {
+function runKoi(imgEl, waterRingLayer, chronicle) {
   let alive = true;
+  const logEncounter = makeSessionEncounterLogger(chronicle, "koi");
 
   function reduced() {
     return prefersReducedMotion();
@@ -36,7 +49,10 @@ function runKoi(imgEl, waterRingLayer) {
 
     placeInstantly(imgEl, point.x, point.y);
     imgEl.classList.remove("diving");
-    requestAnimationFrame(() => imgEl.classList.add("show"));
+    requestAnimationFrame(() => {
+      imgEl.classList.add("show");
+      logEncounter();
+    });
     spawnWaterRing(waterRingLayer, point.x, point.y);
 
     if (reduced()) {
@@ -89,8 +105,9 @@ function runKoi(imgEl, waterRingLayer) {
 
 // Die Libelle erscheint selten, macht ein paar kurze, schnelle Sprünge mit
 // Schwebepausen dazwischen und verschwindet danach wieder für eine Weile.
-function runDragonfly(imgEl) {
+function runDragonfly(imgEl, chronicle) {
   let alive = true;
+  const logEncounter = makeSessionEncounterLogger(chronicle, "dragonfly");
 
   function cycle() {
     if (!alive) return;
@@ -100,7 +117,10 @@ function runDragonfly(imgEl) {
     placeInstantly(imgEl, start.x, start.y);
 
     if (prefersReducedMotion()) {
-      requestAnimationFrame(() => imgEl.classList.add("show"));
+      requestAnimationFrame(() => {
+        imgEl.classList.add("show");
+        logEncounter();
+      });
       setTimeout(() => {
         if (!alive) return;
         imgEl.classList.remove("show");
@@ -109,7 +129,10 @@ function runDragonfly(imgEl) {
       return;
     }
 
-    requestAnimationFrame(() => imgEl.classList.add("show"));
+    requestAnimationFrame(() => {
+      imgEl.classList.add("show");
+      logEncounter();
+    });
 
     const dashes = 2 + Math.floor(Math.random() * 3);
     let step = 0;
@@ -149,8 +172,9 @@ function runDragonfly(imgEl) {
 
 // Der Vogel zieht selten in einem weichen Bogen durch den Himmel und ist
 // den Rest der Zeit nicht zu sehen.
-function runBird(imgEl) {
+function runBird(imgEl, chronicle) {
   let alive = true;
+  const logEncounter = makeSessionEncounterLogger(chronicle, "bird");
 
   function flight() {
     if (!alive) return;
@@ -168,6 +192,7 @@ function runBird(imgEl) {
 
     requestAnimationFrame(() => {
       imgEl.classList.add("show");
+      logEncounter();
       imgEl.style.setProperty("--move-duration", duration + "s");
       imgEl.style.left = endX + "%";
       imgEl.style.top = midY + "%";
@@ -188,7 +213,7 @@ function runBird(imgEl) {
   };
 }
 
-function initCreatures(layerEl, waterRingLayer) {
+function initCreatures(layerEl, waterRingLayer, chronicle) {
   if (!layerEl) return;
 
   const start = Date.now();
@@ -209,9 +234,9 @@ function initCreatures(layerEl, waterRingLayer) {
     const remainingDelay = Math.max(0, creature.revealAfterSeconds - alreadyElapsed) * 1000;
 
     setTimeout(() => {
-      if (creature.className === "creature-koi") runKoi(img, waterRingLayer);
-      else if (creature.className === "creature-dragonfly") runDragonfly(img);
-      else if (creature.className === "creature-bird") runBird(img);
+      if (creature.className === "creature-koi") runKoi(img, waterRingLayer, chronicle);
+      else if (creature.className === "creature-dragonfly") runDragonfly(img, chronicle);
+      else if (creature.className === "creature-bird") runBird(img, chronicle);
     }, remainingDelay);
   });
 }

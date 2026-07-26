@@ -23,6 +23,22 @@ class Chronicle {
     return this.entries.slice();
   }
 
+  // Hält seltene, bedeutungsvolle Begegnungen fest statt jeder einzelnen
+  // Sichtung: einmal das allererste Erscheinen einer Art, und danach nur,
+  // wenn die letzte Begegnung mit ihr schon lange zurückliegt.
+  recordEncounter(subjectType) {
+    const previous = [...this.entries]
+      .reverse()
+      .find((e) => e.type === "encounter" && e.data && e.data.subjectType === subjectType);
+
+    const now = Date.now();
+    const isFirst = !previous;
+    const hoursSincePrevious = previous ? (now - previous.timestamp) / (1000 * 60 * 60) : null;
+    const isReturn = !isFirst && hoursSincePrevious !== null && hoursSincePrevious >= 20;
+
+    return this.add("encounter", { subjectType, isFirst, isReturn });
+  }
+
   load() {
     try {
       const raw = localStorage.getItem(CHRONICLE_KEY);

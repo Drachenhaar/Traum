@@ -97,7 +97,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   startPresenceTracking(chronicle);
   initThoughtInput(thoughtGarden, chronicle);
-  initCreatures(creatureLayer, waterRingLayer);
+  initCreatures(creatureLayer, waterRingLayer, chronicle);
   initMenuToggle(menuToggle);
 
   initFog(fogLayer);
