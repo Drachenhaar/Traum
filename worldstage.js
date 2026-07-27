@@ -17,6 +17,7 @@ function initWorldStage(stageEl, worldEl) {
   let overflowX = 0;
   let panX = 0;
   let dragging = false;
+  let activePointerId = null;
   let dragStartX = 0;
   let dragStartPan = 0;
   let dragMoved = false;
@@ -64,25 +65,45 @@ function initWorldStage(stageEl, worldEl) {
     return Math.max(-overflowX, Math.min(0, x));
   }
 
+  function endDrag(e) {
+    if (e && activePointerId !== null && e.pointerId !== activePointerId) return;
+    dragging = false;
+    activePointerId = null;
+    try {
+      if (e && stageEl.hasPointerCapture && stageEl.hasPointerCapture(e.pointerId)) {
+        stageEl.releasePointerCapture(e.pointerId);
+      }
+    } catch (err) {
+      // Manche Browser werfen hier in Rand­fällen (z. B. abgebrochene
+      // Touch-Sequenz) – das darf die restliche Bedienung nicht abreißen.
+    }
+  }
+
   function onPointerDown(e) {
     if (overflowX <= 0) return;
     dragging = true;
+    activePointerId = e.pointerId;
     dragMoved = false;
     dragStartX = e.clientX;
     dragStartPan = panX;
-    stageEl.setPointerCapture(e.pointerId);
+    try {
+      stageEl.setPointerCapture(e.pointerId);
+    } catch (err) {
+      // Ohne Capture funktioniert das Ziehen innerhalb des Elements meist
+      // trotzdem – wichtiger ist, dass ein Fehler hier nicht den Rest der
+      // Bedienung (z. B. das Menü) lahmlegt.
+    }
   }
 
   function onPointerMove(e) {
-    if (!dragging) return;
+    if (!dragging || e.pointerId !== activePointerId) return;
     const delta = e.clientX - dragStartX;
     if (Math.abs(delta) > 4) dragMoved = true;
     panX = clampPan(dragStartPan + delta);
     stageEl.style.transform = `translateX(${panX}px)`;
-  }
-
-  function onPointerUp() {
-    dragging = false;
+    // Unterbindet zusätzlich zu touch-action:none, dass der Browser die
+    // Geste selbst als Seiten-Scroll/Bounce interpretiert.
+    if (e.cancelable) e.preventDefault();
   }
 
   // Verhindert, dass ein Wisch-Ende versehentlich als Klick auf ein
@@ -99,9 +120,20 @@ function initWorldStage(stageEl, worldEl) {
   );
 
   stageEl.addEventListener("pointerdown", onPointerDown);
-  stageEl.addEventListener("pointermove", onPointerMove);
-  stageEl.addEventListener("pointerup", onPointerUp);
-  stageEl.addEventListener("pointercancel", onPointerUp);
+  stageEl.addEventListener("pointermove", onPointerMove, { passive: false });
+  stageEl.addEventListener("pointerup", endDrag);
+  stageEl.addEventListener("pointercancel", endDrag);
+
+  // Sicherheitsnetz: Falls das Ende der Geste den Ziel-Handler aus
+  // irgendeinem Grund nicht erreicht (unterbrochene Touch-Sequenz,
+  // Tab-Wechsel mitten in der Geste), bleibt sonst der Zieh-Zustand hängen
+  // und verhält sich bei der nächsten Berührung falsch.
+  window.addEventListener("pointerup", endDrag);
+  window.addEventListener("pointercancel", endDrag);
+  window.addEventListener("blur", () => endDrag(null));
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) endDrag(null);
+  });
 
   window.addEventListener("resize", layout);
 
