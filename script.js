@@ -2,6 +2,11 @@ const world = document.getElementById("world");
 const enterButton = document.getElementById("enterButton");
 const orbLayer = document.getElementById("orbLayer");
 const creatureLayer = document.getElementById("creatureLayer");
+const fogLayer = document.getElementById("fogLayer");
+const lightRayLayer = document.getElementById("lightRayLayer");
+const waterRingLayer = document.getElementById("waterRingLayer");
+const leafLayer = document.getElementById("leafLayer");
+const menuToggle = document.getElementById("menuToggle");
 
 const chronicle = new Chronicle();
 const thoughtGarden = new ThoughtGarden();
@@ -92,5 +97,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   startPresenceTracking(chronicle);
   initThoughtInput(thoughtGarden, chronicle);
-  initCreatures(creatureLayer);
+  initCreatures(creatureLayer, waterRingLayer, chronicle);
+  initMenuToggle(menuToggle);
+
+  initFog(fogLayer);
+  initLightRays(lightRayLayer);
+  startWaterRings(waterRingLayer);
+  startLeaves(leafLayer);
 });
+
+// Verhindert Pinch-Zoom-Gesten auf der Szene (Safari feuert "gesturestart"
+// zusätzlich zu den Touch-Events), damit nichts versehentlich verschoben
+// oder gezoomt wird.
+document.addEventListener("gesturestart", (e) => e.preventDefault());

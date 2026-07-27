@@ -1,0 +1,61 @@
+# Dragoncore – Backlog
+
+Sammelstelle für Aufgaben, die wir uns vorgenommen haben. Kein starrer Plan –
+wir ergänzen, verschieben und verwerfen hier laufend. Grundlage ist der
+Master-Prompt (Vision/Prinzipien), umgesetzt bewusst auf der bestehenden
+HTML/CSS/JS-Basis mit gemaltem Hintergrundbild (kein React/Three.js).
+
+Leitfrage vor jedem Punkt: Fühlt sich das wie ein natürlicher Teil einer
+lebenden Welt an, oder nur wie eine neue Funktion? Wenn Zweiteres, stärker
+in die Welt einbetten statt nur "hinzufügen".
+
+## Erledigt
+
+- Gemaltes Master-Hintergrundbild als visuelle Basis (statt Three.js-Primitiven)
+- Orbs mit gelegentlichen Botschaften
+- Chronicle: Anwesenheits- und Stille-Tracking (`chronicle.js`)
+- ThoughtGarden: Gedanken-Eingabe, gespeichert, tauchen später als Orb-Nachricht wieder auf
+- Koi, Libelle, Vogel als freigestellte Bilder mit individuellen Bewegungs-
+  Zuständen (nicht synchron, unregelmäßig, Koi taucht ab/auf)
+- Nebel, Lichtstrahlen, fallende Blätter, perspektivische Wasserringe
+- Menü-Toggle (UI ausblendbar)
+- Mobile/Touch-Hardening (100dvh, safe-area, touch-action, kein Scroll-Bounce)
+- `prefers-reduced-motion` wird respektiert (JS + CSS-Fallback)
+- Chronicle: echte `encounter`-Einträge (isFirst/isReturn), einmal pro Sitzung
+- GitHub Pages Deployment (live unter drachenhaar.github.io/Traum)
+
+## Nächste Kandidaten (klein, auf jetziger Basis machbar)
+
+- [ ] "Das Buch öffnen"-Button ist aktuell ein toter Klick – sinnvoll verdrahten
+      (z. B. öffnet eine einfache Ansicht der eigenen gespeicherten Gedanken)
+- [ ] Einfache Chronik-Ansicht: bisher nur unsichtbar in localStorage – ein
+      ruhiger Buch-artiger Screen, der die letzten Chronik-Einträge zeigt
+- [ ] Tag/Nacht- bzw. Tageszeit-Lichtstimmung: Hintergrund/Filter dezent an
+      die echte Uhrzeit des Nutzers anpassen (Farbstich, Helligkeit)
+- [ ] Favicon ergänzen (kosmetisch, verursacht aktuell einen 404 pro Ladevorgang)
+- [ ] Erste, sehr einfache "WorldState"-Datenstruktur (visitCount,
+      totalPresenceTime, lastVisitAt) aus den Chronicle-Daten ableiten –
+      Grundlage für spätere Resonanz, ohne noch selbst etwas zu verändern
+
+## Größere Bausteine (bewusst vertagt, brauchen eigene Entscheidung)
+
+- [ ] Kreaturenbuch: Katalog der begegneten Wesen, Infos schalten sich nach
+      wiederholter Begegnung frei (Silhouette → Art → Verhalten → eigener Name)
+- [ ] Resonance Engine: Wahrscheinlichkeiten (Begegnungen, Nebeldichte, Licht)
+      abhängig von Anwesenheitsdauer/Rückkehr-Abstand statt fester Timer
+- [ ] Audio-Schichten (Wind, Wasser, entfernte Vögel) – nur nach Nutzer-
+      Interaktion startend, einzeln deaktivierbar, keine hörbaren kurzen Loops
+- [ ] Weitere Orte (Bibliothek, Tal, Garten) – braucht jeweils eigenes
+      Master-Bild im gleichen Stil
+- [ ] Gedankenwelt als eigener räumlicher Bereich (Außen-/Innenansicht) statt
+      nur Eingabefeld + gelegentliche Orb-Erinnerung
+- [ ] Koloss-Wesen (Drache/Phönix/uralte Schildkröte) – sehr seltene, große,
+      kaum bewegte Erscheinungen; erst sinnvoll mit passendem Artwork
+
+## Offene Fragen / brauchen Input von dir
+
+- Willst du weitere Kreaturen-Bilder in Auftrag geben (Prompts kann ich wie
+  beim Koi/Libelle/Vogel schreiben), oder bleibt es vorerst bei den drei?
+- Soll die Chronik irgendwann sichtbar werden, oder bewusst unsichtbar im
+  Hintergrund bleiben (nur Datenbasis für spätere Resonanz)?
+- Gibt es weitere Orte, die du dir vorstellst, oder bleibt es vorerst beim See?

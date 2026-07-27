@@ -6,9 +6,11 @@ html,
 body {
   margin: 0;
   width: 100%;
-  height: 100%;
+  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   background: #050805;
+  overscroll-behavior: none;
 }
 
 body {
@@ -19,8 +21,10 @@ body {
   position: relative;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   background: #050805;
+  touch-action: manipulation;
 }
 
 .world {
@@ -41,6 +45,68 @@ body {
 .world.zoomed {
   transform: scale(1.13);
   filter: brightness(0.90);
+}
+
+/* Ebene 2: ferne Atmosphäre – Nebel, Lichtstrahlen, Wasserglanz, Wasserringe */
+
+.fog-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.fog-blob {
+  position: absolute;
+  background: radial-gradient(ellipse at center, rgba(222, 232, 212, 0.5), rgba(222, 232, 212, 0) 70%);
+  filter: blur(30px);
+  opacity: 0.16;
+  animation-name: fogDrift;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+  will-change: transform;
+}
+
+@keyframes fogDrift {
+  from {
+    transform: translateX(-4%);
+  }
+
+  to {
+    transform: translateX(4%);
+  }
+}
+
+.light-ray-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.light-ray {
+  position: absolute;
+  background: linear-gradient(180deg, rgba(255, 246, 205, 0.22), rgba(255, 246, 205, 0) 75%);
+  transform-origin: top left;
+  mix-blend-mode: screen;
+  opacity: 0.16;
+  animation-name: rayPulse;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+@keyframes rayPulse {
+  from {
+    opacity: 0.08;
+  }
+
+  to {
+    opacity: 0.22;
+  }
 }
 
 .water-shimmer {
@@ -76,6 +142,79 @@ body {
     transform: translateX(4%) translateY(-8px);
     opacity: 0.22;
   }
+}
+
+.water-ring-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.water-ring {
+  position: absolute;
+  width: 24px;
+  height: 7px;
+  border: 1px solid rgba(255, 250, 225, 0.4);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 0.5;
+  animation: ringExpand var(--ring-duration) ease-out forwards;
+}
+
+@keyframes ringExpand {
+  from {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.45;
+  }
+
+  to {
+    transform: translate(-50%, -50%) scale(var(--ring-scale));
+    opacity: 0;
+  }
+}
+
+/* Ebene 3: Tiere und Orbs */
+
+.creature-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.creature {
+  position: absolute;
+  opacity: 0;
+  --move-duration: 6s;
+  transition: opacity 3s ease, filter 3s ease, left var(--move-duration) ease-in-out, top var(--move-duration) ease-in-out;
+  will-change: left, top, opacity;
+}
+
+.creature.show {
+  opacity: 0.85;
+}
+
+.creature-koi {
+  width: 6%;
+  min-width: 36px;
+}
+
+.creature-koi.diving {
+  opacity: 0.18;
+  filter: blur(1.5px) brightness(0.75);
+}
+
+.creature-dragonfly {
+  width: 3%;
+  min-width: 22px;
+}
+
+.creature-bird {
+  width: 4%;
+  min-width: 26px;
 }
 
 .orb-layer {
@@ -144,6 +283,47 @@ body {
   }
 }
 
+/* Ebene 4: Vordergrund – fallende Blätter */
+
+.leaf-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.leaf {
+  position: absolute;
+  top: -6%;
+  border-radius: 50% 8% 50% 8%;
+  opacity: 0;
+  animation: leafFall linear forwards;
+  filter: blur(0.3px);
+}
+
+@keyframes leafFall {
+  0% {
+    opacity: 0;
+    transform: translateY(0) translateX(0) rotate(var(--rotate-start));
+  }
+
+  8% {
+    opacity: 0.75;
+  }
+
+  85% {
+    opacity: 0.65;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(112vh) translateX(var(--drift)) rotate(var(--rotate-end));
+  }
+}
+
+/* Ebene 5: Benutzeroberfläche */
+
 .ui-layer {
   position: absolute;
   inset: 0;
@@ -151,10 +331,34 @@ body {
   pointer-events: none;
 }
 
+.menu-toggle {
+  position: absolute;
+  top: calc(16px + env(safe-area-inset-top));
+  right: calc(16px + env(safe-area-inset-right));
+  pointer-events: auto;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 247, 220, 0.25);
+  background: rgba(15, 18, 15, 0.4);
+  color: #fff7df;
+  font-size: 1.1rem;
+  line-height: 1;
+  backdrop-filter: blur(8px);
+  touch-action: manipulation;
+  opacity: 0.55;
+  transition: opacity 0.4s ease;
+}
+
+.menu-toggle:hover,
+.menu-toggle:focus-visible {
+  opacity: 0.9;
+}
+
 .enter-button {
   position: absolute;
   left: 50%;
-  bottom: 44px;
+  bottom: calc(44px + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   pointer-events: auto;
   padding: 14px 30px;
@@ -165,6 +369,7 @@ body {
   font-size: 1rem;
   letter-spacing: 0.02em;
   backdrop-filter: blur(8px);
+  touch-action: manipulation;
   transition: opacity 1.4s ease, transform 1.4s ease;
 }
 
@@ -177,7 +382,7 @@ body {
 .book-text {
   position: absolute;
   left: 50%;
-  bottom: 9%;
+  bottom: calc(9% + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   width: min(90vw, 760px);
   text-align: center;
@@ -221,7 +426,9 @@ body {
   color: #fff7df;
   font-size: 1rem;
   backdrop-filter: blur(8px);
+  touch-action: manipulation;
 }
+
 body.zoom-to-book .world {
   transform: scale(2.8);
   transition: transform 1.4s ease-in-out;
@@ -236,8 +443,8 @@ body.zoom-to-book .water-shimmer {
 
 .thought-input {
   position: absolute;
-  left: 28px;
-  bottom: 28px;
+  left: calc(28px + env(safe-area-inset-left));
+  bottom: calc(28px + env(safe-area-inset-bottom));
   pointer-events: auto;
   width: 200px;
   padding: 10px 18px;
@@ -251,6 +458,7 @@ body.zoom-to-book .water-shimmer {
   letter-spacing: 0.02em;
   outline: none;
   opacity: 0;
+  touch-action: manipulation;
   transition: opacity 1.4s ease, border-color 0.6s ease;
 }
 
@@ -269,93 +477,42 @@ body.zoom-to-book .water-shimmer {
   border-color: rgba(255, 247, 220, 0.4);
 }
 
+/* Menü-Toggle: blendet die ruhigen UI-Panels aus, damit nur die Welt bleibt */
+
+body.ui-minimal .book-text,
+body.ui-minimal .enter-button,
+body.ui-minimal .thought-input {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.8s ease;
+}
+
 @media (max-width: 600px) {
   .thought-input {
-    left: 16px;
-    bottom: 16px;
+    left: calc(16px + env(safe-area-inset-left));
+    bottom: calc(16px + env(safe-area-inset-bottom));
     width: 150px;
     font-size: 0.8rem;
     padding: 8px 14px;
   }
 }
 
-.creature-layer {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.creature {
-  position: absolute;
-  opacity: 0;
-  transition: opacity 4s ease;
-}
-
-.creature.show {
-  opacity: 0.85;
-}
-
-.creature-koi {
-  left: 71%;
-  top: 47%;
-  width: 6%;
-  min-width: 36px;
-  animation: koiDrift 22s ease-in-out infinite alternate;
-}
-
-.creature-dragonfly {
-  left: 18%;
-  top: 58%;
-  width: 3%;
-  min-width: 22px;
-  animation: dragonflyDart 9s ease-in-out infinite alternate;
-}
-
-.creature-bird {
-  left: 68%;
-  top: 14%;
-  width: 4%;
-  min-width: 26px;
-  animation: birdGlide 26s ease-in-out infinite alternate;
-}
-
-@keyframes koiDrift {
-  from {
-    transform: translate(0, 0) rotate(-2deg);
+@media (prefers-reduced-motion: reduce) {
+  .water-shimmer,
+  .fog-blob,
+  .light-ray,
+  .orb,
+  .leaf,
+  .water-ring {
+    animation: none !important;
   }
 
-  to {
-    transform: translate(-8%, 4%) rotate(3deg);
+  .creature {
+    transition-duration: 0.6s !important;
+  }
+
+  .world,
+  .world.zoomed {
+    transition-duration: 0.6s !important;
   }
 }
-
-@keyframes dragonflyDart {
-  0% {
-    transform: translate(0, 0);
-  }
-
-  30% {
-    transform: translate(3%, -2%);
-  }
-
-  60% {
-    transform: translate(-2%, 2%);
-  }
-
-  100% {
-    transform: translate(4%, 1%);
-  }
-}
-
-@keyframes birdGlide {
-  from {
-    transform: translate(0, 0);
-  }
-
-  to {
-    transform: translate(-14%, 4%);
-  }
-}
-
