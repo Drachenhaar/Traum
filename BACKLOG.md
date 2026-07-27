@@ -56,11 +56,14 @@ in die Welt einbetten statt nur "hinzufügen".
   Wasserringe/Blätter/Kreaturen sind jetzt sauber start-/stoppbar
   (jedes Modul liefert `{stop()}`), getestet über alle vier Orte inkl.
   Rückwechsel zum See ohne Dopplungen oder Element-Reste
+- Chronik-Ansicht: neuer Tab "Chronik" im Buch (`chronicleui.js`), macht die
+  bisher unsichtbaren Chronicle-Daten als ruhige, erzählende Sätze sichtbar
+  (Anwesenheit, Stille, geborene Gedanken mit Zitat, Begegnungen mit
+  Erstmal/Rückkehr-Unterscheidung), neueste zuerst, mit eigenem Leerzustand-
+  Text ("Noch nichts zu erzählen…") solange keine Einträge vorliegen
 
 ## Nächste Kandidaten (klein, auf jetziger Basis machbar)
 
-- [ ] Einfache Chronik-Ansicht: bisher nur unsichtbar in localStorage – ein
-      ruhiger Buch-artiger Screen, der die letzten Chronik-Einträge zeigt
 - [ ] Tag/Nacht- bzw. Tageszeit-Lichtstimmung: Hintergrund/Filter dezent an
       die echte Uhrzeit des Nutzers anpassen (Farbstich, Helligkeit)
 - [ ] Favicon ergänzen (kosmetisch, verursacht aktuell einen 404 pro Ladevorgang)
@@ -87,5 +90,3 @@ in die Welt einbetten statt nur "hinzufügen".
 
 - Willst du weitere Kreaturen-Bilder in Auftrag geben (Prompts kann ich wie
   beim Koi/Libelle/Vogel schreiben), oder bleibt es vorerst bei den drei?
-- Soll die Chronik irgendwann sichtbar werden, oder bewusst unsichtbar im
-  Hintergrund bleiben (nur Datenbasis für spätere Resonanz)?

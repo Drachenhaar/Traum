@@ -27,6 +27,10 @@ class ThoughtGarden {
     return candidates[Math.floor(Math.random() * candidates.length)];
   }
 
+  getThought(id) {
+    return this.thoughts.find((t) => t.id === id);
+  }
+
   load() {
     try {
       const raw = localStorage.getItem(THOUGHTS_KEY);

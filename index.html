@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Dragoncore 0.5 – Neues Fundament</title>
-  <link rel="stylesheet" href="style.css?v=11" />
+  <link rel="stylesheet" href="style.css?v=12" />
 </head>
 
 <body>
@@ -48,6 +48,7 @@
 
         <div class="book-tabs">
           <button class="book-tab active" data-book-tab="thoughts">Gedanken</button>
+          <button class="book-tab" data-book-tab="chronicle">Chronik</button>
           <button class="book-tab" data-book-tab="places">Orte</button>
         </div>
 
@@ -59,6 +60,14 @@
           <ul id="bookEntries" class="book-entries"></ul>
         </div>
 
+        <div id="bookChronicleSection" class="book-section">
+          <h2 class="book-title">Chronik</h2>
+          <p id="chronicleEmpty" class="book-empty">
+            Noch nichts zu erzählen. Bleib eine Weile, und die Chronik füllt sich von selbst.
+          </p>
+          <ul id="chronicleEntries" class="book-entries"></ul>
+        </div>
+
         <div id="bookPlacesSection" class="book-section">
           <h2 class="book-title">Orte</h2>
           <ul id="placeList" class="place-list"></ul>
@@ -67,20 +76,21 @@
     </div>
   </main>
 
-  <script src="world-utils.js?v=11"></script>
-  <script src="worldstage.js?v=11"></script>
-  <script src="places.js?v=11"></script>
-  <script src="placesui.js?v=11"></script>
-  <script src="chronicle.js?v=11"></script>
-  <script src="thoughts.js?v=11"></script>
-  <script src="book.js?v=11"></script>
-  <script src="fog.js?v=11"></script>
-  <script src="lightrays.js?v=11"></script>
-  <script src="leaves.js?v=11"></script>
-  <script src="waterrings.js?v=11"></script>
-  <script src="creatures.js?v=11"></script>
-  <script src="effects.js?v=11"></script>
-  <script src="menu.js?v=11"></script>
-  <script src="script.js?v=11"></script>
+  <script src="world-utils.js?v=12"></script>
+  <script src="worldstage.js?v=12"></script>
+  <script src="places.js?v=12"></script>
+  <script src="placesui.js?v=12"></script>
+  <script src="chronicle.js?v=12"></script>
+  <script src="thoughts.js?v=12"></script>
+  <script src="chronicleui.js?v=12"></script>
+  <script src="book.js?v=12"></script>
+  <script src="fog.js?v=12"></script>
+  <script src="lightrays.js?v=12"></script>
+  <script src="leaves.js?v=12"></script>
+  <script src="waterrings.js?v=12"></script>
+  <script src="creatures.js?v=12"></script>
+  <script src="effects.js?v=12"></script>
+  <script src="menu.js?v=12"></script>
+  <script src="script.js?v=12"></script>
 </body>
 </html>

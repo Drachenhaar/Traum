@@ -110,7 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
   startPresenceTracking(chronicle);
   initThoughtInput(thoughtGarden, chronicle);
   initMenuToggle(menuToggle);
-  initBook(thoughtGarden, worldStageController, effectsController);
+  initBook(thoughtGarden, chronicle, worldStageController, effectsController);
 });
 
 // Verhindert Pinch-Zoom-Gesten auf der Szene (Safari feuert "gesturestart"
