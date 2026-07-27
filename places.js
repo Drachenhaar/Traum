@@ -9,15 +9,22 @@ const PLACES = [
   {
     id: "bibliothek",
     name: "Die Bibliothek",
-    description: "Entsteht noch.",
-    backgroundSrc: "assets/backgrounds/library.jpg",
-    available: false
+    description: "Wo Wissen wächst.",
+    backgroundSrc: "assets/backgrounds/library.png",
+    available: true
   },
   {
     id: "tal",
     name: "Das Tal",
+    description: "Wo etwas Großes ruht.",
+    backgroundSrc: "assets/backgrounds/valley.png",
+    available: true
+  },
+  {
+    id: "gedankenkuppel",
+    name: "Die Gedankenkuppel",
     description: "Entsteht noch.",
-    backgroundSrc: "assets/backgrounds/valley.jpg",
+    backgroundSrc: "assets/backgrounds/thoughtdome.jpg",
     available: false
   }
 ];

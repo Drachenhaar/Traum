@@ -41,6 +41,9 @@ in die Welt einbetten statt nur "hinzufügen".
   nicht klickbar) – sobald echtes Artwork da ist, reicht `available:true`
   + Bildpfad in `places.js`, Rest funktioniert bereits (getestet mit
   Platzhalter-Bild: Wechsel, Hervorhebung, Persistenz über Reload)
+- Artwork für Die Bibliothek und Das Tal ergänzt (`library.png`,
+  `valley.png`), beide jetzt `available: true` und live durchgetestet
+  (Ort-Wechsel, Hervorhebung im Buch, Darstellung im World-Stage)
 
 ## Nächste Kandidaten (klein, auf jetziger Basis machbar)
 
@@ -52,8 +55,8 @@ in die Welt einbetten statt nur "hinzufügen".
 - [ ] Erste, sehr einfache "WorldState"-Datenstruktur (visitCount,
       totalPresenceTime, lastVisitAt) aus den Chronicle-Daten ableiten –
       Grundlage für spätere Resonanz, ohne noch selbst etwas zu verändern
-- [ ] Artwork für Die Bibliothek und Das Tal ergänzen (Prompts wurden schon
-      geschrieben) – Technik steht, es fehlen nur noch die Bilder
+- [ ] Artwork für Die Gedankenkuppel ergänzen (Prompt geschrieben) – vierter
+      Ort, noch als Platzhalter in `places.js` hinterlegt
 
 ## Größere Bausteine (bewusst vertagt, brauchen eigene Entscheidung)
 
@@ -66,8 +69,10 @@ in die Welt einbetten statt nur "hinzufügen".
 - [ ] Pro-Ort-Effekte: aktuell laufen Nebel/Wasserringe/Koi/Libelle/Vogel
       immer, unabhängig vom gewählten Ort (macht in der Bibliothek z. B.
       keinen Sinn) – braucht ein-/ausschaltbare Effekt-Sets pro Ort
-- [ ] Gedankenwelt als eigener räumlicher Bereich (Außen-/Innenansicht) statt
-      nur Eingabefeld + gelegentliche Orb-Erinnerung
+- [ ] Gedankenwelt als eigener interaktiver räumlicher Bereich (Außen-/
+      Innenansicht, schwebende Gedanken-Cluster) statt nur Eingabefeld +
+      gelegentliche Orb-Erinnerung – die "Gedankenkuppel" als Ort (oben)
+      ist erstmal nur eine gemalte Szene, kein Ersatz dafür
 - [ ] Koloss-Wesen (Drache/Phönix/uralte Schildkröte) – sehr seltene, große,
       kaum bewegte Erscheinungen; erst sinnvoll mit passendem Artwork
 
