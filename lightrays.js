@@ -3,8 +3,10 @@ const LIGHT_RAY_CONFIGS = [
   { left: 2, top: -18, width: 50, height: 150, rotate: 25, duration: 13, delay: -4 }
 ];
 
-function initLightRays(layerEl) {
-  if (!layerEl) return;
+function startLightRays(layerEl) {
+  if (!layerEl) return { stop() {} };
+
+  layerEl.innerHTML = "";
   const reduced = prefersReducedMotion();
 
   LIGHT_RAY_CONFIGS.forEach((cfg) => {
@@ -26,4 +28,10 @@ function initLightRays(layerEl) {
 
     layerEl.appendChild(el);
   });
+
+  return {
+    stop() {
+      layerEl.innerHTML = "";
+    }
+  };
 }

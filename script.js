@@ -7,6 +7,7 @@ const fogLayer = document.getElementById("fogLayer");
 const lightRayLayer = document.getElementById("lightRayLayer");
 const waterRingLayer = document.getElementById("waterRingLayer");
 const leafLayer = document.getElementById("leafLayer");
+const waterShimmerEl = document.getElementById("waterShimmer");
 const menuToggle = document.getElementById("menuToggle");
 
 const chronicle = new Chronicle();
@@ -94,21 +95,22 @@ function startOrbs() {
 
 document.addEventListener("DOMContentLoaded", () => {
   const worldStageController = initWorldStage(worldStage, world);
-  worldStageController.setImage(loadCurrentPlace().backgroundSrc);
+  const effectsController = createEffectsController(
+    { fogLayer, lightRayLayer, waterRingLayer, creatureLayer, leafLayer, waterShimmerEl },
+    chronicle
+  );
+
+  const currentPlace = loadCurrentPlace();
+  worldStageController.setImage(currentPlace.backgroundSrc);
+  effectsController.applyPlace(currentPlace);
 
   enterButton.addEventListener("click", goToBook);
   startOrbs();
 
   startPresenceTracking(chronicle);
   initThoughtInput(thoughtGarden, chronicle);
-  initCreatures(creatureLayer, waterRingLayer, chronicle);
   initMenuToggle(menuToggle);
-  initBook(thoughtGarden, worldStageController);
-
-  initFog(fogLayer);
-  initLightRays(lightRayLayer);
-  startWaterRings(waterRingLayer);
-  startLeaves(leafLayer);
+  initBook(thoughtGarden, worldStageController, effectsController);
 });
 
 // Verhindert Pinch-Zoom-Gesten auf der Szene (Safari feuert "gesturestart"

@@ -47,6 +47,15 @@ in die Welt einbetten statt nur "hinzufügen".
 - Artwork für Die Gedankenkuppel ergänzt (`thoughtdome.png`), jetzt
   vierter aktiver Ort – alle vier Orte (See, Bibliothek, Tal,
   Gedankenkuppel) sind jetzt vollständig nutzbar
+- Pro-Ort-Effekte (`effects.js`): Nebel/Lichtstrahlen/Wasserringe/Blätter/
+  Koi/Libelle/Vogel/Wasserschimmer laufen jetzt nur noch dort, wo sie
+  passen. See: alles an. Tal: Nebel/Strahlen/Blätter/Vogel, kein Wasser
+  (kein stiller See in der Szene). Bibliothek/Gedankenkuppel: nur die
+  Orbs, kein Nebel/Wasser/Getier – dort tragen die gemalten Details
+  (Kerzenlicht, Sternenhimmel) die Stimmung schon allein. Fog/Rays/
+  Wasserringe/Blätter/Kreaturen sind jetzt sauber start-/stoppbar
+  (jedes Modul liefert `{stop()}`), getestet über alle vier Orte inkl.
+  Rückwechsel zum See ohne Dopplungen oder Element-Reste
 
 ## Nächste Kandidaten (klein, auf jetziger Basis machbar)
 
@@ -67,9 +76,6 @@ in die Welt einbetten statt nur "hinzufügen".
       abhängig von Anwesenheitsdauer/Rückkehr-Abstand statt fester Timer
 - [ ] Audio-Schichten (Wind, Wasser, entfernte Vögel) – nur nach Nutzer-
       Interaktion startend, einzeln deaktivierbar, keine hörbaren kurzen Loops
-- [ ] Pro-Ort-Effekte: aktuell laufen Nebel/Wasserringe/Koi/Libelle/Vogel
-      immer, unabhängig vom gewählten Ort (macht in der Bibliothek z. B.
-      keinen Sinn) – braucht ein-/ausschaltbare Effekt-Sets pro Ort
 - [ ] Gedankenwelt als eigener interaktiver räumlicher Bereich (Außen-/
       Innenansicht, schwebende Gedanken-Cluster) statt nur Eingabefeld +
       gelegentliche Orb-Erinnerung – die "Gedankenkuppel" als Ort (oben)

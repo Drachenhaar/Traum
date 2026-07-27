@@ -4,8 +4,10 @@ const FOG_BLOBS = [
   { top: 27, left: 66, width: 50, height: 20, duration: 95, delay: -45 }
 ];
 
-function initFog(layerEl) {
-  if (!layerEl) return;
+function startFog(layerEl) {
+  if (!layerEl) return { stop() {} };
+
+  layerEl.innerHTML = "";
   const reduced = prefersReducedMotion();
 
   FOG_BLOBS.forEach((blob) => {
@@ -26,4 +28,10 @@ function initFog(layerEl) {
 
     layerEl.appendChild(el);
   });
+
+  return {
+    stop() {
+      layerEl.innerHTML = "";
+    }
+  };
 }

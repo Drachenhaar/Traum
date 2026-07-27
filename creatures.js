@@ -1,7 +1,7 @@
 const CREATURE_DEFS = [
-  { className: "creature-koi", src: "assets/creatures/koi.png", revealAfterSeconds: 180 },
-  { className: "creature-dragonfly", src: "assets/creatures/dragonfly.png", revealAfterSeconds: 300 },
-  { className: "creature-bird", src: "assets/creatures/bird.png", revealAfterSeconds: 600 }
+  { key: "koi", className: "creature-koi", src: "assets/creatures/koi.png", revealAfterSeconds: 180 },
+  { key: "dragonfly", className: "creature-dragonfly", src: "assets/creatures/dragonfly.png", revealAfterSeconds: 300 },
+  { key: "bird", className: "creature-bird", src: "assets/creatures/bird.png", revealAfterSeconds: 600 }
 ];
 
 const DRAGONFLY_ZONES = [
@@ -213,12 +213,22 @@ function runBird(imgEl, chronicle) {
   };
 }
 
-function initCreatures(layerEl, waterRingLayer, chronicle) {
-  if (!layerEl) return;
+// Startet nur die Wesen, die für den aktuellen Ort aktiviert sind
+// (cfg.koi / cfg.dragonfly / cfg.bird), und liefert ein stop(), das
+// laufende Verhaltensschleifen beendet und noch ausstehende Reveal-Timer
+// abbricht – wichtig beim Ortswechsel, damit nichts im Hintergrund
+// weiterläuft oder verwaist.
+function startCreatures(layerEl, waterRingLayer, chronicle, cfg = {}) {
+  if (!layerEl) return { stop() {} };
 
+  layerEl.innerHTML = "";
   const start = Date.now();
+  const timeouts = [];
+  const controllers = [];
 
   CREATURE_DEFS.forEach((creature) => {
+    if (!cfg[creature.key]) return;
+
     const img = document.createElement("img");
     img.src = creature.src;
     img.alt = "";
@@ -233,10 +243,22 @@ function initCreatures(layerEl, waterRingLayer, chronicle) {
     const alreadyElapsed = (Date.now() - start) / 1000;
     const remainingDelay = Math.max(0, creature.revealAfterSeconds - alreadyElapsed) * 1000;
 
-    setTimeout(() => {
-      if (creature.className === "creature-koi") runKoi(img, waterRingLayer, chronicle);
-      else if (creature.className === "creature-dragonfly") runDragonfly(img, chronicle);
-      else if (creature.className === "creature-bird") runBird(img, chronicle);
+    const timeoutId = setTimeout(() => {
+      let controller = null;
+      if (creature.key === "koi") controller = runKoi(img, waterRingLayer, chronicle);
+      else if (creature.key === "dragonfly") controller = runDragonfly(img, chronicle);
+      else if (creature.key === "bird") controller = runBird(img, chronicle);
+      if (controller) controllers.push(controller);
     }, remainingDelay);
+
+    timeouts.push(timeoutId);
   });
+
+  return {
+    stop() {
+      timeouts.forEach((id) => clearTimeout(id));
+      controllers.forEach((controller) => controller.stop());
+      layerEl.innerHTML = "";
+    }
+  };
 }
