@@ -4,19 +4,21 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Dragoncore 0.5 – Neues Fundament</title>
-  <link rel="stylesheet" href="style.css?v=08" />
+  <link rel="stylesheet" href="style.css?v=09" />
 </head>
 
 <body>
   <main class="scene">
-    <div id="world" class="world"></div>
-    <div id="fogLayer" class="fog-layer"></div>
-    <div id="lightRayLayer" class="light-ray-layer"></div>
-    <div class="water-shimmer"></div>
-    <div id="waterRingLayer" class="water-ring-layer"></div>
-    <div id="creatureLayer" class="creature-layer"></div>
-    <div id="orbLayer" class="orb-layer"></div>
-    <div id="leafLayer" class="leaf-layer"></div>
+    <div id="worldStage" class="world-stage">
+      <div id="world" class="world"></div>
+      <div id="fogLayer" class="fog-layer"></div>
+      <div id="lightRayLayer" class="light-ray-layer"></div>
+      <div class="water-shimmer"></div>
+      <div id="waterRingLayer" class="water-ring-layer"></div>
+      <div id="creatureLayer" class="creature-layer"></div>
+      <div id="orbLayer" class="orb-layer"></div>
+      <div id="leafLayer" class="leaf-layer"></div>
+    </div>
 
     <div class="ui-layer">
       <button id="menuToggle" class="menu-toggle" aria-label="Oberfläche ein- oder ausblenden">☰</button>
@@ -52,16 +54,17 @@
     </div>
   </main>
 
-  <script src="world-utils.js?v=08"></script>
-  <script src="chronicle.js?v=08"></script>
-  <script src="thoughts.js?v=08"></script>
-  <script src="book.js?v=08"></script>
-  <script src="fog.js?v=08"></script>
-  <script src="lightrays.js?v=08"></script>
-  <script src="leaves.js?v=08"></script>
-  <script src="waterrings.js?v=08"></script>
-  <script src="creatures.js?v=08"></script>
-  <script src="menu.js?v=08"></script>
-  <script src="script.js?v=08"></script>
+  <script src="world-utils.js?v=09"></script>
+  <script src="worldstage.js?v=09"></script>
+  <script src="chronicle.js?v=09"></script>
+  <script src="thoughts.js?v=09"></script>
+  <script src="book.js?v=09"></script>
+  <script src="fog.js?v=09"></script>
+  <script src="lightrays.js?v=09"></script>
+  <script src="leaves.js?v=09"></script>
+  <script src="waterrings.js?v=09"></script>
+  <script src="creatures.js?v=09"></script>
+  <script src="menu.js?v=09"></script>
+  <script src="script.js?v=09"></script>
 </body>
 </html>

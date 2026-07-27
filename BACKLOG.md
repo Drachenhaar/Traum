@@ -26,6 +26,14 @@ in die Welt einbetten statt nur "hinzufügen".
 - "Das Buch öffnen" verdrahtet: zeigt die eigenen gespeicherten Gedanken in
   einem Buch-Overlay (`book.js`), dazu ein dauerhaftes Buch-Icon zum
   Wiederöffnen, ohne die Intro-Sequenz erneut durchlaufen zu müssen
+- Bugfix: Hintergrund wurde per `background-size: cover` bildschirmformat-
+  abhängig zugeschnitten, wodurch Prozent-Positionen (Wasserringe, Koi,
+  Libelle) auf schmalen Screens nicht mehr zum tatsächlichen Bildinhalt
+  passten. Jetzt läuft alles über `worldstage.js`: eine Bühne in echter
+  Bildgröße, die auf schmalen Screens breiter als der Viewport ist und
+  sich per Wisch-/Ziehgeste horizontal verschieben lässt – löst beides:
+  korrekte Positionen unabhängig vom Seitenverhältnis, und Mobile kann
+  jetzt links/rechts wischen, um die abgeschnittenen Bildteile zu sehen
 
 ## Nächste Kandidaten (klein, auf jetziger Basis machbar)
 

@@ -27,6 +27,18 @@ body {
   touch-action: manipulation;
 }
 
+/* Wird per JS (worldstage.js) exakt auf die Bildgröße (Seitenverhältnis-
+   treu) skaliert und horizontal verschiebbar gemacht, damit Prozent-
+   Positionen von Effekten/Wesen unabhängig vom Bildschirmformat mit dem
+   tatsächlichen Bildinhalt übereinstimmen und man auf schmalen Screens
+   die abgeschnittenen Seiten per Wischen/Ziehen sehen kann. */
+.world-stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  touch-action: none;
+}
+
 .world {
   position: absolute;
   inset: 0;

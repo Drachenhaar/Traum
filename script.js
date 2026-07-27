@@ -1,4 +1,5 @@
 const world = document.getElementById("world");
+const worldStage = document.getElementById("worldStage");
 const enterButton = document.getElementById("enterButton");
 const orbLayer = document.getElementById("orbLayer");
 const creatureLayer = document.getElementById("creatureLayer");
@@ -92,6 +93,8 @@ function startOrbs() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  initWorldStage(worldStage);
+
   enterButton.addEventListener("click", goToBook);
   startOrbs();
 
