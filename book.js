@@ -33,17 +33,31 @@ function renderThoughtBook(thoughtGarden, listEl, emptyEl) {
   });
 }
 
-function initBook(thoughtGarden) {
+function initBook(thoughtGarden, worldStageController) {
   const overlay = document.getElementById("bookOverlay");
   const listEl = document.getElementById("bookEntries");
   const emptyEl = document.getElementById("bookEmpty");
   const closeButton = document.getElementById("bookCloseButton");
   const openTriggers = document.querySelectorAll("[data-open-book]");
+  const tabs = document.querySelectorAll(".book-tab");
+  const placeListEl = document.getElementById("placeList");
+  const sections = {
+    thoughts: document.getElementById("bookThoughtsSection"),
+    places: document.getElementById("bookPlacesSection")
+  };
 
   if (!overlay || !listEl || !emptyEl) return;
 
+  function activateTab(name) {
+    tabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.bookTab === name));
+    Object.entries(sections).forEach(([key, el]) => {
+      if (el) el.classList.toggle("active", key === name);
+    });
+  }
+
   function open() {
     renderThoughtBook(thoughtGarden, listEl, emptyEl);
+    if (placeListEl) renderPlaceList(placeListEl, worldStageController);
     overlay.classList.add("open");
     overlay.setAttribute("aria-hidden", "false");
   }
@@ -52,6 +66,10 @@ function initBook(thoughtGarden) {
     overlay.classList.remove("open");
     overlay.setAttribute("aria-hidden", "true");
   }
+
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => activateTab(tab.dataset.bookTab));
+  });
 
   openTriggers.forEach((btn) => btn.addEventListener("click", open));
 

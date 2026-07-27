@@ -93,7 +93,8 @@ function startOrbs() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  initWorldStage(worldStage);
+  const worldStageController = initWorldStage(worldStage, world);
+  worldStageController.setImage(loadCurrentPlace().backgroundSrc);
 
   enterButton.addEventListener("click", goToBook);
   startOrbs();
@@ -102,7 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initThoughtInput(thoughtGarden, chronicle);
   initCreatures(creatureLayer, waterRingLayer, chronicle);
   initMenuToggle(menuToggle);
-  initBook(thoughtGarden);
+  initBook(thoughtGarden, worldStageController);
 
   initFog(fogLayer);
   initLightRays(lightRayLayer);

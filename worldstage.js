@@ -4,11 +4,14 @@
 // tatsächlichen Bildinhalt überein – unabhängig vom Seitenverhältnis des
 // Geräts – und auf schmalen (mobilen) Bildschirmen kann man per Wischen/
 // Ziehen die links/rechts abgeschnittenen Teile des Bilds sehen.
-const WORLD_IMAGE_SRC = "assets/backgrounds/DC9D9291-52A5-43BA-9F8B-A3D1960C30E2.png";
+//
+// Unterstützt außerdem einen Bildwechsel zur Laufzeit (setImage), damit
+// sich zwischen Orten wechseln lässt, ohne die Pan-/Touch-Logik neu
+// aufzusetzen.
 const WORLD_IMAGE_FALLBACK_ASPECT = 1536 / 1024;
 
-function initWorldStage(stageEl) {
-  if (!stageEl) return;
+function initWorldStage(stageEl, worldEl) {
+  if (!stageEl) return null;
 
   let imgAspect = WORLD_IMAGE_FALLBACK_ASPECT;
   let overflowX = 0;
@@ -105,13 +108,28 @@ function initWorldStage(stageEl) {
   layout();
   centerPan();
 
-  const probe = new Image();
-  probe.onload = () => {
-    if (probe.naturalWidth && probe.naturalHeight) {
-      imgAspect = probe.naturalWidth / probe.naturalHeight;
+  function setImage(src) {
+    if (worldEl) {
+      worldEl.style.setProperty("--world-bg", `url("${src}")`);
+    }
+
+    const probe = new Image();
+    probe.onload = () => {
+      if (probe.naturalWidth && probe.naturalHeight) {
+        imgAspect = probe.naturalWidth / probe.naturalHeight;
+      } else {
+        imgAspect = WORLD_IMAGE_FALLBACK_ASPECT;
+      }
       layout();
       centerPan();
-    }
-  };
-  probe.src = WORLD_IMAGE_SRC;
+    };
+    probe.onerror = () => {
+      imgAspect = WORLD_IMAGE_FALLBACK_ASPECT;
+      layout();
+      centerPan();
+    };
+    probe.src = src;
+  }
+
+  return { setImage };
 }

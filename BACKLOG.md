@@ -34,6 +34,13 @@ in die Welt einbetten statt nur "hinzufügen".
   sich per Wisch-/Ziehgeste horizontal verschieben lässt – löst beides:
   korrekte Positionen unabhängig vom Seitenverhältnis, und Mobile kann
   jetzt links/rechts wischen, um die abgeschnittenen Bildteile zu sehen
+- Orte-Gerüst: `places.js` (Datenmodell), `placesui.js` (Karten-Rendering),
+  `worldstage.js` kann den Hintergrund jetzt zur Laufzeit wechseln
+  (`setImage`). Karten-Seite im Buch (Tab "Orte") zeigt Der stille See
+  (aktiv), Die Bibliothek und Das Tal (beide "entsteht noch", grau,
+  nicht klickbar) – sobald echtes Artwork da ist, reicht `available:true`
+  + Bildpfad in `places.js`, Rest funktioniert bereits (getestet mit
+  Platzhalter-Bild: Wechsel, Hervorhebung, Persistenz über Reload)
 
 ## Nächste Kandidaten (klein, auf jetziger Basis machbar)
 
@@ -45,6 +52,8 @@ in die Welt einbetten statt nur "hinzufügen".
 - [ ] Erste, sehr einfache "WorldState"-Datenstruktur (visitCount,
       totalPresenceTime, lastVisitAt) aus den Chronicle-Daten ableiten –
       Grundlage für spätere Resonanz, ohne noch selbst etwas zu verändern
+- [ ] Artwork für Die Bibliothek und Das Tal ergänzen (Prompts wurden schon
+      geschrieben) – Technik steht, es fehlen nur noch die Bilder
 
 ## Größere Bausteine (bewusst vertagt, brauchen eigene Entscheidung)
 
@@ -54,8 +63,9 @@ in die Welt einbetten statt nur "hinzufügen".
       abhängig von Anwesenheitsdauer/Rückkehr-Abstand statt fester Timer
 - [ ] Audio-Schichten (Wind, Wasser, entfernte Vögel) – nur nach Nutzer-
       Interaktion startend, einzeln deaktivierbar, keine hörbaren kurzen Loops
-- [ ] Weitere Orte (Bibliothek, Tal, Garten) – braucht jeweils eigenes
-      Master-Bild im gleichen Stil
+- [ ] Pro-Ort-Effekte: aktuell laufen Nebel/Wasserringe/Koi/Libelle/Vogel
+      immer, unabhängig vom gewählten Ort (macht in der Bibliothek z. B.
+      keinen Sinn) – braucht ein-/ausschaltbare Effekt-Sets pro Ort
 - [ ] Gedankenwelt als eigener räumlicher Bereich (Außen-/Innenansicht) statt
       nur Eingabefeld + gelegentliche Orb-Erinnerung
 - [ ] Koloss-Wesen (Drache/Phönix/uralte Schildkröte) – sehr seltene, große,
@@ -67,4 +77,3 @@ in die Welt einbetten statt nur "hinzufügen".
   beim Koi/Libelle/Vogel schreiben), oder bleibt es vorerst bei den drei?
 - Soll die Chronik irgendwann sichtbar werden, oder bewusst unsichtbar im
   Hintergrund bleiben (nur Datenbasis für spätere Resonanz)?
-- Gibt es weitere Orte, die du dir vorstellst, oder bleibt es vorerst beim See?
