@@ -61,6 +61,9 @@ in die Welt einbetten statt nur "hinzufügen".
   (Anwesenheit, Stille, geborene Gedanken mit Zitat, Begegnungen mit
   Erstmal/Rückkehr-Unterscheidung), neueste zuerst, mit eigenem Leerzustand-
   Text ("Noch nichts zu erzählen…") solange keine Einträge vorliegen
+- Chronik nach Tagen gruppiert (Zwischenüberschriften "Heute"/"Gestern"/
+  volles Datum), Einträge zeigen darunter nur noch die Uhrzeit statt des
+  vollen Datums – deutlich übersichtlicher bei vielen Einträgen
 
 ## Nächste Kandidaten (klein, auf jetziger Basis machbar)
 

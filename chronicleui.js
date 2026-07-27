@@ -6,11 +6,23 @@ const CHRONICLE_SUBJECT_NAMES = {
 
 const CHRONICLE_DISPLAY_LIMIT = 80;
 
-function formatChronicleTimestamp(timestamp) {
+function startOfDay(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+}
+
+// "Heute" / "Gestern" für die letzten beiden Tage, sonst ein voller,
+// gut lesbarer Datumsname – dient als Überschrift, unter der mehrere
+// Einträge desselben Tages gruppiert werden.
+function formatChronicleDayLabel(timestamp) {
   const date = new Date(timestamp);
-  const datePart = date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
-  const timePart = date.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
-  return `${datePart} · ${timePart}`;
+  const diffDays = Math.round((startOfDay(new Date()) - startOfDay(date)) / 86400000);
+  if (diffDays === 0) return "Heute";
+  if (diffDays === 1) return "Gestern";
+  return date.toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+}
+
+function formatChronicleTime(timestamp) {
+  return new Date(timestamp).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) + " Uhr";
 }
 
 // Übersetzt einen rohen Chronik-Eintrag in einen ruhigen, lesbaren Satz.
@@ -68,7 +80,18 @@ function renderChronicleBook(chronicle, thoughtGarden, listEl, emptyEl) {
   }
   emptyEl.style.display = "none";
 
+  let lastDayKey = null;
+
   entries.forEach(({ entry, text }) => {
+    const dayKey = startOfDay(new Date(entry.timestamp));
+    if (dayKey !== lastDayKey) {
+      const heading = document.createElement("li");
+      heading.className = "chronicle-day-heading";
+      heading.textContent = formatChronicleDayLabel(entry.timestamp);
+      listEl.appendChild(heading);
+      lastDayKey = dayKey;
+    }
+
     const item = document.createElement("li");
     item.className = "book-entry";
 
@@ -78,7 +101,7 @@ function renderChronicleBook(chronicle, thoughtGarden, listEl, emptyEl) {
 
     const meta = document.createElement("span");
     meta.className = "book-entry-date";
-    meta.textContent = formatChronicleTimestamp(entry.timestamp);
+    meta.textContent = formatChronicleTime(entry.timestamp);
 
     item.appendChild(line);
     item.appendChild(meta);
