@@ -560,6 +560,19 @@ body {
   border-bottom: 1px solid rgba(255, 230, 180, 0.12);
 }
 
+.chronicle-day-heading {
+  margin: 6px 0 -6px;
+  text-align: center;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(243, 230, 200, 0.5);
+}
+
+.chronicle-day-heading:first-child {
+  margin-top: 0;
+}
+
 .book-entry-text {
   margin: 0 0 6px;
   line-height: 1.5;
