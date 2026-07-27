@@ -23,11 +23,33 @@ in die Welt einbetten statt nur "hinzufügen".
 - `prefers-reduced-motion` wird respektiert (JS + CSS-Fallback)
 - Chronicle: echte `encounter`-Einträge (isFirst/isReturn), einmal pro Sitzung
 - GitHub Pages Deployment (live unter drachenhaar.github.io/Traum)
+- "Das Buch öffnen" verdrahtet: zeigt die eigenen gespeicherten Gedanken in
+  einem Buch-Overlay (`book.js`), dazu ein dauerhaftes Buch-Icon zum
+  Wiederöffnen, ohne die Intro-Sequenz erneut durchlaufen zu müssen
+- Bugfix: Hintergrund wurde per `background-size: cover` bildschirmformat-
+  abhängig zugeschnitten, wodurch Prozent-Positionen (Wasserringe, Koi,
+  Libelle) auf schmalen Screens nicht mehr zum tatsächlichen Bildinhalt
+  passten. Jetzt läuft alles über `worldstage.js`: eine Bühne in echter
+  Bildgröße, die auf schmalen Screens breiter als der Viewport ist und
+  sich per Wisch-/Ziehgeste horizontal verschieben lässt – löst beides:
+  korrekte Positionen unabhängig vom Seitenverhältnis, und Mobile kann
+  jetzt links/rechts wischen, um die abgeschnittenen Bildteile zu sehen
+- Orte-Gerüst: `places.js` (Datenmodell), `placesui.js` (Karten-Rendering),
+  `worldstage.js` kann den Hintergrund jetzt zur Laufzeit wechseln
+  (`setImage`). Karten-Seite im Buch (Tab "Orte") zeigt Der stille See
+  (aktiv), Die Bibliothek und Das Tal (beide "entsteht noch", grau,
+  nicht klickbar) – sobald echtes Artwork da ist, reicht `available:true`
+  + Bildpfad in `places.js`, Rest funktioniert bereits (getestet mit
+  Platzhalter-Bild: Wechsel, Hervorhebung, Persistenz über Reload)
+- Artwork für Die Bibliothek und Das Tal ergänzt (`library.png`,
+  `valley.png`), beide jetzt `available: true` und live durchgetestet
+  (Ort-Wechsel, Hervorhebung im Buch, Darstellung im World-Stage)
+- Artwork für Die Gedankenkuppel ergänzt (`thoughtdome.png`), jetzt
+  vierter aktiver Ort – alle vier Orte (See, Bibliothek, Tal,
+  Gedankenkuppel) sind jetzt vollständig nutzbar
 
 ## Nächste Kandidaten (klein, auf jetziger Basis machbar)
 
-- [ ] "Das Buch öffnen"-Button ist aktuell ein toter Klick – sinnvoll verdrahten
-      (z. B. öffnet eine einfache Ansicht der eigenen gespeicherten Gedanken)
 - [ ] Einfache Chronik-Ansicht: bisher nur unsichtbar in localStorage – ein
       ruhiger Buch-artiger Screen, der die letzten Chronik-Einträge zeigt
 - [ ] Tag/Nacht- bzw. Tageszeit-Lichtstimmung: Hintergrund/Filter dezent an
@@ -45,10 +67,13 @@ in die Welt einbetten statt nur "hinzufügen".
       abhängig von Anwesenheitsdauer/Rückkehr-Abstand statt fester Timer
 - [ ] Audio-Schichten (Wind, Wasser, entfernte Vögel) – nur nach Nutzer-
       Interaktion startend, einzeln deaktivierbar, keine hörbaren kurzen Loops
-- [ ] Weitere Orte (Bibliothek, Tal, Garten) – braucht jeweils eigenes
-      Master-Bild im gleichen Stil
-- [ ] Gedankenwelt als eigener räumlicher Bereich (Außen-/Innenansicht) statt
-      nur Eingabefeld + gelegentliche Orb-Erinnerung
+- [ ] Pro-Ort-Effekte: aktuell laufen Nebel/Wasserringe/Koi/Libelle/Vogel
+      immer, unabhängig vom gewählten Ort (macht in der Bibliothek z. B.
+      keinen Sinn) – braucht ein-/ausschaltbare Effekt-Sets pro Ort
+- [ ] Gedankenwelt als eigener interaktiver räumlicher Bereich (Außen-/
+      Innenansicht, schwebende Gedanken-Cluster) statt nur Eingabefeld +
+      gelegentliche Orb-Erinnerung – die "Gedankenkuppel" als Ort (oben)
+      ist erstmal nur eine gemalte Szene, kein Ersatz dafür
 - [ ] Koloss-Wesen (Drache/Phönix/uralte Schildkröte) – sehr seltene, große,
       kaum bewegte Erscheinungen; erst sinnvoll mit passendem Artwork
 
@@ -58,4 +83,3 @@ in die Welt einbetten statt nur "hinzufügen".
   beim Koi/Libelle/Vogel schreiben), oder bleibt es vorerst bei den drei?
 - Soll die Chronik irgendwann sichtbar werden, oder bewusst unsichtbar im
   Hintergrund bleiben (nur Datenbasis für spätere Resonanz)?
-- Gibt es weitere Orte, die du dir vorstellst, oder bleibt es vorerst beim See?

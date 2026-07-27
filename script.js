@@ -1,4 +1,5 @@
 const world = document.getElementById("world");
+const worldStage = document.getElementById("worldStage");
 const enterButton = document.getElementById("enterButton");
 const orbLayer = document.getElementById("orbLayer");
 const creatureLayer = document.getElementById("creatureLayer");
@@ -92,6 +93,9 @@ function startOrbs() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  const worldStageController = initWorldStage(worldStage, world);
+  worldStageController.setImage(loadCurrentPlace().backgroundSrc);
+
   enterButton.addEventListener("click", goToBook);
   startOrbs();
 
@@ -99,6 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initThoughtInput(thoughtGarden, chronicle);
   initCreatures(creatureLayer, waterRingLayer, chronicle);
   initMenuToggle(menuToggle);
+  initBook(thoughtGarden, worldStageController);
 
   initFog(fogLayer);
   initLightRays(lightRayLayer);

@@ -4,22 +4,25 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Dragoncore 0.5 – Neues Fundament</title>
-  <link rel="stylesheet" href="style.css?v=07" />
+  <link rel="stylesheet" href="style.css?v=10" />
 </head>
 
 <body>
   <main class="scene">
-    <div id="world" class="world"></div>
-    <div id="fogLayer" class="fog-layer"></div>
-    <div id="lightRayLayer" class="light-ray-layer"></div>
-    <div class="water-shimmer"></div>
-    <div id="waterRingLayer" class="water-ring-layer"></div>
-    <div id="creatureLayer" class="creature-layer"></div>
-    <div id="orbLayer" class="orb-layer"></div>
-    <div id="leafLayer" class="leaf-layer"></div>
+    <div id="worldStage" class="world-stage">
+      <div id="world" class="world" style="--world-bg: url('assets/backgrounds/DC9D9291-52A5-43BA-9F8B-A3D1960C30E2.png')"></div>
+      <div id="fogLayer" class="fog-layer"></div>
+      <div id="lightRayLayer" class="light-ray-layer"></div>
+      <div class="water-shimmer"></div>
+      <div id="waterRingLayer" class="water-ring-layer"></div>
+      <div id="creatureLayer" class="creature-layer"></div>
+      <div id="orbLayer" class="orb-layer"></div>
+      <div id="leafLayer" class="leaf-layer"></div>
+    </div>
 
     <div class="ui-layer">
       <button id="menuToggle" class="menu-toggle" aria-label="Oberfläche ein- oder ausblenden">☰</button>
+      <button id="bookToggle" class="book-toggle" data-open-book aria-label="Dein Buch öffnen">📖</button>
       <button id="enterButton" class="enter-button">✦ Zum Buch gehen</button>
 
       <section class="book-text" aria-live="polite">
@@ -27,7 +30,7 @@
         <p class="reveal" data-delay="4300">Willkommen.</p>
         <p class="reveal" data-delay="7800">Dies ist kein Ort, der von dir verlangt, jemand anderes zu werden.</p>
         <p class="reveal" data-delay="12000">Vielleicht erinnert er dich einfach daran, wer du schon bist.</p>
-        <button class="reveal open-book-button" data-delay="16000">Das Buch öffnen</button>
+        <button class="reveal open-book-button" data-delay="16000" data-open-book>Das Buch öffnen</button>
       </section>
 
       <input
@@ -38,17 +41,45 @@
         autocomplete="off"
       />
     </div>
+
+    <div id="bookOverlay" class="book-overlay" aria-hidden="true">
+      <div class="book-page">
+        <button id="bookCloseButton" class="book-close" aria-label="Buch schließen">✕</button>
+
+        <div class="book-tabs">
+          <button class="book-tab active" data-book-tab="thoughts">Gedanken</button>
+          <button class="book-tab" data-book-tab="places">Orte</button>
+        </div>
+
+        <div id="bookThoughtsSection" class="book-section active">
+          <h2 class="book-title">Dein Buch der Gedanken</h2>
+          <p id="bookEmpty" class="book-empty">
+            Noch keine Gedanken gesammelt. Schreib unten links etwas hinein, und es findet seinen Weg hierher.
+          </p>
+          <ul id="bookEntries" class="book-entries"></ul>
+        </div>
+
+        <div id="bookPlacesSection" class="book-section">
+          <h2 class="book-title">Orte</h2>
+          <ul id="placeList" class="place-list"></ul>
+        </div>
+      </div>
+    </div>
   </main>
 
-  <script src="world-utils.js?v=07"></script>
-  <script src="chronicle.js?v=07"></script>
-  <script src="thoughts.js?v=07"></script>
-  <script src="fog.js?v=07"></script>
-  <script src="lightrays.js?v=07"></script>
-  <script src="leaves.js?v=07"></script>
-  <script src="waterrings.js?v=07"></script>
-  <script src="creatures.js?v=07"></script>
-  <script src="menu.js?v=07"></script>
-  <script src="script.js?v=07"></script>
+  <script src="world-utils.js?v=10"></script>
+  <script src="worldstage.js?v=10"></script>
+  <script src="places.js?v=10"></script>
+  <script src="placesui.js?v=10"></script>
+  <script src="chronicle.js?v=10"></script>
+  <script src="thoughts.js?v=10"></script>
+  <script src="book.js?v=10"></script>
+  <script src="fog.js?v=10"></script>
+  <script src="lightrays.js?v=10"></script>
+  <script src="leaves.js?v=10"></script>
+  <script src="waterrings.js?v=10"></script>
+  <script src="creatures.js?v=10"></script>
+  <script src="menu.js?v=10"></script>
+  <script src="script.js?v=10"></script>
 </body>
 </html>
