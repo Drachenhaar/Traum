@@ -99,6 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initThoughtInput(thoughtGarden, chronicle);
   initCreatures(creatureLayer, waterRingLayer, chronicle);
   initMenuToggle(menuToggle);
+  initBook(thoughtGarden);
 
   initFog(fogLayer);
   initLightRays(lightRayLayer);

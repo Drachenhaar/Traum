@@ -355,6 +355,130 @@ body {
   opacity: 0.9;
 }
 
+.book-toggle {
+  position: absolute;
+  top: calc(66px + env(safe-area-inset-top));
+  right: calc(16px + env(safe-area-inset-right));
+  pointer-events: auto;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 247, 220, 0.25);
+  background: rgba(15, 18, 15, 0.4);
+  color: #fff7df;
+  font-size: 1.05rem;
+  line-height: 1;
+  backdrop-filter: blur(8px);
+  touch-action: manipulation;
+  opacity: 0.55;
+  transition: opacity 0.4s ease;
+}
+
+.book-toggle:hover,
+.book-toggle:focus-visible {
+  opacity: 0.9;
+}
+
+.book-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding:
+    calc(24px + env(safe-area-inset-top))
+    calc(24px + env(safe-area-inset-right))
+    calc(24px + env(safe-area-inset-bottom))
+    calc(24px + env(safe-area-inset-left));
+  background: rgba(5, 8, 5, 0);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.6s ease, background 0.6s ease;
+}
+
+.book-overlay.open {
+  pointer-events: auto;
+  opacity: 1;
+  background: rgba(5, 8, 5, 0.55);
+  backdrop-filter: blur(3px);
+}
+
+.book-page {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: min(78vh, 640px);
+  overflow-y: auto;
+  padding: 36px 30px 30px;
+  border-radius: 14px;
+  background: linear-gradient(160deg, rgba(41, 34, 22, 0.92), rgba(24, 20, 14, 0.94));
+  border: 1px solid rgba(255, 230, 180, 0.18);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  color: #f3e6c8;
+  font-family: Georgia, "Times New Roman", serif;
+  transform: translateY(16px) scale(0.98);
+  transition: transform 0.6s ease;
+}
+
+.book-overlay.open .book-page {
+  transform: translateY(0) scale(1);
+}
+
+.book-title {
+  margin: 0 0 18px;
+  font-size: 1.3rem;
+  letter-spacing: 0.06em;
+  text-align: center;
+  color: #fff2d4;
+}
+
+.book-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 230, 180, 0.25);
+  background: rgba(0, 0, 0, 0.25);
+  color: #f3e6c8;
+  touch-action: manipulation;
+}
+
+.book-empty {
+  text-align: center;
+  font-style: italic;
+  opacity: 0.75;
+  line-height: 1.6;
+}
+
+.book-entries {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.book-entry {
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 230, 180, 0.12);
+}
+
+.book-entry-text {
+  margin: 0 0 6px;
+  line-height: 1.5;
+  font-size: 1.02rem;
+  white-space: pre-wrap;
+}
+
+.book-entry-date {
+  font-size: 0.75rem;
+  opacity: 0.55;
+  letter-spacing: 0.03em;
+}
+
 .enter-button {
   position: absolute;
   left: 50%;

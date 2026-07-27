@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Dragoncore 0.5 – Neues Fundament</title>
-  <link rel="stylesheet" href="style.css?v=07" />
+  <link rel="stylesheet" href="style.css?v=08" />
 </head>
 
 <body>
@@ -20,6 +20,7 @@
 
     <div class="ui-layer">
       <button id="menuToggle" class="menu-toggle" aria-label="Oberfläche ein- oder ausblenden">☰</button>
+      <button id="bookToggle" class="book-toggle" data-open-book aria-label="Dein Buch öffnen">📖</button>
       <button id="enterButton" class="enter-button">✦ Zum Buch gehen</button>
 
       <section class="book-text" aria-live="polite">
@@ -27,7 +28,7 @@
         <p class="reveal" data-delay="4300">Willkommen.</p>
         <p class="reveal" data-delay="7800">Dies ist kein Ort, der von dir verlangt, jemand anderes zu werden.</p>
         <p class="reveal" data-delay="12000">Vielleicht erinnert er dich einfach daran, wer du schon bist.</p>
-        <button class="reveal open-book-button" data-delay="16000">Das Buch öffnen</button>
+        <button class="reveal open-book-button" data-delay="16000" data-open-book>Das Buch öffnen</button>
       </section>
 
       <input
@@ -38,17 +39,29 @@
         autocomplete="off"
       />
     </div>
+
+    <div id="bookOverlay" class="book-overlay" aria-hidden="true">
+      <div class="book-page">
+        <button id="bookCloseButton" class="book-close" aria-label="Buch schließen">✕</button>
+        <h2 class="book-title">Dein Buch der Gedanken</h2>
+        <p id="bookEmpty" class="book-empty">
+          Noch keine Gedanken gesammelt. Schreib unten links etwas hinein, und es findet seinen Weg hierher.
+        </p>
+        <ul id="bookEntries" class="book-entries"></ul>
+      </div>
+    </div>
   </main>
 
-  <script src="world-utils.js?v=07"></script>
-  <script src="chronicle.js?v=07"></script>
-  <script src="thoughts.js?v=07"></script>
-  <script src="fog.js?v=07"></script>
-  <script src="lightrays.js?v=07"></script>
-  <script src="leaves.js?v=07"></script>
-  <script src="waterrings.js?v=07"></script>
-  <script src="creatures.js?v=07"></script>
-  <script src="menu.js?v=07"></script>
-  <script src="script.js?v=07"></script>
+  <script src="world-utils.js?v=08"></script>
+  <script src="chronicle.js?v=08"></script>
+  <script src="thoughts.js?v=08"></script>
+  <script src="book.js?v=08"></script>
+  <script src="fog.js?v=08"></script>
+  <script src="lightrays.js?v=08"></script>
+  <script src="leaves.js?v=08"></script>
+  <script src="waterrings.js?v=08"></script>
+  <script src="creatures.js?v=08"></script>
+  <script src="menu.js?v=08"></script>
+  <script src="script.js?v=08"></script>
 </body>
 </html>

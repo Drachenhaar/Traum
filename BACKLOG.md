@@ -23,11 +23,12 @@ in die Welt einbetten statt nur "hinzufügen".
 - `prefers-reduced-motion` wird respektiert (JS + CSS-Fallback)
 - Chronicle: echte `encounter`-Einträge (isFirst/isReturn), einmal pro Sitzung
 - GitHub Pages Deployment (live unter drachenhaar.github.io/Traum)
+- "Das Buch öffnen" verdrahtet: zeigt die eigenen gespeicherten Gedanken in
+  einem Buch-Overlay (`book.js`), dazu ein dauerhaftes Buch-Icon zum
+  Wiederöffnen, ohne die Intro-Sequenz erneut durchlaufen zu müssen
 
 ## Nächste Kandidaten (klein, auf jetziger Basis machbar)
 
-- [ ] "Das Buch öffnen"-Button ist aktuell ein toter Klick – sinnvoll verdrahten
-      (z. B. öffnet eine einfache Ansicht der eigenen gespeicherten Gedanken)
 - [ ] Einfache Chronik-Ansicht: bisher nur unsichtbar in localStorage – ein
       ruhiger Buch-artiger Screen, der die letzten Chronik-Einträge zeigt
 - [ ] Tag/Nacht- bzw. Tageszeit-Lichtstimmung: Hintergrund/Filter dezent an
