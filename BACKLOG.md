@@ -44,6 +44,9 @@ in die Welt einbetten statt nur "hinzufügen".
 - Artwork für Die Bibliothek und Das Tal ergänzt (`library.png`,
   `valley.png`), beide jetzt `available: true` und live durchgetestet
   (Ort-Wechsel, Hervorhebung im Buch, Darstellung im World-Stage)
+- Artwork für Die Gedankenkuppel ergänzt (`thoughtdome.png`), jetzt
+  vierter aktiver Ort – alle vier Orte (See, Bibliothek, Tal,
+  Gedankenkuppel) sind jetzt vollständig nutzbar
 
 ## Nächste Kandidaten (klein, auf jetziger Basis machbar)
 
@@ -55,8 +58,6 @@ in die Welt einbetten statt nur "hinzufügen".
 - [ ] Erste, sehr einfache "WorldState"-Datenstruktur (visitCount,
       totalPresenceTime, lastVisitAt) aus den Chronicle-Daten ableiten –
       Grundlage für spätere Resonanz, ohne noch selbst etwas zu verändern
-- [ ] Artwork für Die Gedankenkuppel ergänzen (Prompt geschrieben) – vierter
-      Ort, noch als Platzhalter in `places.js` hinterlegt
 
 ## Größere Bausteine (bewusst vertagt, brauchen eigene Entscheidung)
 

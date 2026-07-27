@@ -23,9 +23,9 @@ const PLACES = [
   {
     id: "gedankenkuppel",
     name: "Die Gedankenkuppel",
-    description: "Entsteht noch.",
-    backgroundSrc: "assets/backgrounds/thoughtdome.jpg",
-    available: false
+    description: "Wo Gedanken zur Ruhe kommen.",
+    backgroundSrc: "assets/backgrounds/thoughtdome.png",
+    available: true
   }
 ];
 
