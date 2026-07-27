@@ -25,14 +25,26 @@ function spawnLeaf(layerEl) {
 }
 
 function startLeaves(layerEl) {
-  if (!layerEl || prefersReducedMotion()) return;
+  if (!layerEl || prefersReducedMotion()) return { stop() {} };
+
+  let active = true;
+  let timeoutId = null;
 
   function scheduleNext() {
-    setTimeout(() => {
+    timeoutId = setTimeout(() => {
+      if (!active) return;
       if (Math.random() < 0.85) spawnLeaf(layerEl);
       scheduleNext();
     }, randomDelayMs(5, 22));
   }
 
   scheduleNext();
+
+  return {
+    stop() {
+      active = false;
+      if (timeoutId) clearTimeout(timeoutId);
+      layerEl.innerHTML = "";
+    }
+  };
 }

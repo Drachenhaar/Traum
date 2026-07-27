@@ -31,10 +31,14 @@ function spawnWaterRing(layerEl, x, y) {
 }
 
 function startWaterRings(layerEl) {
-  if (!layerEl || prefersReducedMotion()) return;
+  if (!layerEl || prefersReducedMotion()) return { stop() {} };
+
+  let active = true;
+  let timeoutId = null;
 
   function scheduleNext() {
-    setTimeout(() => {
+    timeoutId = setTimeout(() => {
+      if (!active) return;
       const point = randomWaterPoint();
       spawnWaterRing(layerEl, point.x, point.y);
       scheduleNext();
@@ -42,4 +46,12 @@ function startWaterRings(layerEl) {
   }
 
   scheduleNext();
+
+  return {
+    stop() {
+      active = false;
+      if (timeoutId) clearTimeout(timeoutId);
+      layerEl.innerHTML = "";
+    }
+  };
 }

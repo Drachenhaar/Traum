@@ -4,28 +4,51 @@ const PLACES = [
     name: "Der stille See",
     description: "Wo alles begann.",
     backgroundSrc: "assets/backgrounds/DC9D9291-52A5-43BA-9F8B-A3D1960C30E2.png",
-    available: true
+    available: true,
+    effects: {
+      fog: true,
+      rays: true,
+      leaves: true,
+      waterShimmer: true,
+      waterRings: true,
+      koi: true,
+      dragonfly: true,
+      bird: true
+    }
   },
   {
     id: "bibliothek",
     name: "Die Bibliothek",
     description: "Wo Wissen wächst.",
     backgroundSrc: "assets/backgrounds/library.png",
-    available: true
+    available: true,
+    // Innenraum ohne Wasser – hier bleibt nur das Ambiente der Orbs.
+    effects: {}
   },
   {
     id: "tal",
     name: "Das Tal",
     description: "Wo etwas Großes ruht.",
     backgroundSrc: "assets/backgrounds/valley.png",
-    available: true
+    available: true,
+    // Weites Bergtal: Nebel, Licht, Blätter und ein seltener Vogel passen;
+    // kein stiller See, also keine Wasserringe/Koi/Libelle.
+    effects: {
+      fog: true,
+      rays: true,
+      leaves: true,
+      bird: true
+    }
   },
   {
     id: "gedankenkuppel",
     name: "Die Gedankenkuppel",
     description: "Wo Gedanken zur Ruhe kommen.",
     backgroundSrc: "assets/backgrounds/thoughtdome.png",
-    available: true
+    available: true,
+    // Der gemalte Sternenhimmel und die Lichtpunkte sind schon im Bild –
+    // die Orbs allein tragen die Stimmung hier am besten.
+    effects: {}
   }
 ];
 

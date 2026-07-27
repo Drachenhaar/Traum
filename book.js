@@ -33,7 +33,7 @@ function renderThoughtBook(thoughtGarden, listEl, emptyEl) {
   });
 }
 
-function initBook(thoughtGarden, worldStageController) {
+function initBook(thoughtGarden, worldStageController, effectsController) {
   const overlay = document.getElementById("bookOverlay");
   const listEl = document.getElementById("bookEntries");
   const emptyEl = document.getElementById("bookEmpty");
@@ -57,7 +57,7 @@ function initBook(thoughtGarden, worldStageController) {
 
   function open() {
     renderThoughtBook(thoughtGarden, listEl, emptyEl);
-    if (placeListEl) renderPlaceList(placeListEl, worldStageController);
+    if (placeListEl) renderPlaceList(placeListEl, worldStageController, effectsController);
     overlay.classList.add("open");
     overlay.setAttribute("aria-hidden", "false");
   }

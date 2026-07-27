@@ -1,4 +1,4 @@
-function renderPlaceList(listEl, worldStageController) {
+function renderPlaceList(listEl, worldStageController, effectsController) {
   if (!listEl) return;
 
   const current = loadCurrentPlace();
@@ -31,7 +31,8 @@ function renderPlaceList(listEl, worldStageController) {
       item.addEventListener("click", () => {
         saveCurrentPlace(place.id);
         worldStageController.setImage(place.backgroundSrc);
-        renderPlaceList(listEl, worldStageController);
+        if (effectsController) effectsController.applyPlace(place);
+        renderPlaceList(listEl, worldStageController, effectsController);
       });
     }
 
