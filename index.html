@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Dragoncore 0.5 – Neues Fundament</title>
-  <link rel="stylesheet" href="style.css?v=13" />
+  <link rel="stylesheet" href="style.css?v=14" />
 </head>
 
 <body>
@@ -50,6 +50,7 @@
           <button class="book-tab active" data-book-tab="thoughts">Gedanken</button>
           <button class="book-tab" data-book-tab="chronicle">Chronik</button>
           <button class="book-tab" data-book-tab="places">Orte</button>
+          <button class="book-tab" data-book-tab="checklist">Notizen</button>
         </div>
 
         <div id="bookThoughtsSection" class="book-section active">
@@ -72,25 +73,42 @@
           <h2 class="book-title">Orte</h2>
           <ul id="placeList" class="place-list"></ul>
         </div>
+
+        <div id="bookChecklistSection" class="book-section">
+          <h2 class="book-title">Notizbuch</h2>
+          <input
+            type="text"
+            id="checklistInput"
+            class="checklist-input"
+            placeholder="Etwas, das du dir merken willst ..."
+            autocomplete="off"
+          />
+          <p id="checklistEmpty" class="book-empty">
+            Noch nichts notiert. Schreib oben etwas hinein.
+          </p>
+          <ul id="checklistEntries" class="checklist-entries"></ul>
+        </div>
       </div>
     </div>
   </main>
 
-  <script src="world-utils.js?v=13"></script>
-  <script src="worldstage.js?v=13"></script>
-  <script src="places.js?v=13"></script>
-  <script src="placesui.js?v=13"></script>
-  <script src="chronicle.js?v=13"></script>
-  <script src="thoughts.js?v=13"></script>
-  <script src="chronicleui.js?v=13"></script>
-  <script src="book.js?v=13"></script>
-  <script src="fog.js?v=13"></script>
-  <script src="lightrays.js?v=13"></script>
-  <script src="leaves.js?v=13"></script>
-  <script src="waterrings.js?v=13"></script>
-  <script src="creatures.js?v=13"></script>
-  <script src="effects.js?v=13"></script>
-  <script src="menu.js?v=13"></script>
-  <script src="script.js?v=13"></script>
+  <script src="world-utils.js?v=14"></script>
+  <script src="worldstage.js?v=14"></script>
+  <script src="places.js?v=14"></script>
+  <script src="placesui.js?v=14"></script>
+  <script src="chronicle.js?v=14"></script>
+  <script src="thoughts.js?v=14"></script>
+  <script src="chronicleui.js?v=14"></script>
+  <script src="checklist.js?v=14"></script>
+  <script src="checklistui.js?v=14"></script>
+  <script src="book.js?v=14"></script>
+  <script src="fog.js?v=14"></script>
+  <script src="lightrays.js?v=14"></script>
+  <script src="leaves.js?v=14"></script>
+  <script src="waterrings.js?v=14"></script>
+  <script src="creatures.js?v=14"></script>
+  <script src="effects.js?v=14"></script>
+  <script src="menu.js?v=14"></script>
+  <script src="script.js?v=14"></script>
 </body>
 </html>
