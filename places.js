@@ -11,6 +11,7 @@ const PLACES = [
       leaves: true,
       waterShimmer: true,
       waterRings: true,
+      waterfall: true,
       koi: true,
       dragonfly: true,
       bird: true
