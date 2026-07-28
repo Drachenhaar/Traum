@@ -76,10 +76,15 @@ in die Welt einbetten statt nur "hinzufügen".
   (1:1 mit dem Hintergrund), da ihre Positionen an konkrete Bildinhalte
   gebunden sind
 - Wasserfall-Animation am Stillen See (`waterfall.js`): die beiden gemalten
-  Wasserfälle bekommen einen dezenten, endlos abwärts fließenden Schimmer
-  (per pixel-vermessener Bounding-Box exakt auf die gemalten Fälle gelegt,
-  `mix-blend-mode: screen`, geringe Deckkraft), nur am See aktiv, bleibt
-  wie Wasserringe/Kreaturen 1:1 mit dem Hintergrund (kein Parallax)
+  Wasserfälle bekommen einen endlos abwärts fließenden Schimmer
+  (`mix-blend-mode: screen`), nur am See aktiv, bleibt wie Wasserringe/
+  Kreaturen 1:1 mit dem Hintergrund (kein Parallax). Nach mehreren
+  Anpassungsrunden (Rechteck wirkte klobig, dann einzelne Stränge) folgt
+  der Effekt jetzt einer aus dem Originalbild abgeleiteten Pixel-Maske
+  (`see-waterfall-mask.png`, Helligkeit/Sättigung pro Pixel klassifiziert,
+  als Alpha-Kanal codiert) – der Schimmer scheint nur exakt dort durch,
+  wo im Bild tatsächlich Wasser zu sehen ist, bis auf einzelne
+  Tropfenspuren genau
 
 ## Nächste Kandidaten (klein, auf jetziger Basis machbar)
 

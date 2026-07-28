@@ -195,8 +195,8 @@ body {
 
 .waterfall-stream {
   position: absolute;
-  filter: blur(0.5px);
-  opacity: 0.16;
+  inset: 0;
+  opacity: 0.5;
   mix-blend-mode: screen;
   background-image: repeating-linear-gradient(
     180deg,
@@ -205,20 +205,12 @@ body {
     rgba(255, 255, 255, 0) 22px
   );
   background-size: 100% 44px;
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent 0%,
-    black 15%,
-    black 80%,
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    to bottom,
-    transparent 0%,
-    black 15%,
-    black 80%,
-    transparent 100%
-  );
+  -webkit-mask-image: url("assets/backgrounds/see-waterfall-mask.png");
+  mask-image: url("assets/backgrounds/see-waterfall-mask.png");
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
   animation: waterfallFlow 0.8s linear infinite;
 }
 
