@@ -196,17 +196,17 @@ body {
 .waterfall-stream {
   position: absolute;
   filter: blur(0.5px);
-  opacity: 0.3;
+  opacity: 0.16;
   mix-blend-mode: screen;
   background-image: repeating-linear-gradient(
     180deg,
     rgba(255, 255, 255, 0) 0px,
-    rgba(255, 255, 255, 0.6) 6px,
+    rgba(255, 255, 255, 0.5) 6px,
     rgba(255, 255, 255, 0) 22px
   );
   background-size: 100% 44px;
-  -webkit-mask-image: radial-gradient(ellipse 50% 50% at center, black 45%, transparent 85%);
-  mask-image: radial-gradient(ellipse 50% 50% at center, black 45%, transparent 85%);
+  -webkit-mask-image: radial-gradient(ellipse 50% 50% at center, black 35%, transparent 75%);
+  mask-image: radial-gradient(ellipse 50% 50% at center, black 35%, transparent 75%);
   animation: waterfallFlow 0.8s linear infinite;
 }
 
