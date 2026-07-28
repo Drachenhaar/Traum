@@ -10,8 +10,16 @@
 // aufzusetzen.
 const WORLD_IMAGE_FALLBACK_ASPECT = 1536 / 1024;
 
-function initWorldStage(stageEl, worldEl) {
+// Reine Tiefen-Ebenen (Nebel/Lichtstrahlen = ferne Atmosphäre, Blätter =
+// Vordergrund) bekommen beim Wischen/Ziehen ihre eigene, leicht abweichende
+// Geschwindigkeit relativ zum Hintergrund – klassischer Parallax-Trick für
+// Tiefenwirkung. Hintergrund, Wasserglanz, Wasserringe und Kreaturen bleiben
+// bewusst außen vor: ihre Positionen sind auf konkrete Bildinhalte (z. B. den
+// See) abgestimmt und müssten sonst vom gemalten Untergrund wegdriften.
+function initWorldStage(stageEl, worldEl, parallaxLayers = []) {
   if (!stageEl) return null;
+
+  const layers = parallaxLayers.filter((layer) => layer && layer.el);
 
   let imgAspect = WORLD_IMAGE_FALLBACK_ASPECT;
   let overflowX = 0;
@@ -21,6 +29,12 @@ function initWorldStage(stageEl, worldEl) {
   let dragStartX = 0;
   let dragStartPan = 0;
   let dragMoved = false;
+
+  function applyParallax() {
+    layers.forEach(({ el, multiplier }) => {
+      el.style.transform = `translateX(${panX * (multiplier - 1)}px)`;
+    });
+  }
 
   function layout() {
     const vw = window.innerWidth;
@@ -54,11 +68,13 @@ function initWorldStage(stageEl, worldEl) {
     overflowX = Math.max(0, displayedW - vw);
     panX = Math.max(-overflowX, Math.min(0, panX));
     stageEl.style.transform = `translateX(${panX}px)`;
+    applyParallax();
   }
 
   function centerPan() {
     panX = -overflowX / 2;
     stageEl.style.transform = `translateX(${panX}px)`;
+    applyParallax();
   }
 
   function clampPan(x) {
@@ -101,6 +117,7 @@ function initWorldStage(stageEl, worldEl) {
     if (Math.abs(delta) > 4) dragMoved = true;
     panX = clampPan(dragStartPan + delta);
     stageEl.style.transform = `translateX(${panX}px)`;
+    applyParallax();
     // Unterbindet zusätzlich zu touch-action:none, dass der Browser die
     // Geste selbst als Seiten-Scroll/Bounce interpretiert.
     if (e.cancelable) e.preventDefault();

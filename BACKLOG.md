@@ -68,6 +68,13 @@ in die Welt einbetten statt nur "hinzufügen".
   eine einfache Checkliste zum Abhaken – Eintrag über ein Textfeld
   hinzufügen (Enter), per Klick auf das Kästchen abhaken (durchgestrichen,
   bleibt sichtbar), per ✕ entfernen, persistiert in localStorage
+- Parallax-Tiefe beim Wischen/Ziehen (`worldstage.js`): Nebel und
+  Lichtstrahlen (ferne Atmosphäre) bewegen sich beim Pannen langsamer als
+  der Hintergrund, fallende Blätter (Vordergrund) schneller – klassischer
+  Multiplane-Trick für mehr Tiefe, ohne neue Bild-Assets. Hintergrund,
+  Wasserglanz, Wasserringe und Kreaturen bleiben bewusst unverändert
+  (1:1 mit dem Hintergrund), da ihre Positionen an konkrete Bildinhalte
+  gebunden sind
 
 ## Nächste Kandidaten (klein, auf jetziger Basis machbar)
 

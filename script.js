@@ -95,7 +95,11 @@ function startOrbs() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  const worldStageController = initWorldStage(worldStage, world);
+  const worldStageController = initWorldStage(worldStage, world, [
+    { el: fogLayer, multiplier: 0.55 },
+    { el: lightRayLayer, multiplier: 0.65 },
+    { el: leafLayer, multiplier: 1.35 }
+  ]);
   const effectsController = createEffectsController(
     { fogLayer, lightRayLayer, waterRingLayer, creatureLayer, leafLayer, waterShimmerEl },
     chronicle
