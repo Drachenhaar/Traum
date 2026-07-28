@@ -33,7 +33,7 @@ function renderThoughtBook(thoughtGarden, listEl, emptyEl) {
   });
 }
 
-function initBook(thoughtGarden, chronicle, worldStageController, effectsController) {
+function initBook(thoughtGarden, chronicle, checklist, worldStageController, effectsController) {
   const overlay = document.getElementById("bookOverlay");
   const listEl = document.getElementById("bookEntries");
   const emptyEl = document.getElementById("bookEmpty");
@@ -43,10 +43,13 @@ function initBook(thoughtGarden, chronicle, worldStageController, effectsControl
   const placeListEl = document.getElementById("placeList");
   const chronicleListEl = document.getElementById("chronicleEntries");
   const chronicleEmptyEl = document.getElementById("chronicleEmpty");
+  const checklistListEl = document.getElementById("checklistEntries");
+  const checklistEmptyEl = document.getElementById("checklistEmpty");
   const sections = {
     thoughts: document.getElementById("bookThoughtsSection"),
     chronicle: document.getElementById("bookChronicleSection"),
-    places: document.getElementById("bookPlacesSection")
+    places: document.getElementById("bookPlacesSection"),
+    checklist: document.getElementById("bookChecklistSection")
   };
 
   if (!overlay || !listEl || !emptyEl) return;
@@ -62,6 +65,7 @@ function initBook(thoughtGarden, chronicle, worldStageController, effectsControl
     renderThoughtBook(thoughtGarden, listEl, emptyEl);
     if (chronicleListEl) renderChronicleBook(chronicle, thoughtGarden, chronicleListEl, chronicleEmptyEl);
     if (placeListEl) renderPlaceList(placeListEl, worldStageController, effectsController);
+    if (checklistListEl) renderChecklistBook(checklist, checklistListEl, checklistEmptyEl);
     overlay.classList.add("open");
     overlay.setAttribute("aria-hidden", "false");
   }

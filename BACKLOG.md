@@ -64,6 +64,10 @@ in die Welt einbetten statt nur "hinzufügen".
 - Chronik nach Tagen gruppiert (Zwischenüberschriften "Heute"/"Gestern"/
   volles Datum), Einträge zeigen darunter nur noch die Uhrzeit statt des
   vollen Datums – deutlich übersichtlicher bei vielen Einträgen
+- Notizbuch: neuer Tab "Notizen" im Buch (`checklist.js`/`checklistui.js`),
+  eine einfache Checkliste zum Abhaken – Eintrag über ein Textfeld
+  hinzufügen (Enter), per Klick auf das Kästchen abhaken (durchgestrichen,
+  bleibt sichtbar), per ✕ entfernen, persistiert in localStorage
 
 ## Nächste Kandidaten (klein, auf jetziger Basis machbar)
 

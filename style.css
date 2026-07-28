@@ -586,6 +586,99 @@ body {
   letter-spacing: 0.03em;
 }
 
+.checklist-input {
+  display: block;
+  width: 100%;
+  margin: 0 0 18px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 230, 180, 0.22);
+  background: rgba(0, 0, 0, 0.25);
+  color: #f3e6c8;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.95rem;
+  outline: none;
+  touch-action: manipulation;
+}
+
+.checklist-input::placeholder {
+  color: rgba(243, 230, 200, 0.4);
+  font-style: italic;
+}
+
+.checklist-input:focus {
+  border-color: rgba(255, 230, 180, 0.5);
+}
+
+.checklist-entries {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 230, 180, 0.12);
+}
+
+.checklist-checkbox {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 230, 180, 0.4);
+  background: rgba(0, 0, 0, 0.2);
+  color: #fff2d4;
+  font-size: 0.85rem;
+  line-height: 1;
+  touch-action: manipulation;
+}
+
+.checklist-item.done .checklist-checkbox {
+  background: rgba(255, 230, 180, 0.25);
+}
+
+.checklist-item.done .checklist-checkbox::before {
+  content: "✓";
+}
+
+.checklist-text {
+  flex: 1;
+  margin: 0;
+  line-height: 1.5;
+  font-size: 1rem;
+  white-space: pre-wrap;
+}
+
+.checklist-item.done .checklist-text {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+.checklist-remove {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: rgba(243, 230, 200, 0.4);
+  font-size: 0.8rem;
+  touch-action: manipulation;
+}
+
+.checklist-remove:hover,
+.checklist-remove:focus-visible {
+  color: rgba(243, 230, 200, 0.9);
+}
+
 .enter-button {
   position: absolute;
   left: 50%;
