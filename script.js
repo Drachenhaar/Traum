@@ -6,6 +6,7 @@ const creatureLayer = document.getElementById("creatureLayer");
 const fogLayer = document.getElementById("fogLayer");
 const lightRayLayer = document.getElementById("lightRayLayer");
 const waterRingLayer = document.getElementById("waterRingLayer");
+const waterfallLayer = document.getElementById("waterfallLayer");
 const leafLayer = document.getElementById("leafLayer");
 const waterShimmerEl = document.getElementById("waterShimmer");
 const menuToggle = document.getElementById("menuToggle");
@@ -101,7 +102,7 @@ document.addEventListener("DOMContentLoaded", () => {
     { el: leafLayer, multiplier: 1.35 }
   ]);
   const effectsController = createEffectsController(
-    { fogLayer, lightRayLayer, waterRingLayer, creatureLayer, leafLayer, waterShimmerEl },
+    { fogLayer, lightRayLayer, waterRingLayer, waterfallLayer, creatureLayer, leafLayer, waterShimmerEl },
     chronicle
   );
 

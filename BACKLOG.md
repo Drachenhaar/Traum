@@ -75,6 +75,11 @@ in die Welt einbetten statt nur "hinzufügen".
   Wasserglanz, Wasserringe und Kreaturen bleiben bewusst unverändert
   (1:1 mit dem Hintergrund), da ihre Positionen an konkrete Bildinhalte
   gebunden sind
+- Wasserfall-Animation am Stillen See (`waterfall.js`): die beiden gemalten
+  Wasserfälle bekommen einen dezenten, endlos abwärts fließenden Schimmer
+  (per pixel-vermessener Bounding-Box exakt auf die gemalten Fälle gelegt,
+  `mix-blend-mode: screen`, geringe Deckkraft), nur am See aktiv, bleibt
+  wie Wasserringe/Kreaturen 1:1 mit dem Hintergrund (kein Parallax)
 
 ## Nächste Kandidaten (klein, auf jetziger Basis machbar)
 

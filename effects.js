@@ -22,6 +22,7 @@ function createEffectsController(layers, chronicle) {
     if (cfg.fog) next.fog = startFog(layers.fogLayer);
     if (cfg.rays) next.rays = startLightRays(layers.lightRayLayer);
     if (cfg.waterRings) next.waterRings = startWaterRings(layers.waterRingLayer);
+    if (cfg.waterfall) next.waterfall = startWaterfalls(layers.waterfallLayer);
     if (cfg.leaves) next.leaves = startLeaves(layers.leafLayer);
     if (cfg.koi || cfg.dragonfly || cfg.bird) {
       next.creatures = startCreatures(layers.creatureLayer, layers.waterRingLayer, chronicle, cfg);
