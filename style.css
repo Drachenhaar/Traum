@@ -205,8 +205,20 @@ body {
     rgba(255, 255, 255, 0) 22px
   );
   background-size: 100% 44px;
-  -webkit-mask-image: radial-gradient(ellipse 50% 50% at center, black 35%, transparent 75%);
-  mask-image: radial-gradient(ellipse 50% 50% at center, black 35%, transparent 75%);
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 15%,
+    black 80%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 15%,
+    black 80%,
+    transparent 100%
+  );
   animation: waterfallFlow 0.8s linear infinite;
 }
 
