@@ -14,8 +14,6 @@ const menuToggle = document.getElementById("menuToggle");
 const chronicle = new Chronicle();
 const thoughtGarden = new ThoughtGarden();
 const checklist = new Checklist();
-const toolkit = new Toolkit();
-const kasse = new Kasse();
 
 const orbMessages = [
   "Es eilt nicht.",
@@ -118,10 +116,8 @@ document.addEventListener("DOMContentLoaded", () => {
   startPresenceTracking(chronicle);
   initThoughtInput(thoughtGarden, chronicle);
   initChecklistInput(checklist, document.getElementById("checklistEntries"), document.getElementById("checklistEmpty"));
-  initToolkitUI(toolkit);
-  initKasseUI(kasse);
   initMenuToggle(menuToggle);
-  initBook(thoughtGarden, chronicle, checklist, toolkit, kasse, worldStageController, effectsController);
+  initBook(thoughtGarden, chronicle, checklist, worldStageController, effectsController);
 });
 
 // Verhindert Pinch-Zoom-Gesten auf der Szene (Safari feuert "gesturestart"

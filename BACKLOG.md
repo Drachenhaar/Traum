@@ -86,18 +86,16 @@ in die Welt einbetten statt nur "hinzufügen".
   wo im Bild tatsächlich Wasser zu sehen ist, bis auf einzelne
   Tropfenspuren genau
 
-- Werkzeug-Checkliste: neuer Tab "Werkzeuge" im Buch (`toolkit.js`/
-  `toolkitui.js`), unabhängig vom Traum-Thema als praktisches Werkzeug
-  eingebettet. Drei Unter-Ansichten: Gerichte (Name, Kategorie
+- Werkzeug-Checkliste (`praxis/toolkit.js`/`praxis/toolkitui.js`):
+  praktisches Werkzeug, drei Unter-Ansichten: Gerichte (Name, Kategorie
   Markt/Catering/frei erweiterbar, benötigte Werkzeuge mit Stückzahl je
   Gericht pflegen), Bestand (Gesamtstückzahl je Werkzeug), Packliste
   (Gerichte + Anzahl für einen Termin auswählen, App zeigt Bedarf vs.
   Bestand inkl. Fehlmengen-Warnung und zieht auf Knopfdruck ab, mit Verlauf
-  der letzten Abzüge). Persistiert in localStorage wie Notizbuch/Checklist
-- Kasse & Tische: neuer Tab "Kasse" im Buch (`kasse.js`/`kasseui.js`),
-  ebenfalls unabhängig vom Traum-Thema als praktisches Werkzeug – ein
-  Tischsystem wie bei orderbird, aber bewusst nur als Notizblock: keine
-  echte Zahlungsabwicklung, sondern Vorbereitung dessen, was später an der
+  der letzten Abzüge). Persistiert in localStorage
+- Kasse & Tische (`praxis/kasse.js`/`praxis/kasseui.js`): ein Tischsystem
+  wie bei orderbird, aber bewusst nur als Notizblock: keine echte
+  Zahlungsabwicklung, sondern Vorbereitung dessen, was später an der
   echten Kasse eingebongt wird. Drei Unter-Ansichten: Tische (Kachel-Grid,
   frei/belegt farblich unterschieden, neue Tische anlegen, Tisch antippen
   öffnet Detailansicht mit Bestellliste, Mengen-Stepper pro Position,
@@ -107,7 +105,12 @@ in die Welt einbetten statt nur "hinzufügen".
   "An der Kasse eingebongt & Tisch leeren" aus einem Tisch übertragen
   wurden – der Tisch wird dabei geleert/wieder frei, der Bon bleibt zur
   Kontrolle im Verlauf und lässt sich danach löschen). Persistiert in
-  localStorage wie Notizbuch/Werkzeug-Checkliste
+  localStorage
+- Werkzeuge & Kasse aus Dragoncore in eine eigenständige App unter
+  `praxis/` ausgelagert: eigenes helles Praxis-Design ohne
+  Traumwelt-Bezug, eigener Einstieg (`praxis/index.html`) statt Tabs im
+  Buch-Overlay. Dragoncores Buch hat dadurch wieder nur die vier
+  thematischen Tabs Gedanken/Chronik/Orte/Notizen
 
 ## Nächste Kandidaten (klein, auf jetziger Basis machbar)
 

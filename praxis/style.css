@@ -1,0 +1,680 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: #f4f5f2;
+  color: #1c2620;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 14px 20px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e5df;
+}
+
+.app-heading {
+  margin: 0;
+  font-size: 1.15rem;
+  letter-spacing: 0.02em;
+  color: #1c2620;
+}
+
+.app-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.app-tab {
+  padding: 7px 18px;
+  border-radius: 999px;
+  border: 1px solid #d7dcd3;
+  background: #f4f5f2;
+  color: #4d564e;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  touch-action: manipulation;
+}
+
+.app-tab.active {
+  color: #ffffff;
+  border-color: #2f6f4f;
+  background: #2f6f4f;
+}
+
+.app-main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 20px 16px 40px;
+}
+
+.app-section {
+  display: none;
+}
+
+.app-section.active {
+  display: block;
+}
+
+.book-empty {
+  text-align: center;
+  font-style: italic;
+  color: #7a847b;
+  line-height: 1.6;
+  padding: 20px 4px;
+}
+
+/* Werkzeug-Checkliste */
+
+.toolkit-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 18px;
+}
+
+.toolkit-tab {
+  padding: 5px 14px;
+  border-radius: 999px;
+  border: 1px solid #d7dcd3;
+  background: #ffffff;
+  color: #4d564e;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  touch-action: manipulation;
+}
+
+.toolkit-tab.active {
+  color: #ffffff;
+  border-color: #2f6f4f;
+  background: #2f6f4f;
+}
+
+.toolkit-view {
+  display: none;
+}
+
+.toolkit-view.active {
+  display: block;
+}
+
+.toolkit-hint {
+  margin: 0 0 14px;
+  font-size: 0.85rem;
+  color: #5b665e;
+  line-height: 1.55;
+}
+
+.toolkit-subheading {
+  margin: 22px 0 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #33402f;
+}
+
+.toolkit-input {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #d7dcd3;
+  background: #ffffff;
+  color: #1c2620;
+  font-family: inherit;
+  font-size: 0.92rem;
+  outline: none;
+  touch-action: manipulation;
+}
+
+.toolkit-input:focus {
+  border-color: #2f6f4f;
+}
+
+.toolkit-input::placeholder {
+  color: #9aa39a;
+}
+
+.toolkit-input-num {
+  width: 4.4rem;
+  text-align: right;
+}
+
+.toolkit-search {
+  display: block;
+  width: 100%;
+  margin: 0 0 12px;
+}
+
+.toolkit-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 16px;
+}
+
+.toolkit-filter-pill {
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid #d7dcd3;
+  background: #ffffff;
+  color: #4d564e;
+  font-family: inherit;
+  font-size: 0.76rem;
+  touch-action: manipulation;
+}
+
+.toolkit-filter-pill.active {
+  color: #ffffff;
+  border-color: transparent;
+  background: #4d8f68;
+}
+
+.toolkit-gericht-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.toolkit-card {
+  border-radius: 10px;
+  border: 1px solid #e2e5df;
+  background: #ffffff;
+  padding: 12px 14px;
+}
+
+.toolkit-card-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.toolkit-gericht-name {
+  flex: 1;
+  min-width: 110px;
+  border: none;
+  background: transparent;
+  padding: 2px 0;
+  color: #1c2620;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  outline: none;
+}
+
+.toolkit-tag {
+  flex: none;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.toolkit-tag.markt {
+  background: #dcead6;
+  color: #285a2f;
+}
+
+.toolkit-tag.catering {
+  background: #dbe5f5;
+  color: #2a4a7c;
+}
+
+.toolkit-tag.sonst {
+  background: #ece7db;
+  color: #5c5334;
+}
+
+.toolkit-kategorie-select {
+  flex: none;
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: 1px solid #d7dcd3;
+  background: #ffffff;
+  color: #1c2620;
+  font-family: inherit;
+  font-size: 0.76rem;
+}
+
+.toolkit-icon-button {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #9aa39a;
+  font-size: 0.8rem;
+  touch-action: manipulation;
+}
+
+.toolkit-icon-button:hover,
+.toolkit-icon-button:focus-visible {
+  color: #c65b3f;
+}
+
+.toolkit-werkzeug-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.toolkit-werkzeug-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toolkit-werkzeug-row .toolkit-input:first-child {
+  flex: 1;
+}
+
+.toolkit-add-werkzeug {
+  border: 1px dashed #c7cec2;
+  background: transparent;
+  color: #4d564e;
+  border-radius: 7px;
+  padding: 5px 12px;
+  font-family: inherit;
+  font-size: 0.78rem;
+  touch-action: manipulation;
+}
+
+.toolkit-add-button {
+  display: inline-block;
+  padding: 9px 20px;
+  border-radius: 999px;
+  border: 1px solid #2f6f4f;
+  background: #2f6f4f;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  touch-action: manipulation;
+}
+
+.toolkit-add-button:hover,
+.toolkit-add-button:focus-visible {
+  background: #285f43;
+}
+
+.toolkit-deduct-button {
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin: 14px 0 4px;
+}
+
+.toolkit-bestand-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.toolkit-bestand-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid #e2e5df;
+}
+
+.toolkit-bestand-name {
+  flex: 1;
+  font-size: 0.92rem;
+}
+
+.toolkit-bestand-add {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.toolkit-bestand-add .toolkit-input {
+  flex: 1;
+}
+
+.toolkit-event-list {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 6px;
+}
+
+.toolkit-event-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid #e2e5df;
+}
+
+.toolkit-event-row:last-child {
+  border-bottom: none;
+}
+
+.toolkit-event-name {
+  flex: 1;
+  font-size: 0.92rem;
+}
+
+.toolkit-pack-table-wrap {
+  overflow-x: auto;
+}
+
+.toolkit-pack-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: 0.82rem;
+}
+
+.toolkit-pack-table th {
+  text-align: left;
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #7a847b;
+  padding: 4px 8px;
+  border-bottom: 1px solid #d7dcd3;
+}
+
+.toolkit-pack-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #e2e5df;
+  font-variant-numeric: tabular-nums;
+}
+
+.toolkit-status-ok {
+  color: #2b7a41;
+  font-weight: 600;
+}
+
+.toolkit-status-bad {
+  color: #c1432a;
+  font-weight: 600;
+}
+
+.toolkit-verlauf-entry {
+  font-size: 0.8rem;
+  color: #5b665e;
+  padding: 8px 0;
+  border-bottom: 1px solid #e2e5df;
+  line-height: 1.5;
+}
+
+.toolkit-verlauf-entry b {
+  color: #1c2620;
+}
+
+.toolkit-empty {
+  padding: 20px 4px;
+}
+
+/* Kasse & Tische */
+
+.kasse-tisch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.kasse-tisch-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 76px;
+  border-radius: 10px;
+  border: 1px solid #d7dcd3;
+  background: #ffffff;
+  color: #1c2620;
+  font-family: inherit;
+  font-weight: 600;
+  text-align: center;
+  padding: 6px;
+  touch-action: manipulation;
+}
+
+.kasse-tisch-card.belegt {
+  border-color: #d98a4f;
+  background: #fdf0e4;
+}
+
+.kasse-tisch-card-name {
+  font-size: 0.9rem;
+}
+
+.kasse-tisch-card-info {
+  font-size: 0.68rem;
+  font-weight: 400;
+  color: #7a847b;
+}
+
+.kasse-tisch-add {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.kasse-tisch-add .toolkit-input {
+  flex: 1;
+}
+
+.kasse-back-button {
+  border: none;
+  background: transparent;
+  color: #4d564e;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0 0 14px;
+  touch-action: manipulation;
+}
+
+.kasse-back-button:hover,
+.kasse-back-button:focus-visible {
+  color: #2f6f4f;
+}
+
+.kasse-tisch-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.kasse-tisch-name-input {
+  flex: 1;
+  border: none;
+  border-bottom: 1px solid #d7dcd3;
+  background: transparent;
+  padding: 4px 0;
+  color: #1c2620;
+  font-family: inherit;
+  font-size: 1.1rem;
+  font-weight: 700;
+  outline: none;
+}
+
+.kasse-order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.kasse-order-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid #e2e5df;
+}
+
+.kasse-order-name {
+  flex: 1;
+  font-size: 0.92rem;
+}
+
+.kasse-stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kasse-stepper-button {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid #d7dcd3;
+  background: #f4f5f2;
+  color: #1c2620;
+  font-size: 0.85rem;
+  line-height: 1;
+  touch-action: manipulation;
+}
+
+.kasse-stepper-menge {
+  min-width: 1.4em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.kasse-order-linesum {
+  min-width: 4.4em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.88rem;
+  color: #4d564e;
+}
+
+.kasse-sum-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  margin-bottom: 12px;
+  border-top: 2px solid #1c2620;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1c2620;
+}
+
+.kasse-notiz-input {
+  display: block;
+  width: 100%;
+  min-height: 3.2em;
+  margin: 0 0 16px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #d7dcd3;
+  background: #ffffff;
+  color: #1c2620;
+  font-family: inherit;
+  font-size: 0.88rem;
+  outline: none;
+  resize: vertical;
+  touch-action: manipulation;
+}
+
+.kasse-notiz-input::placeholder {
+  color: #9aa39a;
+}
+
+.kasse-artikel-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.kasse-artikel-button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #d7dcd3;
+  background: #ffffff;
+  color: #1c2620;
+  font-family: inherit;
+  text-align: left;
+  touch-action: manipulation;
+}
+
+.kasse-artikel-button:hover,
+.kasse-artikel-button:focus-visible {
+  border-color: #2f6f4f;
+  background: #eaf3ec;
+}
+
+.kasse-artikel-button-name {
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.kasse-artikel-button-preis {
+  font-size: 0.72rem;
+  color: #7a847b;
+}
+
+.kasse-close-button {
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin: 4px 0 2px;
+}
+
+.kasse-artikel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.kasse-artikel-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kasse-artikel-name-input {
+  flex: 1;
+}
+
+.kasse-verlauf-entry {
+  font-size: 0.8rem;
+}
+
+.kasse-verlauf-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}

@@ -32,3 +32,11 @@ unsichtbar (kein kaputtes Bild-Icon):
 Die Bilder sollten freigestellt (transparenter Hintergrund) und im selben
 gemalten Stil wie das Hauptbild sein, damit sie sich einfügen statt
 aufzufallen.
+
+## Praxis-Werkzeuge (separate App)
+
+Unter `praxis/` liegt eine eigenständige, schlichte App für Kasse & Tische
+und die Werkzeug-Checkliste – bewusst getrennt von Dragoncore, eigenes
+helles Design, kein Traumwelt-Bezug. Aufrufbar unter `praxis/index.html`
+bzw. live unter `drachenhaar.github.io/Traum/praxis/`. Details siehe
+`praxis/README.md`.
