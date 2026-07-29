@@ -86,6 +86,15 @@ in die Welt einbetten statt nur "hinzufügen".
   wo im Bild tatsächlich Wasser zu sehen ist, bis auf einzelne
   Tropfenspuren genau
 
+- Werkzeug-Checkliste: neuer Tab "Werkzeuge" im Buch (`toolkit.js`/
+  `toolkitui.js`), unabhängig vom Traum-Thema als praktisches Werkzeug
+  eingebettet. Drei Unter-Ansichten: Gerichte (Name, Kategorie
+  Markt/Catering/frei erweiterbar, benötigte Werkzeuge mit Stückzahl je
+  Gericht pflegen), Bestand (Gesamtstückzahl je Werkzeug), Packliste
+  (Gerichte + Anzahl für einen Termin auswählen, App zeigt Bedarf vs.
+  Bestand inkl. Fehlmengen-Warnung und zieht auf Knopfdruck ab, mit Verlauf
+  der letzten Abzüge). Persistiert in localStorage wie Notizbuch/Checklist
+
 ## Nächste Kandidaten (klein, auf jetziger Basis machbar)
 
 - [ ] Tag/Nacht- bzw. Tageszeit-Lichtstimmung: Hintergrund/Filter dezent an
