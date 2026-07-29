@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Dragoncore 0.5 – Neues Fundament</title>
-  <link rel="stylesheet" href="style.css?v=15" />
+  <link rel="stylesheet" href="style.css?v=16" />
 </head>
 
 <body>
@@ -52,6 +52,7 @@
           <button class="book-tab" data-book-tab="chronicle">Chronik</button>
           <button class="book-tab" data-book-tab="places">Orte</button>
           <button class="book-tab" data-book-tab="checklist">Notizen</button>
+          <button class="book-tab" data-book-tab="toolkit">Werkzeuge</button>
         </div>
 
         <div id="bookThoughtsSection" class="book-section active">
@@ -89,28 +90,94 @@
           </p>
           <ul id="checklistEntries" class="checklist-entries"></ul>
         </div>
+
+        <div id="bookToolkitSection" class="book-section">
+          <h2 class="book-title">Werkzeug-Checkliste</h2>
+
+          <div class="toolkit-tabs">
+            <button class="toolkit-tab active" data-toolkit-tab="gerichte">Gerichte</button>
+            <button class="toolkit-tab" data-toolkit-tab="bestand">Bestand</button>
+            <button class="toolkit-tab" data-toolkit-tab="packliste">Packliste</button>
+          </div>
+
+          <div class="toolkit-view active" id="toolkitViewGerichte">
+            <input
+              type="text"
+              id="toolkitSearch"
+              class="toolkit-input toolkit-search"
+              placeholder="Gericht suchen … z. B. Bambes"
+              autocomplete="off"
+            />
+            <div class="toolkit-filter" id="toolkitFilter"></div>
+            <div class="toolkit-gericht-list" id="toolkitGerichtList"></div>
+            <p class="book-empty toolkit-empty" id="toolkitGerichtEmpty" style="display:none;">
+              Kein Gericht gefunden.
+            </p>
+            <button class="toolkit-add-button" id="toolkitAddGericht" type="button">+ Neues Gericht</button>
+          </div>
+
+          <div class="toolkit-view" id="toolkitViewBestand">
+            <p class="toolkit-hint">
+              Gesamtstückzahl je Werkzeug – wird in der Packliste automatisch abgezogen.
+            </p>
+            <div class="toolkit-bestand-list" id="toolkitBestandList"></div>
+            <div class="toolkit-bestand-add">
+              <input
+                type="text"
+                id="toolkitNewBestandName"
+                class="toolkit-input"
+                placeholder="Neues Werkzeug …"
+                autocomplete="off"
+              />
+              <button class="toolkit-add-button" id="toolkitAddBestand" type="button">+</button>
+            </div>
+          </div>
+
+          <div class="toolkit-view" id="toolkitViewPackliste">
+            <p class="toolkit-hint">Anzahl je Gericht für den Termin eintragen.</p>
+            <div class="toolkit-event-list" id="toolkitEventList"></div>
+
+            <div class="toolkit-pack-table-wrap">
+              <table class="toolkit-pack-table" id="toolkitPackTable" style="display:none;">
+                <thead>
+                  <tr><th>Werkzeug</th><th>Nötig</th><th>Bestand</th><th>Reicht?</th></tr>
+                </thead>
+                <tbody id="toolkitPackTableBody"></tbody>
+              </table>
+            </div>
+            <p class="book-empty toolkit-empty" id="toolkitPackEmpty">Noch keine Gerichte ausgewählt.</p>
+            <button class="toolkit-add-button toolkit-deduct-button" id="toolkitConfirmDeduct" type="button">
+              Bestand jetzt abziehen
+            </button>
+
+            <h3 class="toolkit-subheading">Letzte Abzüge</h3>
+            <div id="toolkitVerlaufList"></div>
+          </div>
+        </div>
       </div>
     </div>
   </main>
 
-  <script src="world-utils.js?v=15"></script>
-  <script src="worldstage.js?v=15"></script>
-  <script src="places.js?v=15"></script>
-  <script src="placesui.js?v=15"></script>
-  <script src="chronicle.js?v=15"></script>
-  <script src="thoughts.js?v=15"></script>
-  <script src="chronicleui.js?v=15"></script>
-  <script src="checklist.js?v=15"></script>
-  <script src="checklistui.js?v=15"></script>
-  <script src="book.js?v=15"></script>
-  <script src="fog.js?v=15"></script>
-  <script src="lightrays.js?v=15"></script>
-  <script src="leaves.js?v=15"></script>
-  <script src="waterrings.js?v=15"></script>
-  <script src="waterfall.js?v=15"></script>
-  <script src="creatures.js?v=15"></script>
-  <script src="effects.js?v=15"></script>
-  <script src="menu.js?v=15"></script>
-  <script src="script.js?v=15"></script>
+  <script src="world-utils.js?v=16"></script>
+  <script src="worldstage.js?v=16"></script>
+  <script src="places.js?v=16"></script>
+  <script src="placesui.js?v=16"></script>
+  <script src="chronicle.js?v=16"></script>
+  <script src="thoughts.js?v=16"></script>
+  <script src="chronicleui.js?v=16"></script>
+  <script src="checklist.js?v=16"></script>
+  <script src="checklistui.js?v=16"></script>
+  <script src="toolkit.js?v=16"></script>
+  <script src="toolkitui.js?v=16"></script>
+  <script src="book.js?v=16"></script>
+  <script src="fog.js?v=16"></script>
+  <script src="lightrays.js?v=16"></script>
+  <script src="leaves.js?v=16"></script>
+  <script src="waterrings.js?v=16"></script>
+  <script src="waterfall.js?v=16"></script>
+  <script src="creatures.js?v=16"></script>
+  <script src="effects.js?v=16"></script>
+  <script src="menu.js?v=16"></script>
+  <script src="script.js?v=16"></script>
 </body>
 </html>
