@@ -1068,6 +1068,247 @@ body {
   padding: 20px 4px;
 }
 
+/* Kasse & Tische */
+
+.kasse-tisch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.kasse-tisch-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 76px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 230, 180, 0.18);
+  background: rgba(60, 52, 36, 0.35);
+  color: #f3e6c8;
+  font-family: Georgia, "Times New Roman", serif;
+  text-align: center;
+  padding: 6px;
+  touch-action: manipulation;
+}
+
+.kasse-tisch-card.belegt {
+  border-color: rgba(210, 150, 110, 0.6);
+  background: rgba(150, 90, 55, 0.35);
+}
+
+.kasse-tisch-card-name {
+  font-size: 0.9rem;
+}
+
+.kasse-tisch-card-info {
+  font-size: 0.68rem;
+  opacity: 0.7;
+}
+
+.kasse-tisch-add {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.kasse-tisch-add .toolkit-input {
+  flex: 1;
+}
+
+.kasse-back-button {
+  border: none;
+  background: transparent;
+  color: rgba(243, 230, 200, 0.65);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.82rem;
+  padding: 0 0 14px;
+  touch-action: manipulation;
+}
+
+.kasse-back-button:hover,
+.kasse-back-button:focus-visible {
+  color: rgba(243, 230, 200, 0.95);
+}
+
+.kasse-tisch-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.kasse-tisch-name-input {
+  flex: 1;
+  border: none;
+  border-bottom: 1px solid rgba(255, 230, 180, 0.25);
+  background: transparent;
+  padding: 4px 0;
+  color: #fff2d4;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.1rem;
+  outline: none;
+}
+
+.kasse-order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.kasse-order-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 230, 180, 0.1);
+}
+
+.kasse-order-name {
+  flex: 1;
+  font-size: 0.92rem;
+}
+
+.kasse-stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kasse-stepper-button {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 230, 180, 0.3);
+  background: rgba(0, 0, 0, 0.2);
+  color: #f3e6c8;
+  font-size: 0.85rem;
+  line-height: 1;
+  touch-action: manipulation;
+}
+
+.kasse-stepper-menge {
+  min-width: 1.4em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.kasse-order-linesum {
+  min-width: 4.4em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.88rem;
+  opacity: 0.85;
+}
+
+.kasse-sum-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  margin-bottom: 12px;
+  border-top: 1px solid rgba(255, 230, 180, 0.25);
+  font-size: 1rem;
+  color: #fff2d4;
+}
+
+.kasse-notiz-input {
+  display: block;
+  width: 100%;
+  min-height: 3.2em;
+  margin: 0 0 16px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 230, 180, 0.22);
+  background: rgba(0, 0, 0, 0.25);
+  color: #f3e6c8;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.88rem;
+  outline: none;
+  resize: vertical;
+  touch-action: manipulation;
+}
+
+.kasse-notiz-input::placeholder {
+  color: rgba(243, 230, 200, 0.4);
+  font-style: italic;
+}
+
+.kasse-artikel-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.kasse-artikel-button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 230, 180, 0.2);
+  background: rgba(60, 52, 36, 0.35);
+  color: #f3e6c8;
+  font-family: Georgia, "Times New Roman", serif;
+  text-align: left;
+  touch-action: manipulation;
+}
+
+.kasse-artikel-button:hover,
+.kasse-artikel-button:focus-visible {
+  border-color: rgba(255, 230, 180, 0.45);
+  background: rgba(255, 230, 180, 0.1);
+}
+
+.kasse-artikel-button-name {
+  font-size: 0.86rem;
+}
+
+.kasse-artikel-button-preis {
+  font-size: 0.72rem;
+  opacity: 0.65;
+}
+
+.kasse-close-button {
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin: 4px 0 2px;
+}
+
+.kasse-artikel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.kasse-artikel-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kasse-artikel-name-input {
+  flex: 1;
+}
+
+.kasse-verlauf-entry {
+  font-size: 0.8rem;
+}
+
+.kasse-verlauf-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
 .enter-button {
   position: absolute;
   left: 50%;

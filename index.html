@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Dragoncore 0.5 – Neues Fundament</title>
-  <link rel="stylesheet" href="style.css?v=16" />
+  <link rel="stylesheet" href="style.css?v=17" />
 </head>
 
 <body>
@@ -53,6 +53,7 @@
           <button class="book-tab" data-book-tab="places">Orte</button>
           <button class="book-tab" data-book-tab="checklist">Notizen</button>
           <button class="book-tab" data-book-tab="toolkit">Werkzeuge</button>
+          <button class="book-tab" data-book-tab="kasse">Kasse</button>
         </div>
 
         <div id="bookThoughtsSection" class="book-section active">
@@ -154,30 +155,116 @@
             <div id="toolkitVerlaufList"></div>
           </div>
         </div>
+
+        <div id="bookKasseSection" class="book-section">
+          <h2 class="book-title">Kasse &amp; Tische</h2>
+          <p class="toolkit-hint">
+            Notizblock für die Bedienung: Bestellungen den Tischen zuordnen und
+            im Blick behalten. Kassiert wird weiterhin an der echten Kasse –
+            hier wird nur vorbereitet, was später dort eingebongt wird.
+          </p>
+
+          <div class="toolkit-tabs kasse-tabs">
+            <button class="toolkit-tab kasse-tab active" data-kasse-tab="tische">Tische</button>
+            <button class="toolkit-tab kasse-tab" data-kasse-tab="artikel">Artikel</button>
+            <button class="toolkit-tab kasse-tab" data-kasse-tab="verlauf">Verlauf</button>
+          </div>
+
+          <div class="toolkit-view active" id="kasseViewTische">
+            <div class="kasse-tisch-grid" id="kasseTischGrid"></div>
+            <div class="kasse-tisch-add" id="kasseTischAddRow">
+              <input
+                type="text"
+                id="kasseNewTischName"
+                class="toolkit-input"
+                placeholder="Neuer Tisch, z. B. Tisch 5"
+                autocomplete="off"
+              />
+              <button class="toolkit-add-button" id="kasseAddTisch" type="button">+</button>
+            </div>
+
+            <div class="kasse-tisch-detail" id="kasseTischDetail" style="display:none;">
+              <button class="kasse-back-button" id="kasseBackButton" type="button">← Zur Tischübersicht</button>
+
+              <div class="kasse-tisch-detail-head">
+                <input type="text" id="kasseTischNameInput" class="kasse-tisch-name-input" />
+                <button class="toolkit-icon-button" id="kasseRemoveTisch" type="button" aria-label="Tisch löschen">✕</button>
+              </div>
+
+              <div class="kasse-order-list" id="kasseOrderList"></div>
+              <p class="book-empty toolkit-empty" id="kasseOrderEmpty">Noch nichts bestellt.</p>
+
+              <div class="kasse-sum-row">
+                <span>Summe</span>
+                <span id="kasseTischSumme">0,00 €</span>
+              </div>
+
+              <textarea
+                id="kasseTischNotiz"
+                class="kasse-notiz-input"
+                placeholder="Notiz zum Tisch, z. B. Sonderwünsche …"
+              ></textarea>
+
+              <h3 class="toolkit-subheading">Artikel hinzufügen</h3>
+              <div class="toolkit-filter" id="kasseAddCatFilter"></div>
+              <div class="kasse-artikel-buttons" id="kasseArtikelButtons"></div>
+
+              <button class="toolkit-add-button kasse-close-button" id="kasseAbschliessenButton" type="button">
+                An der Kasse eingebongt &amp; Tisch leeren
+              </button>
+            </div>
+          </div>
+
+          <div class="toolkit-view" id="kasseViewArtikel">
+            <input
+              type="text"
+              id="kasseArtikelSearch"
+              class="toolkit-input toolkit-search"
+              placeholder="Artikel suchen …"
+              autocomplete="off"
+            />
+            <div class="toolkit-filter" id="kasseArtikelCatFilter"></div>
+            <div class="kasse-artikel-list" id="kasseArtikelList"></div>
+            <p class="book-empty toolkit-empty" id="kasseArtikelEmpty" style="display:none;">
+              Kein Artikel gefunden.
+            </p>
+            <button class="toolkit-add-button" id="kasseAddArtikel" type="button">+ Neuer Artikel</button>
+          </div>
+
+          <div class="toolkit-view" id="kasseViewVerlauf">
+            <p class="toolkit-hint">
+              Bereits an der Kasse eingebongte Bons – nur zur Kontrolle, keine echte Kassenfunktion.
+            </p>
+            <div id="kasseVerlaufList"></div>
+            <p class="book-empty toolkit-empty" id="kasseVerlaufEmpty">Noch keine Bons übertragen.</p>
+          </div>
+        </div>
       </div>
     </div>
   </main>
 
-  <script src="world-utils.js?v=16"></script>
-  <script src="worldstage.js?v=16"></script>
-  <script src="places.js?v=16"></script>
-  <script src="placesui.js?v=16"></script>
-  <script src="chronicle.js?v=16"></script>
-  <script src="thoughts.js?v=16"></script>
-  <script src="chronicleui.js?v=16"></script>
-  <script src="checklist.js?v=16"></script>
-  <script src="checklistui.js?v=16"></script>
-  <script src="toolkit.js?v=16"></script>
-  <script src="toolkitui.js?v=16"></script>
-  <script src="book.js?v=16"></script>
-  <script src="fog.js?v=16"></script>
-  <script src="lightrays.js?v=16"></script>
-  <script src="leaves.js?v=16"></script>
-  <script src="waterrings.js?v=16"></script>
-  <script src="waterfall.js?v=16"></script>
-  <script src="creatures.js?v=16"></script>
-  <script src="effects.js?v=16"></script>
-  <script src="menu.js?v=16"></script>
-  <script src="script.js?v=16"></script>
+  <script src="world-utils.js?v=17"></script>
+  <script src="worldstage.js?v=17"></script>
+  <script src="places.js?v=17"></script>
+  <script src="placesui.js?v=17"></script>
+  <script src="chronicle.js?v=17"></script>
+  <script src="thoughts.js?v=17"></script>
+  <script src="chronicleui.js?v=17"></script>
+  <script src="checklist.js?v=17"></script>
+  <script src="checklistui.js?v=17"></script>
+  <script src="toolkit.js?v=17"></script>
+  <script src="toolkitui.js?v=17"></script>
+  <script src="kasse.js?v=17"></script>
+  <script src="kasseui.js?v=17"></script>
+  <script src="book.js?v=17"></script>
+  <script src="fog.js?v=17"></script>
+  <script src="lightrays.js?v=17"></script>
+  <script src="leaves.js?v=17"></script>
+  <script src="waterrings.js?v=17"></script>
+  <script src="waterfall.js?v=17"></script>
+  <script src="creatures.js?v=17"></script>
+  <script src="effects.js?v=17"></script>
+  <script src="menu.js?v=17"></script>
+  <script src="script.js?v=17"></script>
 </body>
 </html>

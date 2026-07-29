@@ -94,6 +94,20 @@ in die Welt einbetten statt nur "hinzufügen".
   (Gerichte + Anzahl für einen Termin auswählen, App zeigt Bedarf vs.
   Bestand inkl. Fehlmengen-Warnung und zieht auf Knopfdruck ab, mit Verlauf
   der letzten Abzüge). Persistiert in localStorage wie Notizbuch/Checklist
+- Kasse & Tische: neuer Tab "Kasse" im Buch (`kasse.js`/`kasseui.js`),
+  ebenfalls unabhängig vom Traum-Thema als praktisches Werkzeug – ein
+  Tischsystem wie bei orderbird, aber bewusst nur als Notizblock: keine
+  echte Zahlungsabwicklung, sondern Vorbereitung dessen, was später an der
+  echten Kasse eingebongt wird. Drei Unter-Ansichten: Tische (Kachel-Grid,
+  frei/belegt farblich unterschieden, neue Tische anlegen, Tisch antippen
+  öffnet Detailansicht mit Bestellliste, Mengen-Stepper pro Position,
+  laufender Summe, Notizfeld für Sonderwünsche und Artikel-Schnellwahl
+  gefiltert nach Kategorie), Artikel (Katalog mit Name/Preis/Kategorie,
+  frei erweiterbare Kategorien wie beim Werkzeug), Verlauf (Bons, die per
+  "An der Kasse eingebongt & Tisch leeren" aus einem Tisch übertragen
+  wurden – der Tisch wird dabei geleert/wieder frei, der Bon bleibt zur
+  Kontrolle im Verlauf und lässt sich danach löschen). Persistiert in
+  localStorage wie Notizbuch/Werkzeug-Checkliste
 
 ## Nächste Kandidaten (klein, auf jetziger Basis machbar)
 
