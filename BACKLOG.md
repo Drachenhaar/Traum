@@ -111,6 +111,12 @@ in die Welt einbetten statt nur "hinzufügen".
   Traumwelt-Bezug, eigener Einstieg (`praxis/index.html`) statt Tabs im
   Buch-Overlay. Dragoncores Buch hat dadurch wieder nur die vier
   thematischen Tabs Gedanken/Chronik/Orte/Notizen
+- Kasse: Kategorien selbst verwalten (Artikel-Tab, neuer Abschnitt
+  "Kategorien verwalten") – Liste aller Kategorien mit Artikel-Anzahl,
+  Umbenennen wirkt sich sofort auf alle zugehörigen Artikel aus (merged
+  automatisch, falls der neue Name schon existiert), Löschen nur möglich
+  wenn kein Artikel mehr in der Kategorie steckt (sonst Hinweis statt
+  Löschung)
 
 ## Nächste Kandidaten (klein, auf jetziger Basis machbar)
 

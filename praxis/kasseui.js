@@ -11,6 +11,7 @@ function renderKasseBook(kasse) {
   renderKasseTischDetail(kasse);
   renderKasseArtikelCatFilter(kasse);
   renderKasseArtikelList(kasse);
+  renderKasseKategorieList(kasse);
   renderKasseVerlauf(kasse);
 }
 
@@ -346,6 +347,51 @@ function renderKasseArtikelList(kasse) {
     row.appendChild(nameInput);
     row.appendChild(preisInput);
     row.appendChild(kategorieSelect);
+    row.appendChild(deleteBtn);
+    listEl.appendChild(row);
+  });
+}
+
+function renderKasseKategorieList(kasse) {
+  const listEl = document.getElementById("kasseKategorieList");
+  if (!listEl) return;
+  listEl.innerHTML = "";
+
+  kasse.data.categories.forEach((cat) => {
+    const row = document.createElement("div");
+    row.className = "kasse-kategorie-row";
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "toolkit-input kasse-kategorie-input";
+    input.value = cat;
+    input.addEventListener("change", () => {
+      kasse.renameCategory(cat, input.value);
+      renderKasseBook(kasse);
+    });
+
+    const count = kasse.categoryArtikelCount(cat);
+    const countEl = document.createElement("span");
+    countEl.className = "kasse-kategorie-count";
+    countEl.textContent = `${count} Artikel`;
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "toolkit-icon-button";
+    deleteBtn.textContent = "✕";
+    deleteBtn.setAttribute("aria-label", "Kategorie löschen");
+    deleteBtn.addEventListener("click", () => {
+      if (count > 0) {
+        alert(`„${cat}“ wird noch von ${count} Artikel verwendet – erst deren Kategorie ändern.`);
+        return;
+      }
+      if (!confirm(`Kategorie „${cat}“ wirklich löschen?`)) return;
+      kasse.removeCategory(cat);
+      renderKasseBook(kasse);
+    });
+
+    row.appendChild(input);
+    row.appendChild(countEl);
     row.appendChild(deleteBtn);
     listEl.appendChild(row);
   });
