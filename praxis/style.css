@@ -607,7 +607,7 @@ body {
 
 .kasse-artikel-buttons {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
   gap: 8px;
   margin-bottom: 18px;
 }
@@ -616,31 +616,47 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid #d7dcd3;
-  background: #ffffff;
-  color: #1c2620;
+  justify-content: center;
+  gap: 3px;
+  min-height: 68px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: none;
+  background: #6b7a70;
+  color: #ffffff;
   font-family: inherit;
   text-align: left;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   touch-action: manipulation;
 }
 
 .kasse-artikel-button:hover,
 .kasse-artikel-button:focus-visible {
-  border-color: #2f6f4f;
-  background: #eaf3ec;
+  filter: brightness(1.08);
+}
+
+.kasse-artikel-button:active {
+  filter: brightness(0.94);
 }
 
 .kasse-artikel-button-name {
   font-size: 0.86rem;
-  font-weight: 600;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .kasse-artikel-button-preis {
-  font-size: 0.72rem;
-  color: #7a847b;
+  font-size: 0.74rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.kasse-filter-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
 }
 
 .kasse-close-button {
