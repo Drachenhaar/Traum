@@ -64,6 +64,34 @@ class Kasse {
     }
   }
 
+  categoryArtikelCount(name) {
+    return this.data.artikel.filter((a) => a.kategorie === name).length;
+  }
+
+  renameCategory(oldName, newName) {
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === oldName) return;
+    const idx = this.data.categories.indexOf(oldName);
+    if (idx === -1) return;
+
+    if (this.data.categories.includes(trimmed)) {
+      this.data.categories.splice(idx, 1);
+    } else {
+      this.data.categories[idx] = trimmed;
+    }
+    this.data.artikel.forEach((a) => {
+      if (a.kategorie === oldName) a.kategorie = trimmed;
+    });
+    this.save();
+  }
+
+  removeCategory(name) {
+    if (this.categoryArtikelCount(name) > 0) return false;
+    this.data.categories = this.data.categories.filter((c) => c !== name);
+    this.save();
+    return true;
+  }
+
   addArtikel() {
     const artikel = {
       id: kasseUid(),

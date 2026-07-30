@@ -667,6 +667,31 @@ body {
   flex: 1;
 }
 
+.kasse-kategorie-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.kasse-kategorie-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kasse-kategorie-input {
+  flex: 1;
+  font-weight: 600;
+}
+
+.kasse-kategorie-count {
+  flex: none;
+  font-size: 0.74rem;
+  color: #7a847b;
+  white-space: nowrap;
+}
+
 .kasse-verlauf-entry {
   font-size: 0.8rem;
 }
