@@ -326,23 +326,24 @@ function renderToolkitPackTable(toolkit) {
   namen.forEach((name) => {
     const benoetigt = bedarf[name];
     const bestand = toolkit.data.bestand[name] || 0;
-    const reicht = bestand >= benoetigt;
+    const rest = bestand - benoetigt;
+    const reicht = rest >= 0;
 
     const tr = document.createElement("tr");
     const tdName = document.createElement("td");
     tdName.textContent = name;
-    const tdBenoetigt = document.createElement("td");
-    tdBenoetigt.textContent = benoetigt;
     const tdBestand = document.createElement("td");
     tdBestand.textContent = bestand;
-    const tdReicht = document.createElement("td");
-    tdReicht.textContent = reicht ? `Ja (${bestand - benoetigt} übrig)` : `Nein (${benoetigt - bestand} fehlen)`;
-    tdReicht.className = reicht ? "toolkit-status-ok" : "toolkit-status-bad";
+    const tdBenoetigt = document.createElement("td");
+    tdBenoetigt.textContent = `− ${benoetigt}`;
+    const tdRest = document.createElement("td");
+    tdRest.textContent = reicht ? `${rest}` : `${rest} (fehlt ${-rest})`;
+    tdRest.className = reicht ? "toolkit-status-ok" : "toolkit-status-bad";
 
     tr.appendChild(tdName);
-    tr.appendChild(tdBenoetigt);
     tr.appendChild(tdBestand);
-    tr.appendChild(tdReicht);
+    tr.appendChild(tdBenoetigt);
+    tr.appendChild(tdRest);
     body.appendChild(tr);
   });
 }
