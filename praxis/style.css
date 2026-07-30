@@ -605,6 +605,38 @@ body {
   color: #9aa39a;
 }
 
+.kasse-qr-button {
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin: 0 0 12px;
+}
+
+.kasse-qr-wrap {
+  margin: 0 0 18px;
+  padding: 14px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #d7dcd3;
+  text-align: center;
+}
+
+.kasse-qr-code {
+  display: inline-block;
+  width: 200px;
+  max-width: 100%;
+}
+
+.kasse-qr-code svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.kasse-qr-wrap .toolkit-hint {
+  margin: 10px 0 0;
+}
+
 .kasse-artikel-buttons {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));

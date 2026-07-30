@@ -3,6 +3,7 @@ let kasseActiveTisch = null;
 let kasseAddCatFilter = "Alle";
 let kasseArtikelCatFilter = "Alle";
 let kasseArtikelSearchTerm = "";
+let kasseQrVisible = false;
 
 const KASSE_CATEGORY_COLORS = [
   "#2f9e8f", "#7cb342", "#e0a72e", "#e15c50", "#4a90d2",
@@ -39,6 +40,7 @@ function renderKasseTabs() {
 function kasseOpenTisch(tischId) {
   kasseActiveTisch = tischId;
   kasseAddCatFilter = "Alle";
+  kasseQrVisible = false;
   const grid = document.getElementById("kasseTischGrid");
   const addRow = document.getElementById("kasseTischAddRow");
   const detail = document.getElementById("kasseTischDetail");
@@ -119,6 +121,7 @@ function renderKasseTischDetail(kasse) {
   renderKasseAddCatFilter(kasse);
   renderKasseArtikelButtons(kasse);
   renderKasseOrderList(kasse, tisch);
+  renderKasseQr(kasse, tisch);
 }
 
 function renderKasseOrderList(kasse, tisch) {
@@ -194,6 +197,49 @@ function renderKasseOrderList(kasse, tisch) {
   }
 
   sumEl.textContent = formatEuro(kasse.tischSumme(tisch));
+}
+
+function kasseBonText(kasse, tisch) {
+  const lines = [tisch.name, ""];
+
+  tisch.items.forEach((item) => {
+    lines.push(`${item.menge}x ${item.name} – ${formatEuro(item.preis * item.menge)}`);
+  });
+  lines.push("");
+  lines.push(`Summe: ${formatEuro(kasse.tischSumme(tisch))}`);
+
+  if (tisch.notiz && tisch.notiz.trim()) {
+    lines.push("");
+    lines.push(`Notiz: ${tisch.notiz.trim()}`);
+  }
+
+  return lines.join("\n");
+}
+
+function renderKasseQr(kasse, tisch) {
+  const wrap = document.getElementById("kasseQrWrap");
+  const codeEl = document.getElementById("kasseQrCode");
+  const toggleBtn = document.getElementById("kasseShowQrButton");
+  if (!wrap || !codeEl) return;
+
+  wrap.style.display = kasseQrVisible ? "block" : "none";
+  if (toggleBtn) toggleBtn.textContent = kasseQrVisible ? "QR-Code ausblenden" : "QR-Code anzeigen";
+  if (!kasseQrVisible) return;
+
+  codeEl.innerHTML = "";
+
+  if (tisch.items.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "book-empty toolkit-empty";
+    empty.textContent = "Noch nichts bestellt – kein QR-Code.";
+    codeEl.appendChild(empty);
+    return;
+  }
+
+  const qr = qrcode(0, "M");
+  qr.addData(kasseBonText(kasse, tisch));
+  qr.make();
+  codeEl.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 8, scalable: true });
 }
 
 function renderKasseAddCatFilter(kasse) {
@@ -497,6 +543,16 @@ function initKasseUI(kasse) {
       if (!kasseActiveTisch) return;
       kasse.renameTisch(kasseActiveTisch, nameInput.value);
       renderKasseTischGrid(kasse);
+    });
+  }
+
+  const showQrBtn = document.getElementById("kasseShowQrButton");
+  if (showQrBtn) {
+    showQrBtn.addEventListener("click", () => {
+      kasseQrVisible = !kasseQrVisible;
+      if (!kasseActiveTisch) return;
+      const tisch = kasse.getTisch(kasseActiveTisch);
+      if (tisch) renderKasseQr(kasse, tisch);
     });
   }
 
