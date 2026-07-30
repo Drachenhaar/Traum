@@ -631,4 +631,26 @@ function initKasseUI(kasse) {
       renderKasseBook(kasse);
     });
   }
+
+  const addKategorieBtn = document.getElementById("kasseAddKategorie");
+  if (addKategorieBtn) {
+    addKategorieBtn.addEventListener("click", () => {
+      const input = document.getElementById("kasseNewKategorieName");
+      if (!input || !input.value.trim()) return;
+      kasse.ensureCategory(input.value);
+      input.value = "";
+      renderKasseBook(kasse);
+    });
+  }
+
+  const newKategorieInput = document.getElementById("kasseNewKategorieName");
+  if (newKategorieInput) {
+    newKategorieInput.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter") return;
+      if (!newKategorieInput.value.trim()) return;
+      kasse.ensureCategory(newKategorieInput.value);
+      newKategorieInput.value = "";
+      renderKasseBook(kasse);
+    });
+  }
 }
