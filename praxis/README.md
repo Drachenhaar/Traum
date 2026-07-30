@@ -10,6 +10,9 @@ Dragoncore, kein Traumwelt-Bezug, helles funktionales Design.
 - `kasse.js` / `kasseui.js` – Datenmodell und Rendering für Kasse & Tische
 - `toolkit.js` / `toolkitui.js` – Datenmodell und Rendering für die
   Werkzeug-Checkliste
+- `vendor/qrcode.js` – [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator)
+  von Kazuhiko Arase (MIT-Lizenz), lokal eingebunden für den QR-Code in der
+  Tisch-Detailansicht
 
 ## Kasse & Tische
 Notizblock für die Bedienung, wie bei einem Tischsystem (z. B. orderbird),
@@ -20,8 +23,11 @@ eingegeben wurden.
 
 - **Tische**: Kachel-Übersicht (frei/belegt), Tisch antippen öffnet die
   Detailansicht mit Bestellliste, Mengen-Stepper, laufender Summe,
-  Notizfeld für Sonderwünsche und Artikel-Schnellwahl nach Kategorie
-- **Artikel**: Katalog mit Name, Preis, frei erweiterbaren Kategorien
+  Notizfeld für Sonderwünsche, optionalem QR-Code (Bestellung als Text,
+  z. B. zum Testen mit einem Barcode-/QR-Scanner) und Artikel-Schnellwahl
+  nach Kategorie – die Kacheln sind farbig pro Kategorie
+- **Artikel**: Katalog mit Name, Preis, frei erweiterbaren Kategorien;
+  eigener Abschnitt zum Umbenennen/Löschen der Kategorien selbst
 - **Verlauf**: bereits übertragene Bons zur Kontrolle, einzeln löschbar
 
 ## Werkzeug-Checkliste

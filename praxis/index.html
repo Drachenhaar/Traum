@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Praxis – Kasse &amp; Werkzeuge</title>
-  <link rel="stylesheet" href="style.css?v=3" />
+  <link rel="stylesheet" href="style.css?v=4" />
 </head>
 
 <body>
@@ -64,6 +64,18 @@
             class="kasse-notiz-input"
             placeholder="Notiz zum Tisch, z. B. Sonderwünsche …"
           ></textarea>
+
+          <button class="toolkit-add-button kasse-qr-button" id="kasseShowQrButton" type="button">
+            QR-Code anzeigen
+          </button>
+          <div class="kasse-qr-wrap" id="kasseQrWrap" style="display:none;">
+            <div class="kasse-qr-code" id="kasseQrCode"></div>
+            <p class="toolkit-hint">
+              Enthält die Bestellung als Text zum Scannen. Ob eure Kasse
+              damit etwas anfangen kann, hängt von eurer Kassensoftware ab –
+              am besten kurz ausprobieren.
+            </p>
+          </div>
 
           <h3 class="toolkit-subheading">Artikel hinzufügen</h3>
           <div class="toolkit-filter" id="kasseAddCatFilter"></div>
@@ -170,10 +182,11 @@
     </section>
   </main>
 
-  <script src="kasse.js?v=3"></script>
-  <script src="kasseui.js?v=3"></script>
-  <script src="toolkit.js?v=3"></script>
-  <script src="toolkitui.js?v=3"></script>
-  <script src="app.js?v=3"></script>
+  <script src="vendor/qrcode.js?v=1"></script>
+  <script src="kasse.js?v=4"></script>
+  <script src="kasseui.js?v=4"></script>
+  <script src="toolkit.js?v=4"></script>
+  <script src="toolkitui.js?v=4"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>

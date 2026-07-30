@@ -117,6 +117,17 @@ in die Welt einbetten statt nur "hinzufügen".
   automatisch, falls der neue Name schon existiert), Löschen nur möglich
   wenn kein Artikel mehr in der Kategorie steckt (sonst Hinweis statt
   Löschung)
+- Kasse: Artikel-Kacheln farbig pro Kategorie (angelehnt an orderbird
+  MINI), feste Farbpalette per Kategorie-Index, Farbpunkte in den
+  Filter-Pills und der Kategorien-Verwaltung zeigen dieselbe Zuordnung
+- Kasse: optionaler QR-Code je Tisch (Button "QR-Code anzeigen" in der
+  Tisch-Detailansicht) – enthält die Bestellung als lesbaren Text
+  (Artikel, Mengen, Summe, Notiz), erzeugt lokal mit der vendorten
+  `qrcode-generator`-Bibliothek (MIT, kein CDN/Internet nötig). Bewusst
+  kein Versuch einer echten orderbird-Integration – ohne offizielle
+  Schnittstelle kann ein Sammelcode mit mehreren Artikeln nicht
+  automatisch in orderbird eingelesen werden, das ist nur ein lesbarer
+  Text-Export zum Testen/Ablesen
 
 ## Nächste Kandidaten (klein, auf jetziger Basis machbar)
 
