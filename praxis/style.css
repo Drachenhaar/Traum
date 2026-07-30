@@ -740,6 +740,16 @@ body {
   white-space: nowrap;
 }
 
+.kasse-kategorie-add {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.kasse-kategorie-add .toolkit-input {
+  flex: 1;
+}
+
 .kasse-verlauf-entry {
   font-size: 0.8rem;
 }
