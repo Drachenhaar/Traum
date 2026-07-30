@@ -4,6 +4,17 @@ let kasseAddCatFilter = "Alle";
 let kasseArtikelCatFilter = "Alle";
 let kasseArtikelSearchTerm = "";
 
+const KASSE_CATEGORY_COLORS = [
+  "#2f9e8f", "#7cb342", "#e0a72e", "#e15c50", "#4a90d2",
+  "#d9578f", "#8266c4", "#3c7a89", "#94a53f", "#c9762e"
+];
+
+function kasseCategoryColor(kasse, kategorie) {
+  const idx = kasse.data.categories.indexOf(kategorie);
+  if (idx === -1) return "#6b7a70";
+  return KASSE_CATEGORY_COLORS[idx % KASSE_CATEGORY_COLORS.length];
+}
+
 function renderKasseBook(kasse) {
   if (!kasse) return;
   renderKasseTabs();
@@ -193,7 +204,13 @@ function renderKasseAddCatFilter(kasse) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "toolkit-filter-pill" + (cat === kasseAddCatFilter ? " active" : "");
-    btn.textContent = cat;
+    if (cat !== "Alle") {
+      const dot = document.createElement("span");
+      dot.className = "kasse-filter-dot";
+      dot.style.background = kasseCategoryColor(kasse, cat);
+      btn.appendChild(dot);
+    }
+    btn.appendChild(document.createTextNode(cat));
     btn.addEventListener("click", () => {
       kasseAddCatFilter = cat;
       renderKasseAddCatFilter(kasse);
@@ -224,6 +241,7 @@ function renderKasseArtikelButtons(kasse) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "kasse-artikel-button";
+    btn.style.background = kasseCategoryColor(kasse, artikel.kategorie);
 
     const name = document.createElement("span");
     name.className = "kasse-artikel-button-name";
@@ -252,7 +270,13 @@ function renderKasseArtikelCatFilter(kasse) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "toolkit-filter-pill" + (cat === kasseArtikelCatFilter ? " active" : "");
-    btn.textContent = cat;
+    if (cat !== "Alle") {
+      const dot = document.createElement("span");
+      dot.className = "kasse-filter-dot";
+      dot.style.background = kasseCategoryColor(kasse, cat);
+      btn.appendChild(dot);
+    }
+    btn.appendChild(document.createTextNode(cat));
     btn.addEventListener("click", () => {
       kasseArtikelCatFilter = cat;
       renderKasseBook(kasse);
@@ -360,6 +384,11 @@ function renderKasseKategorieList(kasse) {
   kasse.data.categories.forEach((cat) => {
     const row = document.createElement("div");
     row.className = "kasse-kategorie-row";
+
+    const dot = document.createElement("span");
+    dot.className = "kasse-filter-dot";
+    dot.style.background = kasseCategoryColor(kasse, cat);
+    row.appendChild(dot);
 
     const input = document.createElement("input");
     input.type = "text";
