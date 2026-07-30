@@ -78,6 +78,10 @@ function renderToolkitGerichtCard(toolkit, gericht) {
   nameInput.type = "text";
   nameInput.className = "toolkit-gericht-name";
   nameInput.value = gericht.name;
+  nameInput.addEventListener("input", () => {
+    gericht.name = nameInput.value;
+    toolkit.save();
+  });
   nameInput.addEventListener("change", () => {
     gericht.name = nameInput.value.trim() || gericht.name;
     toolkit.save();
@@ -164,7 +168,7 @@ function renderToolkitWerkzeugRow(toolkit, gericht, werkzeug) {
   nameInput.className = "toolkit-input";
   nameInput.placeholder = "Werkzeug, z. B. Spachtel";
   nameInput.value = werkzeug.name;
-  nameInput.addEventListener("change", () => {
+  nameInput.addEventListener("input", () => {
     werkzeug.name = nameInput.value;
     const trimmed = werkzeug.name.trim();
     if (trimmed && !(trimmed in toolkit.data.bestand)) {
@@ -178,7 +182,7 @@ function renderToolkitWerkzeugRow(toolkit, gericht, werkzeug) {
   mengeInput.min = "0";
   mengeInput.className = "toolkit-input toolkit-input-num";
   mengeInput.value = werkzeug.menge;
-  mengeInput.addEventListener("change", () => {
+  mengeInput.addEventListener("input", () => {
     werkzeug.menge = Number(mengeInput.value) || 0;
     toolkit.save();
   });
@@ -227,7 +231,7 @@ function renderToolkitBestandList(toolkit) {
     input.min = "0";
     input.className = "toolkit-input toolkit-input-num";
     input.value = toolkit.data.bestand[name] ?? 0;
-    input.addEventListener("change", () => {
+    input.addEventListener("input", () => {
       toolkit.data.bestand[name] = Number(input.value) || 0;
       toolkit.save();
       renderToolkitPackTable(toolkit);
