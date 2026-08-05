@@ -1,0 +1,142 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Safe-Area-Werte als CSS-Variablen, damit sie in Utilities nutzbar sind */
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  html {
+    /* Kein horizontales Verschieben auf dem iPhone */
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-cream-100 text-ink font-sans antialiased;
+    overflow-x: hidden;
+    overscroll-behavior-y: none;
+  }
+
+  /* iOS zoomt bei Eingabefeldern < 16px automatisch hinein – das verhindern wir. */
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  h1,
+  h2 {
+    @apply font-serif;
+  }
+
+  ::selection {
+    background: rgba(168, 133, 63, 0.25);
+  }
+}
+
+@layer components {
+  /* Mindestgröße für Touch-Ziele: 44 x 44 px */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .card {
+    @apply rounded-2xl border border-line bg-cream-50 shadow-card;
+  }
+
+  .input-base {
+    @apply w-full rounded-xl border border-line bg-cream-50 px-3 py-2.5 text-ink
+           placeholder:text-ink-faint outline-none transition-colors duration-200 ease-calm
+           focus:border-brass-400 focus:ring-2 focus:ring-brass-400/25;
+    min-height: 44px;
+  }
+
+  .label-base {
+    @apply mb-1.5 block text-[13px] font-medium uppercase tracking-wide text-ink-muted;
+  }
+
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-xl px-4 text-[15px]
+           font-medium transition-all duration-200 ease-calm active:scale-[0.98]
+           disabled:pointer-events-none disabled:opacity-45;
+    min-height: 44px;
+  }
+
+  .btn-primary {
+    @apply btn bg-olive-800 text-cream-100 hover:bg-olive-700;
+  }
+
+  .btn-accent {
+    @apply btn bg-brass-500 text-cream-50 hover:bg-brass-600;
+  }
+
+  .btn-ghost {
+    @apply btn border border-line bg-cream-50 text-ink hover:bg-cream-200;
+  }
+
+  .btn-quiet {
+    @apply btn text-ink-muted hover:bg-cream-200 hover:text-ink;
+  }
+
+  .btn-danger {
+    @apply btn border border-red-800/25 bg-red-50 text-red-800 hover:bg-red-100;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-line bg-cream-50
+           px-3 py-1 text-[13px] text-ink-muted;
+  }
+
+  .hairline {
+    @apply border-t border-line;
+  }
+
+  /* Eigene, dezente Scrollbar (Desktop) */
+  .scroll-slim::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  .scroll-slim::-webkit-scrollbar-thumb {
+    background: rgba(124, 106, 87, 0.25);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  .scroll-slim::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@layer utilities {
+  .pt-safe {
+    padding-top: var(--sat);
+  }
+  .pb-safe {
+    padding-bottom: var(--sab);
+  }
+  .mb-safe {
+    margin-bottom: var(--sab);
+  }
+  .pl-safe {
+    padding-left: var(--sal);
+  }
+  .pr-safe {
+    padding-right: var(--sar);
+  }
+  .no-tap-highlight {
+    -webkit-tap-highlight-color: transparent;
+  }
+}

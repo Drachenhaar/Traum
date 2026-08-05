@@ -33,6 +33,20 @@ Die Bilder sollten freigestellt (transparenter Hintergrund) und im selben
 gemalten Stil wie das Hauptbild sein, damit sie sich einfügen statt
 aufzufallen.
 
+## Dragoncore Studio (separate App)
+
+Unter `studio/` liegt **Dragoncore Studio** – der Creative-Workspace und die
+lebendige Art Bible des Projekts: Charaktere, Kreaturen, Orte, Assets, Prompts und
+Bilder, alles lokal im Browser gespeichert und auf dem iPhone bedienbar.
+
+Eigenes Projekt mit eigenem Build:
+
+```bash
+cd studio && npm install && npm run dev
+```
+
+Details siehe `studio/README.md`.
+
 ## Praxis-Werkzeuge (separate App)
 
 Unter `praxis/` liegt eine eigenständige, schlichte App für Kasse & Tische
