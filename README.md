@@ -33,6 +33,22 @@ Die Bilder sollten freigestellt (transparenter Hintergrund) und im selben
 gemalten Stil wie das Hauptbild sein, damit sie sich einfügen statt
 aufzufallen.
 
+## Dragoncore Studio (separate App)
+
+Unter `studio/` liegt **Dragoncore Studio** – ein Werkzeug zum Bauen von Welten.
+Kein Notizprogramm: Beziehungen tragen dort eine Bedeutung („lebt in“, „besteht
+aus“, „stammt von“), und daraus entstehen Weltgraph, Welt-DNA, eine sich selbst
+schreibende Art Bible, Story-Modus, Concept Canvas und Asset-Pipeline. Alles
+lokal im Browser, auch auf dem iPhone bedienbar.
+
+Eigenes Projekt mit eigenem Build:
+
+```bash
+cd studio && npm install && npm run dev
+```
+
+Details siehe `studio/README.md`.
+
 ## Praxis-Werkzeuge (separate App)
 
 Unter `praxis/` liegt eine eigenständige, schlichte App für Kasse & Tische
