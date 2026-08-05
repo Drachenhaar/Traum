@@ -129,7 +129,7 @@ export function AppShell() {
             <span className="block font-serif text-[22px] leading-tight text-cream-100">
               {worldName || 'Dragoncore'}
             </span>
-            <span className="block text-[12px] uppercase tracking-[0.18em] text-brass-300">Studio</span>
+            <span className="block text-[12px] uppercase tracking-[0.18em] text-brass-300">Artbook</span>
           </span>
         </Link>
         {sidebar(false)}
@@ -232,7 +232,7 @@ export function AppShell() {
                   <span className="block font-serif text-[22px] leading-tight text-cream-100">
                     {worldName || 'Dragoncore'}
                   </span>
-                  <span className="block text-[12px] uppercase tracking-[0.18em] text-brass-300">Studio</span>
+                  <span className="block text-[12px] uppercase tracking-[0.18em] text-brass-300">Artbook</span>
                 </span>
               </div>
               <button

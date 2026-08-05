@@ -31,6 +31,7 @@ import { ImageUploadButton } from '../components/images/ImageUploadButton';
 import { Lightbox } from '../components/images/Lightbox';
 import { QuickCreate } from '../components/entry/QuickCreate';
 import { GoalPanel } from '../components/home/GoalPanel';
+import { Reveal } from '../components/ui/Reveal';
 import { templateFor } from '../lib/templates';
 import { discoverRelated, findOrphans } from '../lib/relations';
 import { relativeTime } from '../lib/utils';
@@ -100,25 +101,26 @@ export function HomePage() {
   const greeting = hour < 5 ? 'Noch wach' : hour < 11 ? 'Guten Morgen' : hour < 18 ? 'Willkommen zurück' : 'Guten Abend';
 
   return (
-    <div className="space-y-9">
+    <div className="space-y-12">
       {/* ------------------------------------------------------------ Kopf */}
-      <header>
-        <p className="text-[13px] uppercase tracking-[0.18em] text-brass-600">
-          {settings.worldName || 'Dragoncore'} Studio
-        </p>
-        <h1 className="mt-1 font-serif text-[34px] leading-[1.05] text-ink sm:text-[44px]">
-          {greeting}
+      <header className="max-w-2xl">
+        <p className="text-[13px] uppercase tracking-[0.2em] text-brass-600">{greeting}</p>
+        <h1 className="mt-2 font-serif text-[40px] leading-[1.05] text-ink sm:text-[52px]">
+          {settings.worldName || 'Dragoncore'}
         </h1>
-        <p className="mt-2 max-w-2xl text-[16px] leading-relaxed text-ink-muted">
+        {settings.worldTagline ? (
+          <p className="mt-2 font-serif text-[19px] italic leading-relaxed text-ink-muted sm:text-[22px]">
+            {settings.worldTagline}
+          </p>
+        ) : (
+          <p className="mt-2 font-serif text-[19px] italic leading-relaxed text-ink-muted sm:text-[22px]">
+            Build worlds. Connect everything.
+          </p>
+        )}
+        <p className="mt-3 text-[15px] leading-relaxed text-ink-faint">
           {living.length === 0
-            ? 'Deine Welt beginnt mit einem einzigen Eintrag. Alles Weitere wächst daran.'
-            : `${living.length} Einträge, ${relations.length} Verbindungen. ${
-                density >= 80
-                  ? 'Deine Welt hängt dicht zusammen.'
-                  : density >= 40
-                    ? 'Die Welt wächst zusammen.'
-                    : 'Vieles steht noch für sich allein.'
-              }`}
+            ? 'Diese Welt beginnt mit einem einzigen Eintrag. Alles Weitere wächst daran.'
+            : `${living.length} Einträge, ${relations.length} Verbindungen.`}
         </p>
       </header>
 
@@ -156,47 +158,6 @@ export function HomePage() {
         </section>
       )}
 
-      {/* ------------------------------------------------ Zustand der Welt */}
-      <section className="grid gap-3 lg:grid-cols-[1.4fr_1fr]">
-        <div className="card p-4 sm:p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="font-serif text-xl text-ink">Zustand der Welt</h2>
-              <p className="mt-0.5 text-[14px] text-ink-muted">
-                {density}% aller Einträge sind mit etwas verbunden
-              </p>
-            </div>
-            <Link to="/graph" className="btn-ghost h-10 min-h-0 shrink-0 px-3 text-[14px]">
-              <Waypoints size={16} /> Graph
-            </Link>
-          </div>
-
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-cream-300">
-            <div
-              className="h-full rounded-full bg-brass-500 transition-[width] duration-1000 ease-calm"
-              style={{ width: `${density}%` }}
-            />
-          </div>
-
-          {composition.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-1.5">
-              {composition.map(({ type, count, tpl }) => (
-                <Link
-                  key={type}
-                  to={`/bibliothek?typ=${type}`}
-                  className="inline-flex min-h-[34px] items-center gap-1.5 rounded-full border border-line bg-cream-50 px-3 text-[13px] text-ink-muted transition-colors hover:border-brass-400 hover:text-ink"
-                >
-                  <span className="inline-block h-2 w-2 rounded-full" style={{ background: tpl.accent }} />
-                  {tpl.labelPlural} <span className="text-ink-faint">{count}</span>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <GoalPanel />
-      </section>
-
       {/* ----------------------------------------------- Vorschlag des Tages */}
       {inspiration?.target && (
         <section className="rounded-2xl border border-brass-500/35 bg-brass-500/10 p-4 sm:p-5">
@@ -221,55 +182,6 @@ export function HomePage() {
           >
             Verbinden
           </button>
-        </section>
-      )}
-
-      {/* ------------------------------------------------------ Schnellstart */}
-      <section>
-        <h2 className="mb-3 font-serif text-2xl text-ink">Womit weiter?</h2>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" className="btn-accent" onClick={() => setCreateOpen(true)}>
-            <Plus size={18} /> Etwas Neues
-          </button>
-          <Link to="/dna" className="btn-ghost">
-            <Dna size={18} /> Welt-DNA
-          </Link>
-          <Link to="/graph" className="btn-ghost">
-            <Waypoints size={18} /> Weltgraph
-          </Link>
-          <Link to="/canvas" className="btn-ghost">
-            <Brush size={18} /> Concept Canvas {boards.length > 0 && <span className="text-ink-faint">{boards.length}</span>}
-          </Link>
-          <ImageUploadButton className="btn-ghost" onImported={() => navigate('/bilder')}>
-            <ImagePlus size={18} /> Bilder importieren
-          </ImageUploadButton>
-        </div>
-      </section>
-
-      {/* ---------------------------------------------- Noch ohne Verbindung */}
-      {orphans.length > 0 && (
-        <section>
-          <h2 className="mb-1 flex items-center gap-2 font-serif text-2xl text-ink">
-            <Unlink size={19} className="text-ink-faint" /> Noch allein
-          </h2>
-          <p className="mb-3 text-[15px] text-ink-muted">
-            Diese Einträge sind mit nichts verbunden. Ein Ort, ein Material, eine DNA-Regel genügt.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {orphans.map((entry) => {
-              const tpl = templateFor(entry.type);
-              return (
-                <Link
-                  key={entry.id}
-                  to={`/eintrag/${entry.id}`}
-                  className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-dashed border-lineStrong bg-cream-50/60 px-3 text-[14px] text-ink transition-colors hover:border-brass-400 hover:bg-cream-200"
-                >
-                  <span className="inline-block h-2 w-2 rounded-full" style={{ background: tpl.accent }} />
-                  {entry.title}
-                </Link>
-              );
-            })}
-          </div>
         </section>
       )}
 
@@ -343,6 +255,102 @@ export function HomePage() {
           </div>
         )}
       </section>
+
+      {/* ------------------------------------------------------- Werkstatt */}
+      <Reveal
+        label="Werkstatt"
+        hint={`${density}% verbunden${orphans.length > 0 ? ` · ${orphans.length} noch allein` : ''}`}
+      >
+        <div className="space-y-8">
+          <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr]">
+            <div className="card p-4 sm:p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-serif text-xl text-ink">Zustand der Welt</h3>
+                  <p className="mt-0.5 text-[14px] text-ink-muted">
+                    {density}% aller Einträge sind mit etwas verbunden
+                  </p>
+                </div>
+                <Link to="/graph" className="btn-ghost h-10 min-h-0 shrink-0 px-3 text-[14px]">
+                  <Waypoints size={16} /> Graph
+                </Link>
+              </div>
+
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-cream-300">
+                <div
+                  className="h-full rounded-full bg-brass-500 transition-[width] duration-1000 ease-calm"
+                  style={{ width: `${density}%` }}
+                />
+              </div>
+
+              {composition.length > 0 && (
+                <div className="mt-4 flex flex-wrap gap-1.5">
+                  {composition.map(({ type, count, tpl }) => (
+                    <Link
+                      key={type}
+                      to={`/bibliothek?typ=${type}`}
+                      className="inline-flex min-h-[34px] items-center gap-1.5 rounded-full border border-line bg-cream-50 px-3 text-[13px] text-ink-muted transition-colors hover:border-brass-400 hover:text-ink"
+                    >
+                      <span className="inline-block h-2 w-2 rounded-full" style={{ background: tpl.accent }} />
+                      {tpl.labelPlural} <span className="text-ink-faint">{count}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <GoalPanel />
+          </div>
+
+          <div>
+            <h3 className="mb-3 font-serif text-xl text-ink">Womit weiter?</h3>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className="btn-accent" onClick={() => setCreateOpen(true)}>
+                <Plus size={18} /> Etwas Neues
+              </button>
+              <Link to="/dna" className="btn-ghost">
+                <Dna size={18} /> Welt-DNA
+              </Link>
+              <Link to="/graph" className="btn-ghost">
+                <Waypoints size={18} /> Weltgraph
+              </Link>
+              <Link to="/canvas" className="btn-ghost">
+                <Brush size={18} /> Concept Canvas{' '}
+                {boards.length > 0 && <span className="text-ink-faint">{boards.length}</span>}
+              </Link>
+              <ImageUploadButton className="btn-ghost" onImported={() => navigate('/bilder')}>
+                <ImagePlus size={18} /> Bilder importieren
+              </ImageUploadButton>
+            </div>
+          </div>
+
+          {orphans.length > 0 && (
+            <div>
+              <h3 className="mb-1 flex items-center gap-2 font-serif text-xl text-ink">
+                <Unlink size={19} className="text-ink-faint" /> Noch allein
+              </h3>
+              <p className="mb-3 text-[15px] text-ink-muted">
+                Diese Einträge sind mit nichts verbunden. Ein Ort, ein Material, eine DNA-Regel genügt.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {orphans.map((entry) => {
+                  const tpl = templateFor(entry.type);
+                  return (
+                    <Link
+                      key={entry.id}
+                      to={`/eintrag/${entry.id}`}
+                      className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-dashed border-lineStrong bg-cream-50/60 px-3 text-[14px] text-ink transition-colors hover:border-brass-400 hover:bg-cream-200"
+                    >
+                      <span className="inline-block h-2 w-2 rounded-full" style={{ background: tpl.accent }} />
+                      {entry.title}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </Reveal>
 
       {lightbox !== null && (
         <Lightbox
