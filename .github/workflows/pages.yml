@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - claude/was-sagst-du-dazu-0fx2vz
-      - claude/dragoncore-studio-app-4n5it0
       - main
   workflow_dispatch:
 
