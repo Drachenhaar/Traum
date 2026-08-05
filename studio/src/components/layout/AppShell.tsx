@@ -15,6 +15,7 @@ import { templateFor } from '../../lib/templates';
 import { cx } from '../../lib/utils';
 import { GlobalSearch } from '../search/GlobalSearch';
 import { QuickCreate } from '../entry/QuickCreate';
+import brandMark from '../../assets/brand-mark.png';
 
 export function AppShell() {
   // Erst den Rohwert holen, dann ableiten – ein Selektor, der jedes Mal ein
@@ -122,11 +123,14 @@ export function AppShell() {
     <div className="flex h-full w-full overflow-hidden bg-cream-100">
       {/* ------------------------------------------------ Seitenleiste (Desktop) */}
       <aside className="hidden w-[252px] shrink-0 flex-col border-r border-olive-900 bg-olive-800 lg:flex">
-        <Link to="/" className="block px-5 pb-4 pt-6">
-          <span className="block font-serif text-[22px] leading-tight text-cream-100">
-            {worldName || 'Dragoncore'}
+        <Link to="/" className="flex items-center gap-3 px-5 pb-4 pt-6">
+          <img src={brandMark} alt="" className="h-10 w-10 shrink-0 rounded-xl" />
+          <span>
+            <span className="block font-serif text-[22px] leading-tight text-cream-100">
+              {worldName || 'Dragoncore'}
+            </span>
+            <span className="block text-[12px] uppercase tracking-[0.18em] text-brass-300">Artbook</span>
           </span>
-          <span className="block text-[12px] uppercase tracking-[0.18em] text-brass-300">Studio</span>
         </Link>
         {sidebar(false)}
       </aside>
@@ -143,7 +147,8 @@ export function AppShell() {
             <Menu size={22} />
           </button>
 
-          <Link to="/" className="font-serif text-[19px] text-ink lg:hidden">
+          <Link to="/" className="flex items-center gap-2 font-serif text-[19px] text-ink lg:hidden">
+            <img src={brandMark} alt="" className="h-7 w-7 shrink-0 rounded-lg" />
             {worldName || 'Dragoncore'}
           </Link>
 
@@ -221,11 +226,14 @@ export function AppShell() {
           <div className="absolute inset-0 bg-olive-900/45 animate-fadeIn" onClick={() => setMenuOpen(false)} />
           <div className="absolute inset-y-0 left-0 flex w-[84%] max-w-[330px] flex-col bg-olive-800 shadow-panel animate-fadeIn">
             <div className="flex items-center justify-between px-5 pt-safe">
-              <div className="py-4">
-                <span className="block font-serif text-[22px] leading-tight text-cream-100">
-                  {worldName || 'Dragoncore'}
+              <div className="flex items-center gap-3 py-4">
+                <img src={brandMark} alt="" className="h-10 w-10 shrink-0 rounded-xl" />
+                <span>
+                  <span className="block font-serif text-[22px] leading-tight text-cream-100">
+                    {worldName || 'Dragoncore'}
+                  </span>
+                  <span className="block text-[12px] uppercase tracking-[0.18em] text-brass-300">Artbook</span>
                 </span>
-                <span className="block text-[12px] uppercase tracking-[0.18em] text-brass-300">Studio</span>
               </div>
               <button
                 type="button"

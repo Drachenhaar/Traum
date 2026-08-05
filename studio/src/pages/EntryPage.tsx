@@ -1,9 +1,9 @@
 /**
- * Detailansicht eines Eintrags.
+ * Eine Seite im Buch.
  *
- * Reihenfolge nach Wichtigkeit: erst was es ist, dann wo es in der Welt steht
- * (Beziehungen), dann der freie Seiteninhalt. Die Beziehungen stehen bewusst
- * weit oben – sie sind nicht Beiwerk, sondern der Grund für diese App.
+ * Titelbild, Titel, Text – das ist die Seite, und mehr braucht sie nicht zu
+ * zeigen. Beziehungen, Vorlagenfelder und Produktionsdaten liegen darunter
+ * und öffnen sich erst, wenn man danach fragt.
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -25,9 +25,10 @@ import {
 } from 'lucide-react';
 import { useStudio } from '../store/useStudio';
 import { templateFor } from '../lib/templates';
+import { relationsOf } from '../lib/relations';
 import { entryMetaSchema, type EntryMetaValues } from '../lib/schemas';
 import { ENTRY_STATUSES, type EntryStatus, type Revision } from '../types';
-import { AutoTextarea, Field, SelectInput, TagInput, TextInput } from '../components/ui/Fields';
+import { AutoTextarea, Field, TagInput } from '../components/ui/Fields';
 import { EntryFields } from '../components/entry/EntryFields';
 import { BlockEditor } from '../components/blocks/BlockEditor';
 import { RelationPanel } from '../components/relations/RelationPanel';
@@ -35,6 +36,7 @@ import { PipelineBar } from '../components/entry/PipelineBar';
 import { Thumb } from '../components/images/Thumb';
 import { ImagePicker } from '../components/images/ImagePicker';
 import { Modal } from '../components/ui/Modal';
+import { Reveal } from '../components/ui/Reveal';
 import { confirm } from '../components/ui/Confirm';
 import { PrintPreview } from '../components/entry/PrintPreview';
 import { StoryMode } from '../components/story/StoryMode';
@@ -49,6 +51,7 @@ export function EntryPage() {
   const entry = useStudio((s) => s.entries.find((e) => e.id === id));
   const entries = useStudio((s) => s.entries);
   const images = useStudio((s) => s.images);
+  const relIndex = useStudio((s) => s.relIndex);
   const updateEntry = useStudio((s) => s.updateEntry);
   const duplicateEntry = useStudio((s) => s.duplicateEntry);
   const deleteEntry = useStudio((s) => s.deleteEntry);
@@ -124,6 +127,7 @@ export function EntryPage() {
 
   const tpl = templateFor(entry.type);
   const TypeIcon = iconByName(tpl.icon);
+  const relCount = relationsOf(relIndex, entry.id).length;
 
   const commit = () => {
     const values = getValues();
@@ -249,13 +253,13 @@ export function EntryPage() {
         )}
       </div>
 
-      {/* ------------------------------------------------------- Stammdaten */}
-      <section className="card mb-5 p-4 sm:p-5">
+      {/* ------------------------------------------------------- Die Seite */}
+      <section className="mb-8 max-w-[68ch]">
         <input
           {...register('title')}
           onBlur={commit}
           placeholder="Titel"
-          className="w-full border-0 bg-transparent px-0 py-1 font-serif text-[28px] leading-tight text-ink outline-none placeholder:text-ink-faint sm:text-[32px]"
+          className="w-full border-0 bg-transparent px-0 py-1 font-serif text-[32px] leading-tight text-ink outline-none placeholder:text-ink-faint sm:text-[42px]"
         />
         {errors.title && <p className="text-[13px] text-red-700">{errors.title.message}</p>}
 
@@ -263,41 +267,49 @@ export function EntryPage() {
           {...register('subtitle')}
           onBlur={commit}
           placeholder="Untertitel"
-          className="mt-1 w-full border-0 bg-transparent px-0 py-1 text-[16px] text-ink-muted outline-none placeholder:text-ink-faint"
+          className="mt-1 w-full border-0 bg-transparent px-0 py-1 font-serif text-[18px] italic text-ink-muted outline-none placeholder:text-ink-faint"
         />
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <Field label="Kategorie" error={errors.category?.message}>
-            <TextInput {...register('category')} onBlur={commit} list={`cats-${entry.type}`} />
-            <datalist id={`cats-${entry.type}`}>
-              {tpl.categories.map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
-          </Field>
-
-          <Field label="Status">
-            <SelectInput
-              {...register('status')}
-              onChange={(e) => {
-                setValue('status', e.target.value);
-                updateEntry(entry.id, { status: e.target.value as EntryStatus });
-              }}
-            >
-              {ENTRY_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </SelectInput>
-          </Field>
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px] uppercase tracking-[0.12em] text-ink-faint">
+          <input
+            {...register('category')}
+            onBlur={commit}
+            placeholder="Kategorie"
+            list={`cats-${entry.type}`}
+            className="w-32 border-0 bg-transparent p-0 outline-none placeholder:text-ink-faint focus:text-ink"
+          />
+          <datalist id={`cats-${entry.type}`}>
+            {tpl.categories.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
+          <span aria-hidden>·</span>
+          <select
+            {...register('status')}
+            onChange={(e) => {
+              setValue('status', e.target.value);
+              updateEntry(entry.id, { status: e.target.value as EntryStatus });
+            }}
+            className="border-0 bg-transparent p-0 uppercase tracking-[0.12em] text-ink-faint outline-none focus:text-ink"
+          >
+            {ENTRY_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
         </div>
 
-        <Field label="Beschreibung" error={errors.description?.message} className="mt-4">
-          <AutoTextarea {...register('description')} onBlur={commit} placeholder="Worum geht es hier?" />
+        <Field error={errors.description?.message} className="mt-5">
+          <AutoTextarea
+            {...register('description')}
+            onBlur={commit}
+            placeholder="Worum geht es hier?"
+            className="min-h-0 border-0 bg-transparent px-0 py-0 font-serif text-[18px] leading-[1.75] text-ink placeholder:font-sans placeholder:text-[15px] placeholder:italic placeholder:text-ink-faint"
+          />
         </Field>
 
-        <Field label="Schlagworte" className="mt-4">
+        <div className="mt-4">
           <TagInput
             value={tags}
             suggestions={tagSuggestions}
@@ -306,39 +318,38 @@ export function EntryPage() {
               updateEntry(entry.id, { tags: v });
             }}
           />
-        </Field>
-
-        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-line pt-3 text-[13px] text-ink-faint">
-          <span>Angelegt {formatDateTime(entry.createdAt)}</span>
-          <span aria-hidden>·</span>
-          <span>Zuletzt geändert {relativeTime(entry.updatedAt)}</span>
-          <button type="button" className="ml-auto text-brass-600 hover:underline" onClick={() => void openHistory()}>
-            Fassungen ansehen
-          </button>
         </div>
       </section>
 
-      {/* --------------------------------------------------------- Pipeline */}
-      {entry.type === 'asset' && <PipelineBar entry={entry} />}
-
-      {/* ------------------------------------------------------- Beziehungen */}
-      <div className="mb-5">
-        <RelationPanel entry={entry} />
-      </div>
-
-      {/* --------------------------------------------- Felder aus der Vorlage */}
-      {tpl.fields.length > 0 && (
-        <section className="card mb-5 p-4 sm:p-5">
-          <h2 className="mb-4 font-serif text-xl text-ink">{tpl.label}-Angaben</h2>
-          <EntryFields entry={entry} />
-        </section>
-      )}
-
       {/* ------------------------------------------------------------ Blöcke */}
-      <section className="mb-5">
-        <h2 className="mb-3 font-serif text-xl text-ink">Seiteninhalt</h2>
+      <section className="mb-8 max-w-[68ch]">
         <BlockEditor entry={entry} />
       </section>
+
+      {/* -------------------------------------------------- Mehr entdecken */}
+      <Reveal label="Mehr entdecken" hint={`${relCount} Verbindung${relCount === 1 ? '' : 'en'}`}>
+        <div className="space-y-8">
+          {entry.type === 'asset' && <PipelineBar entry={entry} />}
+
+          <RelationPanel entry={entry} />
+
+          {tpl.fields.length > 0 && (
+            <section className="card p-4 sm:p-5">
+              <h3 className="mb-4 font-serif text-xl text-ink">{tpl.label}-Angaben</h3>
+              <EntryFields entry={entry} />
+            </section>
+          )}
+
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-line pt-3 text-[13px] text-ink-faint">
+            <span>Angelegt {formatDateTime(entry.createdAt)}</span>
+            <span aria-hidden>·</span>
+            <span>Zuletzt geändert {relativeTime(entry.updatedAt)}</span>
+            <button type="button" className="ml-auto text-brass-600 hover:underline" onClick={() => void openHistory()}>
+              Fassungen ansehen
+            </button>
+          </div>
+        </div>
+      </Reveal>
 
       {/* --------------------------------------------------------- Dialoge */}
       <ImagePicker
