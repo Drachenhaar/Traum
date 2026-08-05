@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - claude/was-sagst-du-dazu-0fx2vz
+      - claude/dragoncore-studio-app-4n5it0
       - main
   workflow_dispatch:
 
@@ -26,6 +27,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: studio/package-lock.json
+
+      - name: Install Dragoncore Studio dependencies
+        working-directory: studio
+        run: npm ci
+
+      - name: Build Dragoncore Studio
+        working-directory: studio
+        run: npm run build
+
+      - name: Assemble Pages site
+        run: |
+          # Alles wie bisher ausliefern, nur der Ordner studio/ wird durch
+          # seinen fertigen Build ersetzt (Quellcode bleibt draußen).
+          mkdir -p _site
+          rsync -a --exclude='studio' --exclude='.github' --exclude='.git' ./ _site/
+          mkdir -p _site/studio
+          cp -r studio/dist/. _site/studio/
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
@@ -34,7 +59,7 @@ jobs:
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
+          path: '_site'
 
       - name: Deploy
         id: deployment
