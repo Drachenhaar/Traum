@@ -5,7 +5,7 @@ import { Check, Link2, Search } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { EmptyState } from '../ui/EmptyState';
 import { Thumb } from '../images/Thumb';
-import { useStudio } from '../../store/useStudio';
+import { useStudio, livingEntries } from '../../store/useStudio';
 import { templateFor } from '../../lib/templates';
 import { cx } from '../../lib/utils';
 import type { EntryType } from '../../types';
@@ -27,7 +27,8 @@ export function EntryLinkPicker({
   excludeId?: string;
   limitTypes?: EntryType[];
 }) {
-  const entries = useStudio((s) => s.entries);
+  const allEntries = useStudio((s) => s.entries);
+  const entries = useMemo(() => livingEntries(allEntries), [allEntries]);
   const [query, setQuery] = useState('');
   const [draft, setDraft] = useState<string[]>(selected);
 

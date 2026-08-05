@@ -1,16 +1,21 @@
 # Dragoncore Studio
 
-Ein persönlicher Creative-Workspace für das Fantasyprojekt **Dragoncore** – Archiv,
-Asset-Datenbank und lebendige Art Bible in einer App.
+Ein Werkzeug zum Bauen von Welten.
 
-Die App läuft vollständig lokal im Browser. Es gibt **kein Backend**: alle Einträge,
-Bilder und Einstellungen liegen in IndexedDB auf dem Gerät und bleiben nach einem
-Neuladen erhalten. Bilder werden als echte Blobs gespeichert – kein Base64, kein
-localStorage.
+Kein Notizprogramm, keine Dateiverwaltung, keine Art Bible als Dokument. Der
+Unterschied ist eine einzige Entscheidung: **Beziehungen haben hier eine
+Bedeutung.** Ein Charakter *lebt in* einem Ort, ein Ort *enthält* ein Gebäude,
+ein Möbelstück *besteht aus* einem Material, das Material *stammt von* einem
+Baum, der Baum *wächst in* einem Biom. Aus vielen solchen Sätzen entsteht ein
+Netz – und aus dem Netz die Welt.
 
-Die Bedienung ist für das iPhone gebaut: alle wichtigen Bedienelemente sind
-mindestens 44 × 44 px groß, Editoren öffnen als Vollbild-Blätter, und die Seite
-verschiebt sich nicht horizontal.
+Alles Weitere folgt daraus: der Weltgraph zeigt das Netz, die Art Bible gliedert
+sich daran entlang, der Story-Modus wandert hindurch, und die App kann sagen
+„Diese beiden hängen zusammen, aber du hast sie noch nicht verbunden.“
+
+Die App läuft vollständig lokal im Browser. Kein Backend, kein Konto, keine
+Übertragung. Alles liegt in IndexedDB auf dem Gerät, Bilder als echte Blobs.
+Bedienbar auf dem Schreibtisch wie auf dem iPhone.
 
 ---
 
@@ -24,12 +29,9 @@ npm install
 npm run dev
 ```
 
-Danach im Browser `http://localhost:5173` öffnen.
-
-Damit die App auf dem iPhone im selben WLAN erreichbar ist, zeigt Vite beim Start
-zusätzlich eine Netzwerk-Adresse an (`Network: http://192.168.x.x:5173`).
-
-Weitere Befehle:
+Dann `http://localhost:5173` öffnen. Vite zeigt beim Start zusätzlich eine
+Netzwerkadresse (`Network: http://192.168.x.x:5173`) – darüber lässt sich die
+App direkt auf dem iPhone im selben WLAN öffnen.
 
 ```bash
 npm run typecheck   # TypeScript prüfen
@@ -37,168 +39,223 @@ npm run build       # Produktionsbuild nach dist/
 npm run preview     # den Build lokal ansehen
 ```
 
-Der Build nutzt relative Pfade (`base: './'`) und einen Hash-Router. Der Inhalt von
-`dist/` lässt sich daher in jeden Unterordner eines Webservers legen – etwa nach
-`Traum/studio/` – und funktioniert ohne Server-Regeln für das Routing.
+Der Build nutzt relative Pfade und einen Hash-Router. `dist/` lässt sich daher
+in jeden Unterordner eines Webservers legen und funktioniert ohne Server-Regeln
+fürs Routing.
+
+---
+
+## Die vier tragenden Ideen
+
+### 1. Alles ist ein Eintrag – und Typen sind Daten
+
+Es gibt genau einen Datentyp: `Entry`. Ob daraus ein Charakter, ein Biom, ein
+Prompt oder eine DNA-Regel wird, entscheiden `type`, `fields` (aus der
+Typ-Registry) und `blocks` (freier Seiteninhalt).
+
+`EntryType` ist bewusst ein `string`, keine feste Aufzählung. Deshalb kann man
+in den Einstellungen einen eigenen Eintragstyp anlegen – mit Namen, Farbe,
+Symbol und eigenen Feldern – und er verhält sich danach exakt wie die 21
+eingebauten: eigener Platz in der Bibliothek, eigene Farbe im Graphen, eigene
+Kapitel in der Art Bible. **Für eine neue Inhaltsart ist keine Zeile Code
+nötig.**
+
+### 2. Beziehungen tragen Bedeutung und Richtung
+
+Eine Verbindung ist kein Link, sondern eine Aussage:
+
+```
+Waldkoi  --lebt in-->  Nebelwald
+Nebelwald  --beherbergt-->  Waldkoi     (dieselbe Kante, andersherum gelesen)
+```
+
+Es gibt 13 Beziehungsarten (*lebt in, enthält, besteht aus, stammt von, wächst
+in, benutzt, besitzt, trägt, erscheint in, entstand aus, folgt der Regel,
+Variante von, verwandt mit*). Beim Verknüpfen liest sich der Dialog wie ein
+Satz, damit klar bleibt, was man gerade über die Welt behauptet. Jede Kante
+lässt sich umdrehen, umdeuten oder lösen.
+
+Daraus entsteht das, was die App lebendig macht: **Entdeckungen im zweiten
+Grad.** Unter jedem Eintrag steht, was mit seinen Nachbarn zusammenhängt, aber
+noch nicht mit ihm selbst – „über Nebelwald · beheimatet“. Ein Klick, und die
+Welt ist ein Stück dichter.
+
+### 3. Die DNA ist der Prüfstein, nicht die Doku
+
+Welt-DNA sind Regeln als eigene Einträge: *Ruhe vor Spektakel*, *Warmes Licht,
+kühler Schatten*, *Gewachsen statt gebaut* – je mit Begründung und Listen für
+„so ja“ und „so nicht“. Alles kann per Beziehung `folgt der Regel` daran
+gebunden werden.
+
+Die DNA-Seite zeigt deshalb nicht nur die Regeln, sondern **wie viel Prozent
+der Welt tatsächlich an sie gebunden ist** und was jeder Regel folgt. Eine
+Regel, der nichts folgt, ist sichtbar wirkungslos.
+
+### 4. Nichts geht verloren
+
+Löschen heißt Papierkorb. Jede Bearbeitung legt (gedrosselt) eine Fassung an.
+Die Zeitleiste zeigt beides: den Arbeitsverlauf nach Tagen gruppiert und den
+Papierkorb – beides mit „Zurückholen“.
+
+---
+
+## Was drin ist
+
+### Inhalte
+- **21 eingebaute Eintragstypen** in sechs Familien: Welt (Ort, Biom), Wesen
+  (Charakter, Kreatur, Tier), Natur (Pflanze, Material), Gebautes (Architektur,
+  Objekt, Möbel, Kleidung), Produktion (Asset, Prompt, Concept Art, Animation,
+  UI), Erzählung (Lore, Quest, Magie, Musik), dazu DNA-Regel, Seite, Sammlung
+- **Eigene Typen** in den Einstellungen, gleichberechtigt zu den eingebauten
+- Fünf Bearbeitungsstände, Favoriten, Schlagworte, Titelbilder
+- **15 Blocktypen** (Überschrift, Text, Zitat, Notiz, Bild, Galerie, Moodboard,
+  Farbpalette, Materialpalette, Referenzkarten, Checkliste, Prompt, Asset-Liste,
+  Trennlinie, Abstand) – verschieben per Ziehgriff am Desktop, per Hoch/Runter
+  überall, dazu duplizieren, einklappen, löschen
+
+### Weltgraph
+Eigene Kräftesimulation mit räumlichem Raster (nicht paarweise – bleibt auch bei
+tausenden Knoten flüssig). Knotengröße nach Vernetzungsgrad, Farbe nach Typ,
+Kanten mit Beziehungsbeschriftung. Ziehen, Zoomen, Zwei-Finger-Pinch, Typfilter,
+Fokusmodus (nur die Umgebung eines Knotens), Infokarte mit Sprung in den
+Eintrag.
+
+### Art Bible
+Wird nicht geschrieben, sondern wächst mit. Kapitel entstehen aus den Familien,
+die Farben der Welt werden aus allen Einträgen und Blöcken eingesammelt und nach
+Häufigkeit sortiert, Materialien ebenso. Export als eigenständige HTML-Datei mit
+eingebetteten Bildern.
+
+### Story-Modus
+Vollbild, ohne jede Bedienoberfläche. Von einem Eintrag aus wandert er durch
+dessen Nachbarschaft, aus der Art Bible heraus durch ein ganzes Kapitel.
+Blättern per Tastatur oder Wischen.
+
+### Concept Canvas
+Unendliche Fläche mit Bildern, Notizen, Rahmen, Freihandzeichnung und
+Eintragskarten. Zwei Besonderheiten: Einträge liegen als echte Einträge dort
+(ein Klick führt in die Welt), und **zwischen zwei Einträgen, die in der Welt
+verbunden sind, zeichnet die Fläche die Verbindung von selbst**. Kamera und
+Inhalt werden automatisch gespeichert.
+
+### Asset-Pipeline
+Acht Stufen von *Idee* bis *Exportiert*, als Tafel mit einer Spalte je Stufe.
+Auf der Asset-Seite schlägt die App anhand der vorhandenen Daten eine Stufe vor
+– entschieden wird trotzdem per Hand.
+
+### Bilder
+Mehrfachimport aus Fotomediathek oder Dateien-App, automatische Vorschaubilder,
+Blobs in IndexedDB. Je Bild: Titel, Beschreibung, Schlagworte, Kategorie,
+Prompt, negativer Prompt, Quelle, Status, Favorit, Verknüpfungen. Mediathek mit
+Filtern (auch Orientierung), Vollbildansicht.
+
+### Suche
+Global (⌘K) über Titel, Untertitel, Beschreibungen, Schlagworte, Kategorien,
+Asset-IDs, alle Vorlagenfelder und sämtliche Blockinhalte. Suchtexte werden je
+Eintrag zwischengespeichert und nur bei Änderung neu gebaut.
+
+### Sicherung
+Vollsicherung als JSON – mit Einträgen, Beziehungen, Flächen, Einstellungen und
+wahlweise eingebetteten Bilddaten. Import gegen ein Zod-Schema geprüft, wahlweise
+ergänzend oder ersetzend; Beziehungen ohne Gegenstück werden ausgelassen und
+gemeldet. Einzelexport eines Eintrags nimmt seine Beziehungen mit.
 
 ---
 
 ## Projektstruktur
 
 ```
-studio/
-├─ index.html                 Einstiegspunkt, iPhone-Meta-Tags (Safe Area)
-├─ tailwind.config.js         Farben, Schriften, Schatten, Animationen
-└─ src/
-   ├─ main.tsx                Anwendungsstart
-   ├─ App.tsx                 Routen (HashRouter)
-   ├─ index.css               Basisstile und wiederverwendbare Klassen (.btn, .card …)
-   │
-   ├─ types/index.ts          Alle Datentypen: Entry, Block, Bild, Navigation, Filter
-   │
-   ├─ db/
-   │  ├─ db.ts                Dexie-Schema (entries, images, imageBlobs, settings)
-   │  └─ seed.ts              Beispieldaten für den allerersten Start
-   │
-   ├─ store/useStudio.ts      Globaler Zustand + Autospeichern in IndexedDB
-   │
-   ├─ lib/
-   │  ├─ templates.ts         Vorlagen: welche Felder ein Eintragstyp hat
-   │  ├─ blocks.ts            Blocktypen, Standardwerte, Zusammenfassungen
-   │  ├─ images.ts            Bildimport, Vorschaubilder, Object-URL-Cache
-   │  ├─ search.ts            Volltextsuche, Bewertung, Filter
-   │  ├─ portability.ts       JSON-Export/-Import und Druckansicht (HTML)
-   │  ├─ schemas.ts           Zod-Schemata für Formulare und Import
-   │  ├─ nav.ts               Standard-Navigation
-   │  ├─ icons.ts             Icon-Auflösung nach Name
-   │  └─ utils.ts             Datum, Kopieren, Download, kleine Helfer
-   │
-   ├─ components/
-   │  ├─ layout/AppShell.tsx  Seitenleiste, Werkzeugleiste, mobile Aktionsleiste
-   │  ├─ ui/                  Modal, Bestätigung, Hinweise, Formularfelder, Leerzustand
-   │  ├─ entry/               Karten, Übersicht, Vorlagenfelder, Verknüpfungen, Druckansicht
-   │  ├─ blocks/              Block-Editor und die Darstellung aller Blocktypen
-   │  ├─ images/              Vorschau, Auswahl, Import, Vollbild, Bearbeitung
-   │  └─ search/              Globale Suche
-   │
-   └─ pages/                  Startseite, Bereichsseiten, Eintrag, Bilder, Einstellungen
+studio/src/
+├─ types/index.ts          Entry, Relation, Revision, CanvasBoard, Settings …
+│
+├─ db/
+│  ├─ db.ts                Dexie-Schema (Fassung 2) + Migration alter Links
+│  └─ seed.ts              Die Startwelt – 14 Einträge, 17 Beziehungen
+│
+├─ store/useStudio.ts      Globaler Zustand, Autospeichern, Fassungen
+│
+├─ lib/
+│  ├─ relations.ts         Beziehungsarten, Index, Entdeckung, Pfadsuche
+│  ├─ templates.ts         Typ-Registry (eingebaut + eigene)
+│  ├─ graph.ts             Kräftesimulation mit räumlichem Raster
+│  ├─ pipeline.ts          Produktionsstufen
+│  ├─ blocks.ts            Blocktypen
+│  ├─ images.ts            Import, Vorschaubilder, Object-URL-Cache
+│  ├─ search.ts            Volltextsuche, Bewertung, Filter
+│  ├─ portability.ts       JSON-Export/-Import, Druckansicht, Art-Bible-HTML
+│  ├─ schemas.ts           Zod-Schemata
+│  ├─ nav.ts, icons.ts, utils.ts
+│
+├─ components/
+│  ├─ relations/           Beziehungsleiste und Verbinden-Dialog
+│  ├─ blocks/              Block-Editor und Nur-Lese-Darstellung
+│  ├─ story/               Story-Modus
+│  ├─ entry/               Karten, Felder, Pipeline-Leiste, Druckansicht
+│  ├─ images/              Vorschau, Auswahl, Import, Vollbild, Bearbeitung
+│  ├─ home/                Ziele
+│  ├─ settings/            Eigene Eintragstypen
+│  ├─ layout/AppShell.tsx  Seitenleiste, Werkzeugleiste, mobile Aktionsleiste
+│  └─ ui/                  Modal, Bestätigung, Hinweise, Formularfelder
+│
+└─ pages/                  Zuhause, DNA, Graph, Bibliothek, Canvas, Art Bible,
+                           Pipeline, Zeitleiste, Bilder, Einstellungen, Eintrag
 ```
 
-### Zwei Gedanken hinter dem Aufbau
+### Zwei Entscheidungen unter der Haube
 
-**Ein Datentyp für alles.** Es gibt nur `Entry`. Ob daraus ein Charakter, ein Asset
-oder ein Prompt wird, entscheiden `type` (welche Ansicht), `fields` (typspezifische
-Angaben) und `blocks` (freier Seiteninhalt). Neue Felder oder ganz neue Eintragstypen
-brauchen deshalb nur einen Eintrag in `lib/templates.ts` – kein neues Formular und
-keine Datenbank-Migration.
+**Speicher im Arbeitsspeicher, Wahrheit in IndexedDB.** Einträge, Beziehungen
+und Bild-Metadaten liegen im Zustand-Store, damit Suche, Filter und Graph ohne
+Verzögerung antworten. Jede Änderung wird gebündelt weggeschrieben und beim
+Verlassen der Seite sofort.
 
-**Speicher im Arbeitsspeicher, Wahrheit in IndexedDB.** Alle Einträge liegen im
-Zustand-Store, damit Suche und Filter ohne Verzögerung reagieren. Jede Änderung wird
-zusätzlich gebündelt nach IndexedDB geschrieben (Autospeichern) und beim Verlassen
-der Seite sofort weggeschrieben.
+**Der Beziehungsindex wird bei jeder Änderung neu gebaut.** Das klingt teuer,
+ist aber nur ein Durchlauf über eine Liste – und dafür ist danach jede Abfrage
+(Nachbarn, eingehend, ausgehend) in konstanter Zeit beantwortet.
 
 ---
 
-## Vorhandene Funktionen
+## Bedienung auf dem iPhone
 
-### Inhalte
-- Neun Eintragstypen: Seite, Ort, Charakter, Kreatur, Pflanze, Architektur, Asset,
-  Prompt, Sammlung
-- Stammdaten mit Titel, Untertitel, Kategorie, Beschreibung, Schlagworten, Status
-  und Favorit
-- Fünf Bearbeitungsstände: Idee, In Arbeit, Überarbeitung, Freigegeben, Archiviert
-- Anlegen, Bearbeiten, Duplizieren und Löschen (mit Bestätigung) für jeden Eintrag
-- Titelbild je Eintrag
-- Autospeichern mit sichtbarer Rückmeldung
-
-### Block-Editor
-15 Blocktypen: Überschrift, Fließtext, Zitat, Notiz, Bild, Bildergalerie, Moodboard,
-Farbpalette, Materialpalette, Referenzkarten, Checkliste, Prompt, Asset-Liste,
-Trennlinie und freier Abstand.
-
-Jeder Block lässt sich bearbeiten, verschieben, duplizieren, einklappen und löschen.
-Zum Verschieben gibt es auf dem Desktop einen Ziehgriff (dnd-kit) und überall
-zusätzlich Hoch-/Runter-Schaltflächen – die auf dem Touchscreen zuverlässig sind.
-
-### Bilder
-- Mehrere Bilder gleichzeitig aus Fotomediathek oder Dateien-App importieren
-- Automatisch erzeugte Vorschaubilder, Originale bleiben unangetastet
-- Angaben je Bild: Titel, Beschreibung, Schlagworte, Kategorie, Prompt, negativer
-  Prompt, Quelle, Status, Favorit, Verknüpfungen
-- Mediathek mit Raster- und Listenansicht, Suche und Filtern (Kategorie, Status,
-  Schlagwort, Favoriten, Orientierung)
-- Vollbildansicht mit Blättern
-- Wird ein Bild gelöscht, verschwindet es auch aus allen Einträgen und Blöcken
-
-### Spezialisierte Ansichten
-- **Charaktere**: Rolle, Alter, Persönlichkeit, Hintergrund, Gesicht, Haare,
-  Kleidung, Farbpalette, Begleiter, Turnaround, Ausdrücke, Bewegungsreferenzen,
-  Animationsnotizen, Prompts, verbundene Orte und Objekte
-- **Kreaturen**: Art, Größe, Lebensraum, Verhalten, Persönlichkeit, Farbpalette,
-  Körperteile, Bewegungsarten, Turnaround, Animationsnotizen, Prompts, Assets
-- **Assets**: Asset-ID, Unterkategorie, Perspektive, Orientierung, Pivot-Hinweis,
-  freigestellt, animierbar, Dateiformat, Prompt und negativer Prompt – mit Filtern
-  für freigestellt, animierbar und Orientierung
-- **Prompts**: Modell, Prompt, negativer Prompt, Seitenverhältnis, Auflösung, Seed,
-  Bewertung, Vorlagen-Kennzeichnung, Referenz- und Ergebnisbilder, Notizen –
-  filterbar nach Modell und Kategorie, Prompts sind mit einem Tipp kopierbar
-
-### Suche und Verknüpfungen
-- Globale Suche (⌘K / Strg+K) über Titel, Untertitel, Beschreibungen, Schlagworte,
-  Kategorien, Asset-IDs, alle Vorlagenfelder und sämtliche Blockinhalte
-- Bereichssuche mit Filtern in jeder Übersicht
-- Beidseitige Verknüpfungen zwischen Einträgen; verwandte Inhalte erscheinen in der
-  Detailansicht und lassen sich dort wieder lösen
-
-### Import und Export
-- Vollsicherung als JSON – wahlweise mit eingebetteten Bilddaten oder nur die Daten
-- Import mit Prüfung gegen ein Schema und verständlicher Fehlermeldung
-- Import wahlweise ergänzend oder ersetzend
-- Einzelner Eintrag als JSON (inklusive der zugehörigen Bilder)
-- Druckfreundliche HTML-Ansicht je Eintrag – ansehen, drucken oder als Datei sichern
-- Erinnerung, wenn die letzte Sicherung zu lange her ist
-
-### Bedienung
-- Anpassbare Navigation: Reihenfolge ändern, Bereiche aus- und einblenden
-- Startseite mit Zahlen, zuletzt Bearbeitetem, Favoriten, neuen Bildern und
-  Schnellaktionen
-- Leere Zustände mit klarer Handlungsaufforderung statt leerer Flächen
-- Bestätigung vor jedem endgültigen Löschen
+Touch-Ziele ab 44 px, Vollbild-Blätter statt enger Seitenleisten,
+Safe-Area-Berücksichtigung, kein horizontales Verschieben, Eingabefelder mit
+16 px (sonst zoomt iOS hinein). Graph und Canvas verstehen Ein-Finger-Schieben
+und Zwei-Finger-Zoom. Beim Verschieben von Blöcken sind die Hoch/Runter-Knöpfe
+immer da – Ziehen konkurriert auf dem Touchscreen zu leicht mit Scrollen.
 
 ---
 
-## Beispieldaten
+## Geprüft
 
-Beim allerersten Start werden sechs Einträge angelegt: die Seite „Die Essenz“, der
-Ort „Gedankenobservatorium“, der Charakter „Unbenannter Weggefährte“, die Kreatur
-„Waldkoi“, das Asset „Sternenbuchpult“ und der Prompt „Dragoncore DNA – Basisstil“.
-Sie sind untereinander verknüpft und ganz normale Daten: vollständig bearbeitbar,
-duplizierbar und löschbar.
-
-Wer in den Einstellungen „Alle Daten löschen“ wählt, beginnt mit einem wirklich
-leeren Archiv – die Beispieldaten kommen nicht zurück.
+Mobil (390 × 844) und am Desktop (1440 × 900) mit Chromium durchgespielt:
+Startseite, Graph (Knoten anklicken, Infokarte), Beziehung knüpfen und
+wiederfinden, DNA-Abdeckung, Art Bible, Story-Modus samt Blättern, Pipeline,
+Canvas (Notiz und Rahmen anlegen, Speicherung in IndexedDB geprüft), Zeitleiste,
+Löschen → Papierkorb → Zurückholen (inklusive: der gelöschte Eintrag
+verschwindet aus Suche, Bibliothek, Graph und Verbinden-Dialog, seine
+Beziehungen sind nach dem Zurückholen wieder da), eigenen Typ anlegen und einen
+Eintrag damit erzeugen, Volltextsuche, Sicherung mit Wiederherstellung samt
+Bildern, Fehlermeldung bei ungültiger Importdatei. Ohne Konsolenfehler.
 
 ---
 
-## Sinnvolle nächste Erweiterungen
+## Sinnvolle nächste Schritte
 
-1. **PDF- und ZIP-Export.** Die Druckansicht erzeugt bereits eine in sich
-   geschlossene HTML-Datei mit eingebetteten Bildern; `renderEntryHtml` und
-   `collectEntryImages` in `lib/portability.ts` sind die Bausteine dafür.
-2. **Beziehungsgraph.** Eine visuelle Karte der Verknüpfungen – wer gehört zu
-   welchem Ort, welcher Prompt erzeugte welches Asset.
-3. **Versionen und Verlauf.** Ältere Stände eines Eintrags aufbewahren und
-   wiederherstellen.
-4. **Bildzuschnitt und Freistellungs-Vorschau.** Besonders für Assets nützlich,
-   inklusive einer Anzeige des Pivot-Punkts.
-5. **Zusammenhängender Prompt-Baukasten.** Basisstil und Variante automatisch
-   zusammensetzen statt von Hand kopieren.
-6. **Synchronisierung.** Ein optionaler Abgleich zwischen Geräten – die Export- und
-   Importschicht ist bereits darauf ausgelegt.
-7. **Code-Splitting.** Der Build liegt derzeit bei etwa 570 kB in einer Datei; die
-   Druckansicht und der Block-Editor ließen sich nachladen.
-8. **Automatisierte Tests.** Die Kernabläufe wurden von Hand und mit Browser-Skripten
-   geprüft; eine feste Testsuite würde das dauerhaft absichern.
+1. **PDF- und ZIP-Export.** `renderArtBibleHtml`, `renderEntryHtml` und
+   `collectEntryImages` liefern bereits alle Bausteine.
+2. **Beziehungspfade sichtbar machen.** `findPath` in `lib/relations.ts` ist
+   fertig, aber noch ohne Oberfläche – „Zeig mir den Weg von diesem Charakter zu
+   diesem Biom“.
+3. **Prompt-Varianten als Baukasten.** Basisstil und Ergänzung automatisch
+   zusammensetzen, statt zu kopieren.
+4. **Überlappungsfreie Beschriftungen im Graphen.** Bei dichten Bereichen
+   überlagern sich Titel noch; Ziehen und Zoomen lösen es, eine
+   Kollisionsvermeidung wäre schöner.
+5. **Canvas-Verbindungen von Hand.** Automatische Linien gibt es; frei gezogene
+   Verbinder zwischen beliebigen Elementen wären die Ergänzung.
+6. **Code-Splitting.** Der Build liegt bei etwa 700 kB in einer Datei; Canvas,
+   Graph und Story-Modus ließen sich nachladen.
+7. **Automatisierte Testsuite.** Geprüft wurde mit Browser-Skripten; feste Tests
+   würden das dauerhaft absichern.
 
 ---
 

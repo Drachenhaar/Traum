@@ -1,10 +1,12 @@
 /** Zod-Schemata für Formulare (React Hook Form) und den JSON-Import. */
 
 import { z } from 'zod';
-import { ENTRY_STATUSES, ENTRY_TYPES } from '../types';
+import { ENTRY_STATUSES } from '../types';
 
 const statusSchema = z.enum(ENTRY_STATUSES as [string, ...string[]]);
-const typeSchema = z.enum(ENTRY_TYPES as [string, ...string[]]);
+// Typen sind Daten, keine feste Liste – deshalb genügt hier ein String.
+// Unbekannte Typen bekommen beim Anzeigen eine Ersatzvorlage.
+const typeSchema = z.string().min(1);
 
 /* ------------------------------------------------------------- Formulare */
 
@@ -57,6 +59,41 @@ const entrySchema = z.object({
   linkedEntryIds: z.array(z.string()).default([]),
   blocks: z.array(blockSchema).default([]),
   fields: z.record(z.union([z.string(), z.array(z.string()), z.boolean()])).default({}),
+  pipelineStage: z.string().optional(),
+  deletedAt: z.number().optional(),
+});
+
+const relationSchema = z.object({
+  id: z.string(),
+  fromId: z.string(),
+  toId: z.string(),
+  type: z.string(),
+  note: z.string().optional(),
+  createdAt: z.number(),
+});
+
+const canvasItemSchema = z.object({
+  id: z.string(),
+  kind: z.string(),
+  x: z.number(),
+  y: z.number(),
+  w: z.number(),
+  h: z.number(),
+  refId: z.string().optional(),
+  text: z.string().optional(),
+  color: z.string().optional(),
+  points: z.array(z.number()).optional(),
+  rotation: z.number().optional(),
+  z: z.number(),
+});
+
+const boardSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  items: z.array(canvasItemSchema).default([]),
+  camera: z.object({ x: z.number(), y: z.number(), zoom: z.number() }),
+  createdAt: z.number(),
+  updatedAt: z.number(),
 });
 
 const imageSchema = z.object({
@@ -87,11 +124,17 @@ export const backupSchema = z.object({
   version: z.number(),
   exportedAt: z.number(),
   entries: z.array(entrySchema),
+  relations: z.array(relationSchema).default([]),
+  boards: z.array(boardSchema).default([]),
   images: z.array(imageSchema).default([]),
   settings: z
     .object({
       nav: z.array(z.record(z.unknown())).optional(),
       backupReminderDays: z.number().optional(),
+      customTypes: z.array(z.record(z.unknown())).optional(),
+      goals: z.array(z.record(z.unknown())).optional(),
+      worldName: z.string().optional(),
+      worldTagline: z.string().optional(),
     })
     .optional(),
 });
@@ -105,6 +148,7 @@ export const singleEntrySchema = z.object({
   version: z.number(),
   exportedAt: z.number(),
   entry: entrySchema,
+  relations: z.array(relationSchema).default([]),
   images: z.array(imageSchema).default([]),
 });
 

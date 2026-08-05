@@ -79,7 +79,9 @@ export function Modal({ open, onClose, title, description, children, footer, siz
           </button>
         </header>
 
-        <div className="scroll-slim flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
+        {/* Unten etwas Luft, damit der letzte Listeneintrag nicht an der
+            Fußzeile klebt – auf dem iPhone sonst kaum zu treffen. */}
+        <div className="scroll-slim flex-1 overflow-y-auto overscroll-contain px-4 pb-8 pt-4 sm:px-6 sm:pb-10 sm:pt-5">
           {children}
         </div>
 

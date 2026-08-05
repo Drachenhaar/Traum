@@ -7,14 +7,16 @@ import { Modal } from '../ui/Modal';
 import { EmptyState } from '../ui/EmptyState';
 import { Thumb } from '../images/Thumb';
 import { StatusPill } from '../entry/StatusPill';
-import { useStudio } from '../../store/useStudio';
+import { useStudio, livingEntries } from '../../store/useStudio';
 import { matchesQuery, scoreEntry, searchImages } from '../../lib/search';
 import { templateFor } from '../../lib/templates';
 import { relativeTime } from '../../lib/utils';
 
 export function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const entries = useStudio((s) => s.entries);
+  const allEntries = useStudio((s) => s.entries);
   const images = useStudio((s) => s.images);
+  // Was im Papierkorb liegt, taucht in der Suche nicht auf – dafür gibt es die Zeitleiste.
+  const entries = useMemo(() => livingEntries(allEntries), [allEntries]);
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();

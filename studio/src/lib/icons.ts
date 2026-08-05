@@ -1,17 +1,26 @@
 /**
  * Icon-Auflösung nach Name.
  *
- * Es werden nur die tatsächlich benutzten Lucide-Icons importiert, damit das
- * Bundle klein bleibt. Unbekannte Namen fallen auf ein neutrales Icon zurück.
+ * Nur die tatsächlich benutzten Lucide-Icons werden importiert, damit das
+ * Bundle klein bleibt. Unbekannte Namen fallen auf ein neutrales Symbol zurück.
  */
 
 import {
   AlignLeft,
+  Armchair,
   Bird,
   BookMarked,
+  BookOpen,
+  Box,
+  Brush,
   Circle,
+  Dna,
+  FileText,
+  Film,
+  Flag,
   Flame,
   Heading,
+  History,
   Home,
   Image,
   Images,
@@ -23,25 +32,41 @@ import {
   ListChecks,
   Minus,
   Mountain,
+  MousePointer,
   MoveVertical,
+  Music,
   Package,
   Palette,
   Quote,
+  Rabbit,
+  ScrollText,
   Settings,
+  Shirt,
   Sparkles,
   StickyNote,
-  FileText,
+  Trees,
   User,
+  Wand,
+  Waypoints,
+  Workflow,
   type LucideIcon,
 } from 'lucide-react';
 
 const ICONS: Record<string, LucideIcon> = {
   AlignLeft,
+  Armchair,
   Bird,
   BookMarked,
+  BookOpen,
+  Box,
+  Brush,
+  Dna,
   FileText,
+  Film,
+  Flag,
   Flame,
   Heading,
+  History,
   Home,
   Image,
   Images,
@@ -53,15 +78,27 @@ const ICONS: Record<string, LucideIcon> = {
   ListChecks,
   Minus,
   Mountain,
+  MousePointer,
   MoveVertical,
+  Music,
   Package,
   Palette,
   Quote,
+  Rabbit,
+  ScrollText,
   Settings,
+  Shirt,
   Sparkles,
   StickyNote,
+  Trees,
   User,
+  Wand,
+  Waypoints,
+  Workflow,
 };
+
+/** Namen für die Auswahl beim Anlegen eigener Typen. */
+export const ICON_NAMES = Object.keys(ICONS).sort();
 
 export function iconByName(name: string): LucideIcon {
   return ICONS[name] ?? Circle;

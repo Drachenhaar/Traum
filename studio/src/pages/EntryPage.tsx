@@ -1,12 +1,9 @@
 /**
  * Detailansicht eines Eintrags.
  *
- * Aufbau:
- *  1. Kopf mit Titelbild, Titel, Status und Aktionen
- *  2. Stammdaten (React Hook Form + Zod, speichert beim Verlassen des Feldes)
- *  3. Typspezifische Felder aus der Vorlage
- *  4. Frei anordenbare Blöcke
- *  5. Verwandte Inhalte
+ * Reihenfolge nach Wichtigkeit: erst was es ist, dann wo es in der Welt steht
+ * (Beziehungen), dann der freie Seiteninhalt. Die Beziehungen stehen bewusst
+ * weit oben – sie sind nicht Beiwerk, sondern der Grund für diese App.
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -15,32 +12,36 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   ArrowLeft,
+  BookOpen,
   Copy,
   Download,
   FileCode2,
+  History,
   ImagePlus,
-  Link2,
   MoreHorizontal,
   Star,
   Trash2,
+  Waypoints,
 } from 'lucide-react';
 import { useStudio } from '../store/useStudio';
 import { templateFor } from '../lib/templates';
 import { entryMetaSchema, type EntryMetaValues } from '../lib/schemas';
-import { ENTRY_STATUSES, type EntryStatus } from '../types';
+import { ENTRY_STATUSES, type EntryStatus, type Revision } from '../types';
 import { AutoTextarea, Field, SelectInput, TagInput, TextInput } from '../components/ui/Fields';
 import { EntryFields } from '../components/entry/EntryFields';
 import { BlockEditor } from '../components/blocks/BlockEditor';
-import { EntryLinkPicker } from '../components/entry/EntryLinkPicker';
+import { RelationPanel } from '../components/relations/RelationPanel';
+import { PipelineBar } from '../components/entry/PipelineBar';
 import { Thumb } from '../components/images/Thumb';
 import { ImagePicker } from '../components/images/ImagePicker';
 import { Modal } from '../components/ui/Modal';
 import { confirm } from '../components/ui/Confirm';
-import { StatusPill } from '../components/entry/StatusPill';
 import { PrintPreview } from '../components/entry/PrintPreview';
+import { StoryMode } from '../components/story/StoryMode';
 import { buildEntryExport } from '../lib/portability';
 import { allTags } from '../lib/search';
-import { cx, downloadFile, formatDateTime } from '../lib/utils';
+import { cx, downloadFile, formatDateTime, relativeTime } from '../lib/utils';
+import { iconByName } from '../lib/icons';
 
 export function EntryPage() {
   const { id } = useParams();
@@ -51,15 +52,24 @@ export function EntryPage() {
   const updateEntry = useStudio((s) => s.updateEntry);
   const duplicateEntry = useStudio((s) => s.duplicateEntry);
   const deleteEntry = useStudio((s) => s.deleteEntry);
+  const restoreEntry = useStudio((s) => s.restoreEntry);
   const toggleFavorite = useStudio((s) => s.toggleFavorite);
-  const linkEntries = useStudio((s) => s.linkEntries);
-  const unlinkEntries = useStudio((s) => s.unlinkEntries);
+  const noteVisit = useStudio((s) => s.noteVisit);
+  const revisionsOf = useStudio((s) => s.revisionsOf);
+  const restoreRevision = useStudio((s) => s.restoreRevision);
   const notify = useStudio((s) => s.notify);
 
   const [coverPickerOpen, setCoverPickerOpen] = useState(false);
-  const [linkPickerOpen, setLinkPickerOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
+  const [storyOpen, setStoryOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [revisions, setRevisions] = useState<Revision[]>([]);
+
+  // „Weitermachen, wo du warst“ speist sich aus diesen Besuchen.
+  useEffect(() => {
+    if (id) noteVisit(id);
+  }, [id, noteVisit]);
 
   const defaults = useMemo<EntryMetaValues>(
     () => ({
@@ -70,7 +80,7 @@ export function EntryPage() {
       status: entry?.status ?? 'Idee',
       tags: entry?.tags ?? [],
     }),
-    // Nur bei Wechsel des Eintrags neu befüllen, damit Tippen nicht überschrieben wird.
+    // Nur beim Wechsel des Eintrags neu befüllen, damit Tippen nicht überschrieben wird.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [entry?.id],
   );
@@ -98,19 +108,23 @@ export function EntryPage() {
       <div className="py-20 text-center">
         <h1 className="font-serif text-2xl text-ink">Eintrag nicht gefunden</h1>
         <p className="mt-2 text-[15px] text-ink-muted">
-          Er wurde vermutlich gelöscht. Zurück zur Übersicht?
+          Vielleicht liegt er im Papierkorb – die Zeitleiste holt ihn zurück.
         </p>
-        <Link to="/" className="btn-accent mt-5 inline-flex">
-          Zur Startseite
-        </Link>
+        <div className="mt-5 flex justify-center gap-2">
+          <Link to="/zeitleiste" className="btn-ghost">
+            Zur Zeitleiste
+          </Link>
+          <Link to="/" className="btn-accent">
+            Zur Startseite
+          </Link>
+        </div>
       </div>
     );
   }
 
   const tpl = templateFor(entry.type);
-  const linked = entries.filter((e) => entry.linkedEntryIds.includes(e.id));
+  const TypeIcon = iconByName(tpl.icon);
 
-  /** Stammdaten übernehmen – wird beim Verlassen jedes Feldes aufgerufen. */
   const commit = () => {
     const values = getValues();
     const title = values.title.trim();
@@ -128,18 +142,34 @@ export function EntryPage() {
     });
   };
 
+  const safeName =
+    entry.title.replace(/[^\w\säöüÄÖÜß-]/g, '').trim().replace(/\s+/g, '-') || 'eintrag';
+
   const exportJson = async () => {
     const json = await buildEntryExport(entry);
-    downloadFile(
-      `${entry.title.replace(/[^\w\säöüÄÖÜß-]/g, '').trim().replace(/\s+/g, '-') || 'eintrag'}.json`,
-      json,
-      'application/json',
-    );
-    notify('Eintrag als JSON gesichert.', 'success');
+    downloadFile(`${safeName}.json`, json, 'application/json');
+    notify('Eintrag als JSON gesichert – samt Beziehungen.', 'success');
+  };
+
+  const openHistory = async () => {
+    setRevisions(await revisionsOf(entry.id));
+    setHistoryOpen(true);
   };
 
   return (
     <div className="pb-6">
+      {/* Papierkorb-Hinweis */}
+      {entry.deletedAt && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-brass-500/40 bg-brass-500/10 px-4 py-3">
+          <p className="flex-1 text-[15px] text-ink">
+            Dieser Eintrag liegt im Papierkorb (seit {relativeTime(entry.deletedAt)}).
+          </p>
+          <button type="button" className="btn-accent h-10 min-h-0 px-3" onClick={() => void restoreEntry(entry.id)}>
+            Zurückholen
+          </button>
+        </div>
+      )}
+
       {/* --------------------------------------------------------------- Kopf */}
       <div className="mb-4 flex items-center gap-2">
         <button
@@ -150,8 +180,24 @@ export function EntryPage() {
         >
           <ArrowLeft size={20} />
         </button>
-        <span className="text-[13px] uppercase tracking-wide text-ink-muted">{tpl.label}</span>
+
+        <span
+          className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[13px]"
+          style={{ background: `${tpl.accent}1A`, color: tpl.accent }}
+        >
+          <TypeIcon size={14} />
+          {tpl.label}
+        </span>
+
         <div className="ml-auto flex items-center gap-1.5">
+          <Link
+            to={`/graph?fokus=${entry.id}`}
+            className="touch-target grid place-items-center rounded-xl text-ink-muted transition-colors hover:bg-cream-200 hover:text-ink"
+            aria-label="Im Weltgraphen zeigen"
+            title="Im Weltgraphen zeigen"
+          >
+            <Waypoints size={20} />
+          </Link>
           <button
             type="button"
             onClick={() => toggleFavorite(entry.id)}
@@ -222,12 +268,7 @@ export function EntryPage() {
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <Field label="Kategorie" error={errors.category?.message}>
-            <TextInput
-              {...register('category')}
-              onBlur={commit}
-              list={`cats-${entry.type}`}
-              placeholder="z. B. Hauptfigur"
-            />
+            <TextInput {...register('category')} onBlur={commit} list={`cats-${entry.type}`} />
             <datalist id={`cats-${entry.type}`}>
               {tpl.categories.map((c) => (
                 <option key={c} value={c} />
@@ -253,11 +294,7 @@ export function EntryPage() {
         </div>
 
         <Field label="Beschreibung" error={errors.description?.message} className="mt-4">
-          <AutoTextarea
-            {...register('description')}
-            onBlur={commit}
-            placeholder="Worum geht es hier?"
-          />
+          <AutoTextarea {...register('description')} onBlur={commit} placeholder="Worum geht es hier?" />
         </Field>
 
         <Field label="Schlagworte" className="mt-4">
@@ -271,10 +308,23 @@ export function EntryPage() {
           />
         </Field>
 
-        <p className="mt-4 border-t border-line pt-3 text-[13px] text-ink-faint">
-          Angelegt {formatDateTime(entry.createdAt)} · Zuletzt geändert {formatDateTime(entry.updatedAt)}
-        </p>
+        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-line pt-3 text-[13px] text-ink-faint">
+          <span>Angelegt {formatDateTime(entry.createdAt)}</span>
+          <span aria-hidden>·</span>
+          <span>Zuletzt geändert {relativeTime(entry.updatedAt)}</span>
+          <button type="button" className="ml-auto text-brass-600 hover:underline" onClick={() => void openHistory()}>
+            Fassungen ansehen
+          </button>
+        </div>
       </section>
+
+      {/* --------------------------------------------------------- Pipeline */}
+      {entry.type === 'asset' && <PipelineBar entry={entry} />}
+
+      {/* ------------------------------------------------------- Beziehungen */}
+      <div className="mb-5">
+        <RelationPanel entry={entry} />
+      </div>
 
       {/* --------------------------------------------- Felder aus der Vorlage */}
       {tpl.fields.length > 0 && (
@@ -290,46 +340,6 @@ export function EntryPage() {
         <BlockEditor entry={entry} />
       </section>
 
-      {/* -------------------------------------------------- Verwandte Inhalte */}
-      <section className="card p-4 sm:p-5">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="font-serif text-xl text-ink">Verwandte Inhalte</h2>
-          <button type="button" className="btn-ghost h-10 min-h-0 px-3 text-[14px]" onClick={() => setLinkPickerOpen(true)}>
-            <Link2 size={16} /> Verknüpfen
-          </button>
-        </div>
-
-        {linked.length === 0 ? (
-          <p className="text-[15px] text-ink-muted">
-            Noch nichts verknüpft. Verbinde diesen Eintrag z. B. mit einem Ort, einem Prompt oder einem Asset.
-          </p>
-        ) : (
-          <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line">
-            {linked.map((e) => (
-              <li key={e.id} className="flex items-center gap-3 bg-cream-50 px-3 py-2">
-                <Thumb imageId={e.coverImage} alt="" className="h-10 w-10 shrink-0" />
-                <Link to={`/eintrag/${e.id}`} className="min-w-0 flex-1">
-                  <span className="block truncate text-[15px] text-ink hover:text-brass-600">{e.title}</span>
-                  <span className="block truncate text-[13px] text-ink-muted">
-                    {templateFor(e.type).label}
-                    {e.category ? ` · ${e.category}` : ''}
-                  </span>
-                </Link>
-                <StatusPill status={e.status} className="hidden sm:inline-flex" />
-                <button
-                  type="button"
-                  onClick={() => unlinkEntries(entry.id, e.id)}
-                  className="touch-target grid shrink-0 place-items-center rounded-lg text-ink-faint hover:bg-cream-200 hover:text-red-700"
-                  aria-label="Verknüpfung lösen"
-                >
-                  ✕
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
       {/* --------------------------------------------------------- Dialoge */}
       <ImagePicker
         open={coverPickerOpen}
@@ -338,22 +348,28 @@ export function EntryPage() {
         onSelect={(ids) => ids[0] && updateEntry(entry.id, { coverImage: ids[0] })}
       />
 
-      <EntryLinkPicker
-        open={linkPickerOpen}
-        onClose={() => setLinkPickerOpen(false)}
-        selected={entry.linkedEntryIds}
-        excludeId={entry.id}
-        onChange={(ids) => {
-          // Verknüpfungen sind beidseitig – Unterschiede einzeln übernehmen.
-          const added = ids.filter((i) => !entry.linkedEntryIds.includes(i));
-          const removed = entry.linkedEntryIds.filter((i) => !ids.includes(i));
-          added.forEach((i) => linkEntries(entry.id, i));
-          removed.forEach((i) => unlinkEntries(entry.id, i));
-        }}
-      />
-
       <Modal open={menuOpen} onClose={() => setMenuOpen(false)} title={entry.title} size="sm">
         <div className="space-y-1.5">
+          <button
+            type="button"
+            className="btn-ghost w-full justify-start"
+            onClick={() => {
+              setMenuOpen(false);
+              setStoryOpen(true);
+            }}
+          >
+            <BookOpen size={18} /> Im Story-Modus zeigen
+          </button>
+          <button
+            type="button"
+            className="btn-ghost w-full justify-start"
+            onClick={() => {
+              setMenuOpen(false);
+              void openHistory();
+            }}
+          >
+            <History size={18} /> Fassungen
+          </button>
           <button
             type="button"
             className="btn-ghost w-full justify-start"
@@ -385,29 +401,77 @@ export function EntryPage() {
           >
             <FileCode2 size={18} /> Druckansicht (HTML)
           </button>
-          <button
-            type="button"
-            className="btn-danger w-full justify-start"
-            onClick={async () => {
-              setMenuOpen(false);
-              const ok = await confirm({
-                title: `„${entry.title}“ löschen?`,
-                message:
-                  'Der Eintrag wird endgültig entfernt. Verwendete Bilder bleiben in der Mediathek erhalten.',
-                confirmLabel: 'Endgültig löschen',
-                danger: true,
-              });
-              if (!ok) return;
-              await deleteEntry(entry.id);
-              navigate(-1);
-            }}
-          >
-            <Trash2 size={18} /> Löschen
-          </button>
+          {!entry.deletedAt && (
+            <button
+              type="button"
+              className="btn-danger w-full justify-start"
+              onClick={async () => {
+                setMenuOpen(false);
+                const ok = await confirm({
+                  title: `„${entry.title}“ löschen?`,
+                  message:
+                    'Der Eintrag wandert in den Papierkorb. Beziehungen und Fassungen bleiben erhalten – du kannst ihn über die Zeitleiste zurückholen.',
+                  confirmLabel: 'In den Papierkorb',
+                  danger: true,
+                });
+                if (!ok) return;
+                await deleteEntry(entry.id);
+                navigate(-1);
+              }}
+            >
+              <Trash2 size={18} /> Löschen
+            </button>
+          )}
         </div>
       </Modal>
 
+      {/* Fassungen */}
+      <Modal
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        title="Fassungen"
+        description={`${revisions.length} gespeicherte Stände von „${entry.title}“`}
+        size="md"
+      >
+        {revisions.length === 0 ? (
+          <p className="py-6 text-center text-[15px] text-ink-muted">
+            Noch keine früheren Fassungen. Sobald du weiterarbeitest, sammeln sie sich hier.
+          </p>
+        ) : (
+          <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line">
+            {revisions.map((rev) => (
+              <li key={rev.id} className="flex items-center gap-3 bg-cream-50 px-3 py-2.5">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[15px] text-ink">{rev.snapshot.title}</p>
+                  <p className="text-[13px] text-ink-muted">
+                    {rev.summary} · {formatDateTime(rev.at)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="btn-ghost h-10 min-h-0 shrink-0 px-3 text-[14px]"
+                  onClick={async () => {
+                    const ok = await confirm({
+                      title: 'Diese Fassung zurückholen?',
+                      message:
+                        'Der aktuelle Stand wird vorher als Fassung gesichert – du kannst also jederzeit wieder zurück.',
+                      confirmLabel: 'Zurückholen',
+                    });
+                    if (!ok) return;
+                    await restoreRevision(rev.id);
+                    setHistoryOpen(false);
+                  }}
+                >
+                  Zurückholen
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Modal>
+
       {printOpen && <PrintPreview entry={entry} onClose={() => setPrintOpen(false)} />}
+      {storyOpen && <StoryMode startId={entry.id} onClose={() => setStoryOpen(false)} />}
     </div>
   );
 }

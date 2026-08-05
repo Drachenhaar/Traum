@@ -16,7 +16,8 @@ import {
 import { useStudio } from '../store/useStudio';
 import { Modal } from '../components/ui/Modal';
 import { confirm } from '../components/ui/Confirm';
-import { Field, SelectInput } from '../components/ui/Fields';
+import { Field, SelectInput, TextInput } from '../components/ui/Fields';
+import { CustomTypes } from '../components/settings/CustomTypes';
 import { iconByName } from '../lib/icons';
 import { DEFAULT_NAV } from '../lib/nav';
 import { backupFileName, buildFullBackup, importBackup } from '../lib/portability';
@@ -26,6 +27,7 @@ export function SettingsPage() {
   const settings = useStudio((s) => s.settings);
   const entries = useStudio((s) => s.entries);
   const images = useStudio((s) => s.images);
+  const relations = useStudio((s) => s.relations);
   const updateNav = useStudio((s) => s.updateNav);
   const updateSettings = useStudio((s) => s.updateSettings);
   const reloadFromDb = useStudio((s) => s.reloadFromDb);
@@ -120,16 +122,40 @@ export function SettingsPage() {
         </p>
       </header>
 
+      {/* ------------------------------------------------------------- Welt */}
+      <section className="card p-4 sm:p-5">
+        <h2 className="mb-1 font-serif text-xl text-ink">Deine Welt</h2>
+        <p className="mb-4 text-[15px] text-ink-muted">
+          Name und Leitsatz erscheinen in der Seitenleiste, in der Art Bible und im Story-Modus.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Name der Welt">
+            <TextInput
+              value={settings.worldName ?? ''}
+              onChange={(e) => updateSettings({ worldName: e.target.value })}
+              placeholder="Dragoncore"
+            />
+          </Field>
+          <Field label="Leitsatz">
+            <TextInput
+              value={settings.worldTagline ?? ''}
+              onChange={(e) => updateSettings({ worldTagline: e.target.value })}
+              placeholder="Eine Welt, die sich erinnert"
+            />
+          </Field>
+        </div>
+      </section>
+
       {/* --------------------------------------------------------- Bestand */}
       <section className="card p-4 sm:p-5">
         <h2 className="mb-3 flex items-center gap-2 font-serif text-xl text-ink">
           <Database size={19} className="text-brass-600" /> Bestand
         </h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Stat label="Einträge" value={entries.length} />
+          <Stat label="Einträge" value={entries.filter((e) => !e.deletedAt).length} />
+          <Stat label="Verbindungen" value={relations.length} />
           <Stat label="Bilder" value={images.length} />
-          <Stat label="Favoriten" value={entries.filter((e) => e.favorite).length} />
-          <Stat label="Blöcke" value={entries.reduce((n, e) => n + e.blocks.length, 0)} />
+          <Stat label="Im Papierkorb" value={entries.filter((e) => e.deletedAt).length} />
         </div>
         <p className="mt-3 text-[13px] text-ink-faint">
           {settings.lastBackupAt
@@ -194,6 +220,8 @@ export function SettingsPage() {
           </SelectInput>
         </Field>
       </section>
+
+      <CustomTypes />
 
       {/* --------------------------------------------------------- Navigation */}
       <section className="card p-4 sm:p-5">

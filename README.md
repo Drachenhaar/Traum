@@ -35,9 +35,11 @@ aufzufallen.
 
 ## Dragoncore Studio (separate App)
 
-Unter `studio/` liegt **Dragoncore Studio** – der Creative-Workspace und die
-lebendige Art Bible des Projekts: Charaktere, Kreaturen, Orte, Assets, Prompts und
-Bilder, alles lokal im Browser gespeichert und auf dem iPhone bedienbar.
+Unter `studio/` liegt **Dragoncore Studio** – ein Werkzeug zum Bauen von Welten.
+Kein Notizprogramm: Beziehungen tragen dort eine Bedeutung („lebt in“, „besteht
+aus“, „stammt von“), und daraus entstehen Weltgraph, Welt-DNA, eine sich selbst
+schreibende Art Bible, Story-Modus, Concept Canvas und Asset-Pipeline. Alles
+lokal im Browser, auch auf dem iPhone bedienbar.
 
 Eigenes Projekt mit eigenem Build:
 

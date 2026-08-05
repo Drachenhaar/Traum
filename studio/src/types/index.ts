@@ -1,37 +1,17 @@
 /**
  * Zentrale Datentypen von Dragoncore Studio.
  *
- * Grundidee: Es gibt genau EINEN generischen Eintragstyp (`Entry`).
- * Spezialisierungen (Charakter, Kreatur, Asset, Prompt …) entstehen über
- *  - `type`   → welche Vorlage/Ansicht verwendet wird
- *  - `fields` → typspezifische Felder (deklarativ in `lib/templates.ts` beschrieben)
- *  - `blocks` → frei anordenbarer Seiteninhalt
+ * Leitgedanke: Alles ist ein Eintrag (`Entry`). Was ein Eintrag *ist*, sagt sein
+ * `type` – und Typen sind Daten, keine Klassen. Deshalb ist `EntryType` ein
+ * String: neue Inhaltsarten entstehen ohne eine Zeile neuen Code.
  *
- * Dadurch lässt sich das Modell später erweitern, ohne die Datenbank zu migrieren.
+ * Der zweite Grundpfeiler sind `Relation`s. Eine Beziehung hat eine Bedeutung
+ * („lebt in“, „besteht aus“, „stammt von“) und eine Richtung. Aus vielen
+ * bedeutungstragenden Kanten entsteht der Weltgraph.
  */
 
-export type EntryType =
-  | 'page'
-  | 'character'
-  | 'creature'
-  | 'plant'
-  | 'architecture'
-  | 'asset'
-  | 'prompt'
-  | 'location'
-  | 'collection';
-
-export const ENTRY_TYPES: EntryType[] = [
-  'page',
-  'character',
-  'creature',
-  'plant',
-  'architecture',
-  'asset',
-  'prompt',
-  'location',
-  'collection',
-];
+/** Typ-Kennung eines Eintrags. Eingebaute Typen siehe `lib/types-registry.ts`. */
+export type EntryType = string;
 
 export type EntryStatus = 'Idee' | 'In Arbeit' | 'Überarbeitung' | 'Freigegeben' | 'Archiviert';
 
@@ -79,7 +59,7 @@ export interface MaterialSwatch {
   id: string;
   name: string;
   color: string;
-  finish: string; // z. B. "matt", "seidig", "rau"
+  finish: string;
   note: string;
 }
 
@@ -97,40 +77,25 @@ export interface MoodboardTile {
   caption: string;
 }
 
-/** Nutzdaten je Blocktyp. Bewusst locker gehalten, damit neue Typen leicht ergänzt werden. */
 export interface BlockData {
-  /** heading */
   level?: 1 | 2 | 3;
-  /** heading, text, quote, note, prompt, assetList, gallery, moodboard … */
   text?: string;
-  /** quote */
   source?: string;
-  /** note */
   tone?: 'info' | 'warn' | 'idea';
-  /** image */
   imageId?: string;
   caption?: string;
-  /** gallery / moodboard */
   imageIds?: string[];
   tiles?: MoodboardTile[];
   columns?: number;
-  /** palette */
   swatches?: PaletteSwatch[];
-  /** materials */
   materials?: MaterialSwatch[];
-  /** references */
   cards?: ReferenceCard[];
-  /** checklist */
   items?: ChecklistItem[];
-  /** prompt */
   prompt?: string;
   negativePrompt?: string;
   model?: string;
-  /** assetList */
   entryIds?: string[];
-  /** spacer */
   size?: 'sm' | 'md' | 'lg';
-  /** heading/text – optionale Beschriftung */
   title?: string;
 }
 
@@ -143,7 +108,6 @@ export interface Block {
 
 /* ------------------------------------------------------------------ Eintrag */
 
-/** Typspezifische Felder – Werte sind Strings, String-Arrays oder Booleans. */
 export type FieldValue = string | string[] | boolean;
 
 export interface Entry {
@@ -156,14 +120,35 @@ export interface Entry {
   tags: string[];
   status: EntryStatus;
   favorite: boolean;
-  /** ID eines Bildes aus der `images`-Tabelle */
   coverImage?: string;
   createdAt: number;
   updatedAt: number;
+  /**
+   * Alte, ungerichtete Verknüpfungen. Bleibt für Altdaten und Import erhalten,
+   * wird beim Start in echte `Relation`s überführt.
+   */
   linkedEntryIds: string[];
   blocks: Block[];
-  /** Felder der jeweiligen Vorlage (Charakter, Kreatur, Asset, Prompt …) */
   fields: Record<string, FieldValue>;
+  /** Produktionsstufe (nur bei Assets genutzt), siehe `lib/pipeline.ts` */
+  pipelineStage?: string;
+  /** Papierkorb: gelöschte Einträge bleiben wiederherstellbar */
+  deletedAt?: number;
+}
+
+/* --------------------------------------------------------------- Beziehungen */
+
+export interface Relation {
+  id: string;
+  /** Ausgangseintrag */
+  fromId: string;
+  /** Zieleintrag */
+  toId: string;
+  /** Beziehungsart, siehe `lib/relations.ts` */
+  type: string;
+  /** Optionale Anmerkung („nur im Winter“, „zweite Generation“ …) */
+  note?: string;
+  createdAt: number;
 }
 
 /* -------------------------------------------------------------------- Bilder */
@@ -189,36 +174,105 @@ export interface StoredImageMeta {
   updatedAt: number;
 }
 
-/** Bilddaten liegen getrennt von den Metadaten, damit Listen schnell bleiben. */
 export interface StoredImageBlob {
   id: string;
   full: Blob;
   thumb: Blob;
 }
 
-/* ------------------------------------------------------------- Navigation */
+/* ------------------------------------------------------------------ Verlauf */
+
+/** Zeitpunkt-Aufnahme eines Eintrags – Grundlage für Zeitleiste und Rückkehr. */
+export interface Revision {
+  id: string;
+  entryId: string;
+  at: number;
+  /** Was ist passiert? „angelegt“, „bearbeitet“, „gelöscht“ … */
+  action: 'created' | 'edited' | 'deleted' | 'restored';
+  /** Kurzbeschreibung für die Zeitleiste */
+  summary: string;
+  snapshot: Entry;
+}
+
+/* ----------------------------------------------------------- Concept Canvas */
+
+export type CanvasItemKind = 'image' | 'note' | 'entry' | 'stroke' | 'frame';
+
+export interface CanvasItem {
+  id: string;
+  kind: CanvasItemKind;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** Bild-ID, Eintrags-ID oder Text – je nach Art */
+  refId?: string;
+  text?: string;
+  color?: string;
+  /** Freihandlinie: Punkte relativ zur Position */
+  points?: number[];
+  rotation?: number;
+  z: number;
+}
+
+export interface CanvasBoard {
+  id: string;
+  name: string;
+  items: CanvasItem[];
+  /** Kamera beim letzten Verlassen – man kehrt dorthin zurück */
+  camera: { x: number; y: number; zoom: number };
+  createdAt: number;
+  updatedAt: number;
+}
+
+/* -------------------------------------------------------------- Navigation */
 
 export interface NavItem {
   id: string;
   label: string;
-  /** Lucide-Icon-Name, siehe `lib/icons.ts` */
   icon: string;
   path: string;
-  /** Feste Einträge lassen sich ausblenden und umsortieren, aber nicht löschen. */
   removable: boolean;
   hidden: boolean;
 }
 
-/* --------------------------------------------------------------- Sonstiges */
+/* ------------------------------------------------------------ Einstellungen */
+
+/** Ein selbst angelegter Eintragstyp – gleichberechtigt mit den eingebauten. */
+export interface CustomTypeDef {
+  type: string;
+  label: string;
+  labelPlural: string;
+  newTitle: string;
+  icon: string;
+  accent: string;
+  categories: string[];
+  fields: { key: string; label: string; kind: string; hint?: string }[];
+}
+
+export interface CreativeGoal {
+  id: string;
+  text: string;
+  /** Zieltyp und Zielzahl, z. B. 10 Kreaturen */
+  entryType?: string;
+  target: number;
+  done: boolean;
+  createdAt: number;
+}
 
 export interface Settings {
   id: 'settings';
   nav: NavItem[];
-  /** Zeitpunkt der letzten manuellen Sicherung */
   lastBackupAt?: number;
-  /** Erinnerung an Sicherung nach X Tagen */
   backupReminderDays: number;
   seedVersion: number;
+  customTypes: CustomTypeDef[];
+  goals: CreativeGoal[];
+  /** Zuletzt geöffnete Einträge – „Weitermachen, wo du warst“ */
+  recentIds: string[];
+  /** Name der Welt, erscheint in Art Bible und Story-Modus */
+  worldName: string;
+  worldTagline: string;
 }
 
 export type ViewMode = 'grid' | 'list' | 'detail';
@@ -230,7 +284,6 @@ export interface EntryFilter {
   statuses: EntryStatus[];
   tags: string[];
   favoritesOnly: boolean;
-  /** Asset-spezifisch */
   cutoutOnly: boolean;
   animatableOnly: boolean;
   orientation: '' | 'hoch' | 'quer' | 'quadratisch';
