@@ -310,7 +310,7 @@ export function GraphPage() {
   }
 
   return (
-    <div className="-mx-4 -mt-5 flex h-[calc(100vh-var(--sat)-56px)] flex-col sm:-mx-6 lg:-mt-8">
+    <div className="-mx-4 -mt-5 flex h-[calc(100vh-var(--sat)-var(--sab)-112px)] flex-col sm:-mx-6 lg:-mt-8 lg:h-[calc(100vh-var(--sat)-56px)]">
       {/* Kopfzeile */}
       <div className="flex flex-wrap items-center gap-2 px-4 py-3 sm:px-6">
         <div className="mr-auto">
