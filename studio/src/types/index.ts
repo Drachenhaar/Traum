@@ -273,6 +273,16 @@ export interface Settings {
   /** Name der Welt, erscheint in Art Bible und Story-Modus */
   worldName: string;
   worldTagline: string;
+  /**
+   * Wo das Buch zuletzt zugeklappt wurde. Beim nächsten Öffnen schlägt es
+   * genau dort wieder auf – wie ein Buch mit Lesebändchen.
+   */
+  lastSpreadKey?: string;
+  /**
+   * Wie oft eine Seite gelesen wurde. Daraus entsteht die Abnutzung: oft
+   * besuchte Seiten wirken eine Spur wärmer und griffiger.
+   */
+  visits?: Record<string, number>;
 }
 
 export type ViewMode = 'grid' | 'list' | 'detail';
