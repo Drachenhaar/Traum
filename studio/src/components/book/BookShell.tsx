@@ -14,6 +14,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { BookmarkIcon, ChevronLeft, ChevronRight, FilePlus2, Search } from 'lucide-react';
 import { useStudio, livingEntries } from '../../store/useStudio';
 import { buildBook, chapterById, pageWear } from '../../lib/book';
+import { deskStyle } from '../../lib/textures';
 import { cx } from '../../lib/utils';
 import { GlobalSearch } from '../search/GlobalSearch';
 import { Spread } from './Spread';
@@ -118,7 +119,8 @@ export function BookShell() {
 
   return (
     <div
-      className="desk-surface flex h-full w-full flex-col overflow-hidden"
+      className="flex h-full w-full flex-col overflow-hidden"
+      style={deskStyle}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >

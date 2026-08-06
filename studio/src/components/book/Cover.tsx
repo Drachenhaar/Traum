@@ -14,6 +14,7 @@ import { useState } from 'react';
 import type { BookStructure } from '../../lib/book';
 import { spineThickness } from '../../lib/book';
 import emblem from '../../assets/emblem.png';
+import { TEXTURES, deskStyle } from '../../lib/textures';
 
 export function Cover({
   book,
@@ -43,7 +44,10 @@ export function Cover({
   };
 
   return (
-    <div className="desk-surface flex h-full w-full flex-col items-center justify-center overflow-hidden px-6 py-10">
+    <div
+      className="flex h-full w-full flex-col items-center justify-center overflow-hidden px-6 py-10"
+      style={deskStyle}
+    >
       <div
         className="flex flex-col items-center transition-all duration-500 ease-calm"
         style={{
@@ -94,11 +98,16 @@ export function Cover({
             <div
               className="relative z-10 flex h-[390px] w-[286px] flex-col items-center justify-between rounded-[4px] px-6 py-9 sm:h-[476px] sm:w-[348px] sm:px-8 sm:py-11"
               style={{
-                /* Genarbtes Leder: Streiflicht von links oben, Schatten rechts unten */
-                background:
-                  'linear-gradient(148deg, #4a3a28 0%, #33271b 30%, #241b13 62%, #2e2318 100%)',
+                /*
+                 * Echtes Leder statt Verlauf. Der dunkle Schleier darüber nimmt
+                 * dem Foto die Helligkeit, damit Gold und Titel darauf stehen
+                 * können – die Narbung bleibt sichtbar.
+                 */
+                backgroundImage: `linear-gradient(150deg, rgba(30,22,15,0.32) 0%, rgba(20,15,10,0.52) 55%, rgba(14,10,7,0.68) 100%), url(${TEXTURES.leather})`,
+                backgroundSize: 'cover, cover',
+                backgroundPosition: 'center, center',
                 boxShadow:
-                  '0 40px 70px -22px rgba(0,0,0,0.9), inset 0 1px 0 rgba(226,196,120,0.22), inset -14px 0 26px -18px rgba(0,0,0,0.8), inset 0 0 70px rgba(0,0,0,0.35)',
+                  '0 40px 70px -22px rgba(0,0,0,0.9), inset 0 1px 0 rgba(226,196,120,0.22), inset -14px 0 26px -18px rgba(0,0,0,0.8), inset 0 0 70px rgba(0,0,0,0.3)',
               }}
             >
               {/* Gebrauchsspuren an den Ecken */}

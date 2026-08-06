@@ -15,6 +15,7 @@ import { Spread, Plate } from '../../components/book/Spread';
 import { templateFor } from '../../lib/templates';
 import { discoverRelated } from '../../lib/relations';
 import { useImageUrl } from '../../components/images/Thumb';
+import { TEXTURES } from '../../lib/textures';
 import { relativeTime } from '../../lib/utils';
 
 export function ForewordSpread() {
@@ -129,7 +130,14 @@ export function ForewordSpread() {
                 rubric={templateFor(newest.type).label}
               />
             </div>
-          ) : null}
+          ) : (
+            /* Solange die Welt keine eigenen Tafeln hat, trägt das Frontispiz die Seite. */
+            <div className="mb-7 h-[52%] min-h-[220px]">
+              <Plate rubric="Frontispiz" caption={settings.worldName || 'Dragoncore'}>
+                <img src={TEXTURES.frontispiz} alt="" className="h-full w-full object-cover" />
+              </Plate>
+            </div>
+          )}
 
           {recent.length > 0 && (
             <section>
