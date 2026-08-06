@@ -104,6 +104,83 @@
     @apply border-t border-line;
   }
 
+  /* ------------------------------------------------------------ Das Buch */
+
+  /* Der Tisch, auf dem das Buch liegt. Warmes Streiflicht von oben links. */
+  .desk-surface {
+    background:
+      radial-gradient(120% 90% at 22% 0%, rgba(212, 175, 55, 0.09) 0%, transparent 55%),
+      radial-gradient(90% 70% at 80% 100%, rgba(120, 90, 50, 0.08) 0%, transparent 60%),
+      linear-gradient(160deg, #1a1512 0%, #100d0b 55%, #0b0908 100%);
+  }
+
+  /*
+   * Papier. Die Faser entsteht aus zwei sehr feinen, versetzten Verläufen –
+   * kein Bild, keine Datei, funktioniert in jeder Größe.
+   */
+  .paper-sheet {
+    background-color: #ebe1c9;
+    background-image:
+      /* Stockflecken – sehr schwach, aber sie nehmen dem Papier das Digitale */
+      radial-gradient(circle at 14% 18%, rgba(150, 118, 72, 0.07) 0%, transparent 26%),
+      radial-gradient(circle at 82% 68%, rgba(140, 108, 66, 0.06) 0%, transparent 30%),
+      radial-gradient(circle at 62% 88%, rgba(150, 118, 72, 0.05) 0%, transparent 24%),
+      /* Zum Rand hin dunkelt jedes alte Papier nach */
+      radial-gradient(120% 100% at 50% 45%, rgba(255, 252, 242, 0.42) 0%, transparent 62%);
+  }
+
+  /* Der Falz: die Seite dunkelt zur Buchmitte hin ab. */
+  .gutter-left {
+    box-shadow: inset -22px 0 34px -26px rgba(60, 44, 26, 0.55);
+  }
+  .gutter-right {
+    box-shadow: inset 22px 0 34px -26px rgba(60, 44, 26, 0.55);
+  }
+
+  /* Goldlinie unter Kapitelzeilen – dünn, nie plakativ. */
+  .rule-gild {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(184, 134, 11, 0.5) 18%,
+      rgba(212, 175, 55, 0.75) 50%,
+      rgba(184, 134, 11, 0.5) 82%,
+      transparent 100%
+    );
+  }
+
+  /* Kapitälchen für Rubriken: CHARAKTER, KREATUR, HEIMAT VON … */
+  .rubric {
+    @apply font-serif uppercase;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    color: #8c6510;
+  }
+
+  /* Initiale am Textanfang, wie im gesetzten Buch. */
+  .dropcap::first-letter {
+    float: left;
+    font-family: 'Iowan Old Style', Georgia, serif;
+    font-size: 3.4em;
+    line-height: 0.82;
+    padding: 0.06em 0.09em 0 0;
+    color: #6b5220;
+  }
+
+  /* Lesetext: großzügig, ruhig, nie über 62 Zeichen breit. */
+  .prose-book {
+    font-family: 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+    font-size: 17px;
+    line-height: 1.78;
+    color: #3a2e20;
+    hyphens: auto;
+  }
+  .prose-book p + p {
+    margin-top: 0.85em;
+    text-indent: 1.4em;
+  }
+
   /* Eigene, dezente Scrollbar (Desktop) */
   .scroll-slim::-webkit-scrollbar {
     width: 10px;

@@ -1,21 +1,50 @@
-# Dragoncore Studio
+# Dragoncore Artbook
 
-Ein Werkzeug zum Bauen von Welten.
+Ein lebendiges Buch. Deine Welt. Deine Geschichte.
 
-Kein Notizprogramm, keine Dateiverwaltung, keine Art Bible als Dokument. Der
-Unterschied ist eine einzige Entscheidung: **Beziehungen haben hier eine
+Dies ist keine Anwendung, die ein Artbook enthält – **die Anwendung ist das
+Artbook.** Es gibt keine Seitenleiste, keine untere Leiste, keine „Ansichten“.
+Man schlägt das Buch auf und blättert. Kapitel sind Kapitel, Seitenzahlen sind
+gerechnet, das Inhaltsverzeichnis stimmt.
+
+Darunter liegt unverändert die Maschine: **Beziehungen haben hier eine
 Bedeutung.** Ein Charakter *lebt in* einem Ort, ein Ort *enthält* ein Gebäude,
 ein Möbelstück *besteht aus* einem Material, das Material *stammt von* einem
 Baum, der Baum *wächst in* einem Biom. Aus vielen solchen Sätzen entsteht ein
 Netz – und aus dem Netz die Welt.
 
-Alles Weitere folgt daraus: der Weltgraph zeigt das Netz, die Art Bible gliedert
-sich daran entlang, der Story-Modus wandert hindurch, und die App kann sagen
-„Diese beiden hängen zusammen, aber du hast sie noch nicht verbunden.“
+Nur zeigt das Buch dieses Netz nicht als Graphen, sondern als Fußnoten:
+„Heimat von — Waldkoi, Nebeleiche“. Wer den Graphen sehen will, klappt hinten
+im Buch die Sternkarte auf.
+
+### Die drei Schichten
+
+1. **Das Buch** – alles, was man normalerweise sieht.
+2. **Das Wissen** – Beziehungen, DNA, Verbindungen. Sichtbar, wenn man fragt.
+3. **Die Produktion** – Werkbank, Chronik, Karte, Export. Hinten im Anhang.
+
+### Lesen und Bearbeiten sind getrennt
+
+Der wichtigste Unterschied zu gewöhnlicher Software: Eine Seite wird *gelesen*.
+Keine Eingabefelder, keine Rahmen, keine Knöpfe – nur Rubrik, Titel, Fließtext,
+Tafel und Fußnoten. Bearbeiten ist eine bewusste Handlung: ein Stift am
+Seitenrand. Danach ist es sofort wieder eine Buchseite.
+
+### Das Buch wächst
+
+Sichtbare Veränderungen hängen an echten Daten, nicht an Effekten:
+
+| Was passiert | Was man sieht |
+|---|---|
+| Mehr Seiten | Der Rücken auf dem Einband wird dicker |
+| Ein Kapitel bekommt Inhalt | Ein Lesezeichen erscheint am Schnitt |
+| Alle Seiten eines Kapitels freigegeben | Das Lesezeichen wird golden |
+| Eine Seite wird oft gelesen | Das Papier wirkt eine Spur wärmer |
+| Das Buch wird zugeklappt | Es öffnet beim nächsten Mal genau dort |
 
 Die App läuft vollständig lokal im Browser. Kein Backend, kein Konto, keine
 Übertragung. Alles liegt in IndexedDB auf dem Gerät, Bilder als echte Blobs.
-Bedienbar auf dem Schreibtisch wie auf dem iPhone.
+Auf dem Schreibtisch liegt eine Doppelseite, in der Hand eine Seite.
 
 ---
 
