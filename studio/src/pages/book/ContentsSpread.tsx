@@ -63,6 +63,31 @@ export function ContentsSpread() {
               daran.
             </p>
           )}
+
+          {/*
+           * Kapitel, die es noch nicht gibt.
+           *
+           * Ohne diese Zeilen könnte niemand entdecken, dass es sie geben
+           * könnte. Sie stehen ohne Seitenzahl und ohne Lesezeichen da – als
+           * Einladung, nicht als Mangel.
+           */}
+          {book.emptyChapters.length > 0 && (
+            <section className="mt-9 border-t border-paper-300/60 pt-5">
+              <p className="rubric mb-2.5">Noch ungeschrieben</p>
+              <ul className="flex flex-wrap gap-x-4 gap-y-1.5">
+                {book.emptyChapters.map((chapter) => (
+                  <li key={chapter.id}>
+                    <Link
+                      to={`/kapitel/${chapter.id}`}
+                      className="font-serif text-[15px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+                    >
+                      {chapter.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </>
       }
       right={

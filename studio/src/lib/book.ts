@@ -21,6 +21,14 @@ export interface ChapterDef {
   title: string;
   /** Der Einleitungstext auf der Kapitelseite */
   intro: string;
+  /**
+   * Die Fragen des Kapitels.
+   *
+   * Das Buch erklärt nicht, wie Welten funktionieren – es hilft dabei, die
+   * eigene zu entdecken. Deshalb steht auf jeder Kapitelseite kein Merksatz,
+   * sondern eine Handvoll Fragen. Sie sind das eigentliche Werkzeug.
+   */
+  questions: string[];
   /** Welche Eintragsarten wohnen in diesem Kapitel? */
   types: EntryType[];
   accent: string;
@@ -34,56 +42,146 @@ export interface ChapterDef {
  */
 export const CHAPTERS: ChapterDef[] = [
   {
+    id: 'naturgesetze',
+    title: 'Naturgesetze',
+    intro:
+      'Bevor irgendetwas wächst, muss feststehen, was gilt. Wie vergeht die Zeit? Kann jemand sterben – und was geschieht danach? Was ist unmöglich? Diese Seiten beantworten das ein für alle Mal, damit alles Weitere darauf vertrauen kann.',
+    questions: [
+      'Wie funktioniert Zeit in dieser Welt? Läuft sie überall gleich schnell?',
+      'Kann jemand sterben? Was geschieht danach – und wer weiß davon?',
+      'Was ist hier unmöglich, egal wie sehr man es versucht?',
+      'Welche Regel gilt immer, ohne eine einzige Ausnahme?',
+      'Was würde zerbrechen, wenn dieses Gesetz fiele?',
+    ],
+    types: ['law'],
+    accent: '#8E7BA6',
+    ribbon: '#8E7BA6',
+  },
+  {
     id: 'essenz',
     title: 'Essenz der Welt',
     intro:
       'Woran sich alles messen lässt. Diese Seiten stehen bewusst am Anfang: Wer sie gelesen hat, versteht jede folgende Zeichnung schneller.',
+    questions: [
+      'Wenn deine Welt ein einziges Gefühl wäre – welches?',
+      'Was würde ein Fremder nach zehn Schritten bemerken?',
+      'Welche Form kommt überall vor, ohne dass es jemand geplant hat?',
+      'Was gibt es hier ausdrücklich nicht?',
+    ],
     types: ['dna'],
     accent: '#A8853F',
     ribbon: '#D4AF37',
   },
   {
-    id: 'welt',
-    title: 'Die Welt',
+    id: 'lebendige-welt',
+    title: 'Die lebendige Welt',
     intro:
-      'Landschaften, Regionen und Orte. Der Boden, auf dem alles Weitere steht – jede Kreatur, jedes Bauwerk, jeder Weg beginnt hier.',
-    types: ['location', 'biome'],
+      'Ein Ort ist keine Landkarte. Er hat eine Stunde, ein Wetter, einen Geruch. Dieselbe Lichtung ist im Morgengrauen ein anderer Ort als in der Nacht – und beide gehören dir.',
+    questions: [
+      'Wie riecht dein Wald nach dem Regen?',
+      'Welche Geräusche hört man hier in der Nacht? Und welche fehlen?',
+      'Woher kommt der Nebel – und wann verschwindet er wieder?',
+      'Wie verändert sich dieser Ort im Winter?',
+      'Welche Farbe hat das Licht eine Stunde vor Sonnenuntergang?',
+      'Was fühlt man hier, wenn man allein ist?',
+    ],
+    types: ['moment', 'location', 'biome'],
     accent: '#55604A',
     ribbon: '#6B7A58',
   },
   {
-    id: 'charaktere',
-    title: 'Charaktere',
+    id: 'natur',
+    title: 'Natur',
     intro:
-      'Die Figuren dieser Welt. Wer sie sind, woher sie kommen, was sie tragen – und woran man sie in einer Silhouette erkennt.',
+      'Nichts steht still. Alles wächst, altert, vergeht und kommt zurück. Wer diese Kreisläufe kennt, muss Landschaften nicht mehr erfinden – sie ergeben sich.',
+    questions: [
+      'Was wächst hier zuerst, wenn Feuer durchgegangen ist?',
+      'Wer frisst wen? Und was geschieht, wenn ein Glied der Kette fehlt?',
+      'Was bleibt zurück, wenn etwas vergeht?',
+      'Welche zwei Wesen brauchen einander, ohne es zu wissen?',
+      'Wie lange dauert ein Jahr an diesem Ort?',
+    ],
+    types: ['plant', 'cycle'],
+    accent: '#525B44',
+    ribbon: '#4E6B3E',
+  },
+  {
+    id: 'tiere',
+    title: 'Tiere',
+    intro:
+      'Tiere sind kein Schmuck. Sie haben Reviere, Wege, Schlafplätze und Stimmen. Man erkennt eine Welt daran, was sich in ihr bewegt, wenn niemand hinsieht.',
+    questions: [
+      'Was tut dieses Tier, wenn es sich unbeobachtet glaubt?',
+      'Wo verbringt es die Nacht – und mit wem?',
+      'Woran erkennt man, dass es hier war?',
+      'Zieht es fort? Woher weiß es den Weg?',
+      'Wie klingt es, und was bedeutet welcher Laut?',
+    ],
+    types: ['animal', 'creature'],
+    accent: '#8C6D31',
+    ribbon: '#8C6D31',
+  },
+  {
+    id: 'bewohner',
+    title: 'Bewohner',
+    intro:
+      'Keine Figuren, keine Rollen – Menschen und Wesen mit Wünschen, Ängsten und Gewohnheiten. Wer weiß, wo jemand im Morgengrauen steht, braucht keine Beschreibung mehr.',
+    questions: [
+      'Was will diese Figur – heute, und was ihr ganzes Leben lang?',
+      'Wovor hat sie Angst? Weiß sie es selbst?',
+      'Was tut sie jeden Tag, ohne darüber nachzudenken?',
+      'An welchen Tag denkt sie am häufigsten zurück?',
+      'Wohin geht sie, wenn sie allein sein will?',
+      'Wer würde sie vermissen?',
+    ],
     types: ['character'],
     accent: '#A8853F',
     ribbon: '#C08A4A',
   },
   {
-    id: 'kreaturen',
-    title: 'Kreaturen',
+    id: 'stimmen',
+    title: 'Stimmen',
     intro:
-      'Die Wesen von Dragoncore sind auf die Landschaft angewiesen, die sie hervorgebracht hat. Sie sind kein Schmuck – sie sind Teil dieser Welt.',
-    types: ['creature', 'animal'],
-    accent: '#8C6D31',
-    ribbon: '#8C6D31',
+      'Wie eine Welt spricht, verrät mehr als jede Landkarte. Begrüßungen, Streit, Schweigen. Kleine Szenen, keine Dialogsysteme.',
+    questions: [
+      'Wie begrüßt man sich hier? Und wie verabschiedet man sich für immer?',
+      'Woran erkennt man diese Stimme mit geschlossenen Augen?',
+      'Was verschweigt diese Figur gerade – und warum?',
+      'Welche Wörter benutzt nur sie?',
+      'Wie klingt Streit hier? Laut, oder sehr leise?',
+    ],
+    types: ['voice'],
+    accent: '#8B6A4F',
+    ribbon: '#8B6A4F',
   },
   {
-    id: 'pflanzen',
-    title: 'Pflanzen',
+    id: 'artefakte',
+    title: 'Artefakte',
     intro:
-      'Das Herbarium. Was wächst, wo es wächst und was daraus wird – die stille Schicht, die eine Welt glaubhaft macht.',
-    types: ['plant'],
-    accent: '#525B44',
-    ribbon: '#4E6B3E',
+      'Kein Inventar. Jeder Gegenstand hat ein Alter, eine Herkunft und jemanden, der ihn zuletzt in der Hand hielt. Diese Seiten sind Museumstafeln.',
+    questions: [
+      'Was hat dieser Gegenstand gesehen?',
+      'Wer trug ihn zuletzt – freiwillig?',
+      'Welche Kerbe erzählt welche Nacht?',
+      'Ließe er sich heute noch herstellen?',
+      'Wofür steht er, auch ohne Worte?',
+    ],
+    types: ['artifact', 'prop', 'furniture', 'clothing'],
+    accent: '#B08D57',
+    ribbon: '#B08D57',
   },
   {
     id: 'architektur',
     title: 'Architektur & Gebautes',
     intro:
-      'Bauwerke, Räume, Objekte und Kleidung. Alles, was von Hand gemacht wurde und deshalb etwas über seine Erbauer verrät.',
-    types: ['architecture', 'furniture', 'prop', 'clothing'],
+      'Alles, was von Hand gemacht wurde, verrät etwas über seine Erbauer: was sie fürchteten, was sie besaßen, wie lange sie bleiben wollten.',
+    questions: [
+      'Warum steht dieses Bauwerk genau hier?',
+      'Was fürchteten die Erbauer, als sie diese Mauer zogen?',
+      'Was ist später dazugekommen – und von wem?',
+      'Wie klingt ein Schritt in diesem Raum?',
+    ],
+    types: ['architecture'],
     accent: '#6B5B45',
     ribbon: '#8A6A45',
   },
@@ -92,24 +190,57 @@ export const CHAPTERS: ChapterDef[] = [
     title: 'Materialien',
     intro:
       'Woraus die Welt gemacht ist. Oberfläche, Alterung, Verhalten im Licht – die Regeln, nach denen alles andere aussieht.',
+    questions: [
+      'Wie fühlt sich das an, wenn man mit der Hand darüberfährt?',
+      'Wie altert es? Wird es schöner oder schäbig?',
+      'Woher kommt es, und wer holt es?',
+      'Was passiert damit im Regen?',
+    ],
     types: ['material'],
     accent: '#8C7A62',
     ribbon: '#8C7A62',
   },
   {
-    id: 'magie',
-    title: 'Magie & Mysterien',
+    id: 'kraefte',
+    title: 'Kräfte',
     intro:
-      'Kräfte, Mythen, Geschichten und Klang. Magie ohne Preis wirkt beliebig – hier steht, was sie kostet.',
-    types: ['magic', 'lore', 'quest', 'music'],
+      'Keine Werte, keine Stufen. Kräfte entstehen irgendwo, haben Grenzen und kosten etwas. Was nichts kostet, verändert auch nichts.',
+    questions: [
+      'Woher kommt diese Kraft? Wer hat sie zuerst bemerkt?',
+      'Was kostet sie den, der sie benutzt?',
+      'Was kann sie ausdrücklich nicht?',
+      'Was hat sich in der Welt verändert, seit es sie gibt?',
+      'Wer wünschte, es gäbe sie nicht?',
+    ],
+    types: ['magic'],
     accent: '#9C86B0',
     ribbon: '#8E7BA6',
+  },
+  {
+    id: 'geschichten',
+    title: 'Geschichten',
+    intro:
+      'Legenden, Gerüchte, Lieder und Bräuche. Eine Welt wird wahr, sobald ihre Bewohner einander etwas über sie erzählen – auch wenn es nicht stimmt.',
+    questions: [
+      'Wie erzählt man diese Geschichte in drei Sätzen am Feuer?',
+      'Wie klingt sie zwei Täler weiter?',
+      'Wer erzählt sie – Großmütter, Betrunkene, Kinder beim Spiel?',
+      'Was tut man deswegen bis heute, ohne zu wissen, warum?',
+      'Und was ist wirklich geschehen?',
+    ],
+    types: ['lore', 'quest', 'music'],
+    accent: '#7C6A57',
+    ribbon: '#7C6A57',
   },
   {
     id: 'werkstatt',
     title: 'Die Werkstatt',
     intro:
       'Assets, Prompts, Konzeptarbeit und Animation. Der produzierende Teil des Buches – hier wird aus der Welt ein Spiel.',
+    questions: [
+      'Was muss zuerst existieren, damit alles andere gebaut werden kann?',
+      'Woran erkennt man, dass ein Stück fertig ist?',
+    ],
     types: ['asset', 'prompt', 'concept', 'animation', 'ui'],
     accent: '#B08D57',
     ribbon: '#B08D57',
@@ -118,6 +249,10 @@ export const CHAPTERS: ChapterDef[] = [
     id: 'notizen',
     title: 'Notizen & Sammlungen',
     intro: 'Loses, Angefangenes, Gesammeltes. Nicht alles muss schon fertig sein, um im Buch zu stehen.',
+    questions: [
+      'Welcher Gedanke lässt dich seit Tagen nicht los?',
+      'Was gehört zusammen, obwohl du noch nicht weißt, warum?',
+    ],
     types: ['page', 'collection'],
     accent: '#7C6A57',
     ribbon: '#7C6A57',
@@ -178,6 +313,15 @@ export interface BookStructure {
     /** Alle Einträge freigegeben? Dann glänzt das Lesezeichen. */
     complete: boolean;
   }[];
+  /**
+   * Kapitel, die es noch nicht gibt.
+   *
+   * Sie bekommen keine Seiten – ein Buch zählt keine leeren Blätter mit. Aber
+   * sie werden im Inhaltsverzeichnis genannt, denn sonst könnte niemand
+   * entdecken, dass es sie geben *könnte*. Ihre Fragen stehen bereit, auch
+   * wenn noch keine Antwort geschrieben ist.
+   */
+  emptyChapters: ChapterDef[];
   /** Gesamtzahl der Seiten – daraus entsteht die Rückendicke */
   totalPages: number;
 }
@@ -205,6 +349,7 @@ export function buildBook(entries: Entry[], imageCount: number): BookStructure {
 
   const living = entries.filter((e) => !e.deletedAt);
   const chapters: BookStructure['chapters'] = [];
+  const emptyChapters: ChapterDef[] = [];
 
   for (const chapter of CHAPTERS) {
     const mine = living
@@ -216,8 +361,11 @@ export function buildBook(entries: Entry[], imageCount: number): BookStructure {
           a.title.localeCompare(b.title, 'de'),
       );
 
-    // Leere Kapitel bekommen keine Seiten. Das Buch zeigt nur, was es gibt.
-    if (mine.length === 0) continue;
+    // Leere Kapitel bekommen keine Seiten – aber sie bleiben nennbar.
+    if (mine.length === 0) {
+      emptyChapters.push(chapter);
+      continue;
+    }
 
     const startPage = page;
     push({
@@ -260,7 +408,7 @@ export function buildBook(entries: Entry[], imageCount: number): BookStructure {
     if (s.entryId) pageOfEntry.set(s.entryId, s.page);
   });
 
-  return { spreads, indexOf, pageOfEntry, chapters, totalPages: page - FIRST_PAGE };
+  return { spreads, indexOf, pageOfEntry, chapters, emptyChapters, totalPages: page - FIRST_PAGE };
 }
 
 /* ----------------------------------------------------------------- Zustand */
