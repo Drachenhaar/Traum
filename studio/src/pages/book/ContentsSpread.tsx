@@ -11,6 +11,7 @@ import { useStudio } from '../../store/useStudio';
 import { useCurrentSpread } from '../../components/book/BookShell';
 import { Spread, Plate } from '../../components/book/Spread';
 import { useImageUrl } from '../../components/images/Thumb';
+import { TEXTURES } from '../../lib/textures';
 import { cx } from '../../lib/utils';
 
 export function ContentsSpread() {
@@ -74,10 +75,15 @@ export function ContentsSpread() {
             />
           </div>
         ) : (
-          <div className="flex h-full min-h-[280px] items-center justify-center">
-            <p className="max-w-[34ch] text-center font-serif text-[15px] italic leading-relaxed text-ink-faint">
-              Sobald die ersten Tafeln im Buch liegen, steht hier eine davon.
-            </p>
+          /*
+           * Das Frontispiz – in echten Büchern die Tafel gegenüber dem Titel.
+           * Sie steht hier, solange die Welt noch keine eigenen Bilder hat, und
+           * weicht der ersten eigenen Tafel, sobald es eine gibt.
+           */
+          <div className="h-full min-h-[320px]">
+            <Plate rubric="Frontispiz" caption={settings.worldTagline || 'Eine Welt, die wächst'}>
+              <img src={TEXTURES.frontispiz} alt="" className="h-full w-full object-cover" />
+            </Plate>
           </div>
         )
       }
