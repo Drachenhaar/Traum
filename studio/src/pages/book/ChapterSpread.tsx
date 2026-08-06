@@ -64,6 +64,13 @@ export function ChapterSpread() {
             {entry.entries.length} {entry.entries.length === 1 ? 'SEITE' : 'SEITEN'}
             {entry.complete && ' · VOLLSTÄNDIG'}
           </p>
+
+          <Link
+            to={`/setzerei?typ=${chapter.types[0]}`}
+            className="mt-5 inline-flex items-center gap-1.5 font-serif text-[13.5px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+          >
+            Eine Seite zu diesem Kapitel
+          </Link>
         </div>
       }
       right={

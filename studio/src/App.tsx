@@ -17,6 +17,7 @@ import { EntrySpread } from './pages/book/EntrySpread';
 import { AppendixSpread } from './pages/book/Appendix';
 import { FoldOutMap } from './pages/book/FoldOutMap';
 import { RegisterSheet, PlatesSpread, PlatesSheet } from './pages/book/RegisterSpread';
+import { Setzerei } from './pages/book/Setzerei';
 import {
   ChronicleSheet,
   WorkbenchSheet,
@@ -62,6 +63,7 @@ export default function App() {
           <Route path="/anhang" element={<AppendixSpread />} />
 
           {/* Anhänge: eigene Blätter, kein Buchsatz */}
+          <Route path="/setzerei" element={<Setzerei />} />
           <Route path="/karte" element={<FoldOutMap />} />
           <Route path="/register" element={<RegisterSheet />} />
           <Route path="/tafelteil" element={<PlatesSheet />} />

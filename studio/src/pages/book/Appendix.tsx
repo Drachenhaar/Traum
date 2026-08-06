@@ -34,6 +34,11 @@ export function AppendixSpread() {
 
   const primary: AppendixEntry[] = [
     {
+      to: '/setzerei',
+      title: 'Setzerei',
+      note: 'Geschriebenes einlegen – etwa aus ChatGPT – und das Buch setzt daraus eine Seite.',
+    },
+    {
       to: '/karte',
       title: 'Faltkarte',
       note: 'Die Ordnung der Welt als Sternkarte. Aufklappen, betrachten, zuklappen.',

@@ -11,7 +11,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { BookmarkIcon, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { BookmarkIcon, ChevronLeft, ChevronRight, FilePlus2, Search } from 'lucide-react';
 import { useStudio, livingEntries } from '../../store/useStudio';
 import { buildBook, chapterById, pageWear } from '../../lib/book';
 import { cx } from '../../lib/utils';
@@ -145,6 +145,23 @@ export function BookShell() {
             {chapter ? chapter.title.toUpperCase() : spread?.label.toUpperCase() ?? ''}
           </p>
         </div>
+
+        {/*
+         * Zwei Zeichen, mehr Bedienung hat das Buch nicht: eine neue Seite
+         * einlegen und im Register nachschlagen.
+         */}
+        <button
+          type="button"
+          onClick={() => navigate('/setzerei')}
+          className={cx(
+            'grid h-11 w-11 shrink-0 place-items-center transition-colors no-tap-highlight',
+            pathname === '/setzerei' ? 'text-gild-400' : 'text-gild-500/50 hover:text-gild-400',
+          )}
+          aria-label="Eine Seite einlegen"
+          title="Eine Seite einlegen"
+        >
+          <FilePlus2 size={17} />
+        </button>
 
         <button
           type="button"
