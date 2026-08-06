@@ -115,7 +115,34 @@
   }
 
   /*
-   * Papier. Die Faser entsteht aus zwei sehr feinen, versetzten Verläufen –
+   * Die drei Stellungen des Einbands.
+   *
+   * Als Klassen und nicht inline, weil das Aufschlagen auf schmalen Geraeten
+   * anders aussehen muss: Ein offenes Buch ist doppelt so breit wie ein
+   * geschlossenes. Ohne Verkleinerung liefe die Doppelseite aus dem Bild.
+   */
+  .book-stage {
+    transition: transform 300ms cubic-bezier(0.42, 0, 0.22, 1);
+  }
+  .book-zu {
+    transform: rotateY(-13deg) rotateX(5deg);
+  }
+  .book-gerade {
+    transform: rotateY(0deg) rotateX(2deg);
+  }
+  .book-offen {
+    transform: rotateY(0deg) rotateX(2deg) translateX(46%);
+    transition-duration: 900ms;
+  }
+  @media (max-width: 767px) {
+    /* Erst kleiner, dann schieben - so bleibt die ganze Doppelseite im Bild. */
+    .book-offen {
+      transform: rotateY(0deg) rotateX(2deg) scale(0.58) translateX(46%);
+    }
+  }
+
+  /*
+   * Papier. Die Faser entsteht aus sehr feinen, versetzten Verläufen –
    * kein Bild, keine Datei, funktioniert in jeder Größe.
    */
   .paper-sheet {
