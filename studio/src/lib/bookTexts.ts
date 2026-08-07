@@ -52,6 +52,24 @@ export const BUCH_TEXTE = {
       ruhe: 'Dein Buch.',
       oeffnen: 'Schlag es auf.',
     },
+
+    /*
+     * Dieselben Szenen fuer ein Buch, das es schon gibt.
+     *
+     * „Jede Welt beginnt mit einem leeren Buch" waere hier gelogen – die Welt
+     * steht laengst, es wechselt nur der Einband. Ein Buch neu zu binden ist
+     * ein eigener Vorgang mit eigener Wuerde, kein zweiter Geburtstag.
+     */
+    anfangNeu: {
+      zeile: 'Ein Buch darf sich verwandeln.',
+      unterzeile: 'Binde es neu.',
+      aria: 'Das Buch neu binden',
+    },
+    vollendenNeu: {
+      knopf: 'Neu binden',
+      ruhe: 'Neu gebunden.',
+      oeffnen: 'Zurück zum Buch',
+    },
     zurueck: 'Zurück',
     weiter: 'Weiter',
   },
@@ -70,6 +88,8 @@ export const BUCH_TEXTE = {
     hinweis:
       'Was du hier änderst, betrifft nur den Einband. Keine geschriebene Seite geht dabei verloren.',
     gespeichert: 'Gespeichert.',
+    neuBinden: 'Das Buch neu binden',
+    neuBindenNote: 'Noch einmal durch die Szenen – Einband, Titel, Zeichen. Der Band bleibt, wie er ist.',
   },
 } as const;
 

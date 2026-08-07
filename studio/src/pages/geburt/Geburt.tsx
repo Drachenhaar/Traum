@@ -35,9 +35,23 @@ const T = BUCH_TEXTE.geburt;
 const SZENEN = ['anfang', 'einband', 'titel', 'zeichen', 'vollendet'] as const;
 type Szene = (typeof SZENEN)[number];
 
-export function Geburt({ onFertig }: { onFertig: () => void }) {
+/**
+ * Zwei Anlaesse, dieselben Szenen.
+ *
+ * `geburt` – das Buch entsteht. `neubinden` – es gibt es laengst, und nur der
+ * Einband wechselt. Unterschiedlich sind allein die Worte am Anfang und am
+ * Ende; der Weg dazwischen ist derselbe, und das ist der Punkt: Wer sein Buch
+ * neu bindet, soll denselben Ernst erleben wie beim ersten Mal.
+ */
+export type Modus = 'geburt' | 'neubinden';
+
+export function Geburt({ onFertig, modus = 'geburt' }: { onFertig: () => void; modus?: Modus }) {
   const saveBook = useStudio((s) => s.saveBook);
   const vorhanden = useStudio((s) => s.settings.book);
+
+  const neu = modus === 'neubinden';
+  const worteAnfang = neu ? T.anfangNeu : T.anfang;
+  const worteEnde = neu ? T.vollendenNeu : T.vollenden;
 
   /*
    * Der Entwurf lebt im Arbeitsspeicher, bis das Buch vollendet wird. Wer
@@ -109,7 +123,7 @@ export function Geburt({ onFertig }: { onFertig: () => void }) {
       style={deskStyle}
     >
       {szene === 'anfang' ? (
-        <Anfang sichtbar={sichtbar} onWeiter={weiter} />
+        <Anfang sichtbar={sichtbar} onWeiter={weiter} worte={worteAnfang} />
       ) : (
         <div className="flex w-full max-w-3xl flex-1 flex-col items-center justify-center gap-9 py-6">
           {/* --------------------------------------------------- Das Buch */}
@@ -147,17 +161,10 @@ export function Geburt({ onFertig }: { onFertig: () => void }) {
                 onChange={aendern}
                 onZurueck={zurueck}
                 onVollenden={vollenden}
+                vollendenLabel={worteEnde.knopf}
               />
             )}
-            {szene === 'vollendet' && (
-              <Vollendet
-                onOeffnen={() => {
-                  /* Zum Umschlag – von dort schlägt sich das Buch selbst auf. */
-                  window.location.hash = '#/';
-                  onFertig();
-                }}
-              />
-            )}
+            {szene === 'vollendet' && <Vollendet onOeffnen={onFertig} worte={worteEnde} />}
           </div>
         </div>
       )}
@@ -174,12 +181,20 @@ export function Geburt({ onFertig }: { onFertig: () => void }) {
  * ganze Flaeche ist die Schaltflaeche – es gibt keinen Knopf, den man suchen
  * muesste. Fuer Vorleseprogramme traegt sie eine Beschriftung.
  */
-function Anfang({ sichtbar, onWeiter }: { sichtbar: boolean; onWeiter: () => void }) {
+function Anfang({
+  sichtbar,
+  onWeiter,
+  worte,
+}: {
+  sichtbar: boolean;
+  onWeiter: () => void;
+  worte: { zeile: string; unterzeile: string; aria: string };
+}) {
   return (
     <button
       type="button"
       onClick={onWeiter}
-      aria-label={T.anfang.aria}
+      aria-label={worte.aria}
       className="flex flex-1 w-full cursor-pointer flex-col items-center justify-center no-tap-highlight"
     >
       <div
@@ -187,13 +202,13 @@ function Anfang({ sichtbar, onWeiter }: { sichtbar: boolean; onWeiter: () => voi
         style={{ opacity: sichtbar ? 1 : 0 }}
       >
         <p className="font-serif text-[22px] leading-relaxed text-paper-300/85 sm:text-[26px]">
-          {T.anfang.zeile}
+          {worte.zeile}
         </p>
         <p
           className="mt-7 font-serif text-[14px] italic tracking-wide text-paper-400/45 transition-opacity duration-[1400ms] delay-500"
           style={{ opacity: sichtbar ? 1 : 0 }}
         >
-          {T.anfang.unterzeile}
+          {worte.unterzeile}
         </p>
       </div>
     </button>
@@ -208,18 +223,22 @@ function Anfang({ sichtbar, onWeiter }: { sichtbar: boolean; onWeiter: () => voi
  * Alles Werkzeug ist fort. Es liegt nur noch das Buch da, und darunter steht
  * eine Einladung. Dieser Moment bekommt Raum – deshalb steht hier fast nichts.
  */
-function Vollendet({ onOeffnen }: { onOeffnen: () => void }) {
+function Vollendet({
+  onOeffnen,
+  worte,
+}: {
+  onOeffnen: () => void;
+  worte: { ruhe: string; oeffnen: string };
+}) {
   return (
     <div className="text-center">
-      <p className="font-serif text-[17px] leading-relaxed text-paper-300/80">
-        {T.vollenden.ruhe}
-      </p>
+      <p className="font-serif text-[17px] leading-relaxed text-paper-300/80">{worte.ruhe}</p>
       <button
         type="button"
         onClick={onOeffnen}
         className="mt-6 inline-flex min-h-[46px] items-center rounded-full border border-gild-500/35 px-7 font-serif text-[15px] text-gild-300 transition-colors duration-300 hover:border-gild-400/70 no-tap-highlight"
       >
-        {T.vollenden.oeffnen}
+        {worte.oeffnen}
       </button>
     </div>
   );

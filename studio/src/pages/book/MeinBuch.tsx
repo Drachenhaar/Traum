@@ -14,6 +14,8 @@
  * Buchidentität geschrieben, kein Eintrag angefasst.
  */
 
+import { Link } from 'react-router-dom';
+import { Sparkles } from 'lucide-react';
 import { useStudio } from '../../store/useStudio';
 import { BUCH_TEXTE } from '../../lib/bookTexts';
 import { COVER_COLORS, COVER_MATERIALS } from '../../lib/bookIdentity';
@@ -100,6 +102,25 @@ export function MeinBuchSheet() {
              */}
             <Zeichenwahl identity={book} onChange={aendern} nurWahl ton="papier" />
           </Abschnitt>
+
+          {/*
+           * Der Weg zurück in die Szenen.
+           *
+           * Steht bewusst ganz unten und ganz leise: Wer nur die Farbe wechseln
+           * will, ist oben längst fertig. Wer den Vorgang noch einmal erleben
+           * will, findet ihn hier.
+           */}
+          <section className="border-t border-paper-300/60 pt-5">
+            <Link
+              to="/neu-binden"
+              className="inline-flex min-h-[44px] items-center gap-2 font-serif text-[15px] italic text-gild-600 transition-colors hover:text-gild-500 no-tap-highlight"
+            >
+              <Sparkles size={15} strokeWidth={1.6} /> {T.neuBinden}
+            </Link>
+            <p className="mt-1.5 max-w-[46ch] font-serif text-[13px] italic leading-relaxed text-ink-faint">
+              {T.neuBindenNote}
+            </p>
+          </section>
         </div>
       </div>
     </AppendixSheet>
