@@ -35,10 +35,24 @@ function showFatal(title: string, detail: string) {
   if (gezeigt && nichtssagend(detail) && !nichtssagend(gezeigt)) return;
   gezeigt = detail;
 
+  /*
+   * Bleibt eine Meldung selbst dann verdeckt, wenn die Skripte ohne
+   * `crossorigin` ausgeliefert werden, stammt sie sehr wahrscheinlich gar
+   * nicht aus dem Buch, sondern aus etwas, das der Browser mitbringt – ein
+   * Inhaltsfilter, eine Erweiterung. Das gehoert dazugesagt, sonst sucht man
+   * an der falschen Stelle. Genau das ist hier passiert.
+   */
+  const text = nichtssagend(detail)
+    ? `${detail.trim()}\n\nDer Browser nennt weder Datei noch Zeile. Das deutet auf eine ` +
+      `Erweiterung oder einen Inhaltsfilter hin, nicht auf das Buch selbst. ` +
+      `Bleibt das Buch bedienbar, kann diese Meldung weggetippt werden.`
+    : detail;
+
   if (appLaeuft) {
-    showNotice(detail);
+    showNotice(text);
     return;
   }
+  detail = text;
 
   const el = document.getElementById('root');
   if (!el) return;
