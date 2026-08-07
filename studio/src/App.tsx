@@ -86,7 +86,18 @@ export default function App() {
     return (
       <HashRouter>
         <Routes>
-          <Route path="*" element={<Geburt onFertig={() => setImWerden(false)} />} />
+          <Route
+            path="*"
+            element={
+              <Geburt
+                onFertig={() => {
+                  /* Zum Umschlag – von dort schlägt sich das Buch selbst auf. */
+                  window.location.hash = '#/';
+                  setImWerden(false);
+                }}
+              />
+            }
+          />
         </Routes>
         <ConfirmHost />
         <Toasts />
@@ -134,6 +145,13 @@ export default function App() {
         <Route path="/bibliothek" element={<Navigate to="/inhalt" replace />} />
         <Route path="/dna" element={<Navigate to="/kapitel/essenz" replace />} />
 
+        {/*
+          Neu binden: dieselben Szenen wie bei der Erschaffung, aber für ein
+          Buch, das es schon gibt. Bewusst außerhalb des Buchblocks – es ist
+          keine Seite im Buch, sondern ein Vorgang am Buch.
+        */}
+        <Route path="/neu-binden" element={<NeuBinden />} />
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
@@ -150,6 +168,19 @@ export default function App() {
  * wurde – nicht auf eine Startseite. Existiert die Seite nicht mehr (der
  * Eintrag wurde entfernt), beginnt es beim Vorwort.
  */
+/**
+ * Das Buch neu binden.
+ *
+ * Am Ende steht der Verfasser wieder dort, wo er hergekommen ist – bei
+ * „Einband & Zeichen". Nicht auf dem Umschlag: Er hat sein Buch nicht neu
+ * begonnen, er hat es umgebunden, und danach will man sehen, was daraus
+ * geworden ist.
+ */
+function NeuBinden() {
+  const navigate = useNavigate();
+  return <Geburt modus="neubinden" onFertig={() => navigate('/mein-buch')} />;
+}
+
 function CoverGate() {
   const navigate = useNavigate();
   const entries = useStudio((s) => s.entries);

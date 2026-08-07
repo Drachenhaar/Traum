@@ -74,6 +74,7 @@ export function Zeichenwahl({
   /** Ohne Weg-weiter: spaeteres Bearbeiten, wo es nichts zu vollenden gibt. */
   nurWahl = false,
   ton = 'tisch',
+  vollendenLabel = BUCH_TEXTE.geburt.vollenden.knopf,
 }: {
   identity: BookIdentity;
   onChange: (patch: Partial<BookIdentity>) => void;
@@ -81,6 +82,7 @@ export function Zeichenwahl({
   onVollenden?: () => void;
   nurWahl?: boolean;
   ton?: Ton;
+  vollendenLabel?: string;
 }) {
   const [weg, setWeg] = useState<Weg>(identity.emblemType === 'preset' ? 'vorhanden' : 'eigen');
   const foil = colorById(identity.coverColor).foil;
@@ -119,11 +121,7 @@ export function Zeichenwahl({
       {weg === 'erschaffen' && <Erschaffen identity={identity} onChange={onChange} t={t} />}
 
       {!nurWahl && onVollenden && (
-        <SzenenWeg
-          onZurueck={onZurueck}
-          onWeiter={onVollenden}
-          weiterLabel={BUCH_TEXTE.geburt.vollenden.knopf}
-        />
+        <SzenenWeg onZurueck={onZurueck} onWeiter={onVollenden} weiterLabel={vollendenLabel} />
       )}
     </div>
   );
