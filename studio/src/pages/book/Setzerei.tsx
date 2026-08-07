@@ -36,10 +36,24 @@ export function Setzerei() {
 
   const living = useMemo(() => livingEntries(entries), [entries]);
 
-  const result = useMemo(
-    () => (text.trim() ? transcribe(text, living, chosenType || undefined) : null),
-    [text, living, chosenType],
-  );
+  /*
+   * Das Lesen des Manuskripts geschieht mitten im Rendern. Wirft es, reisst
+   * es die ganze Setzerei mit – genau so verschwand das Buch auf aelteren
+   * iPhones hinter einer leeren Seite. Ein unleserliches Manuskript ist aber
+   * kein Grund, den Raum zu verlassen: Der eingegebene Text bleibt stehen,
+   * und daneben steht, was schiefging.
+   */
+  const [gelesen, leseFehler] = useMemo<[ReturnType<typeof transcribe> | null, string]>(() => {
+    if (!text.trim()) return [null, ''];
+    try {
+      return [transcribe(text, living, chosenType || undefined), ''];
+    } catch (err) {
+      const e = err as Error;
+      return [null, `${e?.name ?? 'Fehler'}: ${e?.message ?? String(err)}`];
+    }
+  }, [text, living, chosenType]);
+
+  const result = gelesen;
 
   const activeType = chosenType || result?.suggestedType || 'page';
   const tpl = templateFor(activeType);
@@ -80,6 +94,16 @@ export function Setzerei() {
 
       notify(`„${entry.title}“ steht jetzt im Buch.`, 'success');
       navigate(`/eintrag/${entry.id}`);
+    } catch (err) {
+      /*
+       * Ohne dieses `catch` verliess ein Fehler die Setzerei ungefangen und
+       * kam erst am Fenster an – wo Safari ihn zu einem blossen
+       * „Script error." verkuerzt und die Ursache verschweigt. Hier ist der
+       * Fehler noch vollstaendig, und der Leser bleibt in der Setzerei
+       * stehen statt vor einer leeren Seite.
+       */
+      const e = err as Error;
+      notify(`Die Seite liess sich nicht setzen: ${e?.name ?? 'Fehler'} – ${e?.message ?? String(err)}`, 'error');
     } finally {
       setBusy(false);
     }
@@ -151,7 +175,16 @@ export function Setzerei() {
         <div>
           <p className="rubric mb-2">Der Andruck</p>
 
-          {!result ? (
+          {leseFehler ? (
+            <div className="rounded-[2px] border border-dashed border-paper-400/70 px-6 py-10">
+              <p className="font-serif text-[15px] italic leading-relaxed text-ink-muted">
+                Dieses Manuskript liess sich nicht lesen. Der Text links bleibt unangetastet.
+              </p>
+              <pre className="mt-4 whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-ink-faint/80">
+                {leseFehler}
+              </pre>
+            </div>
+          ) : !result ? (
             <div className="rounded-[2px] border border-dashed border-paper-400/70 px-6 py-14 text-center">
               <FileInput size={22} className="mx-auto mb-3 text-ink-faint/50" strokeWidth={1.5} />
               <p className="font-serif text-[15px] italic text-ink-muted">

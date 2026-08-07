@@ -9,13 +9,24 @@ import { iconByName } from '../../lib/icons';
 
 export function QuickCreate({ open, onClose }: { open: boolean; onClose: () => void }) {
   const createEntry = useStudio((s) => s.createEntry);
+  const notify = useStudio((s) => s.notify);
   const navigate = useNavigate();
   const families = templatesByFamily();
 
+  /*
+   * Mit `catch`, damit ein Fehler beim Anlegen hier gemeldet wird und nicht
+   * ungefangen ans Fenster geht – dort verkuerzt Safari ihn zu einem blossen
+   * „Script error." und die Ursache waere verloren.
+   */
   const create = async (type: string) => {
-    const entry = await createEntry(type);
-    onClose();
-    navigate(`/eintrag/${entry.id}`);
+    try {
+      const entry = await createEntry(type);
+      onClose();
+      navigate(`/eintrag/${entry.id}`);
+    } catch (err) {
+      const e = err as Error;
+      notify(`Anlegen nicht möglich: ${e?.name ?? 'Fehler'} – ${e?.message ?? String(err)}`, 'error');
+    }
   };
 
   return (

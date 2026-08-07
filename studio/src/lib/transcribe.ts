@@ -63,12 +63,25 @@ function norm(text: string): string {
     .replace(/[^a-z0-9]/g, '');
 }
 
-/** Markdown-Auszeichnung entfernen – wir wollen den Text, nicht die Sterne. */
+/**
+ * Markdown-Auszeichnung entfernen – wir wollen den Text, nicht die Sterne.
+ *
+ * Die einfache Auszeichnung braucht eine Grenze vor dem Stern, sonst zerlegt
+ * sie Woerter wie `schnee_wehe`. Diese Grenze steht hier bewusst als
+ * gefangene Gruppe `(^|\W)` und nicht als Rueckschau `(?<!\w)`: Safari
+ * beherrscht Rueckschau erst ab Version 16.4, und aeltere Fassungen
+ * uebersetzen einen regulaeren Ausdruck erst beim ersten Gebrauch. Der
+ * Ausdruck war deshalb keine Ladefehler-, sondern eine Zeitbombe – das Buch
+ * oeffnete sich, und erst beim Setzen einer Seite brach alles ab.
+ *
+ * `\W` schliesst den Zeilenumbruch ein und deckt damit auch den Zeilenanfang
+ * ab; die Vorausschau `(?!\w)` darf bleiben, die kennt Safari seit jeher.
+ */
 function stripMarkup(text: string): string {
   return text
     .replace(/\*\*(.+?)\*\*/g, '$1')
     .replace(/__(.+?)__/g, '$1')
-    .replace(/(?<!\w)[*_](.+?)[*_](?!\w)/g, '$1')
+    .replace(/(^|\W)[*_](.+?)[*_](?!\w)/g, '$1$2')
     .replace(/`(.+?)`/g, '$1')
     .replace(/^>\s?/gm, '')
     .trim();
