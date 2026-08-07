@@ -35,12 +35,42 @@
     <script>
       (function () {
         var failed = [];
+
+        /*
+         * Selbstheilung bei veralteter Auslieferung.
+         *
+         * Kommt eine alte index.html aus dem Zwischenspeicher – des Browsers
+         * oder des Auslieferungsnetzes –, zeigt sie auf Dateien, die es nicht
+         * mehr gibt. Statt dem Leser eine Meldung zuzumuten, holt die Seite
+         * sich einmal selbst eine frische Fassung: Die Adresse bekommt einen
+         * Zeitstempel und ist damit ein anderer Eintrag im Zwischenspeicher.
+         *
+         * Genau einmal je Sitzung. Ohne diese Sperre entstünde eine Schleife,
+         * wenn die Datei wirklich fehlt – und eine endlos neu ladende Seite
+         * ist schlimmer als eine ehrliche Meldung.
+         */
+        var VERSUCHT = 'artbook:neu-geladen';
+        function frischHolen() {
+          try {
+            if (sessionStorage.getItem(VERSUCHT)) return false;
+            sessionStorage.setItem(VERSUCHT, '1');
+          } catch (e) {
+            return false; // Kein Speicher, kein Versuch – lieber die Meldung.
+          }
+          var url = new URL(window.location.href);
+          url.searchParams.set('neu', String(Date.now()));
+          window.location.replace(url.toString());
+          return true;
+        }
+
         window.addEventListener(
           'error',
           function (event) {
             var el = event.target;
             if (el && (el.tagName === 'SCRIPT' || el.tagName === 'LINK')) {
               failed.push(el.src || el.href);
+              /* Das Hauptbündel fehlt – sofort eine frische Fassung holen. */
+              if (el.tagName === 'SCRIPT') frischHolen();
             }
           },
           true
