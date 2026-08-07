@@ -8,6 +8,8 @@
  * „Die Maschine bleibt, die Hülle wechselt.“
  */
 
+import { Link } from 'react-router-dom';
+import { BookMarked } from 'lucide-react';
 import { TimelinePage } from '../TimelinePage';
 import { PipelinePage } from '../PipelinePage';
 import { CanvasListPage } from '../CanvasListPage';
@@ -41,6 +43,17 @@ export function LooseLeavesSheet() {
 export function ColophonSheet() {
   return (
     <AppendixSheet title="Kolophon" rubric="Anhang · Über dieses Buch">
+      {/*
+       * Einband und Zeichen liegen bewusst nicht mitten in den Einstellungen:
+       * Sie sind kein Schalter, sondern das Gesicht des Buches. Von hier führt
+       * nur ein Verweis dorthin.
+       */}
+      <Link
+        to="/mein-buch"
+        className="mb-8 inline-flex min-h-[44px] items-center gap-2 font-serif text-[15px] text-gild-600 transition-colors hover:text-gild-500 no-tap-highlight"
+      >
+        <BookMarked size={16} strokeWidth={1.6} /> Einband &amp; Zeichen
+      </Link>
       <SettingsPage />
     </AppendixSheet>
   );

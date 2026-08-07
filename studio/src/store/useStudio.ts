@@ -13,6 +13,7 @@
 import { create } from 'zustand';
 import { FRESH_SETTINGS, SEED_VERSION, db, wipeDatabase } from '../db/db';
 import type {
+  BookIdentity,
   Block,
   CanvasBoard,
   CreativeGoal,
@@ -30,6 +31,7 @@ import { createBlock, duplicateBlock } from '../lib/blocks';
 import { deleteImage as deleteImageFiles } from '../lib/images';
 import { newId } from '../lib/utils';
 import { DEFAULT_NAV } from '../lib/nav';
+import { newBookIdentity } from '../lib/bookIdentity';
 import { seedIfEmpty } from '../db/seed';
 import { buildRelationIndex, makeRelation, type RelationIndex } from '../lib/relations';
 import { DEFAULT_STAGE } from '../lib/pipeline';
@@ -92,6 +94,11 @@ interface StudioState {
   revisionsOf: (entryId: string) => Promise<Revision[]>;
   recentRevisions: (limit?: number) => Promise<Revision[]>;
   restoreRevision: (revisionId: string) => Promise<void>;
+
+  /* Das Buch selbst */
+  saveBook: (patch: Partial<BookIdentity>) => BookIdentity;
+  savePromptTemplate: (id: string, content: string) => void;
+  resetPromptTemplate: (id: string) => void;
 
   /* Einstellungen */
   updateNav: (nav: NavItem[]) => void;
@@ -187,6 +194,26 @@ let initPromise: Promise<void> | null = null;
 
 const DEFAULT_SETTINGS: Settings = { ...FRESH_SETTINGS, seedVersion: 0 };
 
+/**
+ * Hat hier schon jemand gearbeitet?
+ *
+ * Nicht an den Einträgen ablesbar: Eine frische Installation bekommt
+ * Beispieldaten und hätte damit sofort „Inhalt". Verräterisch sind nur die
+ * Spuren eines Menschen – ein Lesebändchen, zuletzt geöffnete Seiten, ein
+ * eigener Weltname, eigene Typen oder Ziele.
+ */
+function wirktBenutzt(s: Settings): boolean {
+  return (
+    !!s.lastSpreadKey ||
+    (s.recentIds?.length ?? 0) > 0 ||
+    (s.customTypes?.length ?? 0) > 0 ||
+    (s.goals?.length ?? 0) > 0 ||
+    !!s.lastBackupAt ||
+    Object.keys(s.visits ?? {}).length > 0 ||
+    (!!s.worldName && s.worldName !== FRESH_SETTINGS.worldName)
+  );
+}
+
 export const useStudio = create<StudioState>((set, get) => {
   const setSaving = (v: boolean) =>
     set(v ? { saving: true } : { saving: false, savedAt: Date.now() });
@@ -247,6 +274,32 @@ export const useStudio = create<StudioState>((set, get) => {
 
           const seeded = await seedIfEmpty(settings.seedVersion);
           if (seeded) settings.seedVersion = seeded;
+
+          /*
+           * Bestandsübernahme.
+           *
+           * Die Buchidentität gibt es erst seit kurzem. Wer das Artbook schon
+           * benutzt hat, bekäme ohne diese Zeilen beim nächsten Start die
+           * Erschaffung eines neuen Buches vorgesetzt – „Jede Welt beginnt mit
+           * einem leeren Buch" – und müsste glauben, seine sei fort. Sie ist
+           * es nicht; es fehlt nur der Einband.
+           *
+           * Also wird er aus dem gemacht, was schon da ist: aus dem Weltnamen,
+           * dem Untertitel und dem Zeichen, das dieses Buch bisher trug.
+           *
+           * Nur bei sichtbaren Spuren von Gebrauch. Eine frische Installation
+           * hat zwar Beispieldaten, aber kein Lesebändchen, keine zuletzt
+           * geöffneten Seiten und den unveränderten Weltnamen – die soll die
+           * Erschaffung sehen, denn für sie ist sie gedacht.
+           */
+          if (!settings.book && wirktBenutzt(settings)) {
+            settings.book = newBookIdentity({
+              title: settings.worldName?.trim() || 'Dragoncore',
+              subtitle: settings.worldTagline ?? '',
+              emblemType: 'preset',
+              emblemId: 'dragoncore',
+            });
+          }
 
           setCustomTypes(settings.customTypes ?? []);
 
@@ -615,6 +668,49 @@ export const useStudio = create<StudioState>((set, get) => {
       }));
       await db.entries.put(restored);
       get().notify(`„${restored.title}“ zurückgeholt.`, 'success');
+    },
+
+    /* -------------------------------------------------------- Das Buch */
+
+    /**
+     * Die Buchidentität schreiben.
+     *
+     * Gibt es noch keine, entsteht sie hier – mit `createdAt`, das nie wieder
+     * angefasst wird: Es ist das Datum auf der Besitzseite, der Tag, an dem
+     * die Welt begonnen hat.
+     *
+     * Der Weltname wird mitgeführt. Er stand vor dem Buch schon in den
+     * Einstellungen und wird an vielen Stellen gelesen; liefen die beiden
+     * auseinander, hiesse das Buch auf dem Einband anders als im Register.
+     */
+    saveBook(patch) {
+      const alt = get().settings.book;
+      const book: BookIdentity = alt
+        ? { ...alt, ...patch, id: alt.id, createdAt: alt.createdAt, updatedAt: Date.now() }
+        : newBookIdentity(patch);
+
+      const settings = { ...get().settings, book };
+      if (book.title.trim()) settings.worldName = book.title.trim();
+      if (book.subtitle?.trim()) settings.worldTagline = book.subtitle.trim();
+
+      persistSettings(settings);
+      return book;
+    },
+
+    savePromptTemplate(id, content) {
+      const rest = (get().settings.promptTemplates ?? []).filter((t) => t.id !== id);
+      persistSettings({
+        ...get().settings,
+        promptTemplates: [...rest, { id, content, updatedAt: Date.now() }],
+      });
+    },
+
+    /** Die eigene Fassung verwerfen – danach gilt wieder die des Hauses. */
+    resetPromptTemplate(id) {
+      persistSettings({
+        ...get().settings,
+        promptTemplates: (get().settings.promptTemplates ?? []).filter((t) => t.id !== id),
+      });
     },
 
     /* ---------------------------------------------------- Einstellungen */
