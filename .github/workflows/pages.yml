@@ -12,9 +12,14 @@ permissions:
   pages: write
   id-token: write
 
+# Nur eine Veroeffentlichung gleichzeitig - aber eine laufende wird NICHT
+# abgebrochen. Ein abgebrochener Pages-Deploy hinterlaesst eine haengende
+# Deployment in GitHubs Warteschlange, die alle folgenden blockiert; genau
+# das hat hier drei Deploys nacheinander in "deployment_queued" festgehalten,
+# bis das Zeitlimit zuschlug. Neu eintreffende Laeufe warten stattdessen.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -63,3 +68,8 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          # Etwas mehr Geduld als die voreingestellten zehn Minuten: Die
+          # Warteschlange von GitHub Pages ist gelegentlich traege, und ein
+          # Abbruch ist teurer als das Warten.
+          timeout: 1200000
