@@ -17,8 +17,9 @@
 import { useEffect, useRef, useState } from 'react';
 import type { BookStructure } from '../../lib/book';
 import { spineThickness } from '../../lib/book';
-import emblem from '../../assets/emblem.png';
-import { TEXTURES, deskStyle } from '../../lib/textures';
+import type { BookIdentity } from '../../types';
+import { deskStyle } from '../../lib/textures';
+import { coverSurface, CoverFace } from './CoverBoard';
 import { cx } from '../../lib/utils';
 
 /** Zuerst richtet sich das Buch gerade, dann öffnet der Deckel. */
@@ -29,14 +30,15 @@ type Phase = 'zu' | 'richtet' | 'oeffnet';
 
 export function Cover({
   book,
-  worldName,
+  identity,
   tagline,
   resumePage,
   resumeLabel,
   onOpen,
 }: {
   book: BookStructure;
-  worldName: string;
+  /** Der Einband, wie ihn der Verfasser erschaffen hat. */
+  identity: BookIdentity;
   tagline: string;
   resumePage?: number;
   resumeLabel?: string;
@@ -85,7 +87,7 @@ export function Cover({
         <button
           type="button"
           onClick={open}
-          aria-label={`${worldName || 'Dragoncore'} aufschlagen`}
+          aria-label={`${identity.title || 'Das Buch'} aufschlagen`}
           className="group relative no-tap-highlight"
           style={{ perspective: '2200px' }}
         >
@@ -149,15 +151,18 @@ export function Cover({
                   transition: `transform ${SWING_MS}ms cubic-bezier(0.42, 0, 0.22, 1)`,
                 }}
               >
-                {/* Außenseite: Leder, Emblem, Titel */}
+                {/*
+                  Aussenseite: der Einband, den der Verfasser erschaffen hat.
+                  Material, Farbe, Zeichen und Titel kommen aus derselben
+                  Quelle wie bei der Erschaffung – das Buch, das man hier
+                  aufschlaegt, ist genau das, das man dort gebunden hat.
+                */}
                 <div
-                  className="absolute inset-0 flex flex-col items-center justify-between rounded-[4px] px-6 py-9 sm:px-8 sm:py-11"
+                  className="absolute inset-0 overflow-hidden rounded-[4px]"
                   style={{
                     backfaceVisibility: 'hidden',
                     WebkitBackfaceVisibility: 'hidden',
-                    backgroundImage: `linear-gradient(150deg, rgba(30,22,15,0.32) 0%, rgba(20,15,10,0.52) 55%, rgba(14,10,7,0.68) 100%), url(${TEXTURES.leather})`,
-                    backgroundSize: 'cover, cover',
-                    backgroundPosition: 'center, center',
+                    ...coverSurface(identity),
                     boxShadow:
                       '0 40px 70px -22px rgba(0,0,0,0.9), inset 0 1px 0 rgba(226,196,120,0.22), inset -14px 0 26px -18px rgba(0,0,0,0.8), inset 0 0 70px rgba(0,0,0,0.3)',
                     /* Der Deckel dreht sich vom Licht weg und wird dunkler. */
@@ -165,42 +170,7 @@ export function Cover({
                     transition: `filter ${SWING_MS}ms cubic-bezier(0.42, 0, 0.22, 1)`,
                   }}
                 >
-                  <span
-                    aria-hidden
-                    className="pointer-events-none absolute inset-0 rounded-[4px]"
-                    style={{
-                      background:
-                        'radial-gradient(circle at 4% 3%, rgba(190,160,110,0.16) 0%, transparent 16%), radial-gradient(circle at 97% 96%, rgba(190,160,110,0.13) 0%, transparent 15%)',
-                    }}
-                  />
-                  <span
-                    aria-hidden
-                    className="pointer-events-none absolute inset-[10px] rounded-[2px] border border-gild-500/30"
-                  />
-
-                  <span className="rubric mt-1 text-gild-300/75">Artbook</span>
-
-                  <img
-                    src={emblem}
-                    alt=""
-                    className="w-[124px] sm:w-[158px]"
-                    style={{
-                      filter:
-                        'drop-shadow(0 2px 3px rgba(0,0,0,0.85)) drop-shadow(0 -1px 0 rgba(240,215,150,0.28)) drop-shadow(0 0 22px rgba(212,175,55,0.22))',
-                    }}
-                  />
-
-                  <div className="text-center">
-                    <p
-                      className="font-serif text-[22px] leading-tight tracking-[0.12em] text-gild-300 sm:text-[26px]"
-                      style={{
-                        textShadow: '0 1px 3px rgba(0,0,0,0.85), 0 0 18px rgba(212,175,55,0.2)',
-                      }}
-                    >
-                      {worldName || 'Dragoncore'}
-                    </p>
-                    <span aria-hidden className="rule-gild mx-auto mt-2.5 block w-20 opacity-80" />
-                  </div>
+                  <CoverFace identity={identity} />
                 </div>
 
                 {/* Innenseite des Deckels: das Vorsatzpapier */}

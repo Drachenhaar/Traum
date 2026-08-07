@@ -260,9 +260,68 @@ export interface CreativeGoal {
   createdAt: number;
 }
 
+/** Woher das Zeichen des Buches stammt. */
+export type EmblemType = 'preset' | 'upload' | 'generated';
+
+/**
+ * Die Identität des Buches: Titel, Einband, Zeichen.
+ *
+ * Eine eigene Entität, keine Ansammlung von Einstellungen. Sie ist die
+ * Grundlage für alles, was dieses Buch später ausweist – Besitzseite,
+ * Kapitelmarken, Siegel auf geteilten Weltfragmenten, Ausgaben als PDF.
+ * Deshalb hat sie eine eigene `id`, die bestehen bleibt, auch wenn der Titel
+ * sich ändert.
+ */
+export interface BookIdentity {
+  id: string;
+  title: string;
+  subtitle?: string;
+  /** Schlüssel aus COVER_MATERIALS */
+  coverMaterial: string;
+  /** Schlüssel aus COVER_COLORS */
+  coverColor: string;
+  emblemType: EmblemType;
+  /** Schlüssel aus EMBLEM_PRESETS – wenn das Zeichen aus der Bibliothek kommt */
+  emblemId?: string;
+  /**
+   * Id eines Bildes aus der Bildverwaltung – wenn das Zeichen hochgeladen oder
+   * von einer Bild-KI erzeugt wurde. Bewusst nur die Id: Die Datei liegt als
+   * Blob in `imageBlobs`, wie jedes andere Bild auch.
+   */
+  emblemImageId?: string;
+  /** Feineinstellung des eingelegten Bildes auf dem Einband. */
+  emblemScale?: number;
+  emblemRotation?: number;
+  /** Der Text, mit dem das Zeichen erzeugt wurde – bleibt als Herkunft erhalten. */
+  emblemPrompt?: string;
+  /** Wer das Buch begonnen hat. Erscheint auf der Besitzseite. */
+  owner?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/**
+ * Die abweichende Fassung einer Prompt-Vorlage.
+ *
+ * Nur die Abweichung wird gespeichert – wer nichts ändert, bekommt spätere
+ * Verbesserungen der Werksfassung mit.
+ */
+export interface StoredPromptTemplate {
+  id: string;
+  content: string;
+  updatedAt: number;
+}
+
 export interface Settings {
   id: 'settings';
   nav: NavItem[];
+  /**
+   * Das Buch selbst. Fehlt es, hat dieses Gerät noch keines – dann beginnt
+   * beim Start die Erschaffung statt das Lesen.
+   */
+  book?: BookIdentity;
+  /** Eigene Fassungen von Prompt-Vorlagen. */
+  promptTemplates?: StoredPromptTemplate[];
   lastBackupAt?: number;
   backupReminderDays: number;
   seedVersion: number;

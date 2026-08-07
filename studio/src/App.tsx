@@ -27,24 +27,70 @@ import {
 import { CanvasBoardPage } from './pages/CanvasBoardPage';
 import { ConfirmHost } from './components/ui/Confirm';
 import { Toasts } from './components/ui/Toasts';
+import { OwnershipSpread } from './pages/book/OwnershipSpread';
+import { MeinBuchSheet } from './pages/book/MeinBuch';
+import { Geburt } from './pages/geburt/Geburt';
 import { useStudio } from './store/useStudio';
 import { buildBook } from './lib/book';
+import { hasBookIdentity } from './lib/bookIdentity';
 
 export default function App() {
   const ready = useStudio((s) => s.ready);
   const init = useStudio((s) => s.init);
+  const identity = useStudio((s) => s.settings.book);
+
+  /*
+   * Ob die Erschaffung läuft, wird genau einmal entschieden – beim ersten
+   * Bereitsein – und danach nur noch von der Erschaffung selbst beendet.
+   *
+   * Der naheliegende Weg wäre, einfach auf die Buchidentität zu schauen. Der
+   * ist falsch: Sobald das Buch geschrieben ist, wäre die Bedingung erfüllt
+   * und der Router tauschte die Ansicht mitten in der Zeremonie. Der letzte,
+   * stille Moment – das fertige Buch allein auf dem Tisch – fiele genau in
+   * dem Augenblick weg, in dem er entsteht. Er ist aber der Grund, warum das
+   * hier keine Einrichtung ist.
+   */
+  const [imWerden, setImWerden] = useState<boolean | null>(null);
 
   useEffect(() => {
     void init();
   }, [init]);
 
-  if (!ready) {
+  useEffect(() => {
+    if (ready && imWerden === null) setImWerden(!hasBookIdentity(identity));
+  }, [ready, identity, imWerden]);
+
+  if (!ready || imWerden === null) {
     return (
       <div className="desk-surface grid h-full place-items-center">
         <p className="animate-fadeIn font-serif text-[15px] italic tracking-wide text-paper-400/50">
           Das Buch wird aufgeschlagen …
         </p>
       </div>
+    );
+  }
+
+  /*
+   * Die Erstöffnung.
+   *
+   * Gibt es auf diesem Gerät noch kein Buch, führt jede Adresse zur
+   * Erschaffung – nicht nur „/". Wer von irgendwoher einen Verweis auf eine
+   * Seite hat, die es noch nicht geben kann, soll nicht ins Leere greifen,
+   * sondern dort anfangen, wo alles anfängt.
+   *
+   * Erkannt wird das an der Buchidentität selbst, nicht an einem Merker
+   * daneben: Ein Merker kann verlorengehen oder lügen, ein Buch mit Titel
+   * nicht.
+   */
+  if (imWerden) {
+    return (
+      <HashRouter>
+        <Routes>
+          <Route path="*" element={<Geburt onFertig={() => setImWerden(false)} />} />
+        </Routes>
+        <ConfirmHost />
+        <Toasts />
+      </HashRouter>
     );
   }
 
@@ -55,6 +101,9 @@ export default function App() {
         <Route path="/" element={<CoverGate />} />
 
         <Route element={<BookShell />}>
+          {/* Die Besitzseite steht vor dem Vorwort – die erste Seite des Bandes. */}
+          <Route path="/besitz" element={<OwnershipSpread />} />
+          <Route path="/mein-buch" element={<MeinBuchSheet />} />
           <Route path="/vorwort" element={<ForewordSpread />} />
           <Route path="/inhalt" element={<ContentsSpread />} />
           <Route path="/kapitel/:id" element={<ChapterSpread />} />
@@ -116,14 +165,21 @@ function CoverGate() {
     return book.spreads[index];
   }, [settings.lastSpreadKey, book]);
 
+  /*
+   * Beim allerersten Aufschlagen liegt die Besitzseite obenauf – so wie in
+   * einem neuen Buch. Danach übernimmt das Lesebändchen: Es schlägt dort auf,
+   * wo zuletzt zugeklappt wurde.
+   */
+  const ziel = resume?.path ?? (settings.lastSpreadKey ? '/vorwort' : '/besitz');
+
   return (
     <Cover
       book={book}
-      worldName={settings.worldName}
+      identity={settings.book!}
       tagline={settings.worldTagline}
       resumePage={resume?.page}
       resumeLabel={resume ? resume.label : undefined}
-      onOpen={() => navigate(resume?.path ?? '/vorwort')}
+      onOpen={() => navigate(ziel)}
     />
   );
 }
