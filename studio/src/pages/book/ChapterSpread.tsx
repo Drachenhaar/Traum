@@ -23,19 +23,67 @@ export function ChapterSpread() {
   const chapter = id ? chapterById(id) : undefined;
   const entry = book.chapters.find((c) => c.chapter.id === id);
 
-  if (!chapter || !entry) {
+  if (!chapter) {
     return (
       <Spread
         pageLeft={spread?.page ?? 6}
         left={
           <div className="pt-20 text-center">
-            <h1 className="font-serif text-[30px] text-ink">Dieses Kapitel ist noch leer</h1>
+            <h1 className="font-serif text-[30px] text-ink">Dieses Kapitel gibt es nicht</h1>
             <Link to="/inhalt" className="mt-5 inline-block font-serif text-[15px] text-gild-600 underline">
               Zum Inhaltsverzeichnis
             </Link>
           </div>
         }
         right={null}
+      />
+    );
+  }
+
+  /*
+   * Ein Kapitel ohne Seiten ist kein Fehler, sondern eine Einladung. Gerade
+   * hier sind die Fragen das Wichtigste – sie stehen für sich allein, ohne
+   * Verzeichnis daneben.
+   */
+  if (!entry) {
+    return (
+      <Spread
+        pageLeft={spread?.page ?? 6}
+        left={
+          <div className="py-8 lg:py-14">
+            <p className="rubric">Noch ungeschrieben</p>
+            <h1 className="mt-3 font-serif text-[40px] leading-[1.04] text-ink sm:text-[52px]">
+              {chapter.title}
+            </h1>
+            <span aria-hidden className="rule-gild mt-6 block w-32 opacity-75" />
+            <p className="prose-book mt-6 max-w-[46ch]">{chapter.intro}</p>
+          </div>
+        }
+        right={
+          <div className="py-8 lg:py-14">
+            <p className="rubric mb-5">Womit es beginnt</p>
+            <ul className="space-y-4">
+              {chapter.questions.map((question) => (
+                <li key={question} className="flex gap-3">
+                  <span
+                    aria-hidden
+                    className="mt-[11px] h-[3px] w-[3px] shrink-0 rotate-45 bg-gild-500/70"
+                  />
+                  <p className="font-serif text-[16.5px] italic leading-[1.6] text-ink-muted">
+                    {question}
+                  </p>
+                </li>
+              ))}
+            </ul>
+
+            <Link
+              to={`/setzerei?typ=${chapter.types[0]}`}
+              className="mt-9 inline-flex min-h-[42px] items-center rounded-full border border-gild-500/40 px-5 font-serif text-[15px] text-gild-600 transition-colors hover:bg-gild-400/10 no-tap-highlight"
+            >
+              Die erste Seite schreiben
+            </Link>
+          </div>
+        }
       />
     );
   }
@@ -49,7 +97,9 @@ export function ChapterSpread() {
       pageLeft={spread?.page ?? 6}
       wear={wear}
       left={
-        <div className="flex h-full flex-col justify-center py-8 lg:py-16">
+        /* Kein justify-center mehr: Mit den Fragen wird die Seite lang genug,
+           dass zentrierter Inhalt oben abgeschnitten würde. */
+        <div className="flex h-full flex-col py-8 lg:py-12">
           <p className="rubric">Kapitel {romanNumeral(number)}</p>
 
           <h1 className="mt-3 font-serif text-[40px] leading-[1.04] text-ink sm:text-[52px]">
@@ -60,7 +110,34 @@ export function ChapterSpread() {
 
           <p className="prose-book mt-6 max-w-[46ch]">{chapter.intro}</p>
 
-          <p className="mt-8 font-serif text-[12.5px] tracking-[0.16em] text-ink-faint/70">
+          {/*
+           * Die Fragen des Kapitels.
+           *
+           * Sie stehen bewusst auf der Leseseite und nicht im Anhang: Das Buch
+           * soll nicht erklären, wie Welten funktionieren, sondern dabei
+           * helfen, die eigene zu entdecken. Deshalb sind sie hier das
+           * Wichtigste auf der Seite – nicht die Anzahl der Einträge.
+           */}
+          {chapter.questions.length > 0 && (
+            <section className="mt-9 max-w-[44ch]">
+              <span aria-hidden className="rule-gild mb-6 block w-full opacity-55" />
+              <ul className="space-y-4">
+                {chapter.questions.map((question) => (
+                  <li key={question} className="flex gap-3">
+                    <span
+                      aria-hidden
+                      className="mt-[11px] h-[3px] w-[3px] shrink-0 rotate-45 bg-gild-500/70"
+                    />
+                    <p className="font-serif text-[16.5px] italic leading-[1.6] text-ink-muted">
+                      {question}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          <p className="mt-9 font-serif text-[12.5px] tracking-[0.16em] text-ink-faint/70">
             {entry.entries.length} {entry.entries.length === 1 ? 'SEITE' : 'SEITEN'}
             {entry.complete && ' · VOLLSTÄNDIG'}
           </p>

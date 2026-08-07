@@ -12,6 +12,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { PenLine, Star } from 'lucide-react';
+import type { Entry } from '../../types';
 import { useStudio, livingEntries } from '../../store/useStudio';
 import { templateFor, asList, asText, asBool } from '../../lib/templates';
 import { useCurrentSpread } from '../../components/book/BookShell';
@@ -180,6 +181,8 @@ export function EntrySpread() {
               ))}
             </div>
           )}
+
+          <OpenQuestion entry={entry} />
         </>
       }
       right={
@@ -241,6 +244,40 @@ export function EntrySpread() {
         </>
       }
     />
+  );
+}
+
+/**
+ * Eine offene Frage am Fuß der Seite.
+ *
+ * Das Buch beantwortet nicht nur, es fragt auch. Aus den noch leeren Feldern
+ * der Vorlage wird genau eine Frage ausgewählt und still ans Ende gesetzt –
+ * keine Aufforderung, keine Fortschrittsanzeige, kein „3 von 12 ausgefüllt“.
+ * Nur ein Gedanke, der weiterträgt.
+ *
+ * Die Auswahl hängt an der Eintrags-ID, damit dieselbe Seite immer dieselbe
+ * Frage stellt. Eine Seite, die bei jedem Besuch etwas anderes wissen will,
+ * wäre ein Formular mit Zufallsgenerator.
+ */
+function OpenQuestion({ entry }: { entry: Entry }) {
+  const offen = templateFor(entry.type)
+    .fields.filter((f) => f.hint && !asText(entry.fields[f.key]).trim() && asList(entry.fields[f.key]).length === 0)
+    .map((f) => f.hint!);
+
+  if (offen.length === 0) return null;
+
+  /* Stabile Wahl aus der ID – dieselbe Seite, dieselbe Frage. */
+  let sum = 0;
+  for (let i = 0; i < entry.id.length; i++) sum = (sum + entry.id.charCodeAt(i)) % 9973;
+  const frage = offen[sum % offen.length];
+
+  return (
+    <aside className="mt-10 border-t border-paper-300/60 pt-5">
+      <p className="flex gap-3">
+        <span aria-hidden className="mt-[11px] h-[3px] w-[3px] shrink-0 rotate-45 bg-gild-500/70" />
+        <span className="font-serif text-[16px] italic leading-[1.6] text-ink-muted">{frage}</span>
+      </p>
+    </aside>
   );
 }
 
