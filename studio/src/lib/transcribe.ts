@@ -161,7 +161,21 @@ function matchesLabel(candidate: string, targets: string[]): boolean {
   if (!n) return false;
   return targets.some((t) => {
     const tn = norm(t);
-    return n === tn || (tn.length > 4 && (n.startsWith(tn) || tn.startsWith(n)));
+    if (n === tn) return true;
+
+    /*
+     * Anfangsgleichheit lassen wir gelten – „Beschreib" meint „Beschreibung".
+     * Massgeblich ist aber die *kuerzere* Seite, nicht die laengere. Vorher
+     * genuegte es, dass ein Wort lang war, und damit traf „Art" auf „Art des
+     * Eintrags": Die Zeile „Art: Schleierkarpfen" wurde als Typangabe
+     * verbraucht und die Gattung landete nie auf der Seite – obwohl unsere
+     * eigene Vorlage genau diese Zeile vorschlaegt.
+     *
+     * Drei Buchstaben sagen zu wenig, um eine laengere Beschriftung zu
+     * meinen. Fuenf sind die Grenze.
+     */
+    const kuerzere = Math.min(n.length, tn.length);
+    return kuerzere > 4 && (n.startsWith(tn) || tn.startsWith(n));
   });
 }
 
@@ -695,19 +709,76 @@ export function transcribe(raw: string, entries: Entry[], type?: EntryType): Tra
  * Ein Prompt, der genau das Format erzeugt, das die Setzerei am sichersten
  * liest. Wer ihn benutzt, bekommt eine vollständig gefüllte Seite.
  */
+/** Eine Angabe, die eine Seite dieses Typs kennt: der Name und, wenn noetig, ein Hinweis. */
+export interface Angabe {
+  /**
+   * Der Schluessel im Eintrag. Die fuenf Angaben, die jede Seite hat, stehen
+   * nicht in `fields` und bekommen darum ein vorangestelltes Rautezeichen –
+   * so kann kein eigenes Feld sie versehentlich treffen.
+   */
+  key: string;
+  label: string;
+  hint: string;
+}
+
+/**
+ * Die Angaben einer Seite – die eine Quelle fuer alle drei Verwendungen:
+ * den Prompt fuer ChatGPT, das Geruest zum Einsetzen ins Manuskript und die
+ * Liste, die beim Schreiben sichtbar bleibt.
+ *
+ * Vorher stand diese Ableitung nur im Prompt. Die Folge: Wer die Vorlage
+ * nicht kopiert hatte, musste sich jedes Feld merken – und der Platzhalter
+ * im Eingabefeld verschwand ausgerechnet beim ersten Tastendruck.
+ */
+export function angabenFor(type: EntryType): Angabe[] {
+  const tpl = templateFor(type);
+
+  const eigene: Angabe[] = tpl.fields
+    .filter((f) => f.kind !== 'images' && f.kind !== 'entries')
+    .map((f) => ({
+      key: f.key,
+      label: f.label,
+      hint:
+        f.kind === 'select' && f.options?.length
+          ? `eines von: ${f.options.filter(Boolean).join(', ')}`
+          : f.kind === 'boolean'
+            ? 'ja oder nein'
+            : f.kind === 'tags'
+              ? 'durch Komma getrennt'
+              : f.kind === 'palette'
+                ? 'Name #RRGGBB, durch Komma getrennt'
+                : '',
+    }));
+
+  return [
+    { key: '#title', label: 'Titel', hint: '' },
+    { key: '#subtitle', label: 'Untertitel', hint: '' },
+    { key: '#category', label: 'Kategorie', hint: `eines von: ${tpl.categories.join(', ')}` },
+    { key: '#description', label: 'Beschreibung', hint: 'zwei bis vier Sätze' },
+    { key: '#tags', label: 'Schlagworte', hint: 'durch Komma getrennt' },
+    ...eigene,
+  ];
+}
+
+/** Eine Zeile, wie sie im Prompt steht: mit Hinweis in Klammern. */
+function promptZeile(a: Angabe): string {
+  return a.hint ? `${a.label}: (${a.hint})` : `${a.label}: `;
+}
+
+/**
+ * Das nackte Geruest zum Einsetzen ins Manuskript: nur Namen und
+ * Doppelpunkt, ohne Hinweise. Die Hinweise muessen hier fehlen – sonst
+ * laese die Setzerei die Klammer als Wert und schriebe „(zwei bis vier
+ * Saetze)" als Beschreibung ins Buch.
+ */
+export function blankTemplateFor(type: EntryType): string {
+  return angabenFor(type)
+    .map((a) => `${a.label}: `)
+    .join('\n');
+}
+
 export function promptTemplateFor(type: EntryType, worldName: string): string {
   const tpl = templateFor(type);
-  const fields = tpl.fields
-    .filter((f) => f.kind !== 'images' && f.kind !== 'entries')
-    .map((f) => {
-      if (f.kind === 'select' && f.options?.length) {
-        return `${f.label}: (eines von: ${f.options.filter(Boolean).join(', ')})`;
-      }
-      if (f.kind === 'boolean') return `${f.label}: (ja oder nein)`;
-      if (f.kind === 'tags') return `${f.label}: (durch Komma getrennt)`;
-      if (f.kind === 'palette') return `${f.label}: (Name #RRGGBB, durch Komma getrennt)`;
-      return `${f.label}: `;
-    });
 
   return [
     `Du hilfst mir beim Weltenbau für "${worldName || 'Dragoncore'}".`,
@@ -717,11 +788,6 @@ export function promptTemplateFor(type: EntryType, worldName: string): string {
     `Antworte ausschließlich in genau diesem Format, eine Angabe pro Zeile,`,
     `ohne Einleitung und ohne Aufzählungszeichen:`,
     ``,
-    `Titel: `,
-    `Untertitel: `,
-    `Kategorie: (eines von: ${tpl.categories.join(', ')})`,
-    `Beschreibung: (zwei bis vier Sätze)`,
-    `Schlagworte: (durch Komma getrennt)`,
-    ...fields,
+    ...angabenFor(type).map(promptZeile),
   ].join('\n');
 }

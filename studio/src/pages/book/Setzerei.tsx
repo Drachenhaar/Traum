@@ -12,7 +12,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Check, ClipboardCopy, FileInput, Wand2 } from 'lucide-react';
 import { useStudio, livingEntries } from '../../store/useStudio';
-import { transcribe, promptTemplateFor } from '../../lib/transcribe';
+import { transcribe, promptTemplateFor, blankTemplateFor, angabenFor } from '../../lib/transcribe';
 import { templateFor, templatesByFamily } from '../../lib/templates';
 import { relationType } from '../../lib/relations';
 import { chapterOfType } from '../../lib/book';
@@ -111,6 +111,44 @@ export function Setzerei() {
 
   const linked = result ? result.mentions.filter((m) => !skipped.has(m.entryId)).length : 0;
 
+  /*
+   * Die Angaben, die diese Seite kennt – und welche davon im Manuskript
+   * bereits stehen. Bisher stand diese Auskunft nur im Platzhalter, und der
+   * verschwand beim ersten Tastendruck: Man musste sich jedes Feld merken,
+   * genau dann, wenn man es brauchte. Jetzt bleibt die Liste stehen und
+   * hakt beim Schreiben ab, was schon gesetzt ist.
+   */
+  const angaben = useMemo(() => angabenFor(activeType), [activeType]);
+
+  const erkannt = useMemo(() => {
+    const da = new Set<string>();
+    if (!result) return da;
+    if (result.title.trim()) da.add('#title');
+    if (result.subtitle?.trim()) da.add('#subtitle');
+    if (result.category?.trim()) da.add('#category');
+    if (result.description?.trim()) da.add('#description');
+    if (result.tags.length) da.add('#tags');
+    for (const [key, wert] of Object.entries(result.fields)) {
+      const leer =
+        wert == null ||
+        wert === '' ||
+        wert === false ||
+        (Array.isArray(wert) && wert.length === 0);
+      if (!leer) da.add(key);
+    }
+    return da;
+  }, [result]);
+
+  /*
+   * Das Gerüst kommt an den Anfang, der vorhandene Text bleibt darunter
+   * stehen. Nichts geht verloren – auch dann nicht, wenn schon etwas
+   * geschrieben war.
+   */
+  const insertTemplate = () => {
+    const geruest = blankTemplateFor(activeType);
+    setText((alt) => (alt.trim() ? `${geruest}\n\n${alt}` : `${geruest}\n\n`));
+  };
+
   return (
     <AppendixSheet title="Setzerei" rubric="Anhang · Eine Seite einlegen">
       <div className="grid gap-10 lg:grid-cols-2">
@@ -127,9 +165,64 @@ export function Setzerei() {
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder={'Titel: Waldkoi\nKategorie: Kreatur\nArt: Schleierkarpfen\nGröße: 40 cm\nVerhalten: schwimmt durch Luft wie durch Wasser\nFarbpalette: Moosgrün #55604A, Messing #A8853F\n\nDer Waldkoi zieht in kleinen Schwärmen durch den Nebelwald …'}
-            rows={16}
-            className="w-full resize-y rounded-[2px] border border-paper-400/70 bg-paper-50/70 px-4 py-3 font-mono text-[13.5px] leading-relaxed text-ink outline-none transition-colors placeholder:text-ink-faint/60 focus:border-gild-500/60"
+            /*
+             * Acht Zeilen statt sechzehn. Auf dem Telefon schob ein Feld
+             * dieser Hoehe die Vorlage darunter aus dem Blick – man schrieb
+             * oben und haette unten nachsehen muessen. Am Schreibtisch bleibt
+             * die alte Hoehe, dort ist Platz genug.
+             */
+            rows={8}
+            className="w-full resize-y rounded-[2px] border border-paper-400/70 bg-paper-50/70 px-4 py-3 font-mono text-[13.5px] leading-relaxed text-ink outline-none transition-colors placeholder:text-ink-faint/60 focus:border-gild-500/60 lg:min-h-[24rem]"
           />
+
+          {/*
+           * Die bleibende Vorlage.
+           *
+           * Sie steht bewusst direkt unter dem Schreibfeld und nicht in der
+           * Randspalte: Auf einem Telefon gibt es keine Randspalte, und
+           * gebraucht wird sie genau dort, wo geschrieben wird.
+           */}
+          <section className="mt-5 border-t border-paper-300/70 pt-4">
+            <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+              <p className="rubric">Was „{tpl.label}“ kennt</p>
+              <button
+                type="button"
+                onClick={insertTemplate}
+                className="inline-flex min-h-[34px] items-center gap-1.5 font-serif text-[13.5px] italic text-gild-600 transition-colors hover:text-gild-500 no-tap-highlight"
+              >
+                <Wand2 size={14} /> Gerüst einsetzen
+              </button>
+            </div>
+
+            <ul className="space-y-[5px]">
+              {angaben.map((a) => {
+                const da = erkannt.has(a.key);
+                return (
+                  <li key={a.key} className="flex items-baseline gap-2">
+                    {/* Ein Haken, sobald die Angabe im Manuskript steht – sonst ein blasser Punkt. */}
+                    <span
+                      aria-hidden
+                      className={cx(
+                        'mt-[7px] h-[5px] w-[5px] shrink-0 rounded-full transition-colors',
+                        da ? 'bg-gild-500' : 'bg-paper-400/70',
+                      )}
+                    />
+                    <span
+                      className={cx(
+                        'font-serif text-[14.5px] leading-snug',
+                        da ? 'text-ink' : 'text-ink-muted',
+                      )}
+                    >
+                      {a.label}
+                      {a.hint && (
+                        <span className="text-ink-faint/80"> – {a.hint}</span>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
 
           <div className="mt-5">
             <p className="rubric mb-2">Als was soll es gesetzt werden?</p>
