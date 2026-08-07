@@ -69,7 +69,7 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
         with:
-          # Etwas mehr Geduld als die voreingestellten zehn Minuten: Die
-          # Warteschlange von GitHub Pages ist gelegentlich traege, und ein
-          # Abbruch ist teurer als das Warten.
-          timeout: 1200000
+          # Die volle Geduld, die die Aktion zulaesst. Zehn Minuten sind ihr
+          # Hoechstwert; ein groesserer Wert wird stillschweigend darauf
+          # gekappt und erzeugt nur eine Warnung im Protokoll.
+          timeout: 600000
