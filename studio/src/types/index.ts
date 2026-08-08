@@ -336,6 +336,19 @@ export interface Settings {
   book?: BookIdentity;
   /** Eigene Fassungen von Prompt-Vorlagen. */
   promptTemplates?: StoredPromptTemplate[];
+  /**
+   * Der Charakterspiegel lässt sich vollständig abschalten.
+   *
+   * Nicht verstecken – abschalten. Wer ihn nicht will, soll ihn nicht haben,
+   * und zwar ohne Begründung und ohne Nachfrage.
+   */
+  spiegelAus?: boolean;
+  /**
+   * Frühere Spiegelungen: was der Spiegel zu einem früheren Zeitpunkt als
+   * stärkste Motive gesehen hat. Daraus entsteht eine Chronik des kreativen
+   * Vorgangs – „vor einem Jahr war dies eines der stärksten Motive".
+   */
+  spiegelVerlauf?: { at: number; motive: string[] }[];
   lastBackupAt?: number;
   backupReminderDays: number;
   seedVersion: number;

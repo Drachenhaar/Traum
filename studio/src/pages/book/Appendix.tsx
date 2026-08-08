@@ -54,6 +54,11 @@ export function AppendixSpread() {
       note: 'Die Welt in der Zeit. Wann etwas begann, wie lange es bestand – und was zu einem gewählten Jahr existierte.',
     },
     {
+      to: '/spiegel',
+      title: 'Der Spiegel',
+      note: 'Was in deinen Welten wiederkehrt. Er betrachtet das Werk, nicht den Verfasser – und schweigt, solange er zu wenig gesehen hat.',
+    },
+    {
       /*
        * Die Beschriftung stand vorher auf „Was wann geschah“ – das ist seit
        * dem Zeitstrahl irreführend. Die Chronik ist der Verlauf der eigenen
