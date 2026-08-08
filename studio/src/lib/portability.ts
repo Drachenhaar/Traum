@@ -12,7 +12,7 @@
  * `renderEntryHtml` liefern bereits alle nötigen Bausteine.
  */
 
-import { db } from '../db/db';
+import { db, FRESH_SETTINGS } from '../db/db';
 import { blobToDataUrl } from './images';
 import { backupSchema, singleEntrySchema, type BackupFile } from './schemas';
 import type { CanvasBoard, Entry, Relation, Settings, StoredImageMeta } from '../types';
@@ -40,6 +40,13 @@ async function packImages(metas: StoredImageMeta[], withData: boolean): Promise<
   return out;
 }
 
+/** Ein Objekt ohne die genannten Schluessel – ohne das Original anzufassen. */
+function auslassen<T extends object, K extends keyof T>(wert: T, schluessel: K[]): Omit<T, K> {
+  const kopie = { ...wert };
+  for (const k of schluessel) delete kopie[k];
+  return kopie;
+}
+
 export async function buildFullBackup(withImages: boolean): Promise<string> {
   const [entries, relations, boards, images, settings] = await Promise.all([
     db.entries.toArray(),
@@ -56,16 +63,19 @@ export async function buildFullBackup(withImages: boolean): Promise<string> {
     relations,
     boards,
     images: await packImages(images, withImages),
-    settings: settings
-      ? {
-          nav: settings.nav,
-          backupReminderDays: settings.backupReminderDays,
-          customTypes: settings.customTypes,
-          goals: settings.goals,
-          worldName: settings.worldName,
-          worldTagline: settings.worldTagline,
-        }
-      : undefined,
+    /*
+     * Alles ausser dem Schluessel der Zeile.
+     *
+     * Vorher stand hier eine Liste der mitzunehmenden Felder – und wer ein
+     * neues Feld hinzufuegte, ohne daran zu denken, verlor es bei jeder
+     * Sicherung. Lautlos: kein Fehler, keine Meldung, erst beim
+     * Zurueckspielen war es fort.
+     *
+     * Eine Sperrliste ist hier sicherer als eine Erlaubnisliste. Vergisst man
+     * sie zu pflegen, wird zu viel gesichert statt zu wenig – und das ist der
+     * harmlosere Fehler.
+     */
+    settings: settings ? auslassen(settings, ['id']) : undefined,
   };
   return JSON.stringify(payload, null, 2);
 }
@@ -205,14 +215,27 @@ export async function importBackup(
         }
       }
 
+      /*
+       * Einstellungen zurueckholen – aber nur beim Ersetzen.
+       *
+       * Vorher wurde hier ausschliesslich `backupReminderDays` uebernommen.
+       * Alles andere blieb das des aktuellen Geraets: Weltname, eigene Typen,
+       * Ziele – und die Buchidentitaet. Eine Sicherung auf einem neuen Geraet
+       * brachte damit die Inhalte zurueck, aber nicht den Band, in dem sie
+       * standen. Eigene Typen fehlten sogar den Eintraegen, die sie brauchen.
+       *
+       * Beim *Zusammenfuehren* bleibt es dabei, dass nichts angefasst wird:
+       * Wer fremde Seiten in sein Buch legt, will nicht dessen Einband
+       * tauschen. Das ist keine Auslassung, sondern der Unterschied zwischen
+       * „wiederherstellen“ und „hinzufuegen“.
+       */
       if (mode === 'replace' && data.settings) {
         const current = await db.settings.get('settings');
-        if (current) {
-          await db.settings.put({
-            ...current,
-            backupReminderDays: data.settings.backupReminderDays ?? current.backupReminderDays,
-          } as Settings);
-        }
+        await db.settings.put({
+          ...(current ?? FRESH_SETTINGS),
+          ...(data.settings as Partial<Settings>),
+          id: 'settings',
+        } as Settings);
       }
       },
     );
