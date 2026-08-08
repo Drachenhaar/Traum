@@ -18,6 +18,8 @@ import { GraphSimulation } from '../../lib/graph';
 import { relationType } from '../../lib/relations';
 import { templateFor } from '../../lib/templates';
 import { chapterOfType } from '../../lib/book';
+import { datiere, spanne, weltzustand } from '../../lib/chronik/zustand';
+import { ausOrdnung, schreibeJahr } from '../../lib/chronik/zeit';
 import { cx } from '../../lib/utils';
 
 /** So oft wird gerechnet, bis die Karte ruhig liegt. Danach nie wieder. */
@@ -29,6 +31,8 @@ export function FoldOutMap() {
   const relations = useStudio((s) => s.relations);
   const relIndex = useStudio((s) => s.relIndex);
   const [selected, setSelected] = useState<string | null>(null);
+  /** Kein Jahr gewählt: die Karte zeigt alle Zeiten zugleich. */
+  const [jahr, setJahr] = useState<number | null>(null);
 
   /*
    * Einmal rechnen, dann stehen lassen. Kein Animationsrahmen, kein Nachfedern –
@@ -81,6 +85,41 @@ export function FoldOutMap() {
     };
   }, [entries, relations, relIndex]);
 
+  /*
+   * Die Zeit verschiebt keine Sterne.
+   *
+   * Naheliegend waere, bei einem gewaehlten Jahr nur die damals bestehenden
+   * Eintraege in die Berechnung zu geben. Das waere falsch: Der Lageplan
+   * wuerde sich bei jeder Bewegung neu setzen, und das Sternbild spraenge
+   * umher. Eine Karte, die sich unter der Hand umordnet, ist keine Karte.
+   *
+   * Also bleibt die Lage fuer alle Zeiten dieselbe, und das Jahr entscheidet
+   * nur, was leuchtet. Zeit als Licht, nicht als Umzug.
+   */
+  const datierte = useMemo(() => datiere(livingEntries(entries)), [entries]);
+
+  const spanneDerWelt = useMemo(() => spanne(datierte), [datierte]);
+
+  const sichtbar = useMemo(() => {
+    if (jahr === null) return null;
+    const z = weltzustand(datierte, relations, jahr);
+    return {
+      sterne: new Set(z.bestand.map((d) => d.entry.id)),
+      /* Zeitlose Eintraege bleiben stehen: Eine Sprache oder eine Regel der
+         Welt hat oft kein Datum, und sie auszublenden waere eine Behauptung. */
+      zeitlos: new Set([...z.zeitlos, ...z.unlesbar].map((d) => d.entry.id)),
+      linien: new Set(z.relationen.map((r) => r.id)),
+    };
+  }, [jahr, datierte, relations]);
+
+  /** Wie hell ein Stern in diesem Jahr steht. */
+  const glanz = (id: string): number => {
+    if (!sichtbar) return 1;
+    if (sichtbar.sterne.has(id)) return 1;
+    if (sichtbar.zeitlos.has(id)) return 0.5;
+    return 0.08;
+  };
+
   const close = () => navigate('/anhang');
 
   return (
@@ -123,7 +162,9 @@ export function FoldOutMap() {
               Die Welt
             </h1>
             <p className="mt-1 font-serif text-[12.5px] italic text-paper-400/50">
-              {layout?.nodes.length ?? 0} Sterne · {layout?.edges.length ?? 0} Linien
+              {sichtbar
+                ? `${sichtbar.sterne.size} Sterne im Jahr ${schreibeJahr(ausOrdnung(jahr!).jahr)}`
+                : `${layout?.nodes.length ?? 0} Sterne · ${layout?.edges.length ?? 0} Linien`}
             </p>
           </div>
 
@@ -152,6 +193,8 @@ export function FoldOutMap() {
                 if (!a || !b) return null;
                 const active =
                   selected && (edge.source === selected || edge.target === selected);
+                /* Eine Linie gilt im gewählten Jahr – oder sie verblasst. */
+                const zeitlich = !sichtbar || sichtbar.linien.has(edge.id) ? 1 : 0.06;
                 return (
                   <line
                     key={edge.id}
@@ -161,7 +204,8 @@ export function FoldOutMap() {
                     y2={b.y}
                     stroke={active ? '#E3C878' : '#9FB0CE'}
                     strokeWidth={active ? 1.6 : 0.9}
-                    opacity={selected ? (active ? 0.9 : 0.1) : 0.42}
+                    opacity={(selected ? (active ? 0.9 : 0.1) : 0.42) * zeitlich}
+                    style={{ transition: 'opacity 320ms ease' }}
                   />
                 );
               })}
@@ -184,7 +228,8 @@ export function FoldOutMap() {
                 return (
                   <g
                     key={node.id}
-                    opacity={dimmed ? 0.22 : 1}
+                    opacity={(dimmed ? 0.22 : 1) * glanz(node.id)}
+                    style={{ transition: 'opacity 320ms ease' }}
                     className="cursor-pointer transition-opacity duration-500"
                     onClick={() => setSelected(active ? null : node.id)}
                     onDoubleClick={() => navigate(`/eintrag/${node.id}`)}
@@ -237,6 +282,35 @@ export function FoldOutMap() {
               Noch keine Sterne. Sobald die Welt Einträge und Verbindungen hat, zeichnet sich hier
               ihre Ordnung.
             </p>
+          </div>
+        )}
+
+        {/*
+          Die Zeit über der Karte.
+          Erscheint nur, wenn es überhaupt etwas zu datieren gibt – sonst wäre
+          es ein Regler ohne Wirkung.
+        */}
+        {spanneDerWelt && (
+          <div className="relative z-20 flex items-center gap-3 px-6 pb-1 sm:px-9">
+            <button
+              type="button"
+              onClick={() => setJahr(jahr === null ? spanneDerWelt.bis : null)}
+              className="shrink-0 font-serif text-[12.5px] italic text-gild-400/75 transition-colors hover:text-gild-300 no-tap-highlight"
+            >
+              {jahr === null ? 'Ein Jahr wählen' : 'Alle Zeiten'}
+            </button>
+            {jahr !== null && (
+              <input
+                type="range"
+                min={spanneDerWelt.von}
+                max={spanneDerWelt.bis}
+                step={Math.max(1, (spanneDerWelt.bis - spanneDerWelt.von) / 1500)}
+                value={jahr}
+                onChange={(e) => setJahr(Number(e.target.value))}
+                aria-label="Jahr wählen"
+                className="h-11 flex-1 cursor-pointer touch-none accent-gild-400"
+              />
+            )}
           </div>
         )}
 
