@@ -162,6 +162,17 @@ export interface Relation {
   type: string;
   /** Optionale Anmerkung („nur im Winter“, „zweite Generation“ …) */
   note?: string;
+  /**
+   * Wann diese Verbindung galt – Weltzeit, roh wie geschrieben.
+   *
+   * Ohne sie gilt eine Beziehung, solange beide Enden bestehen. Das ist für
+   * „besteht aus“ richtig und für „herrschte über“ falsch: Ein König regiert
+   * selten sein ganzes Leben, und eine Ehe endet nicht immer mit dem Tod.
+   * Fehlen beide Angaben, bleibt es beim alten Verhalten – das ist der
+   * häufige Fall und soll keine Arbeit machen.
+   */
+  beginn?: string;
+  ende?: string;
   createdAt: number;
 }
 

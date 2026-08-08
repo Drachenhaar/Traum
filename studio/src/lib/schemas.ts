@@ -71,16 +71,38 @@ const entrySchema = z.object({
   fields: z.record(z.union([z.string(), z.array(z.string()), z.boolean()])).default({}),
   pipelineStage: z.string().optional(),
   deletedAt: z.number().optional(),
-});
+  /** Weltzeit – siehe `lib/chronik/zeit.ts`. */
+  beginn: z.string().optional(),
+  ende: z.string().optional(),
+})
+  /*
+   * `passthrough` an jedem Schema, das gespeicherte Daten prueft.
+   *
+   * Zod verwirft, was nicht aufgezaehlt ist. Ein Schema mit fester Feldliste
+   * ist damit eine stille Falle: Wer ein Feld ergaenzt und hier nicht daran
+   * denkt, verliert es beim Einspielen – ohne Fehler, ohne Meldung, erst beim
+   * Zurueckholen faellt es auf. Genau das ist zweimal passiert, erst mit der
+   * Buchidentitaet, dann mit der Weltzeit.
+   *
+   * Beim Pruefen einer *eigenen* Sicherung ist zu viel durchzulassen der
+   * harmlosere Fehler als zu wenig. Die bekannten Felder bleiben getippt,
+   * damit der Rest des Programms weiter damit rechnen kann.
+   */
+  .passthrough();
 
-const relationSchema = z.object({
-  id: z.string(),
-  fromId: z.string(),
-  toId: z.string(),
-  type: z.string(),
-  note: z.string().optional(),
-  createdAt: z.number(),
-});
+const relationSchema = z
+  .object({
+    id: z.string(),
+    fromId: z.string(),
+    toId: z.string(),
+    type: z.string(),
+    note: z.string().optional(),
+    /** Wann die Verbindung galt – nicht wann sie angelegt wurde. */
+    beginn: z.string().optional(),
+    ende: z.string().optional(),
+    createdAt: z.number(),
+  })
+  .passthrough();
 
 const canvasItemSchema = z.object({
   id: z.string(),

@@ -10,9 +10,19 @@
  */
 
 import { Link } from 'react-router-dom';
-import type { Entry } from '../../types';
+import type { Entry, Relation } from '../../types';
 import type { RelationIndex } from '../../lib/relations';
 import { groupRelations, relationsOf } from '../../lib/relations';
+
+/** Die Zeitspanne einer Verbindung, wie sie in einer Fußnote stünde. */
+function spanneVon(r: Relation): string {
+  const b = r.beginn?.trim();
+  const e = r.ende?.trim();
+  if (b && e) return `${b}–${e}`;
+  if (b) return `ab ${b}`;
+  if (e) return `bis ${e}`;
+  return '';
+}
 
 export function Marginalia({
   entry,
@@ -65,6 +75,16 @@ export function Marginalia({
                       <span className="border-b border-transparent group-hover:border-gild-500/40">
                         {other.title}
                       </span>
+                      {/*
+                        Trägt die Verbindung eine eigene Zeit, gehört sie
+                        hierher: „herrschte über Aschen, 1032–1050“ ist eine
+                        andere Aussage als „herrschte über Aschen“.
+                      */}
+                      {spanneVon(item.relation) && (
+                        <span className="shrink-0 font-serif text-[12.5px] tabular-nums text-ink-faint/80">
+                          {spanneVon(item.relation)}
+                        </span>
+                      )}
                     </Link>
                   </li>
                 );
