@@ -21,6 +21,7 @@ import { Marginalia, FieldNotes } from '../../components/book/Marginalia';
 import { BlockView } from '../../components/blocks/BlockView';
 import { Thumb, useImageUrl } from '../../components/images/Thumb';
 import { EntryEditor } from './EntryEditor';
+import { leseZeit, schreibeZeit } from '../../lib/chronik/zeit';
 import { cx } from '../../lib/utils';
 
 export function EntrySpread() {
@@ -52,6 +53,24 @@ export function EntrySpread() {
 
   /* Beim Blättern schließt sich die Bearbeitung von selbst. */
   useEffect(() => setEditing(false), [id]);
+
+  /*
+   * Die Zeit, wie sie in einem Buch stünde: „1032 – 1078", „seit 1032",
+   * „bis 1078". Was sich nicht lesen lässt, steht trotzdem da – es ist die
+   * Angabe des Verfassers, und der Zeitstrahl sagt ihm dort, dass er sie
+   * nicht deuten konnte.
+   */
+  const lebenszeit = useMemo(() => {
+    const b = entry?.beginn?.trim();
+    const e = entry?.ende?.trim();
+    if (!b && !e) return '';
+    const zeige = (t: string) => {
+      const z = leseZeit(t);
+      return z ? schreibeZeit(z) : t;
+    };
+    if (b && e) return `${zeige(b)} – ${zeige(e)}`;
+    return b ? `seit ${zeige(b)}` : `bis ${zeige(e!)}`;
+  }, [entry?.beginn, entry?.ende]);
 
   if (!entry) {
     return (
@@ -151,6 +170,20 @@ export function EntrySpread() {
               {entry.subtitle}
             </p>
           )}
+          {/*
+           * Die Lebenszeit – im Lesemodus eine Zeile, kein Feld.
+           * Steht direkt unter dem Titel, weil sie zur Person gehört wie ihr
+           * Name, und führt zum Zeitstrahl, wo sie im Zusammenhang steht.
+           */}
+          {lebenszeit && (
+            <Link
+              to="/zeitstrahl"
+              className="mt-2.5 inline-block font-serif text-[13.5px] tracking-[0.06em] text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+            >
+              {lebenszeit}
+            </Link>
+          )}
+
           <span aria-hidden className="rule-gild mt-5 block w-24 opacity-70" />
 
           {entry.description && (

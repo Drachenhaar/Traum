@@ -17,6 +17,16 @@ export const entryMetaSchema = z.object({
   description: z.string().max(4000, 'Höchstens 4000 Zeichen.'),
   status: statusSchema,
   tags: z.array(z.string()),
+  /*
+   * Weltzeit als freier Text – absichtlich ohne Formatprüfung.
+   *
+   * Wer „Frühjahr 1044“ schreiben will, soll das dürfen; das Buch liest, was
+   * es lesen kann, und sagt auf dem Zeitstrahl, was es nicht verstanden hat.
+   * Eine Prüfung hier würde die Eingabe verweigern und damit eine Notation
+   * erzwingen, die dem Verfasser gehört, nicht uns.
+   */
+  beginn: z.string().max(60),
+  ende: z.string().max(60),
 });
 
 export type EntryMetaValues = z.infer<typeof entryMetaSchema>;

@@ -49,9 +49,19 @@ export function AppendixSpread() {
       note: `${images.length} ${images.length === 1 ? 'Tafel' : 'Tafeln'} – Illustrationen und Referenzen in voller Größe.`,
     },
     {
+      to: '/zeitstrahl',
+      title: 'Zeitstrahl',
+      note: 'Die Welt in der Zeit. Wann etwas begann, wie lange es bestand – und was zu einem gewählten Jahr existierte.',
+    },
+    {
+      /*
+       * Die Beschriftung stand vorher auf „Was wann geschah“ – das ist seit
+       * dem Zeitstrahl irreführend. Die Chronik ist der Verlauf der eigenen
+       * Arbeit, nicht der Verlauf der Welt.
+       */
       to: '/chronik',
       title: 'Chronik',
-      note: `Was wann geschah. ${trashed > 0 ? `${trashed} entnommene ${trashed === 1 ? 'Seite' : 'Seiten'} liegen hier bereit.` : 'Frühere Fassungen lassen sich zurückholen.'}`,
+      note: `Der Verlauf deiner Arbeit. ${trashed > 0 ? `${trashed} entnommene ${trashed === 1 ? 'Seite' : 'Seiten'} liegen hier bereit.` : 'Frühere Fassungen lassen sich zurückholen.'}`,
     },
     {
       to: '/lose-blaetter',

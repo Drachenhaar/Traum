@@ -109,6 +109,57 @@ export const RELATION_TYPES: RelationTypeDef[] = [
     inverse: 'hat Variante',
     color: '#8A8070',
   },
+  /*
+   * Zeit und Ursache.
+   *
+   * Der Auftrag verlangt einen Graphen fuer Ursache und Wirkung – „nicht als
+   * starre Liste". Den gibt es hier laengst: Beziehungen sind gerichtet und
+   * tragen Bedeutung. Ein zweiter Graph nur fuer Kausalitaet waere eine
+   * zweite Wahrheit ueber dieselbe Welt, die irgendwann von der ersten
+   * abweicht. Also bekommt der vorhandene Graph die fehlenden Kanten.
+   */
+  {
+    id: 'causes',
+    label: 'führte zu',
+    inverse: 'ging hervor aus',
+    color: '#8C3A32',
+    hint: 'Ursache und Wirkung – der Tod des Königs führte zum Thronstreit',
+  },
+  {
+    id: 'precedes',
+    label: 'ging voraus',
+    inverse: 'folgte auf',
+    color: '#9A8B6E',
+    hint: 'Reihenfolge ohne Ursache – das eine kam vor dem anderen',
+  },
+  {
+    id: 'parent_of',
+    label: 'Elternteil von',
+    inverse: 'Kind von',
+    color: '#A0724A',
+    hint: 'Abstammung – trägt später den Stammbaum',
+  },
+  {
+    id: 'married_to',
+    label: 'vermählt mit',
+    inverse: 'vermählt mit',
+    symmetric: true,
+    color: '#B08D57',
+  },
+  {
+    id: 'ruled',
+    label: 'herrschte über',
+    inverse: 'stand unter',
+    color: '#5E6B7A',
+    hint: 'Figur über Ort, Reich oder Haus',
+  },
+  {
+    id: 'member_of',
+    label: 'gehört zu',
+    inverse: 'umfasst',
+    color: '#6B7A5E',
+    hint: 'Zugehörigkeit zu Haus, Orden, Fraktion',
+  },
   {
     id: 'related',
     label: 'verwandt mit',
@@ -117,6 +168,9 @@ export const RELATION_TYPES: RelationTypeDef[] = [
     color: '#A4907A',
   },
 ];
+
+/** Kanten, die eine Aussage über zeitliche Abfolge machen. */
+export const ZEITLICHE_TYPEN = ['causes', 'precedes'] as const;
 
 const BY_ID = new Map(RELATION_TYPES.map((r) => [r.id, r]));
 

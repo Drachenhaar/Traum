@@ -132,6 +132,20 @@ export interface Entry {
   fields: Record<string, FieldValue>;
   /** Produktionsstufe (nur bei Assets genutzt), siehe `lib/pipeline.ts` */
   pipelineStage?: string;
+  /**
+   * Weltzeit: wann das hier begann und endete.
+   *
+   * Bewusst der rohe Text, den der Verfasser geschrieben hat – „1032",
+   * „Frühjahr 1044", „12.4.1032" – und keine Zahl, in die wir seine
+   * Schreibweise übersetzt haben. Gelesen wird beim Rechnen; siehe
+   * `lib/chronik/zeit.ts`. Was sich nicht sicher deuten lässt, bleibt stehen
+   * und wird angezeigt, taucht nur nicht auf der Achse auf.
+   *
+   * Beides darf fehlen. Ein Ort ohne Ende besteht bis heute, eine Figur ohne
+   * Anfang war immer schon da – das ist eine Aussage, kein fehlender Wert.
+   */
+  beginn?: string;
+  ende?: string;
   /** Papierkorb: gelöschte Einträge bleiben wiederherstellbar */
   deletedAt?: number;
 }
