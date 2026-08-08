@@ -83,6 +83,8 @@ export function Setzerei() {
         subtitle: result.subtitle,
         category: result.category,
         description: result.description,
+        beginn: result.beginn,
+        ende: result.ende,
         tags: result.tags,
         fields: result.fields,
         blocks: result.blocks,
@@ -130,6 +132,8 @@ export function Setzerei() {
     if (result.category?.trim()) da.add('#category');
     if (result.description?.trim()) da.add('#description');
     if (result.tags.length) da.add('#tags');
+    if (result.beginn.trim()) da.add('#beginn');
+    if (result.ende.trim()) da.add('#ende');
     for (const [key, wert] of Object.entries(result.fields)) {
       const leer =
         wert == null ||
@@ -341,6 +345,17 @@ export function Setzerei() {
                     {result.subtitle}
                   </p>
                 )}
+                {/* Die Lebenszeit, wie sie später unter dem Titel stehen wird. */}
+                {(result.beginn || result.ende) && (
+                  <p className="mt-1.5 font-serif text-[13px] tracking-[0.06em] text-ink-faint">
+                    {result.beginn && result.ende
+                      ? `${result.beginn} – ${result.ende}`
+                      : result.beginn
+                        ? `seit ${result.beginn}`
+                        : `bis ${result.ende}`}
+                  </p>
+                )}
+
                 <span aria-hidden className="rule-gild mt-3 block w-20 opacity-70" />
 
                 {result.description && (

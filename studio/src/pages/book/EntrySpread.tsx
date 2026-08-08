@@ -22,6 +22,8 @@ import { BlockView } from '../../components/blocks/BlockView';
 import { Thumb, useImageUrl } from '../../components/images/Thumb';
 import { EntryEditor } from './EntryEditor';
 import { leseZeit, schreibeZeit } from '../../lib/chronik/zeit';
+import { datiere } from '../../lib/chronik/zustand';
+import { zeitgenossenVon } from '../../lib/chronik/zeitgenossen';
 import { cx } from '../../lib/utils';
 
 export function EntrySpread() {
@@ -272,6 +274,8 @@ export function EntrySpread() {
             heading={!entry.coverImage && palette.length === 0 && gallery.length === 0}
           />
 
+          <Zeitgenossen entry={entry} />
+
           {/* Nachbarseiten – so blättert man weiter, ohne zu suchen. */}
           <Neighbours entryId={entry.id} onGo={(path) => navigate(path)} />
         </>
@@ -315,6 +319,75 @@ function OpenQuestion({ entry }: { entry: Entry }) {
 }
 
 /** Die Tafel füllt die Seite; das Bild darf atmen, nicht beschnitten wirken. */
+/**
+ * Zu ihrer Zeit.
+ *
+ * Der Lohn fuers Datieren – und zwar dort, wo die Arbeit anfaellt. Wer zwei
+ * Jahreszahlen eintraegt, bekommt nicht bloss einen Balken im Anhang, sondern
+ * den Satz, der in jedem guten Weltenbuch steht: *Zu seinen Lebzeiten
+ * geschah …*
+ *
+ * Keine neue Datenhaltung: Es faellt aus dem Zeitraum ab, den es schon gibt.
+ * Und keine Ueberschrift, wenn nichts da ist – eine leere Rubrik ist eine
+ * Behauptung ueber eine Welt, die noch keine Zeit kennt.
+ */
+function Zeitgenossen({ entry }: { entry: Entry }) {
+  const entries = useStudio((s) => s.entries);
+
+  const gefunden = useMemo(() => {
+    if (!entry.beginn?.trim() && !entry.ende?.trim()) return undefined;
+    return zeitgenossenVon(entry, datiere(entries), 6);
+  }, [entry, entries]);
+
+  if (!gefunden) return null;
+
+  const waehrend = gefunden.begannWaehrend;
+  const daneben = gefunden.gleichzeitig.filter((d) => !waehrend.includes(d));
+  if (waehrend.length === 0 && daneben.length === 0) return null;
+
+  return (
+    <section className="mt-8 border-t border-paper-300/60 pt-5">
+      <p className="rubric mb-2.5">Zu dieser Zeit</p>
+
+      {waehrend.length > 0 && (
+        <ul className="space-y-1">
+          {waehrend.map((d) => (
+            <li key={d.entry.id} className="flex items-baseline gap-2">
+              <span className="shrink-0 font-serif text-[12.5px] tabular-nums text-ink-faint/80">
+                {d.zeit.beginn ? schreibeZeit(d.zeit.beginn) : ''}
+              </span>
+              <Link
+                to={`/eintrag/${d.entry.id}`}
+                className="font-serif text-[14.5px] text-ink-muted transition-colors hover:text-gild-600 no-tap-highlight"
+              >
+                {d.entry.title}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {daneben.length > 0 && (
+        <p className="mt-3 font-serif text-[14px] leading-relaxed text-ink-faint">
+          Bestand daneben:{' '}
+          {daneben.map((d, i) => (
+            <span key={d.entry.id}>
+              {i > 0 && ', '}
+              <Link
+                to={`/eintrag/${d.entry.id}`}
+                className="text-ink-muted transition-colors hover:text-gild-600 no-tap-highlight"
+              >
+                {d.entry.title}
+              </Link>
+            </span>
+          ))}
+          .
+        </p>
+      )}
+    </section>
+  );
+}
+
 function CoverPlate({ imageId, rubric, caption }: { imageId: string; rubric: string; caption: string }) {
   const url = useImageUrl(imageId, 'full');
   return (
