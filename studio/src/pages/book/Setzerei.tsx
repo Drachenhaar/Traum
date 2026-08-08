@@ -10,7 +10,7 @@
 
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Check, ClipboardCopy, FileInput, Wand2 } from 'lucide-react';
+import { Check, ChevronDown, ClipboardCopy, FileInput, Wand2 } from 'lucide-react';
 import { useStudio, livingEntries } from '../../store/useStudio';
 import { transcribe, promptTemplateFor, blankTemplateFor, angabenFor } from '../../lib/transcribe';
 import { templateFor, templatesByFamily } from '../../lib/templates';
@@ -33,6 +33,8 @@ export function Setzerei() {
   const [chosenType, setChosenType] = useState<string>(params.get('typ') ?? '');
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
+  /** Die volle Typenliste bleibt zu, bis jemand sie wirklich braucht. */
+  const [typenOffen, setTypenOffen] = useState(false);
 
   const living = useMemo(() => livingEntries(entries), [entries]);
 
@@ -224,9 +226,21 @@ export function Setzerei() {
             </ul>
           </section>
 
+          {/*
+            Die Wahl der Art.
+
+            Vorher standen hier siebenundzwanzig Knöpfe auf einmal – auf einem
+            Telefon eine Wand, durch die man scrollt, statt einer Auswahl, die
+            man trifft. Fast immer erkennt die Setzerei die Art ohnehin richtig;
+            wer das nicht bestätigen muss, soll die Liste gar nicht sehen.
+
+            Also: die Erkennung, daneben die aktuelle Wahl – und der Rest erst
+            auf Verlangen, nach Familien geordnet statt in einem Haufen.
+          */}
           <div className="mt-5">
             <p className="rubric mb-2">Als was soll es gesetzt werden?</p>
-            <div className="flex flex-wrap gap-1.5">
+
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
               <TypeChip
                 label={
                   result?.suggestedType
@@ -236,17 +250,47 @@ export function Setzerei() {
                 active={chosenType === ''}
                 onClick={() => setChosenType('')}
               />
-              {families.map((family) =>
-                family.items.map((item) => (
-                  <TypeChip
-                    key={item.type}
-                    label={item.label}
-                    active={chosenType === item.type}
-                    onClick={() => setChosenType(item.type)}
-                  />
-                )),
+              {chosenType && (
+                <TypeChip label={tpl.label} active onClick={() => setChosenType('')} />
               )}
+              <button
+                type="button"
+                onClick={() => setTypenOffen((o) => !o)}
+                aria-expanded={typenOffen}
+                className="inline-flex min-h-[38px] items-center gap-1 font-serif text-[13.5px] italic text-gild-600 transition-colors hover:text-gild-500 no-tap-highlight"
+              >
+                {typenOffen ? 'Weniger' : 'Andere Art wählen'}
+                <ChevronDown
+                  size={13}
+                  className={cx('transition-transform duration-300', typenOffen && 'rotate-180')}
+                />
+              </button>
             </div>
+
+            {typenOffen && (
+              <div className="mt-4 space-y-3.5 border-t border-paper-300/60 pt-4">
+                {families.map((family) => (
+                  <section key={family.family}>
+                    <p className="mb-1.5 font-serif text-[12px] italic text-ink-faint">
+                      {family.label}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {family.items.map((item) => (
+                        <TypeChip
+                          key={item.type}
+                          label={item.label}
+                          active={chosenType === item.type}
+                          onClick={() => {
+                            setChosenType(item.type);
+                            setTypenOffen(false);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="mt-6 border-t border-paper-300/70 pt-4">

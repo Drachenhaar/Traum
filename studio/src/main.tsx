@@ -36,23 +36,38 @@ function showFatal(title: string, detail: string) {
   gezeigt = detail;
 
   /*
-   * Bleibt eine Meldung selbst dann verdeckt, wenn die Skripte ohne
-   * `crossorigin` ausgeliefert werden, stammt sie sehr wahrscheinlich gar
-   * nicht aus dem Buch, sondern aus etwas, das der Browser mitbringt – ein
-   * Inhaltsfilter, eine Erweiterung. Das gehoert dazugesagt, sonst sucht man
-   * an der falschen Stelle. Genau das ist hier passiert.
+   * Verdeckte Meldungen stoeren nicht mehr, solange das Buch laeuft.
+   *
+   * Die Skripte werden inzwischen ohne `crossorigin` und von derselben
+   * Herkunft ausgeliefert – trotzdem verschweigt Safari hier Text, Datei und
+   * Zeile. Damit ist erwiesen, dass diese Meldung nichts ueber das Buch
+   * aussagt: Sie hat keinen Inhalt, und sie hat keine Folge, denn das Buch
+   * bleibt bedienbar.
+   *
+   * Ein Alarm ohne Inhalt und ohne Wirkung ist Laerm. Er verdeckte auf dem
+   * Telefon den halben Bildschirm und liess den Leser einen Schaden vermuten,
+   * den es nicht gibt. Also nur noch in die Konsole – wer sucht, findet ihn
+   * dort; wer schreibt, wird nicht gestoert.
+   *
+   * Alles, was einen echten Text traegt, erscheint unveraendert.
    */
-  const text = nichtssagend(detail)
-    ? `${detail.trim()}\n\nDer Browser nennt weder Datei noch Zeile. Das deutet auf eine ` +
-      `Erweiterung oder einen Inhaltsfilter hin, nicht auf das Buch selbst. ` +
-      `Bleibt das Buch bedienbar, kann diese Meldung weggetippt werden.`
-    : detail;
-
-  if (appLaeuft) {
-    showNotice(text);
+  if (appLaeuft && nichtssagend(detail)) {
+    console.warn('Verdeckte Fehlermeldung ohne Inhalt – vermutlich nicht aus dem Buch:', detail);
     return;
   }
-  detail = text;
+
+  if (appLaeuft) {
+    showNotice(detail);
+    return;
+  }
+
+  /* Vor dem ersten Rendern ist auch eine verdeckte Meldung eine Nachricht:
+     Dann ist das Buch wirklich nicht aufgegangen. */
+  if (nichtssagend(detail)) {
+    detail =
+      `${detail.trim()}\n\nDer Browser nennt weder Datei noch Zeile. ` +
+      `Das deutet auf eine Erweiterung oder einen Inhaltsfilter hin.`;
+  }
 
   const el = document.getElementById('root');
   if (!el) return;
