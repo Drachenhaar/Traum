@@ -58,6 +58,8 @@ export function EntryEditor({
       description: entry.description ?? '',
       status: entry.status,
       tags: entry.tags ?? [],
+      beginn: entry.beginn ?? '',
+      ende: entry.ende ?? '',
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [entry.id],
@@ -95,6 +97,8 @@ export function EntryEditor({
       description: values.description,
       status: values.status as EntryStatus,
       tags: values.tags,
+      beginn: values.beginn.trim(),
+      ende: values.ende.trim(),
     });
   };
 
@@ -128,6 +132,27 @@ export function EntryEditor({
             <Field label="Untertitel" className="mt-4">
               <TextInput {...register('subtitle')} onBlur={commit} placeholder="Untertitel" />
             </Field>
+
+            {/*
+              Wann in der Welt.
+              Beide dürfen leer bleiben – ein Ort ohne Ende besteht bis heute,
+              eine Figur ohne Anfang war immer schon da. Das ist eine Aussage,
+              kein fehlender Wert, und wird auf dem Zeitstrahl auch so
+              gezeichnet: offen.
+            */}
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <Field label="Beginn">
+                <TextInput {...register('beginn')} onBlur={commit} placeholder="1032" />
+              </Field>
+              <Field label="Ende">
+                <TextInput {...register('ende')} onBlur={commit} placeholder="1078" />
+              </Field>
+            </div>
+            <p className="mt-1.5 font-serif text-[12.5px] italic leading-relaxed text-ink-faint">
+              Zeit in der Welt, nicht am Schreibtisch. Ein Jahr genügt; genauer geht mit{' '}
+              <span className="whitespace-nowrap">1032-04</span> oder{' '}
+              <span className="whitespace-nowrap">12.4.1032</span>.
+            </p>
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <Field label="Kategorie" error={errors.category?.message}>

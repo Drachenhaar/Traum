@@ -27,6 +27,8 @@ import {
 import { CanvasBoardPage } from './pages/CanvasBoardPage';
 import { ConfirmHost } from './components/ui/Confirm';
 import { Toasts } from './components/ui/Toasts';
+import { ZeitstrahlSheet } from './pages/book/Zeitstrahl';
+import { SpiegelSheet } from './pages/book/Spiegel';
 import { OwnershipSpread } from './pages/book/OwnershipSpread';
 import { MeinBuchSheet } from './pages/book/MeinBuch';
 import { Geburt } from './pages/geburt/Geburt';
@@ -127,6 +129,8 @@ export default function App() {
           <Route path="/karte" element={<FoldOutMap />} />
           <Route path="/register" element={<RegisterSheet />} />
           <Route path="/tafelteil" element={<PlatesSheet />} />
+          <Route path="/zeitstrahl" element={<ZeitstrahlSheet />} />
+          <Route path="/spiegel" element={<SpiegelSheet />} />
           <Route path="/chronik" element={<ChronicleSheet />} />
           <Route path="/werkbank" element={<WorkbenchSheet />} />
           <Route path="/lose-blaetter" element={<LooseLeavesSheet />} />

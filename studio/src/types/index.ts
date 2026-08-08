@@ -132,6 +132,20 @@ export interface Entry {
   fields: Record<string, FieldValue>;
   /** Produktionsstufe (nur bei Assets genutzt), siehe `lib/pipeline.ts` */
   pipelineStage?: string;
+  /**
+   * Weltzeit: wann das hier begann und endete.
+   *
+   * Bewusst der rohe Text, den der Verfasser geschrieben hat – „1032",
+   * „Frühjahr 1044", „12.4.1032" – und keine Zahl, in die wir seine
+   * Schreibweise übersetzt haben. Gelesen wird beim Rechnen; siehe
+   * `lib/chronik/zeit.ts`. Was sich nicht sicher deuten lässt, bleibt stehen
+   * und wird angezeigt, taucht nur nicht auf der Achse auf.
+   *
+   * Beides darf fehlen. Ein Ort ohne Ende besteht bis heute, eine Figur ohne
+   * Anfang war immer schon da – das ist eine Aussage, kein fehlender Wert.
+   */
+  beginn?: string;
+  ende?: string;
   /** Papierkorb: gelöschte Einträge bleiben wiederherstellbar */
   deletedAt?: number;
 }
@@ -322,6 +336,19 @@ export interface Settings {
   book?: BookIdentity;
   /** Eigene Fassungen von Prompt-Vorlagen. */
   promptTemplates?: StoredPromptTemplate[];
+  /**
+   * Der Charakterspiegel lässt sich vollständig abschalten.
+   *
+   * Nicht verstecken – abschalten. Wer ihn nicht will, soll ihn nicht haben,
+   * und zwar ohne Begründung und ohne Nachfrage.
+   */
+  spiegelAus?: boolean;
+  /**
+   * Frühere Spiegelungen: was der Spiegel zu einem früheren Zeitpunkt als
+   * stärkste Motive gesehen hat. Daraus entsteht eine Chronik des kreativen
+   * Vorgangs – „vor einem Jahr war dies eines der stärksten Motive".
+   */
+  spiegelVerlauf?: { at: number; motive: string[] }[];
   lastBackupAt?: number;
   backupReminderDays: number;
   seedVersion: number;
