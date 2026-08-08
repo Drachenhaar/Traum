@@ -137,6 +137,19 @@ export const backupSchema = z.object({
   relations: z.array(relationSchema).default([]),
   boards: z.array(boardSchema).default([]),
   images: z.array(imageSchema).default([]),
+  /*
+   * Einstellungen mit `passthrough`.
+   *
+   * Vorher zaehlte dieses Schema die erlaubten Felder einzeln auf – und Zod
+   * verwirft, was nicht dasteht. Jedes neue Feld waere damit beim Einspielen
+   * stillschweigend verschwunden, ohne Fehler, ohne Meldung. Genau das ist mit
+   * der Buchidentitaet passiert: Einband, Titel, Zeichen und das Datum
+   * „Begonnen am“ ueberlebten keine Sicherung.
+   *
+   * Eine Liste, die man pflegen muss, damit nichts verlorengeht, ist die
+   * falsche Bauart. Jetzt kommt alles durch, und die bekannten Felder bleiben
+   * nur der Vollstaendigkeit halber getippt.
+   */
   settings: z
     .object({
       nav: z.array(z.record(z.unknown())).optional(),
@@ -146,6 +159,7 @@ export const backupSchema = z.object({
       worldName: z.string().optional(),
       worldTagline: z.string().optional(),
     })
+    .passthrough()
     .optional(),
 });
 

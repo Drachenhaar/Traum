@@ -24,6 +24,7 @@
 
 import type { Block, Entry, EntryStatus, EntryType, FieldValue } from '../types';
 import { ENTRY_STATUSES } from '../types';
+import { leseZeit } from './chronik/zeit';
 import { allTemplates, templateFor, type FieldDef, type TemplateDef } from './templates';
 import { RELATION_TYPES } from './relations';
 import { newId } from './utils';
@@ -154,6 +155,28 @@ const CORE_LABELS: Record<string, string[]> = {
   tags: ['tags', 'schlagworte', 'schlagworter', 'stichworte', 'keywords'],
   status: ['status', 'zustand', 'reifegrad'],
   type: ['type', 'typ', 'eintragsart', 'art des eintrags'],
+  /*
+   * Weltzeit im Manuskript.
+   *
+   * Bewusst nur eindeutige Woerter. „von" und „bis" waeren naheliegend und
+   * waeren falsch: „Von: dem Haendler am Markt" ist keine Jahreszahl. Ein
+   * falsch gelesenes Datum ist schlimmer als ein ungelesenes – es steht dann
+   * auf der Achse und behauptet etwas.
+   */
+  /*
+   * Jeweils beide Schreibgewohnheiten: `norm()` macht aus „Gründung" ein
+   * „grundung", aus „Gruendung" dagegen ein „gruendung". Wer nur eine Form
+   * hinterlegt, liest die andere nicht – das ist mir hier passiert.
+   */
+  beginn: [
+    'beginn', 'begonnen', 'anfang', 'entstehung', 'entstanden',
+    'grundung', 'gruendung', 'gegrundet', 'gegruendet',
+    'geburt', 'geboren', 'geburtsjahr', 'erbaut',
+  ],
+  ende: [
+    'ende', 'endet', 'untergang', 'aufgelost', 'aufgeloest',
+    'zerstort', 'zerstoert', 'tod', 'gestorben', 'todesjahr', 'verfallen',
+  ],
 };
 
 function matchesLabel(candidate: string, targets: string[]): boolean {
@@ -501,6 +524,9 @@ export interface Transcript {
   category: string;
   description: string;
   status?: EntryStatus;
+  /** Weltzeit, roh wie geschrieben – siehe `lib/chronik/zeit.ts`. */
+  beginn: string;
+  ende: string;
   tags: string[];
   fields: Record<string, FieldValue>;
   blocks: Block[];
@@ -547,6 +573,8 @@ export function transcribe(raw: string, entries: Entry[], type?: EntryType): Tra
     subtitle: '',
     category: '',
     description: '',
+    beginn: '',
+    ende: '',
     tags: [],
     fields: {},
     blocks: [],
@@ -573,6 +601,26 @@ export function transcribe(raw: string, entries: Entry[], type?: EntryType): Tra
   const descFromPair = takeCore('description');
   const tagsRaw = takeCore('tags');
   const statusRaw = takeCore('status');
+
+  /*
+   * Zeitangaben: erst ansehen, dann nehmen.
+   *
+   * „Tod: im Nebel verschollen" ist eine schoene Zeile und kein Datum. Wuerde
+   * sie hier verbraucht, waere sie doppelt verloren – sie stuende weder auf
+   * der Achse noch als Notiz auf der Seite. Deshalb wird der Eintrag nur dann
+   * als benutzt vermerkt, wenn sich wirklich eine Zeit daraus lesen laesst;
+   * sonst faellt er den gewoehnlichen Regeln zu.
+   */
+  const nimmZeit = (key: 'beginn' | 'ende'): string => {
+    const pair = parsed.pairs.find(
+      (p) => !usedPairs.has(p) && matchesLabel(p.label, CORE_LABELS[key]),
+    );
+    if (!pair || !leseZeit(pair.value)) return '';
+    usedPairs.add(pair);
+    return pair.value.trim();
+  };
+  result.beginn = nimmZeit('beginn');
+  result.ende = nimmZeit('ende');
   takeCore('type');
 
   if (tagsRaw) result.tags = splitList(tagsRaw);
@@ -756,6 +804,10 @@ export function angabenFor(type: EntryType): Angabe[] {
     { key: '#category', label: 'Kategorie', hint: `eines von: ${tpl.categories.join(', ')}` },
     { key: '#description', label: 'Beschreibung', hint: 'zwei bis vier Sätze' },
     { key: '#tags', label: 'Schlagworte', hint: 'durch Komma getrennt' },
+    /* Weltzeit gehört in die Vorlage – sonst datiert niemand beim Schreiben,
+       sondern erst hinterher, Seite für Seite. */
+    { key: '#beginn', label: 'Beginn', hint: 'Jahr in der Welt, z. B. 1032' },
+    { key: '#ende', label: 'Ende', hint: 'leer lassen, wenn es fortbesteht' },
     ...eigene,
   ];
 }
