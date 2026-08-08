@@ -23,6 +23,8 @@ import type { Entry, Relation } from '../../types';
 import { templateFor, asList, asText } from '../templates';
 import { relationType } from '../relations';
 import { farbspuren, wortspuren, type Wortspur } from './lesen';
+import { datiere } from '../chronik/zustand';
+import { ausOrdnung, jahrLaenge, schreibeJahr } from '../chronik/zeit';
 
 export type Zweck = 'widerspruch' | 'moeglichkeit' | 'entwicklung' | 'muster' | 'frage';
 
@@ -255,7 +257,105 @@ const veraenderung: Regel = (w) => {
   ];
 };
 
-/* ------------------------------------------------------- 6 Die Gegenfrage */
+/* ------------------------------------------------- 6 Wandel in der Welt */
+
+/**
+ * Wie sich die Welt ueber ihre eigenen Jahrhunderte veraendert.
+ *
+ * Nicht zu verwechseln mit `veraenderung` darueber: Die vergleicht die
+ * aeltere Haelfte *der Arbeit* mit der juengeren, nach Anlagedatum. Das ist
+ * eine Aussage ueber den Verfasser und seine Monate.
+ *
+ * Hier geht es um die Welt selbst. Was erzaehlen die fruehen Jahrhunderte,
+ * was die spaeten? Das ist die interessantere Frage – und die einzige, die
+ * einer Welt gehoert statt ihrem Schreiber.
+ *
+ * Verglichen werden Motive, nicht Eintragsarten: „Nebel" sagt mehr ueber
+ * eine Zeit als „drei Orte mehr".
+ */
+const MINDESTENS_DATIERT = 12;
+/** Unter zwanzig Jahren Spanne ist „frueh und spaet" kein Unterschied. */
+const MINDESTSPANNE_JAHRE = 20;
+
+const weltwandel: Regel = (w) => {
+  const datiert = datiere(w.entries).filter((d) => d.zeit.von !== undefined);
+  if (datiert.length < MINDESTENS_DATIERT) return [];
+
+  const sortiert = [...datiert].sort((a, b) => a.zeit.von! - b.zeit.von!);
+  const spanne = sortiert[sortiert.length - 1].zeit.von! - sortiert[0].zeit.von!;
+  if (spanne < jahrLaenge() * MINDESTSPANNE_JAHRE) return [];
+
+  const mitte = Math.floor(sortiert.length / 2);
+  const frueh = sortiert.slice(0, mitte);
+  const spaet = sortiert.slice(mitte);
+  const grenze = ausOrdnung(spaet[0].zeit.von!).jahr;
+
+  /* Anteil je Motiv in beiden Haelften. */
+  const anteile = (liste: typeof frueh) => {
+    const n = new Map<string, { anzahl: number; ids: string[]; form: string }>();
+    for (const s of wortspuren(liste.map((d) => d.entry))) {
+      n.set(s.stamm, { anzahl: s.in.length, ids: s.in, form: s.form });
+    }
+    return n;
+  };
+
+  const a = anteile(frueh);
+  const b = anteile(spaet);
+
+  let staerkste:
+    | { stamm: string; form: string; ids: string[]; delta: number; spaeter: boolean }
+    | undefined;
+
+  /*
+   * Der Vergleich muss bei gleichem Ausschlag immer dasselbe ergeben.
+   *
+   * Bei einer Welt, die frueh vom Krieg und spaet vom Handel erzaehlt, sind
+   * beide Beobachtungen gleich stark und beide wahr. Welche erschien, entschied
+   * vorher die Reihenfolge einer Menge – also der Zufall. Zweimal dasselbe
+   * Buch haette zwei verschiedene Spiegelungen ergeben, und ein Spiegel, der
+   * bei gleichem Bild etwas anderes zeigt, ist keiner.
+   *
+   * Entschieden wird jetzt nach Ausschlag, dann nach Belegen, zuletzt nach
+   * dem Wort selbst. Das bevorzugt nichts – es legt nur fest.
+   */
+  for (const stamm of [...new Set([...a.keys(), ...b.keys()])].sort()) {
+    const va = (a.get(stamm)?.anzahl ?? 0) / frueh.length;
+    const vb = (b.get(stamm)?.anzahl ?? 0) / spaet.length;
+    const delta = vb - va;
+    /* Mindestens drei Seiten in der staerkeren Haelfte – sonst ist es Zufall. */
+    const stark = delta > 0 ? b.get(stamm) : a.get(stamm);
+    if (!stark || stark.anzahl < 3) continue;
+
+    if (!staerkste) {
+      staerkste = { stamm, form: stark.form, ids: stark.ids, delta, spaeter: delta > 0 };
+      continue;
+    }
+    const besser =
+      Math.abs(delta) > Math.abs(staerkste.delta) ||
+      (Math.abs(delta) === Math.abs(staerkste.delta) && stark.anzahl > staerkste.ids.length);
+    if (besser) {
+      staerkste = { stamm, form: stark.form, ids: stark.ids, delta, spaeter: delta > 0 };
+    }
+  }
+
+  if (!staerkste || Math.abs(staerkste.delta) < 0.25) return [];
+
+  return [
+    {
+      id: `weltwandel:${staerkste.stamm}`,
+      motiv: staerkste.form.charAt(0).toUpperCase() + staerkste.form.slice(1),
+      text: staerkste.spaeter
+        ? `„${staerkste.form}“ gehört in deiner Welt eher der späteren Zeit an – nach ${schreibeJahr(grenze)} kommt es deutlich häufiger vor.`
+        : `„${staerkste.form}“ gehört in deiner Welt eher der frühen Zeit an – vor ${schreibeJahr(grenze)} kommt es deutlich häufiger vor.`,
+      zweck: 'entwicklung',
+      belege: staerkste.ids,
+      herkunft: `${datiert.length} datierte Seiten, geteilt am Jahr ${schreibeJahr(grenze)}: ${frueh.length} davor, ${spaet.length} danach. Der Anteil verschiebt sich um ${Math.round(Math.abs(staerkste.delta) * 100)} Punkte.`,
+      staerke: Math.round(Math.abs(staerkste.delta) * 100),
+    },
+  ];
+};
+
+/* ------------------------------------------------------- 7 Die Gegenfrage */
 
 /**
  * Eine einzige Frage.
@@ -316,6 +416,7 @@ const REGELN: Regel[] = [
   beziehungsformen,
   blinderFleck,
   veraenderung,
+  weltwandel,
   gegenfrage,
 ];
 
