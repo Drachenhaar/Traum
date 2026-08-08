@@ -70,6 +70,7 @@ interface StudioState {
   addRelation: (fromId: string, toId: string, type: string, note?: string) => void;
   removeRelation: (relationId: string) => void;
   setRelationType: (relationId: string, type: string) => void;
+  updateRelation: (relationId: string, patch: Partial<Relation>) => void;
   flipRelation: (relationId: string) => void;
 
   /* Blöcke */
@@ -477,6 +478,22 @@ export const useStudio = create<StudioState>((set, get) => {
 
     setRelationType(relationId, type) {
       const next = get().relations.map((r) => (r.id === relationId ? { ...r, type } : r));
+      commitRelations(next);
+      const changed = next.find((r) => r.id === relationId);
+      if (changed) void db.relations.put(changed);
+    },
+
+    /**
+     * Eine Verbindung ändern – heute vor allem ihre Weltzeit.
+     *
+     * `id`, `fromId` und `toId` bleiben unangetastet: Wer eine Beziehung
+     * umhängen will, löst sie und knüpft eine neue. Alles andere wäre eine
+     * andere Beziehung mit der Kennung der alten.
+     */
+    updateRelation(relationId, patch) {
+      const next = get().relations.map((r) =>
+        r.id === relationId ? { ...r, ...patch, id: r.id, fromId: r.fromId, toId: r.toId } : r,
+      );
       commitRelations(next);
       const changed = next.find((r) => r.id === relationId);
       if (changed) void db.relations.put(changed);

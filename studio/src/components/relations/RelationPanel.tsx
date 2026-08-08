@@ -8,8 +8,8 @@
 
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeftRight, Link2, Plus, Sparkle, X } from 'lucide-react';
-import type { Entry } from '../../types';
+import { ArrowLeftRight, Clock, Link2, Plus, Sparkle, X } from 'lucide-react';
+import type { Entry, Relation } from '../../types';
 import { useStudio } from '../../store/useStudio';
 import { discoverRelated, groupRelations, relationsOf } from '../../lib/relations';
 import { templateFor } from '../../lib/templates';
@@ -87,8 +87,9 @@ export function RelationPanel({ entry }: { entry: Entry }) {
                   return (
                     <li
                       key={rel.relation.id}
-                      className="group flex items-center gap-2.5 rounded-xl border border-line bg-cream-50 py-1.5 pl-2 pr-1 transition-colors hover:border-lineStrong"
+                      className="group rounded-xl border border-line bg-cream-50 py-1.5 pl-2 pr-1 transition-colors hover:border-lineStrong"
                     >
+                     <div className="flex items-center gap-2.5">
                       <span
                         className="h-9 w-1 shrink-0 rounded-full"
                         style={{ background: group.color }}
@@ -124,6 +125,8 @@ export function RelationPanel({ entry }: { entry: Entry }) {
                       >
                         <X size={16} />
                       </button>
+                     </div>
+                     <RelationsZeit relation={rel.relation} />
                     </li>
                   );
                 })}
@@ -177,5 +180,73 @@ export function RelationPanel({ entry }: { entry: Entry }) {
 
       <RelationCreator open={creatorOpen} onClose={() => setCreatorOpen(false)} entry={entry} />
     </section>
+  );
+}
+
+/**
+ * Die Zeit einer Verbindung.
+ *
+ * Bewusst zugeklappt und bewusst klein. Der Regelfall braucht sie nicht: Ein
+ * Ort besteht aus Stein, solange es beides gibt. Gebraucht wird sie dort, wo
+ * eine Verbindung ein eigenes Leben hat – „herrschte über", „vermählt mit",
+ * „lebte in". Ein König regiert selten sein ganzes Leben, und eine Ehe endet
+ * nicht immer mit dem Tod.
+ *
+ * Steht schon eine Spanne da, wird sie gezeigt; sonst muss man erst danach
+ * fragen. Sonst stünden unter jeder Verbindung zwei leere Felder, und die
+ * Tafel wäre ein Formular.
+ */
+function RelationsZeit({ relation }: { relation: Relation }) {
+  const updateRelation = useStudio((s) => s.updateRelation);
+  const gesetzt = !!(relation.beginn?.trim() || relation.ende?.trim());
+  const [offen, setOffen] = useState(false);
+
+  const spanne =
+    relation.beginn?.trim() && relation.ende?.trim()
+      ? `${relation.beginn} – ${relation.ende}`
+      : relation.beginn?.trim()
+        ? `seit ${relation.beginn}`
+        : relation.ende?.trim()
+          ? `bis ${relation.ende}`
+          : '';
+
+  if (!offen) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOffen(true)}
+        className="ml-3 mt-0.5 inline-flex min-h-[30px] items-center gap-1.5 text-[12.5px] text-ink-faint transition-colors hover:text-brass-600"
+      >
+        <Clock size={12} />
+        {gesetzt ? spanne : 'Zeitraum'}
+      </button>
+    );
+  }
+
+  return (
+    <div className="ml-3 mt-1 flex flex-wrap items-center gap-2 pb-1">
+      <Clock size={12} className="shrink-0 text-ink-faint" />
+      <input
+        value={relation.beginn ?? ''}
+        onChange={(e) => updateRelation(relation.id, { beginn: e.target.value })}
+        placeholder="ab 1032"
+        aria-label="Verbindung gilt ab"
+        className="w-[84px] rounded-md border border-line bg-white px-2 py-1 text-[12.5px] text-ink outline-none focus:border-brass-400"
+      />
+      <input
+        value={relation.ende ?? ''}
+        onChange={(e) => updateRelation(relation.id, { ende: e.target.value })}
+        placeholder="bis 1050"
+        aria-label="Verbindung gilt bis"
+        className="w-[84px] rounded-md border border-line bg-white px-2 py-1 text-[12.5px] text-ink outline-none focus:border-brass-400"
+      />
+      <button
+        type="button"
+        onClick={() => setOffen(false)}
+        className="min-h-[30px] text-[12.5px] text-ink-faint transition-colors hover:text-ink"
+      >
+        Fertig
+      </button>
+    </div>
   );
 }

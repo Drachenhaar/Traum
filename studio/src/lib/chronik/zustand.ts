@@ -76,6 +76,7 @@ export function weltzustand(
   datierte: Datierter[],
   relations: Relation[],
   bei: number,
+  k: Kalender = DEFAULT_KALENDER,
 ): Weltzustand {
   const bestand: Datierter[] = [];
   const nochNicht: Datierter[] = [];
@@ -94,13 +95,21 @@ export function weltzustand(
   }
 
   /*
-   * Eine Beziehung gilt, solange beide Enden bestehen. Das ist eine bewusste
-   * Vereinfachung: Beziehungen tragen (noch) keine eigene Zeit. Eine Ehe, die
-   * geschieden wurde, waehrend beide weiterlebten, kann das System heute nicht
-   * abbilden – das gehoert zur Versionierung, die noch nicht gebaut ist.
+   * Eine Beziehung gilt, solange beide Enden bestehen – es sei denn, sie
+   * traegt eine eigene Zeit.
+   *
+   * Der Regelfall braucht keine: „besteht aus" gilt, solange es beides gibt.
+   * „Herrschte ueber" aber selten ein ganzes Leben lang, und eine Ehe endet
+   * nicht immer mit dem Tod. Wo eine eigene Spanne dasteht, entscheidet sie;
+   * wo keine steht, bleibt es beim Alten. So kostet die Genauigkeit nur dort
+   * Arbeit, wo sie gebraucht wird.
    */
   const da = new Set([...bestand, ...zeitlos, ...unlesbar].map((d) => d.entry.id));
-  const relationen = relations.filter((r) => da.has(r.fromId) && da.has(r.toId));
+  const relationen = relations.filter((r) => {
+    if (!da.has(r.fromId) || !da.has(r.toId)) return false;
+    if (!r.beginn?.trim() && !r.ende?.trim()) return true;
+    return bestandBei(leseZeitraum(r.beginn, r.ende, k), bei);
+  });
 
   return { bei, bestand, nochNicht, vergangen, zeitlos, unlesbar, relationen };
 }
