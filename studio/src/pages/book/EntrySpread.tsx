@@ -21,6 +21,7 @@ import { Marginalia, FieldNotes } from '../../components/book/Marginalia';
 import { BlockView } from '../../components/blocks/BlockView';
 import { Thumb, useImageUrl } from '../../components/images/Thumb';
 import { EntryEditor } from './EntryEditor';
+import { gruppiere } from '../../lib/feldgruppen';
 import { leseZeit, schreibeZeit } from '../../lib/chronik/zeit';
 import { datiere } from '../../lib/chronik/zustand';
 import { zeitgenossenVon } from '../../lib/chronik/zeitgenossen';
@@ -117,10 +118,24 @@ export function EntrySpread() {
             : asText(entry.fields[f.key]),
     }));
 
-  const prose = tpl.fields
-    .filter((f) => f.kind === 'textarea')
-    .map((f) => ({ label: f.label, text: asText(entry.fields[f.key]) }))
-    .filter((f) => f.text.trim());
+  /*
+   * Der Fliesstext, nach Fragen gebuendelt.
+   *
+   * Im Lesemodus gibt es keine Abschnitte zum Aufklappen – eine Buchseite
+   * klappt nicht. Die Gruppen dienen hier nur der Reihenfolge: Was zusammen
+   * gedacht wird, steht zusammen, und die Rubrik davor ist die Frage statt
+   * einer Feldliste. Leere Felder erscheinen wie bisher gar nicht.
+   */
+  const prose = gruppiere(
+    tpl.fields.filter((f) => f.kind === 'textarea' && asText(entry.fields[f.key]).trim()),
+  ).flatMap(({ gruppe, felder }) =>
+    felder.map((f, i) => ({
+      label: f.label,
+      text: asText(entry.fields[f.key]),
+      /* Die Frage steht einmal je Gruppe, ueber dem ersten ihrer Felder. */
+      frage: i === 0 ? gruppe.frage : '',
+    })),
+  );
 
   const palette = asList(entry.fields.palette);
   const gallery = tpl.fields
@@ -196,8 +211,22 @@ export function EntrySpread() {
             </div>
           )}
 
-          {prose.map((section) => (
-            <section key={section.label} className="mt-7">
+          {/*
+            Die Frage traegt den Abstand, nicht der Absatz darunter: Sie ist
+            eine Zaesur im Text, kein weiteres Etikett. Ohne die groessere
+            Luft davor liest sie sich wie eine Rubrik – und damit waere die
+            Gliederung nur eine zweite Reihe Beschriftungen.
+          */}
+          {prose.map((section, si) => (
+            <section
+              key={section.label}
+              className={cx(section.frage && si > 0 ? 'mt-12' : 'mt-7')}
+            >
+              {section.frage && (
+                <p className="mb-5 font-serif text-[15px] italic text-ink-faint/75">
+                  {section.frage}
+                </p>
+              )}
               <p className="rubric mb-1.5">{section.label}</p>
               <div className="prose-book">
                 {section.text.split(/\n{2,}/).map((para, i) => (
