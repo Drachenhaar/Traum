@@ -348,6 +348,13 @@ export interface Settings {
   /** Eigene Fassungen von Prompt-Vorlagen. */
   promptTemplates?: StoredPromptTemplate[];
   /**
+   * Der gewählte Weg – siehe `lib/onboarding/wege.ts`.
+   *
+   * Er schaltet nichts frei und nichts ab. Er entscheidet über Beispiele und
+   * spätere Vorschläge, sonst nichts, und lässt sich jederzeit ändern.
+   */
+  weg?: string;
+  /**
    * Der Charakterspiegel lässt sich vollständig abschalten.
    *
    * Nicht verstecken – abschalten. Wer ihn nicht will, soll ihn nicht haben,

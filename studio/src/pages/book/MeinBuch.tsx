@@ -22,6 +22,7 @@ import { COVER_COLORS, COVER_MATERIALS } from '../../lib/bookIdentity';
 import { coverSurface, ClosedBook } from '../../components/book/CoverBoard';
 import { AppendixSheet } from './Appendix';
 import { Zeichenwahl } from '../geburt/Zeichenwahl';
+import { WEGE } from '../../lib/onboarding/wege';
 import type { BookIdentity } from '../../types';
 import { cx } from '../../lib/utils';
 
@@ -32,6 +33,9 @@ const TT = BUCH_TEXTE.geburt.titel;
 export function MeinBuchSheet() {
   const book = useStudio((s) => s.settings.book);
   const saveBook = useStudio((s) => s.saveBook);
+  const weg = useStudio((s) => s.settings.weg);
+  const updateSettings = useStudio((s) => s.updateSettings);
+  const saveWeg = (id: string) => updateSettings({ weg: id });
 
   if (!book) return null;
 
@@ -101,6 +105,40 @@ export function MeinBuchSheet() {
              * zu vollenden. Der Ton wechselt von Tisch auf Papier.
              */}
             <Zeichenwahl identity={book} onChange={aendern} nurWahl ton="papier" />
+          </Abschnitt>
+
+          {/*
+           * Der gewählte Weg.
+           *
+           * Er schaltet nichts frei und nichts ab – er entscheidet über
+           * Beispiele und spätere Vorschläge. Genau deshalb steht er hier und
+           * nicht in einer Einrichtung: Es ist eine Frage der Ansprache, keine
+           * Einstellung.
+           */}
+          <Abschnitt titel="Dein Weg">
+            <div className="flex flex-wrap gap-x-5 gap-y-2">
+              {WEGE.map((w) => (
+                <button
+                  key={w.id}
+                  type="button"
+                  onClick={() => saveWeg(w.id)}
+                  aria-pressed={weg === w.id}
+                  className={cx(
+                    'min-h-[40px] font-serif text-[14.5px] transition-colors no-tap-highlight',
+                    weg === w.id ? 'text-gild-600' : 'text-ink-faint hover:text-ink-muted',
+                  )}
+                >
+                  {w.name}
+                  <span
+                    aria-hidden
+                    className={cx(
+                      'mx-auto mt-0.5 block h-px transition-all duration-300',
+                      weg === w.id ? 'w-full bg-gild-500/60' : 'w-0',
+                    )}
+                  />
+                </button>
+              ))}
+            </div>
           </Abschnitt>
 
           {/*

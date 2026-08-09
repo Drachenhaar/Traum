@@ -32,6 +32,7 @@ import { SpiegelSheet } from './pages/book/Spiegel';
 import { OwnershipSpread } from './pages/book/OwnershipSpread';
 import { MeinBuchSheet } from './pages/book/MeinBuch';
 import { Geburt } from './pages/geburt/Geburt';
+import { Onboarding } from './pages/onboarding/Onboarding';
 import { useStudio } from './store/useStudio';
 import { buildBook } from './lib/book';
 import { hasBookIdentity } from './lib/bookIdentity';
@@ -91,10 +92,15 @@ export default function App() {
           <Route
             path="*"
             element={
-              <Geburt
-                onFertig={() => {
-                  /* Zum Umschlag – von dort schlägt sich das Buch selbst auf. */
-                  window.location.hash = '#/';
+              <Onboarding
+                onFertig={(ziel) => {
+                  /*
+                   * Ohne Ziel zum Umschlag – von dort schlägt sich das Buch
+                   * selbst auf. Mit Ziel direkt dorthin: Wer gerade seine
+                   * erste Seite geschrieben hat, will sie sehen und nicht
+                   * erst ein Buch aufschlagen.
+                   */
+                  window.location.hash = ziel ? `#${ziel}` : '#/';
                   setImWerden(false);
                 }}
               />
