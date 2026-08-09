@@ -5,9 +5,9 @@ import { cx } from '../../lib/utils';
 
 const STYLES: Record<EntryStatus, string> = {
   Idee: 'border-ink-faint/30 bg-cream-200 text-ink-muted',
-  'In Arbeit': 'border-brass-500/35 bg-brass-500/12 text-brass-600',
+  'In Arbeit': 'border-brass-500/35 bg-brass-500/10 text-brass-600',
   Überarbeitung: 'border-orange-700/25 bg-orange-50 text-orange-800',
-  Freigegeben: 'border-olive-500/35 bg-olive-500/12 text-olive-600',
+  Freigegeben: 'border-olive-500/35 bg-olive-500/10 text-olive-600',
   Archiviert: 'border-line bg-cream-200 text-ink-faint',
 };
 

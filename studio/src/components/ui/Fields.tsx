@@ -256,7 +256,7 @@ export function ChipSelect<T extends string>({
             className={cx(
               'inline-flex min-h-[38px] items-center gap-1.5 rounded-full border px-3 text-[14px] transition-all duration-200 ease-calm no-tap-highlight',
               active
-                ? 'border-brass-500 bg-brass-500/12 text-ink'
+                ? 'border-brass-500 bg-brass-500/10 text-ink'
                 : 'border-line bg-cream-50 text-ink-muted hover:bg-cream-200',
             )}
           >

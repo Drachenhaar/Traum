@@ -33,7 +33,7 @@ export function DeinWeg({ onWahl }: { onWahl: (weg: string) => void }) {
               <button
                 type="button"
                 onClick={() => onWahl(w.id)}
-                className="group w-full border-b border-paper-400/12 py-4 text-left transition-colors hover:border-gild-500/40 no-tap-highlight"
+                className="group w-full border-b border-paper-400/10 py-4 text-left transition-colors hover:border-gild-500/40 no-tap-highlight"
               >
                 <span className="block font-serif text-[19px] text-paper-200 transition-colors group-hover:text-gild-300">
                   {w.name}

@@ -74,8 +74,8 @@ export function Kapitelzeichen({
           className={cx(
             'absolute left-1/2 top-full z-30 mt-1 w-[min(21rem,calc(100vw-2rem))] -translate-x-1/2',
             'max-h-[min(70vh,32rem)] overflow-y-auto scroll-slim rounded-[3px]',
-            'border border-paper-300/80 bg-cream-50/97 px-1 py-2 shadow-[0_18px_44px_-18px_rgba(60,44,26,0.5)]',
-            'animate-fadeIn backdrop-blur-[1px]',
+            'border border-paper-300/80 bg-cream-50 px-1 py-2 shadow-[0_18px_44px_-18px_rgba(60,44,26,0.5)]',
+            'animate-fadeIn',
           )}
         >
           {baum.kapitel.length === 0 && baum.lose.length === 0 && (
@@ -159,7 +159,7 @@ function Abteilung({
               className={cx(
                 'flex min-h-[38px] w-full items-baseline gap-2 rounded-[2px] px-3 py-1.5 text-left',
                 'transition-colors no-tap-highlight',
-                aktiv ? 'bg-gild-400/12' : 'hover:bg-paper-200/60',
+                aktiv ? 'bg-gild-400/15' : 'hover:bg-paper-200/60',
               )}
             >
               <span

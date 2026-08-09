@@ -50,7 +50,7 @@ const TOENE = {
     knopf:
       'border-gild-500/35 text-gild-300 hover:border-gild-400/70',
     feld: 'border-paper-400/20 bg-black/25 text-paper-300/85 focus:border-gild-500/45',
-    trenner: 'border-paper-400/12',
+    trenner: 'border-paper-400/10',
   },
   papier: {
     an: 'text-gild-600',

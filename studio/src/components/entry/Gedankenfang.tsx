@@ -108,7 +108,7 @@ export function Gedankenfang({ open, onClose }: { open: boolean; onClose: () => 
         aria-modal="true"
         aria-label="Einen Gedanken festhalten"
         className={cx(
-          'relative w-full max-w-[34rem] rounded-[3px] border border-paper-300/80 bg-cream-50/98',
+          'relative w-full max-w-[34rem] rounded-[3px] border border-paper-300/80 bg-cream-50',
           'px-5 pb-4 pt-4 shadow-[0_28px_70px_-24px_rgba(60,44,26,0.6)] animate-fadeIn',
         )}
       >

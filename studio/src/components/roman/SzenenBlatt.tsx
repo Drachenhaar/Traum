@@ -73,7 +73,7 @@ export function SzenenBlatt({
         aria-hidden={!offen}
         className={cx(
           'fixed inset-x-0 bottom-0 z-40 max-h-[72vh] sm:inset-y-0 sm:left-auto sm:right-0 sm:max-h-none sm:w-[23rem]',
-          'flex flex-col overflow-hidden border-paper-300/80 bg-cream-50/97 backdrop-blur-[2px]',
+          'flex flex-col overflow-hidden border-paper-300/80 bg-cream-50',
           'border-t sm:border-l sm:border-t-0',
           'shadow-[0_-14px_40px_-20px_rgba(60,44,26,0.45)] sm:shadow-[-14px_0_40px_-20px_rgba(60,44,26,0.45)]',
           'transition-[transform,visibility] duration-300 ease-out motion-reduce:transition-none',

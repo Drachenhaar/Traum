@@ -78,7 +78,7 @@ function HeadingBlock({ block, onChange }: BodyProps) {
             className={cx(
               'h-9 w-9 rounded-lg border text-[13px] font-medium transition-colors',
               level === l
-                ? 'border-brass-500 bg-brass-500/12 text-ink'
+                ? 'border-brass-500 bg-brass-500/10 text-ink'
                 : 'border-line bg-cream-50 text-ink-muted hover:bg-cream-200',
             )}
           >
@@ -133,7 +133,7 @@ function QuoteBlock({ block, onChange }: BodyProps) {
 }
 
 const NOTE_TONES = {
-  info: { label: 'Hinweis', className: 'border-olive-500/25 bg-olive-500/8' },
+  info: { label: 'Hinweis', className: 'border-olive-500/25 bg-olive-500/10' },
   warn: { label: 'Achtung', className: 'border-red-800/20 bg-red-50' },
   idea: { label: 'Idee', className: 'border-brass-500/30 bg-brass-500/10' },
 } as const;
@@ -241,7 +241,7 @@ function GalleryBlock({ block, onChange, onOpenImage }: BodyProps) {
             onClick={() => onChange({ columns: c })}
             className={cx(
               'h-8 w-8 rounded-lg border text-[13px] transition-colors',
-              columns === c ? 'border-brass-500 bg-brass-500/12' : 'border-line bg-cream-50 text-ink-muted',
+              columns === c ? 'border-brass-500 bg-brass-500/10' : 'border-line bg-cream-50 text-ink-muted',
             )}
           >
             {c}
@@ -780,7 +780,7 @@ function SpacerBlock({ block, onChange }: BodyProps) {
             onClick={() => onChange({ size: s })}
             className={cx(
               'h-9 w-9 rounded-lg border text-[13px] uppercase transition-colors',
-              size === s ? 'border-brass-500 bg-brass-500/12' : 'border-line bg-cream-50 text-ink-muted',
+              size === s ? 'border-brass-500 bg-brass-500/10' : 'border-line bg-cream-50 text-ink-muted',
             )}
           >
             {s}
