@@ -448,7 +448,7 @@ export function Setzerei() {
                 type="button"
                 onClick={() => void commit()}
                 disabled={busy || !result.title.trim()}
-                className="mt-7 inline-flex min-h-[46px] w-full items-center justify-center gap-2 rounded-full border border-gild-500/50 bg-gild-400/12 px-6 font-serif text-[16px] text-gild-600 transition-colors hover:bg-gild-400/22 disabled:opacity-40 no-tap-highlight"
+                className="mt-7 inline-flex min-h-[46px] w-full items-center justify-center gap-2 rounded-full border border-gild-500/50 bg-gild-400/10 px-6 font-serif text-[16px] text-gild-600 transition-colors hover:bg-gild-400/20 disabled:opacity-40 no-tap-highlight"
               >
                 <Wand2 size={17} />
                 {busy ? 'Wird gesetzt …' : 'Ins Buch übernehmen'}

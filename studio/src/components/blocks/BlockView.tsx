@@ -43,7 +43,7 @@ export function BlockView({ block, tone = 'light' }: { block: Block; tone?: 'lig
         <aside
           className={cx(
             'mt-6 rounded-xl border-l-2 border-brass-500 px-4 py-3 text-[16px] leading-relaxed',
-            tone === 'dark' ? 'bg-cream-100/8 text-cream-100/85' : 'bg-cream-200/60 text-ink',
+            tone === 'dark' ? 'bg-cream-100/10 text-cream-100/85' : 'bg-cream-200/60 text-ink',
           )}
         >
           {d.text}

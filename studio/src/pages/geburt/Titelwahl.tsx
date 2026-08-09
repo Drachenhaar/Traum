@@ -77,7 +77,7 @@ export function Titelwahl({
           spellCheck={false}
           enterKeyHint="done"
           aria-label={T.untertitelPlatzhalter}
-          className="mt-6 w-full border-0 border-b border-gild-500/12 bg-transparent px-1 pb-2 text-center font-serif text-[14px] italic text-paper-300/70 outline-none transition-colors placeholder:text-paper-400/20 focus:border-gild-400/40"
+          className="mt-6 w-full border-0 border-b border-gild-500/10 bg-transparent px-1 pb-2 text-center font-serif text-[14px] italic text-paper-300/70 outline-none transition-colors placeholder:text-paper-400/20 focus:border-gild-400/40"
         />
       </div>
 

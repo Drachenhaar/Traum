@@ -81,7 +81,7 @@ export function Mehr({
           role="menu"
           className={cx(
             'absolute top-full z-30 mt-1 w-[13.5rem] rounded-[3px] border border-paper-300/80',
-            'bg-cream-50/97 py-1 shadow-[0_18px_44px_-18px_rgba(60,44,26,0.5)] animate-fadeIn backdrop-blur-[1px]',
+            'bg-cream-50 py-1 shadow-[0_18px_44px_-18px_rgba(60,44,26,0.5)] animate-fadeIn',
             ausrichtung === 'rechts' ? 'right-0' : 'left-0',
           )}
         >

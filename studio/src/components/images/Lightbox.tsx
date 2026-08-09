@@ -49,7 +49,7 @@ export function Lightbox({
   if (!id) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[70] flex flex-col bg-olive-900/96 animate-fadeIn">
+    <div className="fixed inset-0 z-[70] flex flex-col bg-olive-900/95 animate-fadeIn">
       <header className="flex items-center gap-2 px-3 pt-safe">
         <div className="min-w-0 flex-1 py-3">
           <p className="truncate text-[15px] text-cream-100">{meta?.title ?? 'Bild'}</p>
