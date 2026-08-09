@@ -166,6 +166,19 @@ export function Gedankenfang({ open, onClose }: { open: boolean; onClose: () => 
           </button>
         </div>
 
+        {/*
+          Das Feld bekommt die volle Breite, der Knopf steht darunter.
+
+          Nebeneinander sah aufgeraeumter aus und war es nicht: Auf einem
+          320er blieben dem Feld hundertsiebenundfuenfzig Pixel, und man sah
+          beim Tippen nur noch das Ende des eigenen Satzes. Ein Gedanke ist
+          laenger als zehn Zeichen.
+
+          Der Knopf selbst muss sein. Die Eingabetaste allein hat nicht
+          gereicht: Man tippt, sieht nichts passieren und weiss nicht, ob es
+          festgehalten ist – und auf dem Telefon heisst die Ruecktaste je nach
+          Tastatur ein Haken, ein Pfeil oder „Fertig".
+        */}
         <input
           ref={feld}
           value={text}
@@ -187,6 +200,28 @@ export function Gedankenfang({ open, onClose }: { open: boolean; onClose: () => 
         />
 
         {/*
+          Immer da, nur still, solange nichts dasteht. Ein Knopf, der
+          erscheint und verschwindet, laesst die Zeile springen – und zwar
+          genau in dem Moment, in dem der Finger schon unterwegs ist.
+        */}
+        <div className="mt-2.5 flex justify-end">
+          <button
+            type="button"
+            onClick={fangen}
+            disabled={!text.trim()}
+            className={cx(
+              'inline-flex min-h-[38px] items-center rounded-full border px-5',
+              'font-serif text-[14.5px] transition-colors no-tap-highlight',
+              text.trim()
+                ? 'border-gild-500/45 text-gild-600 hover:bg-gild-400/10'
+                : 'border-paper-300/70 text-ink-faint/40',
+            )}
+          >
+            Sichern
+          </button>
+        </div>
+
+        {/*
           Wohin der Gedanke faellt.
 
           Ohne diese Zeile ist er festgehalten und trotzdem verschwunden: Man
@@ -195,7 +230,7 @@ export function Gedankenfang({ open, onClose }: { open: boolean; onClose: () => 
           und es danach weiss.
         */}
         <p className="mt-2 font-serif text-[12.5px] italic leading-relaxed text-ink-faint">
-          Eingabetaste hält fest – nachzulesen unter{' '}
+          Sichern oder Eingabetaste – nachzulesen unter{' '}
           <Link
             to="/kapitel/notizen"
             onClick={onClose}
