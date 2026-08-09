@@ -38,7 +38,7 @@ export function EntryFields({ entry }: { entry: Entry }) {
    * die man nachdenken kann. Es ist derselbe Inhalt – kein Feld entfällt,
    * keins wird versteckt, nur die beiden ersten Abschnitte stehen offen.
    */
-  const gruppen = gruppiere(tpl.fields);
+  const gruppen = gruppiere(tpl.fields.filter((f) => !f.anderswo));
 
   return (
     <div className="space-y-2">

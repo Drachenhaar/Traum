@@ -32,7 +32,22 @@ export function AppendixSpread() {
   const trashed = entries.filter((e) => e.deletedAt).length;
   const assets = entries.filter((e) => e.type === 'asset' && !e.deletedAt).length;
 
+  const szenen = entries.filter((e) => e.type === 'szene' && !e.deletedAt).length;
+
   const primary: AppendixEntry[] = [
+    {
+      /*
+       * Der Roman steht zuoberst, weil er der einzige Anhang ist, in dem
+       * etwas entsteht statt betrachtet zu werden. Alles darunter sieht die
+       * Welt an; hier wird sie erzählt.
+       */
+      to: '/roman',
+      title: 'Manuskript',
+      note:
+        szenen > 0
+          ? `${szenen} ${szenen === 1 ? 'Szene' : 'Szenen'} – schreiben, während die Welt danebensteht.`
+          : 'Einen Roman schreiben, in dem deine Figuren deine Figuren bleiben.',
+    },
     {
       to: '/setzerei',
       title: 'Setzerei',

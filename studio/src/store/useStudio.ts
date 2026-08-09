@@ -34,6 +34,7 @@ import { DEFAULT_NAV } from '../lib/nav';
 import { newBookIdentity } from '../lib/bookIdentity';
 import { seedIfEmpty } from '../db/seed';
 import { buildRelationIndex, makeRelation, type RelationIndex } from '../lib/relations';
+import { kinderVon, naechsteOrdnung } from '../lib/roman/struktur';
 import { DEFAULT_STAGE } from '../lib/pipeline';
 
 export interface Toast {
@@ -72,6 +73,15 @@ interface StudioState {
   setRelationType: (relationId: string, type: string) => void;
   updateRelation: (relationId: string, patch: Partial<Relation>) => void;
   flipRelation: (relationId: string) => void;
+  /**
+   * Eine Kante, von der es nur eine geben darf – Perspektivfigur, Schauplatz.
+   * `null` loest sie. Wer eine zweite setzt, ersetzt die erste.
+   */
+  setSingleRelation: (fromId: string, type: string, toId: string | null) => void;
+
+  /* Roman */
+  createUnter: (elternId: string, type: EntryType, titel?: string) => Promise<Entry>;
+  ordneNeu: (aenderungen: { id: string; ordnung: string }[]) => void;
 
   /* Blöcke */
   addBlock: (entryId: string, type: Block['type'], index?: number) => void;
@@ -513,6 +523,53 @@ export const useStudio = create<StudioState>((set, get) => {
       commitRelations(next);
       const changed = next.find((r) => r.id === relationId);
       if (changed) void db.relations.put(changed);
+    },
+
+    setSingleRelation(fromId, type, toId) {
+      const uebrig = get().relations.filter((r) => !(r.fromId === fromId && r.type === type));
+      const entfernt = get().relations.filter((r) => r.fromId === fromId && r.type === type);
+      const naechste = toId && toId !== fromId ? [...uebrig, makeRelation(fromId, toId, type)] : uebrig;
+      commitRelations(naechste);
+      void db.transaction('rw', db.relations, async () => {
+        if (entfernt.length) await db.relations.bulkDelete(entfernt.map((r) => r.id));
+        const neu = naechste.find((r) => !uebrig.includes(r));
+        if (neu) await db.relations.put(neu);
+      });
+    },
+
+    /* ------------------------------------------------------------- Roman */
+
+    /**
+     * Einen Knoten anlegen und sofort einhaengen.
+     *
+     * Kapitel und Szene entstehen nie fuer sich: Ein Kapitel ohne Roman ist
+     * ein verlorener Eintrag, den niemand wiederfindet. Deshalb sind Anlegen
+     * und Einhaengen hier ein Vorgang und nicht zwei.
+     */
+    async createUnter(elternId, type, titel) {
+      const { entries, relIndex } = get();
+      const byId = new Map(entries.map((e) => [e.id, e]));
+      const geschwister = kinderVon(relIndex, byId, elternId, type);
+      const entry = await get().createEntry(type, {
+        title: titel ?? templateFor(type).newTitle,
+        fields: { ...emptyFields(type), ordnung: naechsteOrdnung(geschwister) },
+      });
+      get().addRelation(elternId, entry.id, 'contains');
+      return entry;
+    },
+
+    ordneNeu(aenderungen) {
+      if (!aenderungen.length) return;
+      const nach = new Map(aenderungen.map((a) => [a.id, a.ordnung]));
+      const jetzt = Date.now();
+      const naechste = get().entries.map((e) => {
+        const ordnung = nach.get(e.id);
+        return ordnung === undefined
+          ? e
+          : { ...e, fields: { ...e.fields, ordnung }, updatedAt: jetzt };
+      });
+      set({ entries: naechste });
+      void db.entries.bulkPut(naechste.filter((e) => nach.has(e.id)));
     },
 
     /** Richtung umkehren – „lebt in“ wird zu „beherbergt“. */

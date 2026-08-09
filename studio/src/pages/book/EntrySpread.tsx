@@ -127,7 +127,9 @@ export function EntrySpread() {
    * einer Feldliste. Leere Felder erscheinen wie bisher gar nicht.
    */
   const prose = gruppiere(
-    tpl.fields.filter((f) => f.kind === 'textarea' && asText(entry.fields[f.key]).trim()),
+    tpl.fields.filter(
+      (f) => f.kind === 'textarea' && !f.anderswo && asText(entry.fields[f.key]).trim(),
+    ),
   ).flatMap(({ gruppe, felder }) =>
     felder.map((f, i) => ({
       label: f.label,
@@ -235,6 +237,19 @@ export function EntrySpread() {
               </div>
             </section>
           ))}
+
+          {/*
+            Eine Szene wird hier gelesen, aber nicht geschrieben. Der Weg zum
+            Manuskript ist ein Verweis, kein zweites Textfeld.
+          */}
+          {entry.type === 'szene' && (
+            <Link
+              to={`/schreiben/${entry.id}`}
+              className="mt-8 inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-gild-500/40 px-4 font-serif text-[14.5px] text-gild-600 transition-colors hover:bg-gild-400/10 no-tap-highlight"
+            >
+              Im Schreibraum öffnen
+            </Link>
+          )}
 
           <FieldNotes rows={fieldRows} />
 
