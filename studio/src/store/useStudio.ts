@@ -273,8 +273,24 @@ export const useStudio = create<StudioState>((set, get) => {
             ? { ...DEFAULT_SETTINGS, ...stored, nav: mergeNav(stored.nav) }
             : DEFAULT_SETTINGS;
 
-          const seeded = await seedIfEmpty(settings.seedVersion);
-          if (seeded) settings.seedVersion = seeded;
+          /*
+           * Beispieldaten nur noch für Bestandsinstallationen.
+           *
+           * Ein frisches Gerät geht jetzt durch das Onboarding, und dort wird
+           * die Beispielwelt *gezeigt* statt eingeschrieben. Würde hier
+           * trotzdem geimpft, stünden nach „Meine Welt beginnen“ vierzehn
+           * fremde Einträge im eigenen Buch – genau das Gegenteil dessen, was
+           * der Satz verspricht.
+           *
+           * Die Saatversion wird trotzdem gesetzt, sonst holte der nächste
+           * Start das Impfen nach, sobald ein Buch existiert.
+           */
+          if (settings.book || wirktBenutzt(settings)) {
+            const seeded = await seedIfEmpty(settings.seedVersion);
+            if (seeded) settings.seedVersion = seeded;
+          } else {
+            settings.seedVersion = SEED_VERSION;
+          }
 
           /*
            * Bestandsübernahme.
