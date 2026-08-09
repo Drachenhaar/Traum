@@ -277,10 +277,11 @@ export function SettingsPage() {
 
       {/* ------------------------------------------------------ Zurücksetzen */}
       <section className="rounded-2xl border border-red-800/20 bg-red-50/60 p-4 sm:p-5">
-        <h2 className="mb-1 font-serif text-xl text-ink">Alles zurücksetzen</h2>
+        <h2 className="mb-1 font-serif text-xl text-ink">Von vorn beginnen</h2>
         <p className="mb-4 text-[15px] text-ink-muted">
-          Löscht sämtliche Einträge, Bilder und Einstellungen aus diesem Browser. Erstelle vorher
-          unbedingt eine Sicherung.
+          Nimmt dieses Buch aus dem Regal – Seiten, Tafeln, Einband, Titel und Zeichen. Danach
+          steht wieder ein leerer Tisch da, und die Erschaffung beginnt von Neuem. Erstelle vorher
+          unbedingt eine Sicherung: Ohne sie ist der Band nicht zurückzuholen.
         </p>
         <button
           type="button"
@@ -288,18 +289,37 @@ export function SettingsPage() {
           disabled={busy}
           onClick={async () => {
             const ok = await confirm({
-              title: 'Wirklich alles löschen?',
+              title: 'Dieses Buch aus dem Regal nehmen?',
+              /*
+               * Die Nachfrage stand noch aus der Zeit vor der Buchidentitaet
+               * und sprach nur von „Eintraegen und Bildern". Es geht aber um
+               * das ganze Buch: Titel, Einband und Zeichen gehen mit. Wer das
+               * nicht weiss, klickt es weg und wundert sich.
+               */
               message:
-                'Alle Einträge und Bilder werden endgültig entfernt. Das lässt sich nur über eine vorher erstellte Sicherung rückgängig machen.',
-              confirmLabel: 'Alles löschen',
+                'Alle Seiten, Tafeln und Verbindungen werden entfernt – und mit ihnen der Einband, der Titel und das Zeichen. Danach beginnt die Erschaffung von vorn. Das lässt sich nur über eine vorher erstellte Sicherung rückgängig machen.',
+              confirmLabel: 'Von vorn beginnen',
               danger: true,
             });
             if (!ok) return;
             await wipeAll();
-            notify('Alles gelöscht. Du beginnst mit einem leeren Archiv.', 'success');
+
+            /*
+             * Neu laden, nicht nur neu zeichnen.
+             *
+             * Ob die Erschaffung laeuft, entscheidet das Buch genau einmal –
+             * beim Start. Das ist dort Absicht: Sonst tauschte der Router die
+             * Ansicht mitten in der Zeremonie, in dem Augenblick, in dem der
+             * Titel entsteht. Hier ist es die Kehrseite davon: Nach dem
+             * Loeschen sass man in einem leeren Kolophon und sah nichts,
+             * obwohl alles weg war. Ein Neustart ist die ehrliche Antwort –
+             * es gibt ja nichts mehr, das man behalten koennte.
+             */
+            window.location.hash = '#/';
+            window.location.reload();
           }}
         >
-          Alle Daten löschen
+          Von vorn beginnen
         </button>
       </section>
 
