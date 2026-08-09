@@ -68,7 +68,13 @@ export function MeinBuchSheet() {
               onChange={(e) => aendern({ subtitle: e.target.value })}
               placeholder={TT.untertitelPlatzhalter}
               aria-label="Untertitel"
-              className="mt-4 w-full max-w-sm border-0 border-b border-paper-400/30 bg-transparent pb-1.5 font-serif text-[14px] italic text-ink-muted outline-none transition-colors placeholder:text-ink-faint/25 focus:border-gild-500/50"
+              /*
+                16px, nicht 14. Safari auf dem iPhone zoomt beim Antippen jedes
+                Feldes, dessen Schrift kleiner ist – die Seite springt, und
+                herauszoomen muss man von Hand. Am Schreibtisch darf es wieder
+                kleiner sein, dort gibt es das Problem nicht.
+              */
+              className="mt-4 min-h-[38px] w-full max-w-sm border-0 border-b border-paper-400/30 bg-transparent pb-1.5 font-serif text-[16px] italic text-ink-muted outline-none transition-colors placeholder:text-ink-faint/25 focus:border-gild-500/50 sm:text-[14px]"
             />
           </Abschnitt>
 

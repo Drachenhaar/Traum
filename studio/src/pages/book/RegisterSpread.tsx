@@ -77,8 +77,16 @@ export function RegisterSheet() {
                 const page = book.pageOfEntry.get(entry.id);
                 const tpl = templateFor(entry.type);
                 return (
-                  <li key={entry.id} className="group mb-[3px]">
-                    <Link to={`/eintrag/${entry.id}`} className="flex items-baseline gap-2 no-tap-highlight">
+                  /*
+                    Auf dem Telefon ist das Register eine Liste zum Antippen,
+                    am Schreibtisch eine gesetzte Spalte. Deshalb dort mehr
+                    Luft je Zeile und hier wieder der enge Satz.
+                  */
+                  <li key={entry.id} className="group">
+                    <Link
+                      to={`/eintrag/${entry.id}`}
+                      className="flex min-h-[38px] items-baseline gap-2 py-[7px] no-tap-highlight sm:min-h-0 sm:py-[1.5px]"
+                    >
                       <span
                         aria-hidden
                         className="h-[5px] w-[5px] shrink-0 translate-y-[-3px] rounded-full"

@@ -178,7 +178,9 @@ export function Setzerei() {
              * die alte Hoehe, dort ist Platz genug.
              */
             rows={8}
-            className="w-full resize-y rounded-[2px] border border-paper-400/70 bg-paper-50/70 px-4 py-3 font-mono text-[13.5px] leading-relaxed text-ink outline-none transition-colors placeholder:text-ink-faint/60 focus:border-gild-500/60 lg:min-h-[24rem]"
+            /* 16px auf dem Telefon – sonst zoomt Safari beim Hineintippen,
+               und das ausgerechnet in dem Feld, in das man am meisten tippt. */
+            className="w-full resize-y rounded-[2px] border border-paper-400/70 bg-paper-50/70 px-4 py-3 font-mono text-[16px] leading-relaxed text-ink outline-none transition-colors placeholder:text-ink-faint/60 focus:border-gild-500/60 sm:text-[13.5px] lg:min-h-[24rem]"
           />
 
           {/*

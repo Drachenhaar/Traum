@@ -132,7 +132,8 @@ export function BookShell() {
           <button
             type="button"
             onClick={() => navigate('/inhalt')}
-            className="group flex shrink-0 items-center gap-2 no-tap-highlight"
+            /* Auf jeder Seite erreichbar, also auch auf jeder Seite treffbar. */
+            className="group -ml-1 flex h-11 shrink-0 items-center gap-2 px-1 no-tap-highlight"
             aria-label="Inhaltsverzeichnis"
             title="Inhaltsverzeichnis"
           >

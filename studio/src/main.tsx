@@ -134,6 +134,28 @@ class Boundary extends Component<{ children: ReactNode }, { error: Error | null 
   componentDidCatch(error: Error, info: ErrorInfo) {
     showFatal('Ein Fehler ist aufgetreten', `${error.message}\n${error.stack ?? ''}\n${info.componentStack ?? ''}`);
   }
+
+  /*
+   * Weiterblättern heilt.
+   *
+   * Bisher blieb die gerissene Seite stehen, bis jemand den Knopf darunter
+   * fand oder neu lud. Wer stattdessen zurücksprang oder eine andere Adresse
+   * aufrief, bekam wieder dieselbe Fehlerseite – das Buch war zu, obwohl
+   * genau eine Seite kaputt war. Ein Riss darf sich nicht auf den Band
+   * ausdehnen.
+   *
+   * Der Adresswechsel ist das richtige Signal dafür: Er heißt, dass jemand
+   * etwas anderes sehen will als das, was gerade nicht ging.
+   */
+  private weiter = () => {
+    if (this.state.error) this.setState({ error: null });
+  };
+  componentDidMount() {
+    window.addEventListener('hashchange', this.weiter);
+  }
+  componentWillUnmount() {
+    window.removeEventListener('hashchange', this.weiter);
+  }
   render() {
     const { error } = this.state;
     if (!error) return this.props.children;

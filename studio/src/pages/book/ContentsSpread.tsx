@@ -79,7 +79,7 @@ export function ContentsSpread() {
                   <li key={chapter.id}>
                     <Link
                       to={`/kapitel/${chapter.id}`}
-                      className="font-serif text-[15px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+                      className="inline-flex min-h-[38px] items-center font-serif text-[15px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
                     >
                       {chapter.title}
                     </Link>
@@ -133,7 +133,9 @@ function TocLine({
 }) {
   return (
     <li className="group">
-      <Link to={to} className="flex items-baseline gap-2 py-[7px] no-tap-highlight">
+      {/* Das Inhaltsverzeichnis ist auf dem Telefon die Hauptnavigation –
+          jede Zeile muss ein Fingerziel sein, nicht nur eine Textzeile. */}
+      <Link to={to} className="flex min-h-[40px] items-baseline gap-2 py-[9px] no-tap-highlight">
         {ribbon ? (
           <span
             aria-hidden

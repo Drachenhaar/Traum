@@ -35,6 +35,7 @@ import { newBookIdentity } from '../lib/bookIdentity';
 import { seedIfEmpty } from '../db/seed';
 import { buildRelationIndex, makeRelation, type RelationIndex } from '../lib/relations';
 import { kinderVon, naechsteOrdnung } from '../lib/roman/struktur';
+import { heileBeziehungen, heileEintraege } from '../lib/heilung';
 import { DEFAULT_STAGE } from '../lib/pipeline';
 
 export interface Toast {
@@ -330,12 +331,24 @@ export const useStudio = create<StudioState>((set, get) => {
 
           setCustomTypes(settings.customTypes ?? []);
 
-          const [entries, relations, images, boards] = await Promise.all([
+          /*
+           * Beim Hereinkommen geradeziehen.
+           *
+           * Was in IndexedDB liegt, muss nicht sein, was die Typen versprechen:
+           * eine Sicherung aus einer aelteren Fassung, ein halber Import, ein
+           * abgeschnittener Schreibvorgang. Ein Eintrag ohne `fields` reichte,
+           * um beim Zeichnen die ganze Seite zu reissen. Hier ist die einzige
+           * Stelle, an der Daten hereinkommen – also wird hier einmal geheilt
+           * und danach darf sich jede Seite darauf verlassen.
+           */
+          const [roheEintraege, roheKanten, images, boards] = await Promise.all([
             db.entries.toArray(),
             db.relations.toArray(),
             db.images.toArray(),
             db.boards.toArray(),
           ]);
+          const entries = heileEintraege(roheEintraege);
+          const relations = heileBeziehungen(roheKanten);
 
           await db.settings.put(settings);
           set({
@@ -848,13 +861,15 @@ export const useStudio = create<StudioState>((set, get) => {
     },
 
     async reloadFromDb() {
-      const [entries, relations, images, boards, settings] = await Promise.all([
+      const [roheEintraege, roheKanten, images, boards, settings] = await Promise.all([
         db.entries.toArray(),
         db.relations.toArray(),
         db.images.toArray(),
         db.boards.toArray(),
         db.settings.get('settings'),
       ]);
+      const entries = heileEintraege(roheEintraege);
+      const relations = heileBeziehungen(roheKanten);
       if (settings) setCustomTypes(settings.customTypes ?? []);
       set({
         entries,
