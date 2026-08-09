@@ -13,8 +13,8 @@
  * nichts geaendert.
  */
 
-import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, CircleHelp, Minus } from 'lucide-react';
 import { useStudio } from '../../store/useStudio';
 import { DEFAULT_KALENDER, ausOrdnung, schreibeJahr } from '../../lib/chronik/zeit';
@@ -22,7 +22,7 @@ import { datiere, weltzustand } from '../../lib/chronik/zustand';
 import { pruefe, type Befund } from '../../lib/chronik/pruefung';
 import { EBENEN, ebeneById } from '../../lib/chronik/ebenen';
 import { Zeitachse, verteileSpuren } from '../../components/chronik/Zeitachse';
-import { jahrLaenge } from '../../lib/chronik/zeit';
+import { jahrLaenge, ordnung } from '../../lib/chronik/zeit';
 import { templateFor } from '../../lib/templates';
 import { AppendixSheet } from './Appendix';
 import { cx } from '../../lib/utils';
@@ -66,7 +66,22 @@ export function ZeitstrahlSheet() {
     [gefiltert, kalender],
   );
 
+  /*
+   * Ein Jahr aus der Adresse.
+   *
+   * Die Suche fuehrt hierher: Wer „1044" eintippt, meint die Welt in diesem
+   * Jahr und nicht eine Seite mit der Zahl im Titel. Ohne diese Zeilen waere
+   * der Weg dorthin: Zeitstrahl oeffnen, Regler suchen, Jahr treffen.
+   */
+  const [suchParams] = useSearchParams();
+  const jahrAusAdresse = suchParams.get('jahr');
   const [marke, setMarke] = useState<number | null>(null);
+  useEffect(() => {
+    const j = Number(jahrAusAdresse);
+    if (jahrAusAdresse !== null && Number.isFinite(j)) {
+      setMarke(ordnung({ jahr: j, roh: String(j), genauigkeit: 'jahr' }, kalender));
+    }
+  }, [jahrAusAdresse, kalender]);
   const markeWert = useMemo(() => {
     if (marke !== null) return marke;
     /* Zu Beginn steht das Lesezeichen am spaetesten datierten Ereignis. */
