@@ -25,6 +25,22 @@ import { cx } from '../../lib/utils';
 /** So oft wird gerechnet, bis die Karte ruhig liegt. Danach nie wieder. */
 const SETTLE_TICKS = 420;
 
+/**
+ * Wie viele Sterne die Karte hoechstens zeichnet.
+ *
+ * Nicht aus Bequemlichkeit, sondern weil es die einzige ehrliche Zahl ist:
+ * Fuenftausend Punkte auf einer Handbreite sind kein Sternbild, sondern
+ * Nebel. Man erkennt nichts, kann nichts treffen, und das Rechnen dafuer
+ * legte den ganzen Bildschirm fuer zwoelf Sekunden still – gemessen bei
+ * zweitausend Eintraegen.
+ *
+ * Gezeichnet werden die am staerksten verbundenen. Das ist keine willkuerliche
+ * Auswahl: Auf einer Karte, die Zusammenhang zeigen soll, sind das genau die
+ * Orte, an denen etwas zusammenhaengt. Und es steht auf der Karte, dass es
+ * eine Auswahl ist – eine stille Kuerzung waere eine zweite Wahrheit.
+ */
+const MAX_STERNE = 400;
+
 export function FoldOutMap() {
   const navigate = useNavigate();
   const entries = useStudio((s) => s.entries);
@@ -39,21 +55,43 @@ export function FoldOutMap() {
    * deshalb wirkt die Karte gezeichnet statt simuliert.
    */
   const layout = useMemo(() => {
-    const living = livingEntries(entries);
-    if (living.length === 0) return null;
+    const alleLebenden = livingEntries(entries);
+    if (alleLebenden.length === 0) return null;
+
+    /*
+     * Bei grossen Welten nur die am staerksten verbundenen zeichnen.
+     * Bei gleichem Grad entscheidet der Titel – sonst saehe dieselbe Welt bei
+     * jedem Aufschlagen anders aus.
+     */
+    const grad = (e: (typeof alleLebenden)[number]) => relIndex.neighbours.get(e.id)?.size ?? 0;
+    const gekuerzt = alleLebenden.length > MAX_STERNE;
+    const living = gekuerzt
+      ? [...alleLebenden]
+          .sort((a, b) => grad(b) - grad(a) || a.title.localeCompare(b.title, 'de'))
+          .slice(0, MAX_STERNE)
+      : alleLebenden;
+
+    /*
+     * Ein Set statt zweimal `some` je Kante.
+     *
+     * Vorher war das Aussortieren der Kanten O(Kanten x Eintraege): bei
+     * zweitausend von jedem waren es acht Millionen Vergleiche, nur um
+     * festzustellen, dass fast alle Kanten dazugehoeren.
+     */
+    const sichtbar = new Set(living.map((e) => e.id));
 
     /* Weit auseinander: ein Sternbild braucht Schwarz zwischen den Sternen. */
     const sim = new GraphSimulation({ linkDistance: 210, charge: 6200, gravity: 0.008 });
     sim.setData(
       living.map((e) => ({
         id: e.id,
-        r: 4 + Math.min(7, (relIndex.neighbours.get(e.id)?.size ?? 0) * 1.1),
+        r: 4 + Math.min(7, grad(e) * 1.1),
         color: templateFor(e.type).accent,
         label: e.title,
         type: e.type,
       })),
       relations
-        .filter((r) => living.some((e) => e.id === r.fromId) && living.some((e) => e.id === r.toId))
+        .filter((r) => sichtbar.has(r.fromId) && sichtbar.has(r.toId))
         .map((r) => ({
           id: r.id,
           source: r.fromId,
@@ -82,6 +120,9 @@ export function FoldOutMap() {
       labelSize,
       view: `${b.minX - pad} ${b.minY - pad} ${viewW} ${b.maxY - b.minY + pad * 2}`,
       byId: new Map(sim.nodes.map((n) => [n.id, n])),
+      /* Wurde gekuerzt? Dann muss es dastehen. */
+      gezeigt: living.length,
+      gesamt: alleLebenden.length,
     };
   }, [entries, relations, relIndex]);
 
@@ -166,6 +207,16 @@ export function FoldOutMap() {
                 ? `${sichtbar.sterne.size} Sterne im Jahr ${schreibeJahr(ausOrdnung(jahr!).jahr)}`
                 : `${layout?.nodes.length ?? 0} Sterne · ${layout?.edges.length ?? 0} Linien`}
             </p>
+            {/*
+              Wenn gekürzt wurde, steht es hier. Eine Karte, die schweigend
+              vier Fünftel der Welt weglässt, ist eine zweite Wahrheit.
+            */}
+            {layout && layout.gezeigt < layout.gesamt && (
+              <p className="mt-0.5 font-serif text-[12px] italic text-paper-400/40">
+                die {layout.gezeigt} am stärksten verbundenen von {layout.gesamt} – im Register
+                stehen alle
+              </p>
+            )}
           </div>
 
           <button
