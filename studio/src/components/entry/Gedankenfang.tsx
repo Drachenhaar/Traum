@@ -51,8 +51,11 @@ export function Gedankenfang({ open, onClose }: { open: boolean; onClose: () => 
     return () => window.clearTimeout(t);
   }, [open]);
 
-  const schliesser = useRef(onClose);
-  schliesser.current = onClose;
+  /*
+   * Die Referenz zeigt auf den aktuellen Schliesser, nicht auf `onClose` –
+   * sonst wuerde die Escape-Taste als einzige den Gedanken doch verlieren.
+   */
+  const schliesser = useRef<() => void>(onClose);
   useEffect(() => {
     if (!open) return;
     const taste = (e: KeyboardEvent) => {
@@ -62,7 +65,25 @@ export function Gedankenfang({ open, onClose }: { open: boolean; onClose: () => 
     return () => window.removeEventListener('keydown', taste);
   }, [open]);
 
-  if (!open) return null;
+  /*
+   * Schliessen wirft nichts weg.
+   *
+   * Vorher tat es das: Wer tippte und dann das Kreuz antippte oder daneben,
+   * verlor den Gedanken kommentarlos. Am Telefon ist das nicht der Ausnahme-,
+   * sondern der Regelfall – die Tastatur verdeckt das halbe Bild, man tippt
+   * irgendwo hin, und der Einfall ist weg. Fuer eine Funktion, deren ganzer
+   * Zweck „ein Gedanke darf nicht verlorengehen" ist, war das der schlimmste
+   * denkbare Fehler.
+   *
+   * Es wird nicht nachgefragt. Eine Ruecklfrage waere eine Huerde an genau der
+   * Stelle, an der es keine geben darf – und die falsche Antwort darauf
+   * kostet dasselbe wie vorher.
+   */
+  const schliessen = () => {
+    if (text.trim()) fangen();
+    onClose();
+  };
+  schliesser.current = schliessen;
 
   const fangen = () => {
     const roh = text.trim();
@@ -95,11 +116,13 @@ export function Gedankenfang({ open, onClose }: { open: boolean; onClose: () => 
       });
   };
 
+  if (!open) return null;
+
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-[14vh] sm:pt-[18vh]">
       <div
         className="absolute inset-0 bg-olive-900/35 backdrop-blur-[2px] animate-fadeIn"
-        onClick={onClose}
+        onClick={schliessen}
         aria-hidden
       />
 
@@ -116,7 +139,7 @@ export function Gedankenfang({ open, onClose }: { open: boolean; onClose: () => 
           <p className="rubric">Notiert</p>
           <button
             type="button"
-            onClick={onClose}
+            onClick={schliessen}
             aria-label="Schließen"
             className="grid h-8 w-8 place-items-center text-ink-faint/40 transition-colors hover:text-ink no-tap-highlight"
           >
@@ -144,9 +167,24 @@ export function Gedankenfang({ open, onClose }: { open: boolean; onClose: () => 
           )}
         />
 
+        {/*
+          Wohin der Gedanke faellt.
+
+          Ohne diese Zeile ist er festgehalten und trotzdem verschwunden: Man
+          weiss nicht, wo man ihn wiederfindet, und „irgendwo im Buch" ist
+          keine Auskunft. Das Kapitel ist verlinkt, damit man einmal hinsieht
+          und es danach weiss.
+        */}
         <p className="mt-2 font-serif text-[12.5px] italic leading-relaxed text-ink-faint">
-          Eingabetaste hält fest. Was daraus wird, entscheidest du später –
-          oder nie.
+          Eingabetaste hält fest – nachzulesen unter{' '}
+          <Link
+            to="/kapitel/notizen"
+            onClick={onClose}
+            className="text-gild-600 underline decoration-gild-500/40 underline-offset-2"
+          >
+            Notizen &amp; Sammlungen
+          </Link>
+          . Was daraus wird, entscheidest du später – oder nie.
         </p>
 
         {gefangen.length > 0 && (
