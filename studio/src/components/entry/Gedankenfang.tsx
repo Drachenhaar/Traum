@@ -21,6 +21,8 @@ import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { useStudio } from '../../store/useStudio';
+import { errate, zerlege } from '../../lib/gedanke';
+import { emptyFields, templateFor } from '../../lib/templates';
 import { cx } from '../../lib/utils';
 
 export function Gedankenfang({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -28,7 +30,10 @@ export function Gedankenfang({ open, onClose }: { open: boolean; onClose: () => 
   const notify = useStudio((s) => s.notify);
 
   const [text, setText] = useState('');
-  const [gefangen, setGefangen] = useState<{ id: string; titel: string }[]>([]);
+  const updateEntry = useStudio((s) => s.updateEntry);
+  const [gefangen, setGefangen] = useState<
+    { id: string; titel: string; vermutung?: { type: string; grund: string } }[]
+  >([]);
   const feld = useRef<HTMLInputElement>(null);
 
   /*
@@ -92,13 +97,20 @@ export function Gedankenfang({ open, onClose }: { open: boolean; onClose: () => 
     /*
      * Erste Zeile wird Titel, der Rest Beschreibung. Wer einen ganzen Absatz
      * einwirft, bekommt keine Seite mit einem Absatz als Ueberschrift.
+     *
+     * Und ein Gedankenstrich in der ersten Zeile trennt Namen von Beisatz:
+     * „Ellen – Die Sternenwächterin" wird eine Seite „Ellen" mit dem
+     * Untertitel „Die Sternenwächterin", nicht eine Seite mit einem
+     * Bindestrich im Namen.
      */
     const [ersteZeile, ...rest] = roh.split('\n');
-    const titel = ersteZeile.length > 90 ? `${ersteZeile.slice(0, 88).trimEnd()}…` : ersteZeile;
-    const beschreibung = [ersteZeile.length > 90 ? ersteZeile : '', ...rest]
+    const { titel: name, untertitel } = zerlege(ersteZeile);
+    const titel = name.length > 90 ? `${name.slice(0, 88).trimEnd()}…` : name;
+    const beschreibung = [name.length > 90 ? name : '', ...rest]
       .filter(Boolean)
       .join('\n')
       .trim();
+    const vermutung = errate(ersteZeile);
 
     /*
      * Das Feld wird sofort geleert, nicht erst wenn die Datenbank geantwortet
@@ -107,8 +119,15 @@ export function Gedankenfang({ open, onClose }: { open: boolean; onClose: () => 
     setText('');
     feld.current?.focus();
 
-    void createEntry('page', { title: titel, description: beschreibung, category: 'Notiz' })
-      .then((entry) => setGefangen((g) => [{ id: entry.id, titel }, ...g].slice(0, 8)))
+    void createEntry('page', {
+      title: titel,
+      subtitle: untertitel,
+      description: beschreibung,
+      category: 'Notiz',
+    })
+      .then((entry) =>
+        setGefangen((g) => [{ id: entry.id, titel, vermutung }, ...g].slice(0, 8)),
+      )
       .catch((err) => {
         const e = err as Error;
         notify(`Nicht festgehalten: ${e?.message ?? String(err)}`, 'error');
@@ -190,17 +209,47 @@ export function Gedankenfang({ open, onClose }: { open: boolean; onClose: () => 
         {gefangen.length > 0 && (
           <ul className="mt-4 border-t border-paper-300/60 pt-3">
             {gefangen.map((g) => (
-              <li key={g.id}>
+              <li key={g.id} className="py-1">
                 <Link
                   to={`/eintrag/${g.id}`}
                   onClick={onClose}
-                  className="flex items-baseline gap-2 py-1 no-tap-highlight"
+                  className="flex items-baseline gap-2 no-tap-highlight"
                 >
                   <span aria-hidden className="h-[3px] w-[3px] shrink-0 rounded-full bg-gild-500/70" />
                   <span className="min-w-0 flex-1 truncate font-serif text-[14.5px] text-ink-muted transition-colors hover:text-gild-600">
                     {g.titel}
                   </span>
                 </Link>
+
+                {/*
+                  Das Angebot, den Gedanken einzuordnen.
+
+                  Es ordnet nichts von selbst ein. Der Grund steht daneben –
+                  „wegen ‚wächterin‘" –, damit man sieht, worauf die Vermutung
+                  beruht und wann sie danebenliegt. Wer nicht tippt, hat
+                  abgelehnt; das ist eine gültige Antwort und kostet nichts.
+                */}
+                {g.vermutung && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateEntry(g.id, {
+                        type: g.vermutung!.type,
+                        category: '',
+                        fields: emptyFields(g.vermutung!.type),
+                      });
+                      setGefangen((liste) =>
+                        liste.map((x) => (x.id === g.id ? { ...x, vermutung: undefined } : x)),
+                      );
+                    }}
+                    className="ml-[11px] mt-0.5 inline-flex min-h-[30px] items-center gap-1.5 font-serif text-[12.5px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+                  >
+                    <span className="text-gild-600">
+                      Als {templateFor(g.vermutung.type).label} einordnen
+                    </span>
+                    <span className="text-ink-faint/60">wegen „{g.vermutung.grund}“</span>
+                  </button>
+                )}
               </li>
             ))}
           </ul>
