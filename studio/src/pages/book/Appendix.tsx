@@ -32,7 +32,22 @@ export function AppendixSpread() {
   const trashed = entries.filter((e) => e.deletedAt).length;
   const assets = entries.filter((e) => e.type === 'asset' && !e.deletedAt).length;
 
+  const szenen = entries.filter((e) => e.type === 'szene' && !e.deletedAt).length;
+
   const primary: AppendixEntry[] = [
+    {
+      /*
+       * Der Roman steht zuoberst, weil er der einzige Anhang ist, in dem
+       * etwas entsteht statt betrachtet zu werden. Alles darunter sieht die
+       * Welt an; hier wird sie erzählt.
+       */
+      to: '/roman',
+      title: 'Manuskript',
+      note:
+        szenen > 0
+          ? `${szenen} ${szenen === 1 ? 'Szene' : 'Szenen'} – schreiben, während die Welt danebensteht.`
+          : 'Einen Roman schreiben, in dem deine Figuren deine Figuren bleiben.',
+    },
     {
       to: '/setzerei',
       title: 'Setzerei',
@@ -178,7 +193,13 @@ export function AppendixSheet({
           <button
             type="button"
             onClick={() => navigate('/anhang')}
-            className="mb-6 inline-flex items-center gap-1.5 font-serif text-[13px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+            /*
+              Mindesthoehe fuer den Finger. Der Weg zurueck steht auf jedem
+              Anhangsblatt und ist damit einer der meistbenutzten Knoepfe des
+              Buches – als vierzehn Pixel hohe Kursivzeile war er der
+              schwierigste. Die Schrift bleibt, die Flaeche waechst.
+            */
+            className="mb-4 -ml-1 inline-flex min-h-[40px] items-center gap-1.5 px-1 font-serif text-[13px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
           >
             <ArrowLeft size={14} /> Zurück zu den Anhängen
           </button>

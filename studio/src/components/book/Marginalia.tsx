@@ -13,6 +13,35 @@ import { Link } from 'react-router-dom';
 import type { Entry, Relation } from '../../types';
 import type { RelationIndex } from '../../lib/relations';
 import { groupRelations, relationsOf } from '../../lib/relations';
+import { gruppiereBeziehungen } from '../../lib/beziehungsgruppen';
+
+/**
+ * Was dasteht, wenn nichts dasteht.
+ *
+ * Keine technischen Leerzustände: „Noch keine Relationen“ ist eine Aussage
+ * über die Datenbank. „Wer lebt an diesem Ort?“ ist eine über die Welt – und
+ * sie beantwortet sich manchmal von selbst, während man sie liest.
+ */
+function leereFrage(type: string): string {
+  switch (type) {
+    case 'location':
+    case 'biome':
+      return 'Wer lebt an diesem Ort? Was steht darin, wem gehört er?';
+    case 'character':
+    case 'creature':
+    case 'animal':
+      return 'Wo ist zuhause, wer gehört dazu, was gehört ihm?';
+    case 'moment':
+      return 'Noch ist niemand mit diesem Ereignis verbunden – weder Ursache noch Folge.';
+    case 'szene':
+      return 'Diese Szene hat noch keinen Ort, keine Perspektive und niemanden, der darin vorkommt.';
+    case 'material':
+    case 'plant':
+      return 'Woher kommt das, und was entsteht daraus?';
+    default:
+      return 'Diese Seite steht noch für sich allein.';
+  }
+}
 
 /** Die Zeitspanne einer Verbindung, wie sie in einer Fußnote stünde. */
 function spanneVon(r: Relation): string {
@@ -43,7 +72,29 @@ export function Marginalia({
     }),
   );
 
-  if (groups.length === 0) return null;
+  /*
+   * Eine Seite ohne Verbindungen schweigt nicht mehr.
+   *
+   * Bisher verschwand dieser ganze Bereich – und damit der einzige Hinweis
+   * darauf, dass es ihn ueberhaupt gibt. Wer seine erste Figur anlegt, sieht
+   * eine schoene Seite und erfaehrt nie, dass diese Welt aus Verbindungen
+   * besteht. Also steht dort jetzt eine Frage, in der Sprache der Welt und
+   * nicht der Datenbank: kein „0 Relationen", kein leerer Kasten.
+   */
+  if (groups.length === 0) {
+    return (
+      <aside className={heading ? '' : 'mt-9'}>
+        {heading ? (
+          <p className="rubric mb-3">Verbindungen</p>
+        ) : (
+          <span aria-hidden className="rule-gild mb-5 block w-full opacity-60" />
+        )}
+        <p className="font-serif text-[15px] italic leading-relaxed text-ink-faint/80">
+          {leereFrage(entry.type)}
+        </p>
+      </aside>
+    );
+  }
 
   return (
     <aside className={heading ? '' : 'mt-9'}>
@@ -53,8 +104,22 @@ export function Marginalia({
         <span aria-hidden className="rule-gild mb-5 block w-full opacity-60" />
       )}
 
-      <div className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
-        {groups.map((group) => (
+      {/*
+        Zwei Ebenen: die Frage, dann die Beschriftung.
+
+        Wer einen Ort mit dreissig Verbindungen aufschlaegt, hat keine
+        Vokabelfrage („beherbergt"? „Schauplatz von"?), sondern vier echte:
+        Wer ist hier, was ist hier, wozu gehoert das hier, was ist hier
+        geschehen. Bei wenigen Kanten entfaellt die obere Ebene wieder –
+        dort ist die Beschriftung selbst schon die Antwort.
+      */}
+      {gruppiereBeziehungen(groups).map(({ gruppe, gruppen }) => (
+        <section key={gruppe.id} className="mb-7 last:mb-0">
+          {gruppe.frage && (
+            <p className="mb-3 font-serif text-[14.5px] italic text-ink-faint/75">{gruppe.frage}</p>
+          )}
+          <div className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
+            {gruppen.map((group) => (
           <div key={group.label}>
             <p className="rubric mb-1.5">{group.label}</p>
             <ul className="space-y-1">
@@ -91,8 +156,10 @@ export function Marginalia({
               })}
             </ul>
           </div>
-        ))}
-      </div>
+            ))}
+          </div>
+        </section>
+      ))}
     </aside>
   );
 }

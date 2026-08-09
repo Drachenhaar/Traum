@@ -17,6 +17,7 @@ import { buildBook, chapterById, pageWear } from '../../lib/book';
 import { deskStyle } from '../../lib/textures';
 import { cx } from '../../lib/utils';
 import { GlobalSearch } from '../search/GlobalSearch';
+import { Gedankenfang } from '../entry/Gedankenfang';
 import { Spread } from './Spread';
 
 /** Der gebaute Buchblock – einmal je Datenänderung, überall nutzbar. */
@@ -53,6 +54,7 @@ export function BookShell() {
   const entries = useStudio((s) => s.entries);
 
   const [searchOpen, setSearchOpen] = useState(false);
+  const [fangOffen, setFangOffen] = useState(false);
   const [direction, setDirection] = useState<'forward' | 'back'>('forward');
   const lastIndex = useRef(index);
 
@@ -130,7 +132,8 @@ export function BookShell() {
           <button
             type="button"
             onClick={() => navigate('/inhalt')}
-            className="group flex shrink-0 items-center gap-2 no-tap-highlight"
+            /* Auf jeder Seite erreichbar, also auch auf jeder Seite treffbar. */
+            className="group -ml-1 flex h-11 shrink-0 items-center gap-2 px-1 no-tap-highlight"
             aria-label="Inhaltsverzeichnis"
             title="Inhaltsverzeichnis"
           >
@@ -149,18 +152,21 @@ export function BookShell() {
         </div>
 
         {/*
-         * Zwei Zeichen, mehr Bedienung hat das Buch nicht: eine neue Seite
-         * einlegen und im Register nachschlagen.
+         * Zwei Zeichen, mehr Bedienung hat das Buch nicht: einen Gedanken
+         * festhalten und im Register nachschlagen.
+         *
+         * Dieser Knopf fuehrte bis hierher in die Setzerei. Die ist der
+         * richtige Ort fuer einen fertigen Text aus einem Gespraech – aber der
+         * falsche fuer einen Einfall: Sie fragt nach Art und Vorlage, und wer
+         * gerade nur „der Fluss friert von unten zu" denkt, hat die Antwort
+         * darauf noch nicht. Die Setzerei ist von dort einen Klick entfernt.
          */}
         <button
           type="button"
-          onClick={() => navigate('/setzerei')}
-          className={cx(
-            'grid h-11 w-11 shrink-0 place-items-center transition-colors no-tap-highlight',
-            pathname === '/setzerei' ? 'text-gild-400' : 'text-gild-500/50 hover:text-gild-400',
-          )}
-          aria-label="Eine Seite einlegen"
-          title="Eine Seite einlegen"
+          onClick={() => setFangOffen(true)}
+          className="grid h-11 w-11 shrink-0 place-items-center text-gild-500/50 transition-colors hover:text-gild-400 no-tap-highlight"
+          aria-label="Einen Gedanken festhalten"
+          title="Einen Gedanken festhalten"
         >
           <FilePlus2 size={17} />
         </button>
@@ -197,6 +203,7 @@ export function BookShell() {
       </div>
 
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <Gedankenfang open={fangOffen} onClose={() => setFangOffen(false)} />
     </div>
   );
 }

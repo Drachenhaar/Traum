@@ -13,16 +13,17 @@
  * nichts geaendert.
  */
 
-import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, CircleHelp, Minus } from 'lucide-react';
+import type { Entry } from '../../types';
 import { useStudio } from '../../store/useStudio';
 import { DEFAULT_KALENDER, ausOrdnung, schreibeJahr } from '../../lib/chronik/zeit';
 import { datiere, weltzustand } from '../../lib/chronik/zustand';
 import { pruefe, type Befund } from '../../lib/chronik/pruefung';
 import { EBENEN, ebeneById } from '../../lib/chronik/ebenen';
 import { Zeitachse, verteileSpuren } from '../../components/chronik/Zeitachse';
-import { jahrLaenge } from '../../lib/chronik/zeit';
+import { jahrLaenge, ordnung } from '../../lib/chronik/zeit';
 import { templateFor } from '../../lib/templates';
 import { AppendixSheet } from './Appendix';
 import { cx } from '../../lib/utils';
@@ -66,7 +67,22 @@ export function ZeitstrahlSheet() {
     [gefiltert, kalender],
   );
 
+  /*
+   * Ein Jahr aus der Adresse.
+   *
+   * Die Suche fuehrt hierher: Wer „1044" eintippt, meint die Welt in diesem
+   * Jahr und nicht eine Seite mit der Zahl im Titel. Ohne diese Zeilen waere
+   * der Weg dorthin: Zeitstrahl oeffnen, Regler suchen, Jahr treffen.
+   */
+  const [suchParams] = useSearchParams();
+  const jahrAusAdresse = suchParams.get('jahr');
   const [marke, setMarke] = useState<number | null>(null);
+  useEffect(() => {
+    const j = Number(jahrAusAdresse);
+    if (jahrAusAdresse !== null && Number.isFinite(j)) {
+      setMarke(ordnung({ jahr: j, roh: String(j), genauigkeit: 'jahr' }, kalender));
+    }
+  }, [jahrAusAdresse, kalender]);
   const markeWert = useMemo(() => {
     if (marke !== null) return marke;
     /* Zu Beginn steht das Lesezeichen am spaetesten datierten Ereignis. */
@@ -82,11 +98,22 @@ export function ZeitstrahlSheet() {
 
   const jahr = ausOrdnung(markeWert, kalender).jahr;
   const mitZeit = alleDatiert.filter((d) => d.datiert).length;
+  /*
+   * Seiten, auf denen etwas steht, das sich nicht lesen laesst.
+   *
+   * Der Unterschied ist nicht spitzfindig: „Noch traegt keine Seite eine Zeit"
+   * ist falsch, wenn jemand „irgendwann im Nebel" eingetragen hat. Er hat eine
+   * Zeit eingetragen – nur keine, die das Buch versteht. Sagte es ihm das
+   * nicht, suchte er den Fehler ewig an der falschen Stelle.
+   */
+  const unlesbar = alleDatiert.filter(
+    (d) => !d.datiert && ((d.entry.beginn?.trim() ?? '') || (d.entry.ende?.trim() ?? '')),
+  );
 
   return (
     <AppendixSheet title="Zeitstrahl" rubric="Anhang · Die Welt in der Zeit">
       {mitZeit === 0 ? (
-        <Leer />
+        <Leer unlesbar={unlesbar.map((d) => d.entry)} />
       ) : (
         <>
           {/* ------------------------------------------------------ Ebenen */}
@@ -244,12 +271,33 @@ function BefundZeile({ befund }: { befund: Befund }) {
   );
 }
 
-function Leer() {
+function Leer({ unlesbar }: { unlesbar: Entry[] }) {
   return (
     <div className="max-w-[52ch]">
       <p className="prose-book">
         Noch trägt keine Seite eine Zeit. Der Zeitstrahl bleibt leer, bis die erste es tut.
       </p>
+
+      {/*
+        Wenn doch etwas dasteht, es sich nur nicht lesen liess: Das gehört
+        hierher und nicht ins Schweigen. Sonst sucht der Verfasser den Fehler
+        beim Zeitstrahl, während er in seiner Schreibweise liegt.
+      */}
+      {unlesbar.length > 0 && (
+        <p className="prose-book mt-4">
+          {unlesbar.length === 1 ? 'Eine Seite trägt' : `${unlesbar.length} Seiten tragen`} eine
+          Angabe, die sich nicht deuten ließ –{' '}
+          {unlesbar.slice(0, 3).map((e, i) => (
+            <span key={e.id}>
+              {i > 0 && ', '}
+              <Link to={`/eintrag/${e.id}`} className="text-gild-600 underline decoration-gild-500/40">
+                {e.title}
+              </Link>
+            </span>
+          ))}
+          {unlesbar.length > 3 && ` und ${unlesbar.length - 3} weitere`}.
+        </p>
+      )}
       <p className="prose-book mt-4">
         Jede Seite hat zwei Felder dafür: <em>Beginn</em> und <em>Ende</em>. Beide dürfen fehlen.
         Ein Ort ohne Ende besteht bis heute, eine Figur ohne Anfang war immer schon da – das ist

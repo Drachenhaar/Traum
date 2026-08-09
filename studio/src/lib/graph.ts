@@ -68,9 +68,20 @@ export class GraphSimulation {
         next.set(n.id, merged);
         return merged;
       }
-      // Neue Knoten starten auf einer Spirale – das sieht ruhiger aus als Zufall.
+      /*
+       * Neue Knoten starten auf einer Spirale – das sieht ruhiger aus als
+       * Zufall, und der goldene Winkel verteilt sie gleichmaessig.
+       *
+       * Der Radius haengt an `linkDistance` und nicht an einer festen Zahl.
+       * Das ist kein Schoenheitsdetail: Die Abstossung rechnet ueber ein
+       * raeumliches Raster mit der Zellbreite `linkDistance * 2.2`. Lagen alle
+       * Knoten anfangs in ein, zwei Zellen, half das Raster ueberhaupt nicht –
+       * die ersten Ticks kosteten dann quadratisch viel, und genau die
+       * ersten sind die teuersten. Von Anfang an ungefaehr so weit gestreut
+       * wie am Ende, greift das Raster ab dem ersten Tick.
+       */
       const angle = i * 2.399963; // goldener Winkel
-      const radius = 30 + 14 * Math.sqrt(i + 1) + count * 0.05;
+      const radius = 30 + 0.55 * this.options.linkDistance * Math.sqrt(i + 1) + count * 0.05;
       const node: GraphNode = {
         ...n,
         x: Math.cos(angle) * radius,
@@ -104,9 +115,22 @@ export class GraphSimulation {
     // Nur Knoten in benachbarten Zellen stoßen sich ab. Weiter entfernte
     // Kräfte sind ohnehin vernachlässigbar, kosten aber am meisten Rechenzeit.
     const cell = linkDistance * 2.2;
-    const grid = new Map<string, GraphNode[]>();
+    /*
+     * Zahlenschluessel statt `"3,-7"`.
+     *
+     * Vierhundert Zeichenketten je Tick, vierhundertzwanzig Ticks: Das sind
+     * hunderttausend Zeichenketten, die nur entstehen, um sofort wieder
+     * weggeworfen zu werden – und jede davon muss der Speicherbereiniger
+     * wieder einsammeln. Ein Zahlenschluessel ist derselbe Gedanke ohne die
+     * Zeichenketten. Der Versatz haelt negative Koordinaten positiv, der
+     * Faktor haelt Zeilen auseinander.
+     */
+    const grid = new Map<number, GraphNode[]>();
+    const schluessel = (x: number, y: number) =>
+      (Math.floor(x / cell) + 20000) * 40000 + Math.floor(y / cell) + 20000;
+
     for (const node of nodes) {
-      const key = `${Math.floor(node.x / cell)},${Math.floor(node.y / cell)}`;
+      const key = schluessel(node.x, node.y);
       const bucket = grid.get(key);
       if (bucket) bucket.push(node);
       else grid.set(key, [node]);
@@ -117,7 +141,7 @@ export class GraphSimulation {
       const cy = Math.floor(node.y / cell);
       for (let ix = cx - 1; ix <= cx + 1; ix++) {
         for (let iy = cy - 1; iy <= cy + 1; iy++) {
-          const bucket = grid.get(`${ix},${iy}`);
+          const bucket = grid.get((ix + 20000) * 40000 + iy + 20000);
           if (!bucket) continue;
           for (const other of bucket) {
             if (other === node) continue;

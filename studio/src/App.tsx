@@ -25,6 +25,8 @@ import {
   ColophonSheet,
 } from './pages/book/AppendixTools';
 import { CanvasBoardPage } from './pages/CanvasBoardPage';
+import { RomanBlatt, RomanRegal } from './pages/roman/RomanBlatt';
+import { Schreibraum } from './pages/roman/Schreibraum';
 import { ConfirmHost } from './components/ui/Confirm';
 import { Toasts } from './components/ui/Toasts';
 import { ZeitstrahlSheet } from './pages/book/Zeitstrahl';
@@ -142,7 +144,22 @@ export default function App() {
           <Route path="/lose-blaetter" element={<LooseLeavesSheet />} />
           <Route path="/lose-blaetter/:id" element={<CanvasBoardPage />} />
           <Route path="/kolophon" element={<ColophonSheet />} />
+
+          {/* Der Roman: seine Übersicht ist ein Blatt im Buch … */}
+          <Route path="/roman" element={<RomanRegal />} />
+          <Route path="/roman/:id" element={<RomanBlatt />} />
         </Route>
+
+        {/*
+          … sein Schreibraum aber nicht.
+
+          Er liegt bewusst außerhalb des Buchblocks. Beim Schreiben soll die
+          restliche Welt zurücktreten: keine Kapitelzeile, keine
+          Blätterpfeile, keine Seitenzahl. Wäre er eine Seite unter anderen,
+          käme das ganze Buch mit hinein – und mit ihm alles, was den Blick
+          vom Text wegzieht.
+        */}
+        <Route path="/schreiben/:id" element={<Schreibraum />} />
 
         {/* Frühere Adressen bleiben gültig – niemand soll ins Leere greifen. */}
         <Route path="/graph" element={<Navigate to="/karte" replace />} />

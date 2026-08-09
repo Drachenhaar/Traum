@@ -167,6 +167,32 @@ export const RELATION_TYPES: RelationTypeDef[] = [
     symmetric: true,
     color: '#A4907A',
   },
+  /*
+   * Roman und Welt.
+   *
+   * Eine Szene hat keine Felder „Ort" und „POV". Sie hat Kanten – dieselben
+   * Kanten, aus denen der Rest der Welt besteht. Deshalb weiss der Ort von
+   * der Szene, ohne dass der Ort etwas vom Roman wissen muesste, und
+   * deshalb steht auf der Seite von Arven spaeter „kommt vor in: Ankunft in
+   * Arven", ohne dass jemand das gebaut hat.
+   *
+   * `appears_in` gibt es schon und meint genau das Richtige fuer Figuren in
+   * einer Szene. Neu sind nur die beiden Kanten, die es noch nicht gab.
+   */
+  {
+    id: 'plays_at',
+    label: 'spielt in',
+    inverse: 'Schauplatz von',
+    color: '#7A8467',
+    hint: 'Szene an einem Ort',
+  },
+  {
+    id: 'pov',
+    label: 'aus der Sicht von',
+    inverse: 'erzählt',
+    color: '#8C6D31',
+    hint: 'Perspektivfigur einer Szene',
+  },
 ];
 
 /** Kanten, die eine Aussage über zeitliche Abfolge machen. */

@@ -11,7 +11,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { PenLine, Star } from 'lucide-react';
+import { BookOpen, Copy, PenLine, Printer, Star, Trash2 } from 'lucide-react';
 import type { Entry } from '../../types';
 import { useStudio, livingEntries } from '../../store/useStudio';
 import { templateFor, asList, asText, asBool } from '../../lib/templates';
@@ -21,6 +21,12 @@ import { Marginalia, FieldNotes } from '../../components/book/Marginalia';
 import { BlockView } from '../../components/blocks/BlockView';
 import { Thumb, useImageUrl } from '../../components/images/Thumb';
 import { EntryEditor } from './EntryEditor';
+import { Mehr } from '../../components/ui/Mehr';
+import { Pfad } from '../../components/relations/Pfad';
+import { PrintPreview } from '../../components/entry/PrintPreview';
+import { StoryMode } from '../../components/story/StoryMode';
+import { confirm } from '../../components/ui/Confirm';
+import { gruppiere } from '../../lib/feldgruppen';
 import { leseZeit, schreibeZeit } from '../../lib/chronik/zeit';
 import { datiere } from '../../lib/chronik/zustand';
 import { zeitgenossenVon } from '../../lib/chronik/zeitgenossen';
@@ -36,9 +42,13 @@ export function EntrySpread() {
   const updateSettings = useStudio((s) => s.updateSettings);
   const toggleFavorite = useStudio((s) => s.toggleFavorite);
   const noteVisit = useStudio((s) => s.noteVisit);
+  const duplicateEntry = useStudio((s) => s.duplicateEntry);
+  const deleteEntry = useStudio((s) => s.deleteEntry);
 
   const { spread, wear } = useCurrentSpread();
   const [editing, setEditing] = useState(false);
+  const [druck, setDruck] = useState(false);
+  const [vorlesen, setVorlesen] = useState(false);
 
   const entriesById = useMemo(() => new Map(entries.map((e) => [e.id, e])), [entries]);
 
@@ -117,10 +127,26 @@ export function EntrySpread() {
             : asText(entry.fields[f.key]),
     }));
 
-  const prose = tpl.fields
-    .filter((f) => f.kind === 'textarea')
-    .map((f) => ({ label: f.label, text: asText(entry.fields[f.key]) }))
-    .filter((f) => f.text.trim());
+  /*
+   * Der Fliesstext, nach Fragen gebuendelt.
+   *
+   * Im Lesemodus gibt es keine Abschnitte zum Aufklappen – eine Buchseite
+   * klappt nicht. Die Gruppen dienen hier nur der Reihenfolge: Was zusammen
+   * gedacht wird, steht zusammen, und die Rubrik davor ist die Frage statt
+   * einer Feldliste. Leere Felder erscheinen wie bisher gar nicht.
+   */
+  const prose = gruppiere(
+    tpl.fields.filter(
+      (f) => f.kind === 'textarea' && !f.anderswo && asText(entry.fields[f.key]).trim(),
+    ),
+  ).flatMap(({ gruppe, felder }) =>
+    felder.map((f, i) => ({
+      label: f.label,
+      text: asText(entry.fields[f.key]),
+      /* Die Frage steht einmal je Gruppe, ueber dem ersten ihrer Felder. */
+      frage: i === 0 ? gruppe.frage : '',
+    })),
+  );
 
   const palette = asList(entry.fields.palette);
   const gallery = tpl.fields
@@ -161,6 +187,55 @@ export function EntrySpread() {
               >
                 <PenLine size={15} />
               </button>
+              {/*
+                Alles Seltene liegt gefaltet daneben.
+
+                Zwei dieser Handgriffe waren zuletzt ueberhaupt nicht mehr
+                erreichbar – die Druckvorschau und das Vorlesen. Sie waren
+                gebaut, fertig und unsichtbar, was schlimmer ist als
+                abgeschafft: Man vermisst nichts, wovon man nicht weiss.
+              */}
+              <Mehr
+                eintraege={[
+                  {
+                    label: 'Als Blatt drucken',
+                    icon: <Printer size={14} />,
+                    onClick: () => setDruck(true),
+                  },
+                  {
+                    label: 'Vorlesen lassen',
+                    icon: <BookOpen size={14} />,
+                    onClick: () => setVorlesen(true),
+                  },
+                  {
+                    label: 'Duplizieren',
+                    icon: <Copy size={14} />,
+                    abgesetzt: true,
+                    onClick: () => {
+                      void duplicateEntry(entry.id).then(
+                        (kopie) => kopie && navigate(`/eintrag/${kopie.id}`),
+                      );
+                    },
+                  },
+                  {
+                    label: 'Aus dem Buch nehmen',
+                    icon: <Trash2 size={14} />,
+                    gefaehrlich: true,
+                    onClick: () => {
+                      void confirm({
+                        title: `„${entry.title}“ aus dem Buch nehmen?`,
+                        message:
+                          'Die Seite wandert in den Papierkorb. Beziehungen und Fassungen bleiben erhalten – die Chronik im Anhang holt sie zurück.',
+                        confirmLabel: 'In den Papierkorb',
+                        danger: true,
+                      }).then((ok) => {
+                        if (!ok) return;
+                        void deleteEntry(entry.id).then(() => navigate('/inhalt'));
+                      });
+                    },
+                  },
+                ]}
+              />
             </div>
           </div>
 
@@ -196,8 +271,22 @@ export function EntrySpread() {
             </div>
           )}
 
-          {prose.map((section) => (
-            <section key={section.label} className="mt-7">
+          {/*
+            Die Frage traegt den Abstand, nicht der Absatz darunter: Sie ist
+            eine Zaesur im Text, kein weiteres Etikett. Ohne die groessere
+            Luft davor liest sie sich wie eine Rubrik – und damit waere die
+            Gliederung nur eine zweite Reihe Beschriftungen.
+          */}
+          {prose.map((section, si) => (
+            <section
+              key={section.label}
+              className={cx(section.frage && si > 0 ? 'mt-12' : 'mt-7')}
+            >
+              {section.frage && (
+                <p className="mb-5 font-serif text-[15px] italic text-ink-faint/75">
+                  {section.frage}
+                </p>
+              )}
               <p className="rubric mb-1.5">{section.label}</p>
               <div className="prose-book">
                 {section.text.split(/\n{2,}/).map((para, i) => (
@@ -206,6 +295,19 @@ export function EntrySpread() {
               </div>
             </section>
           ))}
+
+          {/*
+            Eine Szene wird hier gelesen, aber nicht geschrieben. Der Weg zum
+            Manuskript ist ein Verweis, kein zweites Textfeld.
+          */}
+          {entry.type === 'szene' && (
+            <Link
+              to={`/schreiben/${entry.id}`}
+              className="mt-8 inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-gild-500/40 px-4 font-serif text-[14.5px] text-gild-600 transition-colors hover:bg-gild-400/10 no-tap-highlight"
+            >
+              Im Schreibraum öffnen
+            </Link>
+          )}
 
           <FieldNotes rows={fieldRows} />
 
@@ -276,8 +378,14 @@ export function EntrySpread() {
 
           <Zeitgenossen entry={entry} />
 
+          {/* Die Frage, die eine Welt von einer Datenbank unterscheidet. */}
+          <Pfad entry={entry} />
+
           {/* Nachbarseiten – so blättert man weiter, ohne zu suchen. */}
           <Neighbours entryId={entry.id} onGo={(path) => navigate(path)} />
+
+          {druck && <PrintPreview entry={entry} onClose={() => setDruck(false)} />}
+          {vorlesen && <StoryMode startId={entry.id} onClose={() => setVorlesen(false)} />}
         </>
       }
     />

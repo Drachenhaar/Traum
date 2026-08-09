@@ -19,6 +19,9 @@ import { chapterOfType } from '../../lib/book';
 import { Thumb } from '../../components/images/Thumb';
 import { Lightbox } from '../../components/images/Lightbox';
 
+/** Einmal gebaut, tausendfach benutzt – siehe Kommentar bei der Sortierung. */
+const SAMMLER = new Intl.Collator('de', { sensitivity: 'base', numeric: true });
+
 export function RegisterSheet() {
   const entries = useStudio((s) => s.entries);
   const { book } = useCurrentSpread();
@@ -29,8 +32,29 @@ export function RegisterSheet() {
     const needle = query.trim().toLowerCase();
     return living
       .filter((e) => !needle || e.title.toLowerCase().includes(needle))
-      .sort((a, b) => a.title.localeCompare(b.title, 'de'));
+      /*
+       * Ein Collator statt `localeCompare` je Vergleich.
+       *
+       * `localeCompare` baut bei jedem Aufruf die Sortierregeln neu auf. Bei
+       * zehntausend Eintraegen sind das ueber hunderttausend Vergleiche –
+       * einmal aufgebaut ist dieselbe Sortierung um ein Vielfaches billiger.
+       */
+      .sort((a, b) => SAMMLER.compare(a.title, b.title));
   }, [entries, query]);
+
+  /*
+   * Zwei echte Spalten statt CSS-Mehrspaltensatz.
+   *
+   * `columns-2` mit `break-inside-avoid` sah richtig aus und war der Grund,
+   * warum dieses Blatt bei zweitausend Eintraegen dreizehn Sekunden brauchte
+   * und bei fuenftausend gar nicht mehr fertig wurde: Der Browser muss den
+   * gesamten Spaltenfluss durchrechnen, und das waechst nicht linear.
+   *
+   * Von Hand geteilt kostet es nichts – und die Leserichtung bleibt dieselbe:
+   * erst die linke Spalte hinunter, dann die rechte.
+   */
+  const haelfte = Math.ceil(sorted.length / 2);
+  const spalten = [sorted.slice(0, haelfte), sorted.slice(haelfte)];
 
   return (
     <AppendixSheet title="Register" rubric="Anhang · Nachschlagen">
@@ -46,33 +70,45 @@ export function RegisterSheet() {
           {query ? 'Kein Eintrag mit diesem Namen.' : 'Das Register ist noch leer.'}
         </p>
       ) : (
-        <ol className="columns-1 gap-x-12 sm:columns-2">
-          {sorted.map((entry) => {
-            const page = book.pageOfEntry.get(entry.id);
-            const tpl = templateFor(entry.type);
-            return (
-              <li key={entry.id} className="group mb-[3px] break-inside-avoid">
-                <Link to={`/eintrag/${entry.id}`} className="flex items-baseline gap-2 no-tap-highlight">
-                  <span
-                    aria-hidden
-                    className="h-[5px] w-[5px] shrink-0 translate-y-[-3px] rounded-full"
-                    style={{ background: tpl.accent }}
-                  />
-                  <span className="truncate font-serif text-[15px] text-ink transition-colors group-hover:text-gild-600">
-                    {entry.title}
-                  </span>
-                  <span
-                    aria-hidden
-                    className="mx-1 min-w-[0.75rem] flex-1 translate-y-[-4px] border-b border-dotted border-paper-400/60"
-                  />
-                  <span className="shrink-0 font-serif text-[13px] tabular-nums text-ink-faint">
-                    {page ?? '–'}
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ol>
+        <div className="grid gap-x-12 sm:grid-cols-2">
+          {spalten.map((spalte, i) => (
+            <ol key={i}>
+              {spalte.map((entry) => {
+                const page = book.pageOfEntry.get(entry.id);
+                const tpl = templateFor(entry.type);
+                return (
+                  /*
+                    Auf dem Telefon ist das Register eine Liste zum Antippen,
+                    am Schreibtisch eine gesetzte Spalte. Deshalb dort mehr
+                    Luft je Zeile und hier wieder der enge Satz.
+                  */
+                  <li key={entry.id} className="group">
+                    <Link
+                      to={`/eintrag/${entry.id}`}
+                      className="flex min-h-[38px] items-baseline gap-2 py-[7px] no-tap-highlight sm:min-h-0 sm:py-[1.5px]"
+                    >
+                      <span
+                        aria-hidden
+                        className="h-[5px] w-[5px] shrink-0 translate-y-[-3px] rounded-full"
+                        style={{ background: tpl.accent }}
+                      />
+                      <span className="truncate font-serif text-[15px] text-ink transition-colors group-hover:text-gild-600">
+                        {entry.title}
+                      </span>
+                      <span
+                        aria-hidden
+                        className="mx-1 min-w-[0.75rem] flex-1 translate-y-[-4px] border-b border-dotted border-paper-400/60"
+                      />
+                      <span className="shrink-0 font-serif text-[13px] tabular-nums text-ink-faint">
+                        {page ?? '–'}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ol>
+          ))}
+        </div>
       )}
     </AppendixSheet>
   );

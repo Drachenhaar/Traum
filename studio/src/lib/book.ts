@@ -13,6 +13,7 @@
 
 import type { Entry, EntryType } from '../types';
 import { templateFor } from './templates';
+import { istRomanTeil } from './roman/struktur';
 
 /* ------------------------------------------------------------------ Kapitel */
 
@@ -347,7 +348,19 @@ export function buildBook(entries: Entry[], imageCount: number): BookStructure {
   push({ key: 'vorwort', kind: 'vorwort', path: '/vorwort', label: 'Vorwort' });
   push({ key: 'inhalt', kind: 'inhalt', path: '/inhalt', label: 'Inhaltsverzeichnis' });
 
-  const living = entries.filter((e) => !e.deletedAt);
+  /*
+   * Der Roman bekommt keine Seiten im Weltbuch.
+   *
+   * Nicht weil er weniger waere, sondern weil er etwas anderes ist: Ein
+   * Weltbuch beschreibt, ein Manuskript erzaehlt. Dreissig Szenen zwischen
+   * den Kreaturen und den Materialien einzusortieren wuerde beides
+   * unleserlich machen – und die Erzaehlreihenfolge, an der alles haengt,
+   * gaebe es dort auch nicht mehr.
+   *
+   * Eintraege bleiben sie trotzdem: Die Suche findet sie, der Graph kennt
+   * sie, die Sicherung nimmt sie mit. Nur geblaettert wird woanders.
+   */
+  const living = entries.filter((e) => !e.deletedAt && !istRomanTeil(e.type));
   const chapters: BookStructure['chapters'] = [];
   const emptyChapters: ChapterDef[] = [];
 

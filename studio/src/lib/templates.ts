@@ -28,6 +28,16 @@ export interface FieldDef {
   options?: string[];
   hint?: string;
   compact?: boolean;
+  /**
+   * Das Feld gehoert zu diesem Eintrag, wird aber woanders geschrieben.
+   *
+   * Bisher genau ein Fall: das Manuskript einer Szene. Es steht in den
+   * Feldern, damit Suche, Sicherung und Ausgabe es ohne Sonderweg mitnehmen –
+   * geschrieben wird es im Schreibraum. Es zusaetzlich als Textkasten ins
+   * Formular zu stellen waere ein zweiter Ort fuer dieselbe Sache, und zwei
+   * Orte fuer dieselbe Sache sind der Anfang von zwei Wahrheiten.
+   */
+  anderswo?: boolean;
 }
 
 export interface TemplateDef {
@@ -39,7 +49,7 @@ export interface TemplateDef {
   /** Farbe im Weltgraphen und in kleinen Kennzeichnungen */
   accent: string;
   /** Gruppe in der Navigation */
-  family: 'welt' | 'wesen' | 'natur' | 'bau' | 'produktion' | 'erzaehlung' | 'system';
+  family: 'welt' | 'wesen' | 'natur' | 'bau' | 'produktion' | 'erzaehlung' | 'roman' | 'system';
   categories: string[];
   fields: FieldDef[];
   starterBlocks?: { type: string; data: Record<string, unknown> }[];
@@ -637,6 +647,66 @@ const BUILTIN: TemplateDef[] = [
       REFS,
     ],
   },
+  /* -------------------------------------------------------------- Roman */
+  /*
+   * Roman, Kapitel und Szene sind gewoehnliche Eintraege.
+   *
+   * Das ist die wichtigste Entscheidung am ganzen Romanverfasser. Sie
+   * bedeutet: Die Suche findet Szenen, der Weltgraph kennt sie, der
+   * Zeitstrahl datiert sie, die Sicherung nimmt sie mit, der Papierkorb
+   * holt sie zurueck, frueherer Fassungen gibt es umsonst. Nichts davon
+   * musste gebaut werden – es gilt fuer Eintraege, und eine Szene ist einer.
+   *
+   * Die Struktur des Romans steht nicht in Feldern, sondern in Beziehungen:
+   * Roman --enthaelt--> Kapitel --enthaelt--> Szene. Damit ist ein Kapitel
+   * kein Sonderfall, sondern ein Knoten wie jeder andere, und eine Szene
+   * darf ganz nebenbei auch noch an einem Ort spielen.
+   */
+  {
+    type: 'roman',
+    label: 'Roman',
+    labelPlural: 'Romane',
+    newTitle: 'Neuer Roman',
+    icon: 'BookMarked',
+    accent: '#6B5B45',
+    family: 'roman',
+    categories: ['Roman', 'Novelle', 'Erzählung', 'Kurzgeschichte', 'Zyklus'],
+    fields: [
+      { key: 'genre', label: 'Genre', kind: 'text', compact: true },
+      { key: 'logline', label: 'Worum geht es?', kind: 'textarea', hint: 'In zwei Sätzen – als würdest du es jemandem im Zug erzählen.' },
+      { key: 'zielWoerter', label: 'Zielumfang in Wörtern', kind: 'text', compact: true, placeholder: '90000' },
+      { key: 'notes', label: 'Notizen', kind: 'textarea' },
+    ],
+  },
+  {
+    type: 'kapitel',
+    label: 'Kapitel',
+    labelPlural: 'Kapitel',
+    newTitle: 'Neues Kapitel',
+    icon: 'Bookmark',
+    accent: '#7C6A57',
+    family: 'roman',
+    categories: ['Kapitel', 'Teil', 'Prolog', 'Epilog', 'Zwischenspiel'],
+    fields: [
+      { key: 'summary', label: 'Worum geht es hier?', kind: 'textarea', hint: 'Für dich, nicht für den Leser.' },
+    ],
+  },
+  {
+    type: 'szene',
+    label: 'Szene',
+    labelPlural: 'Szenen',
+    newTitle: 'Neue Szene',
+    icon: 'PenLine',
+    accent: '#8B6A4F',
+    family: 'roman',
+    categories: ['Szene', 'Rückblende', 'Traum', 'Brief', 'Zwischenspiel'],
+    fields: [
+      { key: 'manuskript', label: 'Manuskript', kind: 'textarea', anderswo: true },
+      { key: 'summary', label: 'Was geschieht hier?', kind: 'textarea', hint: 'Eine Zeile genügt.' },
+      { key: 'faeden', label: 'Handlungsfäden', kind: 'tags', hint: 'Haupthandlung, Nordreich, Sternenschlüssel …' },
+    ],
+  },
+
   {
     type: 'page',
     label: 'Seite',
@@ -727,11 +797,12 @@ export const FAMILY_LABELS: Record<TemplateDef['family'], string> = {
   bau: 'Gebautes',
   produktion: 'Produktion',
   erzaehlung: 'Erzählung',
+  roman: 'Roman',
   system: 'Werkzeuge',
 };
 
 export function templatesByFamily(): { family: TemplateDef['family']; label: string; items: TemplateDef[] }[] {
-  const order: TemplateDef['family'][] = ['welt', 'wesen', 'natur', 'bau', 'produktion', 'erzaehlung', 'system'];
+  const order: TemplateDef['family'][] = ['welt', 'wesen', 'natur', 'bau', 'produktion', 'erzaehlung', 'roman', 'system'];
   return order
     .map((family) => ({
       family,

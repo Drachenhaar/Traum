@@ -6,10 +6,11 @@
  */
 
 import { useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { ChevronDown, Plus, X } from 'lucide-react';
 import type { Entry, FieldValue } from '../../types';
 import type { FieldDef } from '../../lib/templates';
 import { asBool, asList, asText, templateFor } from '../../lib/templates';
+import { gruppiere } from '../../lib/feldgruppen';
 import { AutoTextarea, Field, SelectInput, TagInput, TextInput, Toggle } from '../ui/Fields';
 import { Thumb } from '../images/Thumb';
 import { ImagePicker } from '../images/ImagePicker';
@@ -29,17 +30,104 @@ export function EntryFields({ entry }: { entry: Entry }) {
     updateEntry(entry.id, { fields: { ...entry.fields, [key]: value } });
   };
 
+  /*
+   * Nach Fragen geordnet, nicht nach Speicherreihenfolge.
+   *
+   * Achtzehn Felder untereinander sind ein Formular. Dieselben achtzehn unter
+   * „Wer ist das?", „Was tut es?", „Wo gehört es hin?" sind eine Seite, über
+   * die man nachdenken kann. Es ist derselbe Inhalt – kein Feld entfällt,
+   * keins wird versteckt, nur die beiden ersten Abschnitte stehen offen.
+   */
+  const gruppen = gruppiere(tpl.fields.filter((f) => !f.anderswo));
+
   return (
-    <section className="space-y-4">
-      {tpl.fields.map((def) => (
-        <FieldRenderer
-          key={def.key}
-          def={def}
-          entry={entry}
-          value={entry.fields[def.key]}
-          onChange={(v) => setField(def.key, v)}
-        />
+    <div className="space-y-2">
+      {gruppen.map(({ gruppe, felder }) => (
+        <Abschnitt
+          key={gruppe.id}
+          label={gruppe.label}
+          offen={gruppe.offen}
+          /*
+           * Ein einziger Abschnitt braucht keine Überschrift – und kurze
+           * Vorlagen kommen von vornherein ohne Beschriftung zurück.
+           */
+          nackt={gruppen.length === 1 || !gruppe.label}
+          gefuellt={felder.filter((f) => hatWert(entry.fields[f.key])).length}
+          gesamt={felder.length}
+        >
+          <section className="space-y-4">
+            {felder.map((def) => (
+              <FieldRenderer
+                key={def.key}
+                def={def}
+                entry={entry}
+                value={entry.fields[def.key]}
+                onChange={(v) => setField(def.key, v)}
+              />
+            ))}
+          </section>
+        </Abschnitt>
       ))}
+    </div>
+  );
+}
+
+/** Steht in diesem Feld etwas? */
+function hatWert(v: FieldValue | undefined): boolean {
+  if (v === undefined || v === null) return false;
+  if (typeof v === 'string') return v.trim().length > 0;
+  if (Array.isArray(v)) return v.length > 0;
+  return v === true;
+}
+
+/**
+ * Ein Abschnitt, der sich öffnen lässt.
+ *
+ * Die Zahl daneben ist kein Fortschrittsbalken, sondern eine Auskunft: Wer
+ * zuklappt, soll wissen, ob darunter etwas steht. Ohne sie wäre jedes
+ * geschlossene Dreieck eine Frage.
+ */
+function Abschnitt({
+  label,
+  offen,
+  nackt,
+  gefuellt,
+  gesamt,
+  children,
+}: {
+  label: string;
+  offen: boolean;
+  nackt: boolean;
+  gefuellt: number;
+  gesamt: number;
+  children: React.ReactNode;
+}) {
+  const [auf, setAuf] = useState(offen || gefuellt > 0);
+  if (nackt) return <>{children}</>;
+
+  return (
+    <section className="border-t border-line pt-3 first:border-0 first:pt-0">
+      <button
+        type="button"
+        onClick={() => setAuf((o) => !o)}
+        aria-expanded={auf}
+        className="flex min-h-[40px] w-full items-center gap-2 text-left"
+      >
+        <ChevronDown
+          size={14}
+          className={cx(
+            'shrink-0 text-ink-faint transition-transform duration-300',
+            !auf && '-rotate-90',
+          )}
+        />
+        <span className="flex-1 text-[13px] font-medium uppercase tracking-wide text-ink-muted">
+          {label}
+        </span>
+        <span className="shrink-0 text-[12px] tabular-nums text-ink-faint">
+          {gefuellt > 0 ? `${gefuellt}/${gesamt}` : gesamt}
+        </span>
+      </button>
+      {auf && <div className="pb-3 pt-2">{children}</div>}
     </section>
   );
 }

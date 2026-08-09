@@ -9,12 +9,14 @@ import { Thumb } from '../images/Thumb';
 import { StatusPill } from '../entry/StatusPill';
 import { useStudio, livingEntries } from '../../store/useStudio';
 import { matchesQuery, scoreEntry, searchImages } from '../../lib/search';
+import { sucheBlaetter, sucheVerbindungen, sucheZeit } from '../../lib/suche';
 import { templateFor } from '../../lib/templates';
 import { relativeTime } from '../../lib/utils';
 
 export function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => void }) {
   const allEntries = useStudio((s) => s.entries);
   const images = useStudio((s) => s.images);
+  const relations = useStudio((s) => s.relations);
   // Was im Papierkorb liegt, taucht in der Suche nicht auf – dafür gibt es die Zeitleiste.
   const entries = useMemo(() => livingEntries(allEntries), [allEntries]);
   const [query, setQuery] = useState('');
@@ -43,7 +45,26 @@ export function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => 
     return searchImages(images, query).slice(0, 12);
   }, [images, query]);
 
-  const nothing = query.trim() && foundEntries.length === 0 && foundImages.length === 0;
+  /*
+   * Drei weitere Arten von Treffern. Sie stehen nach den Seiten, weil eine
+   * Seite fast immer das Gesuchte ist – aber sie stehen da, weil „1044" und
+   * „herrschte über" eben keine Seitentitel sind.
+   */
+  const byId = useMemo(() => new Map(entries.map((e) => [e.id, e])), [entries]);
+  const foundRelations = useMemo(
+    () => (query.trim() ? sucheVerbindungen(query, relations, byId) : []),
+    [query, relations, byId],
+  );
+  const foundTime = useMemo(() => (query.trim() ? sucheZeit(query) : undefined), [query]);
+  const foundSheets = useMemo(() => (query.trim() ? sucheBlaetter(query) : []), [query]);
+
+  const nothing =
+    query.trim() &&
+    foundEntries.length === 0 &&
+    foundImages.length === 0 &&
+    foundRelations.length === 0 &&
+    foundSheets.length === 0 &&
+    !foundTime;
 
   return (
     <Modal open={open} onClose={onClose} title="Suche" size="lg">
@@ -52,7 +73,7 @@ export function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => 
         <input
           ref={inputRef}
           className="input-base pl-10"
-          placeholder="Titel, Schlagwort, Asset-ID, Prompt …"
+          placeholder="Name, Jahr, Verbindung, Blatt …"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           autoComplete="off"
@@ -98,6 +119,61 @@ export function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => 
             </ul>
           </section>
 
+          {/* --------------------------------------------- Wohin es führt */}
+          {(foundSheets.length > 0 || foundTime) && (
+            <section>
+              <h3 className="mb-2 text-[13px] font-medium uppercase tracking-wide text-ink-muted">
+                Blätter
+              </h3>
+              <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line">
+                {foundTime && (
+                  <Zeile
+                    key="zeit"
+                    titel={foundTime.text}
+                    unten="Zeitstrahl · zu diesem Jahr springen"
+                    onClick={() => {
+                      onClose();
+                      navigate(`/zeitstrahl?jahr=${foundTime.jahr}`);
+                    }}
+                  />
+                )}
+                {foundSheets.map((b) => (
+                  <Zeile
+                    key={b.pfad}
+                    titel={b.titel}
+                    unten={b.hinweis}
+                    onClick={() => {
+                      onClose();
+                      navigate(b.pfad);
+                    }}
+                  />
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {/* ----------------------------------------------- Verbindungen */}
+          {foundRelations.length > 0 && (
+            <section>
+              <h3 className="mb-2 text-[13px] font-medium uppercase tracking-wide text-ink-muted">
+                Verbindungen ({foundRelations.length})
+              </h3>
+              <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line">
+                {foundRelations.map((v) => (
+                  <Zeile
+                    key={v.relation.id}
+                    titel={v.satz}
+                    unten={`${templateFor(v.von.type).label} → ${templateFor(v.nach.type).label}`}
+                    onClick={() => {
+                      onClose();
+                      navigate(`/eintrag/${v.von.id}`);
+                    }}
+                  />
+                ))}
+              </ul>
+            </section>
+          )}
+
           {foundImages.length > 0 && (
             <section>
               <h3 className="mb-2 text-[13px] font-medium uppercase tracking-wide text-ink-muted">
@@ -124,5 +200,31 @@ export function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => 
         </div>
       )}
     </Modal>
+  );
+}
+
+/** Eine Trefferzeile – überall gleich, damit die Liste ruhig bleibt. */
+function Zeile({
+  titel,
+  unten,
+  onClick,
+}: {
+  titel: string;
+  unten: string;
+  onClick: () => void;
+}) {
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex w-full items-center gap-3 bg-cream-50 px-3 py-2.5 text-left transition-colors hover:bg-cream-200"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[15px] text-ink">{titel}</span>
+          <span className="block truncate text-[13px] text-ink-muted">{unten}</span>
+        </span>
+      </button>
+    </li>
   );
 }

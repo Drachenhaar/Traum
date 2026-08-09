@@ -10,10 +10,9 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { BookOpen, Check, Copy, ImagePlus, Trash2 } from 'lucide-react';
+import { BookOpen, Check, ImagePlus } from 'lucide-react';
 import type { Entry, EntryStatus } from '../../types';
 import { ENTRY_STATUSES } from '../../types';
 import { useStudio } from '../../store/useStudio';
@@ -27,8 +26,8 @@ import { RelationPanel } from '../../components/relations/RelationPanel';
 import { PipelineBar } from '../../components/entry/PipelineBar';
 import { ImagePicker } from '../../components/images/ImagePicker';
 import { Thumb } from '../../components/images/Thumb';
-import { confirm } from '../../components/ui/Confirm';
 import { Spread } from '../../components/book/Spread';
+import { cx } from '../../lib/utils';
 
 export function EntryEditor({
   entry,
@@ -39,15 +38,14 @@ export function EntryEditor({
   onDone: () => void;
   pageLeft: number;
 }) {
-  const navigate = useNavigate();
   const entries = useStudio((s) => s.entries);
   const images = useStudio((s) => s.images);
   const updateEntry = useStudio((s) => s.updateEntry);
-  const duplicateEntry = useStudio((s) => s.duplicateEntry);
-  const deleteEntry = useStudio((s) => s.deleteEntry);
   const notify = useStudio((s) => s.notify);
 
   const [coverPickerOpen, setCoverPickerOpen] = useState(false);
+  /* Steht schon ein Ende da, ist die Frage beantwortet – dann bleibt es offen. */
+  const [endeOffen, setEndeOffen] = useState(() => Boolean(entry.ende?.trim()));
   const tpl = templateFor(entry.type);
 
   const defaults = useMemo<EntryMetaValues>(
@@ -135,23 +133,42 @@ export function EntryEditor({
 
             {/*
               Wann in der Welt.
-              Beide dürfen leer bleiben – ein Ort ohne Ende besteht bis heute,
-              eine Figur ohne Anfang war immer schon da. Das ist eine Aussage,
-              kein fehlender Wert, und wird auf dem Zeitstrahl auch so
-              gezeichnet: offen.
+
+              Ein Feld, nicht zwei. Die allermeisten Dinge einer Welt bestehen
+              noch – ein Dorf, ein Fluss, eine Familie – und fuer die ist ein
+              Endfeld eine Frage, die niemand gestellt hat. Wer ein Ende
+              braucht, klappt es auf; wer schon eines eingetragen hat, sieht es
+              sofort.
+
+              Beide duerfen leer bleiben. Ein Ort ohne Ende besteht bis heute,
+              eine Figur ohne Anfang war immer schon da – das ist eine Aussage,
+              kein fehlender Wert, und der Zeitstrahl zeichnet es auch so:
+              offen.
             */}
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className={cx('mt-4 grid gap-3', endeOffen && 'grid-cols-2')}>
               <Field label="Beginn">
                 <TextInput {...register('beginn')} onBlur={commit} placeholder="1032" />
               </Field>
-              <Field label="Ende">
-                <TextInput {...register('ende')} onBlur={commit} placeholder="1078" />
-              </Field>
+              {endeOffen && (
+                <Field label="Ende">
+                  <TextInput {...register('ende')} onBlur={commit} placeholder="1078" />
+                </Field>
+              )}
             </div>
+            {!endeOffen && (
+              <button
+                type="button"
+                onClick={() => setEndeOffen(true)}
+                className="mt-1.5 font-serif text-[13px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+              >
+                Und ein Ende?
+              </button>
+            )}
             <p className="mt-1.5 font-serif text-[12.5px] italic leading-relaxed text-ink-faint">
               Zeit in der Welt, nicht am Schreibtisch. Ein Jahr genügt; genauer geht mit{' '}
               <span className="whitespace-nowrap">1032-04</span> oder{' '}
-              <span className="whitespace-nowrap">12.4.1032</span>.
+              <span className="whitespace-nowrap">12.4.1032</span>. Wenn niemand es mehr
+              weiß: <span className="whitespace-nowrap">um 874</span>.
             </p>
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -267,44 +284,24 @@ export function EntryEditor({
               <RelationPanel entry={entry} />
             </section>
 
+            {/*
+              Duplizieren und Entfernen standen hier zwischen den Feldern.
+
+              Sie gehoeren nicht hierher: Beides betrifft die Seite als
+              Ganzes, nicht ihren Inhalt – und wer eine Seite loeschen will,
+              musste sie erst zum Bearbeiten oeffnen. Sie liegen jetzt auf der
+              gelesenen Seite unter „Mehr“, zusammen mit allem anderen, was
+              man an einer Seite tut statt in ihr. Hier bleibt der einzige
+              Weg, der wirklich zum Bearbeiten gehoert: fertig sein.
+            */}
             <section className="mt-10 border-t border-paper-300/70 pt-5">
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className="btn-ghost h-10 min-h-0 px-3 text-[14px]"
-                  onClick={async () => {
-                    const copy = await duplicateEntry(entry.id);
-                    if (copy) navigate(`/eintrag/${copy.id}`);
-                  }}
-                >
-                  <Copy size={15} /> Duplizieren
-                </button>
-                <button
-                  type="button"
-                  className="btn-ghost h-10 min-h-0 px-3 text-[14px]"
-                  onClick={finish}
-                >
-                  <BookOpen size={15} /> Lesen
-                </button>
-                <button
-                  type="button"
-                  className="btn-danger ml-auto h-10 min-h-0 px-3 text-[14px]"
-                  onClick={async () => {
-                    const ok = await confirm({
-                      title: `„${entry.title}“ aus dem Buch nehmen?`,
-                      message:
-                        'Die Seite wandert in den Papierkorb. Beziehungen und Fassungen bleiben erhalten – die Chronik im Anhang holt sie zurück.',
-                      confirmLabel: 'In den Papierkorb',
-                      danger: true,
-                    });
-                    if (!ok) return;
-                    await deleteEntry(entry.id);
-                    navigate('/inhalt');
-                  }}
-                >
-                  <Trash2 size={15} /> Entfernen
-                </button>
-              </div>
+              <button
+                type="button"
+                className="btn-ghost h-10 min-h-0 px-3 text-[14px]"
+                onClick={finish}
+              >
+                <BookOpen size={15} /> Fertig – weiterlesen
+              </button>
             </section>
           </>
         }

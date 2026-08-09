@@ -62,6 +62,20 @@ export interface Weltzeit {
    * ist ein Balken ueber zwoelf Monate, ein Tag ein Strich.
    */
   genauigkeit: 'jahr' | 'monat' | 'tag' | 'stunde';
+  /**
+   * „um 874", „ca. 1200", „gegen Ende des Jahres 1032".
+   *
+   * Unschaerfe ist etwas anderes als Ungenauigkeit. „1032" heisst: irgendwann
+   * in diesem Jahr, aber sicher in diesem. „um 1032" heisst: vielleicht auch
+   * 1029 – niemand weiss es mehr. Fuer eine Chronik ist das der haeufigste
+   * Fall ueberhaupt, und bis hierher hat das Buch solche Angaben schlicht
+   * verworfen: Wer „um 874" schrieb, bekam „nicht lesbar" und keinen Balken.
+   *
+   * Gerechnet wird mit dem genannten Jahr. Etwas anderes waere erfunden – ein
+   * Unschaerfebereich, den niemand angegeben hat. Die Angabe bleibt aber
+   * erhalten und darf spaeter weicher gezeichnet werden.
+   */
+  ungefaehr?: boolean;
 }
 
 /* ------------------------------------------------------------- Ordnung ---- */
@@ -136,6 +150,14 @@ const TAG_MONAT_JAHR = /^(\d{1,2})\s*\.\s*(\d{1,2})\s*\.\s*(-?\d{1,6})$/;
 const DAVOR = /\s*\b(?:v\.?\s*(?:z|chr|d\.?\s*f)|vor\s+der\s+zeit(?:rechnung)?)\.?\s*$/i;
 
 /**
+ * Unschaerfe am Anfang: „um 874", „ca. 1200", „etwa 1032".
+ *
+ * Am Zeilenanfang verankert, damit ein Ort namens „Um" oder ein Titel, in dem
+ * „etwa" vorkommt, nicht versehentlich zur Jahresangabe wird.
+ */
+const UNGEFAEHR = /^\s*(?:um|ca\.?|circa|etwa|gegen|vermutlich|wohl|ungefähr|ungefaehr)\s+/i;
+
+/**
  * Eine geschriebene Zeitangabe lesen.
  *
  * Gibt `undefined` zurueck, wenn sie sich nicht sicher deuten laesst – nie
@@ -149,8 +171,9 @@ export function leseZeit(text: string | undefined, k: Kalender = DEFAULT_KALENDE
   if (!roh) return undefined;
 
   const davor = DAVOR.test(roh);
+  const ungefaehr = UNGEFAEHR.test(roh);
   /* Alles ausser Ziffern, Trennern und Monatsnamen stoert beim Lesen. */
-  let rest = roh.replace(DAVOR, '').trim();
+  let rest = roh.replace(DAVOR, '').replace(UNGEFAEHR, '').trim();
 
   /*
    * Die Aera der Welt hinten abschneiden – „1032 n. d. F." ist dasselbe Jahr
@@ -180,7 +203,14 @@ export function leseZeit(text: string | undefined, k: Kalender = DEFAULT_KALENDE
   ): Weltzeit | undefined => {
     if (monat !== undefined && (monat < 1 || monat > k.monate)) return undefined;
     if (tag !== undefined && (tag < 1 || tag > k.tage)) return undefined;
-    return { jahr: vorzeichen(jahr), monat, tag, roh, genauigkeit };
+    return {
+      jahr: vorzeichen(jahr),
+      monat,
+      tag,
+      roh,
+      genauigkeit,
+      ...(ungefaehr ? { ungefaehr: true } : {}),
+    };
   };
 
   let m: RegExpMatchArray | null;
@@ -207,13 +237,15 @@ export function leseZeit(text: string | undefined, k: Kalender = DEFAULT_KALENDE
 export function schreibeZeit(z: Weltzeit, k: Kalender = DEFAULT_KALENDER): string {
   const jahr = Math.abs(z.jahr);
   const suffix = z.jahr < 0 ? ` ${k.aeraDavor}` : k.aera ? ` ${k.aera}` : '';
+  /* Die Unschaerfe gehoert zur Aussage und darf beim Zurueckschreiben nicht verlorengehen. */
+  const vorn = z.ungefaehr ? 'um ' : '';
 
-  if (z.genauigkeit === 'jahr' || z.monat === undefined) return `${jahr}${suffix}`;
+  if (z.genauigkeit === 'jahr' || z.monat === undefined) return `${vorn}${jahr}${suffix}`;
 
   const monat = k.monatsnamen[z.monat - 1] || `${z.monat}.`;
-  if (z.genauigkeit === 'monat' || z.tag === undefined) return `${monat} ${jahr}${suffix}`;
+  if (z.genauigkeit === 'monat' || z.tag === undefined) return `${vorn}${monat} ${jahr}${suffix}`;
 
-  return `${z.tag}. ${monat} ${jahr}${suffix}`;
+  return `${vorn}${z.tag}. ${monat} ${jahr}${suffix}`;
 }
 
 /** Nur das Jahr, wie es an der Achse steht. */
