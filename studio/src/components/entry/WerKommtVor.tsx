@@ -46,7 +46,8 @@ export function WerKommtVor({ entry }: { entry: Entry }) {
   const notify = useStudio((s) => s.notify);
 
   const [abgelehnt, setAbgelehnt] = useState<Set<string>>(new Set());
-  const [verbinden, setVerbinden] = useState(false);
+  /** Welcher Eintrag soll verbunden werden? `null` heisst: Blatt zu. */
+  const [verbinden, setVerbinden] = useState<string | null>(null);
 
   const entries = useMemo(() => livingEntries(alleEintraege), [alleEintraege]);
   const text = useMemo(() => seitenText(entry), [entry]);
@@ -61,11 +62,21 @@ export function WerKommtVor({ entry }: { entry: Entry }) {
 
   const ablehnen = (f: Fund) => setAbgelehnt((s) => new Set(s).add(f.id));
 
+  /*
+   * Anlegen laesst die Zeile stehen.
+   *
+   * Vorher verschwand sie – und mit ihr der Weg zum Verbinden, der doch
+   * genau der naechste Schritt ist. Jetzt gibt es den Eintrag, die
+   * Erkennung findet ihn beim naechsten Zeichnen als bekannt, und aus
+   * „Anlegen" wird „Verbinden".
+   */
   const anlegen = (f: Fund) => {
     void createEntry(f.type, { title: f.name })
-      .then(() => notify(`„${f.name}" steht jetzt im Buch.`, 'success'))
+      .then((neu) => {
+        notify(`„${f.name}" steht jetzt im Buch.`, 'success');
+        setVerbinden(neu.id);
+      })
       .catch((err) => notify(`Nicht angelegt: ${(err as Error).message}`, 'error'));
-    ablehnen(f);
   };
 
   return (
@@ -105,7 +116,7 @@ export function WerKommtVor({ entry }: { entry: Entry }) {
 
               <div className="mt-1.5 flex flex-wrap gap-1.5">
                 {f.vorhandenId ? (
-                  <Knopf onClick={() => setVerbinden(true)}>
+                  <Knopf onClick={() => setVerbinden(f.vorhandenId!)}>
                     <Link2 size={12} /> Verbinden
                   </Knopf>
                 ) : (
@@ -132,7 +143,12 @@ export function WerKommtVor({ entry }: { entry: Entry }) {
         in“ und „gehört zu“ sind nicht dasselbe, und der Weltgraph lebt genau
         von diesem Unterschied.
       */}
-      <RelationCreator open={verbinden} onClose={() => setVerbinden(false)} entry={entry} />
+      <RelationCreator
+        open={verbinden !== null}
+        onClose={() => setVerbinden(null)}
+        entry={entry}
+        presetPicked={verbinden ? [verbinden] : []}
+      />
     </>
   );
 }

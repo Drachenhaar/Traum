@@ -24,12 +24,21 @@ export function RelationCreator({
   /** Vorbelegte Beziehungsart, z. B. „folgt der Regel“ aus der DNA heraus */
   presetType,
   presetTargetTypes,
+  /**
+   * Vorbelegte Suche und Auswahl.
+   *
+   * Wer aus „Wer und was hier vorkommt" heraus verbindet, hat den Namen
+   * schon genannt – ihn hier noch einmal zu suchen waere derselbe Weg zum
+   * zweiten Mal.
+   */
+  presetPicked,
 }: {
   open: boolean;
   onClose: () => void;
   entry: Entry;
   presetType?: string;
   presetTargetTypes?: string[];
+  presetPicked?: string[];
 }) {
   const allEntries = useStudio((s) => s.entries);
   const addRelation = useStudio((s) => s.addRelation);
@@ -38,7 +47,7 @@ export function RelationCreator({
   const [type, setType] = useState(presetType ?? 'lives_in');
   const [reversed, setReversed] = useState(false);
   const [query, setQuery] = useState('');
-  const [picked, setPicked] = useState<string[]>([]);
+  const [picked, setPicked] = useState<string[]>(presetPicked ?? []);
 
   // Beim Öffnen zurücksetzen.
   const [wasOpen, setWasOpen] = useState(open);
@@ -48,7 +57,7 @@ export function RelationCreator({
       setType(presetType ?? 'lives_in');
       setReversed(false);
       setQuery('');
-      setPicked([]);
+      setPicked(presetPicked ?? []);
     }
   }
 
