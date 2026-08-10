@@ -23,6 +23,7 @@ import { Thumb, useImageUrl } from '../../components/images/Thumb';
 import { EntryEditor } from './EntryEditor';
 import { Mehr } from '../../components/ui/Mehr';
 import { Pfad } from '../../components/relations/Pfad';
+import { WerKommtVor } from '../../components/entry/WerKommtVor';
 import { PrintPreview } from '../../components/entry/PrintPreview';
 import { StoryMode } from '../../components/story/StoryMode';
 import { confirm } from '../../components/ui/Confirm';
@@ -375,6 +376,13 @@ export function EntrySpread() {
             entriesById={entriesById}
             heading={!entry.coverImage && palette.length === 0 && gallery.length === 0}
           />
+
+          {/*
+            Was im Text steht, aber noch nicht im Buch. Steht hier, weil es
+            zu den Verbindungen gehoert und nicht in den Lesefluss der
+            linken Seite.
+          */}
+          <WerKommtVor entry={entry} />
 
           <Zeitgenossen entry={entry} />
 
