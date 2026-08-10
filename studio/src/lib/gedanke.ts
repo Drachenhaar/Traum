@@ -198,3 +198,51 @@ export function errate(text: string): Vermutung | undefined {
   }
   return beste;
 }
+
+/* ------------------------------------------------- Art aus der Beziehung */
+
+/**
+ * Welche Art hat das Gegenueber einer Beziehung?
+ *
+ * Wer „lebt in" waehlt und dann „Wald" tippt, meint einen Ort – das sagt
+ * schon die Beziehung, ganz ohne das Wort anzusehen. Diese Tabelle ist
+ * deshalb die *erste* Auskunft; das Wortraten kommt erst danach.
+ *
+ * Nicht jede Beziehung sagt etwas. „enthaelt" kann auf alles zeigen, „ging
+ * voraus" auch. Wo nichts Sicheres steht, steht hier nichts – dann
+ * entscheidet das Wort, und wenn auch das schweigt, wird gefragt.
+ */
+const ZIEL_ART: Record<string, { hin?: string; her?: string }> = {
+  lives_in: { hin: 'location', her: 'character' },
+  grows_in: { hin: 'biome', her: 'plant' },
+  made_of: { hin: 'material' },
+  comes_from: { hin: 'location' },
+  wears: { hin: 'clothing', her: 'character' },
+  owns: { her: 'character' },
+  ruled: { hin: 'location', her: 'character' },
+  plays_at: { hin: 'location' },
+  pov: { hin: 'character' },
+  appears_in: { her: 'character' },
+  parent_of: { hin: 'character', her: 'character' },
+  married_to: { hin: 'character', her: 'character' },
+  related: { hin: 'character', her: 'character' },
+  causes: { hin: 'moment', her: 'moment' },
+  precedes: { hin: 'moment', her: 'moment' },
+  follows_dna: { hin: 'law' },
+  created_by: { hin: 'prompt' },
+};
+
+/**
+ * Die beste Vermutung fuer einen neuen Eintrag, den man mitten im Verbinden
+ * anlegt.
+ *
+ * Reihenfolge mit Absicht: erst die Beziehung, dann das Wort. „Nebelwald"
+ * unter „lebt in" ist ein Ort, auch wenn „wald" das ohnehin sagt; „Bum"
+ * unter „lebt in" ist ebenfalls ein Ort, obwohl das Wort nichts verraet.
+ * Umgekehrt hilft das Wort dort, wo die Beziehung schweigt.
+ */
+export function zielArt(beziehung: string, hinaus: boolean, name: string): string {
+  const ausBeziehung = hinaus ? ZIEL_ART[beziehung]?.hin : ZIEL_ART[beziehung]?.her;
+  if (ausBeziehung) return ausBeziehung;
+  return errate(name)?.type ?? 'page';
+}
