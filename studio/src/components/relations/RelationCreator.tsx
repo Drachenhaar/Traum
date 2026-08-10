@@ -6,13 +6,14 @@
  */
 
 import { useMemo, useState } from 'react';
-import { ArrowLeftRight, Check, Search } from 'lucide-react';
+import { ArrowLeftRight, Check, Plus, Search } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { EmptyState } from '../ui/EmptyState';
 import { Thumb } from '../images/Thumb';
 import { useStudio, livingEntries } from '../../store/useStudio';
 import { RELATION_TYPES, relationType } from '../../lib/relations';
 import { templateFor } from '../../lib/templates';
+import { zielArt } from '../../lib/gedanke';
 import { cx } from '../../lib/utils';
 import { Link2 } from 'lucide-react';
 import type { Entry } from '../../types';
@@ -43,6 +44,7 @@ export function RelationCreator({
   const allEntries = useStudio((s) => s.entries);
   const addRelation = useStudio((s) => s.addRelation);
   const notify = useStudio((s) => s.notify);
+  const createEntry = useStudio((s) => s.createEntry);
 
   const [type, setType] = useState(presetType ?? 'lives_in');
   const [reversed, setReversed] = useState(false);
@@ -62,6 +64,40 @@ export function RelationCreator({
   }
 
   const def = relationType(type);
+
+  /*
+   * Was noch nicht existiert, entsteht hier.
+   *
+   * Vorher stand an dieser Stelle „Es gibt noch keinen passenden Eintrag.
+   * Lege ihn zuerst an" – und genau das war der Bruch: Man wollte „Niko lebt
+   * in Wald" sagen, musste dafuer das Blatt schliessen, einen Ort anlegen,
+   * zurueckfinden und von vorn beginnen. Der Satz war im Kopf fertig, der
+   * Weg dorthin nicht.
+   *
+   * Die Art kommt aus der Beziehung, nicht aus dem Wort: Wer „lebt in"
+   * gewaehlt hat, meint einen Ort – auch wenn der Ort „Bum" heisst. Erst
+   * wenn die Beziehung schweigt, entscheidet das Wort.
+   */
+  const neuerName = query.trim();
+  const gibtEsSchon = useMemo(
+    () =>
+      livingEntries(allEntries).some(
+        (e) => e.title.trim().toLowerCase() === neuerName.toLowerCase(),
+      ),
+    [allEntries, neuerName],
+  );
+  const neueArt = neuerName ? zielArt(type, !reversed, neuerName) : '';
+
+  const legeAn = () => {
+    if (!neuerName) return;
+    void createEntry(neueArt, { title: neuerName })
+      .then((neu) => {
+        setPicked((prev) => [...prev, neu.id]);
+        setQuery('');
+        notify(`„${neu.title}" steht jetzt im Buch.`, 'success');
+      })
+      .catch((err) => notify(`Nicht angelegt: ${(err as Error).message}`, 'error'));
+  };
 
   const candidates = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -164,12 +200,39 @@ export function RelationCreator({
         />
       </div>
 
+      {/*
+        Das Angebot steht ueber der Liste, nicht darunter: Wer einen Namen
+        tippt, den es nicht gibt, sucht nicht weiter – er will ihn anlegen.
+      */}
+      {neuerName && !gibtEsSchon && (
+        <button
+          type="button"
+          onClick={legeAn}
+          className={cx(
+            'mb-3 flex w-full items-center gap-3 rounded-xl border border-dashed border-gild-500/45',
+            'bg-gild-400/5 px-3 py-3 text-left transition-colors hover:bg-gild-400/10 no-tap-highlight',
+          )}
+        >
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-cream-200 text-gild-600">
+            <Plus size={20} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[15px] text-ink">„{neuerName}" anlegen</span>
+            <span className="block truncate text-[13px] text-ink-muted">
+              als {templateFor(neueArt).label} – und gleich verbinden
+            </span>
+          </span>
+        </button>
+      )}
+
       {candidates.length === 0 ? (
-        <EmptyState
-          icon={Link2}
-          title="Nichts gefunden"
-          message="Es gibt noch keinen passenden Eintrag. Lege ihn zuerst an – dann kannst du ihn verbinden."
-        />
+        neuerName && !gibtEsSchon ? null : (
+          <EmptyState
+            icon={Link2}
+            title="Nichts gefunden"
+            message="Tippe einen Namen ein – was es noch nicht gibt, legst du gleich hier an."
+          />
+        )
       ) : (
         <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line">
           {candidates.map((e) => {
