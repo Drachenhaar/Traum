@@ -20,6 +20,8 @@ import { templateFor } from '../../lib/templates';
 import { chapterOfType } from '../../lib/book';
 import { datiere, spanne, weltzustand } from '../../lib/chronik/zustand';
 import { ausOrdnung, schreibeJahr } from '../../lib/chronik/zeit';
+import { epocheBei, epochen } from '../../lib/welt/epochen';
+import { weltsicht } from '../../lib/welt/abfrage';
 import { cx } from '../../lib/utils';
 
 /** So oft wird gerechnet, bis die Karte ruhig liegt. Danach nie wieder. */
@@ -141,6 +143,19 @@ export function FoldOutMap() {
 
   const spanneDerWelt = useMemo(() => spanne(datierte), [datierte]);
 
+  /*
+   * Die Zeitalter dieser Welt.
+   *
+   * Sie kosten nichts, wenn es keine gibt – dann ist die Liste leer und der
+   * Regler zeigt weiterhin die Jahreszahl. Wer welche angelegt hat, liest
+   * beim Ziehen ihren Namen statt einer Zahl, die ihm nichts sagt.
+   */
+  const zeitalter = useMemo(
+    () => epochen(weltsicht(entries, relations)),
+    [entries, relations],
+  );
+  const jetzigeEpoche = jahr === null ? undefined : epocheBei(zeitalter, jahr);
+
   const sichtbar = useMemo(() => {
     if (jahr === null) return null;
     const z = weltzustand(datierte, relations, jahr);
@@ -204,7 +219,9 @@ export function FoldOutMap() {
             </h1>
             <p className="mt-1 font-serif text-[12.5px] italic text-paper-400/50">
               {sichtbar
-                ? `${sichtbar.sterne.size} Sterne im Jahr ${schreibeJahr(ausOrdnung(jahr!).jahr)}`
+                ? jetzigeEpoche
+                  ? `${sichtbar.sterne.size} Sterne · ${jetzigeEpoche.entry.title}`
+                  : `${sichtbar.sterne.size} Sterne im Jahr ${schreibeJahr(ausOrdnung(jahr!).jahr)}`
                 : `${layout?.nodes.length ?? 0} Sterne · ${layout?.edges.length ?? 0} Linien`}
             </p>
             {/*
@@ -367,6 +384,16 @@ export function FoldOutMap() {
                 aria-label="Jahr wählen"
                 className="h-11 flex-1 cursor-pointer touch-none accent-gild-400"
               />
+            )}
+            {/*
+              Steht ein Zeitalter im Kopf, gehoert die Jahreszahl trotzdem
+              hierher – klein. Beides zusammen ist mehr als eines allein: Der
+              Name sagt, *wann* man ist, die Zahl, *wie weit* man gezogen hat.
+            */}
+            {jahr !== null && jetzigeEpoche && (
+              <span className="shrink-0 font-serif text-[11.5px] tabular-nums text-paper-400/45">
+                {schreibeJahr(ausOrdnung(jahr).jahr)}
+              </span>
             )}
           </div>
         )}

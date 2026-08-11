@@ -143,6 +143,7 @@ export function heileBeziehung(roh: unknown): Relation | null {
     note: typeof r.note === 'string' ? r.note : undefined,
     beginn: typeof r.beginn === 'string' ? r.beginn : undefined,
     ende: typeof r.ende === 'string' ? r.ende : undefined,
+    zeitnotiz: typeof r.zeitnotiz === 'string' ? r.zeitnotiz : undefined,
     createdAt: zahl(r.createdAt, Date.now()),
   };
 }

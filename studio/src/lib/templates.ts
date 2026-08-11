@@ -531,6 +531,50 @@ const BUILTIN: TemplateDef[] = [
       REFS,
     ],
   },
+  /*
+   * Die Epoche.
+   *
+   * Nicht jede Welt zaehlt in Jahren. „Zeitalter der Ersten Flamme" ist eine
+   * Zeitangabe wie „1032", nur eine, die man sich merken kann.
+   *
+   * Bewusst ein ganz normaler Eintragstyp und kein eigener Datenbestand: Eine
+   * Epoche hat einen Titel, eine Beschreibung, Bilder, Beziehungen und –
+   * entscheidend – dieselben Felder `beginn` und `ende` wie jeder andere
+   * Eintrag. Damit liegt sie automatisch auf dem Zeitstrahl, taucht in der
+   * Suche auf, laesst sich verknuepfen und wird mitgesichert. Ein eigener
+   * Speicher haette all das noch einmal gebraucht.
+   */
+  {
+    type: 'epoche',
+    label: 'Epoche',
+    labelPlural: 'Epochen',
+    newTitle: 'Ein neues Zeitalter',
+    icon: 'Hourglass',
+    accent: '#8C6510',
+    family: 'welt',
+    categories: ['Zeitalter', 'Ära', 'Dynastie', 'Krieg', 'Zwischenzeit', 'Gegenwart'],
+    fields: [
+      {
+        key: 'kennzeichen',
+        label: 'Woran man sie erkennt',
+        kind: 'textarea',
+        hint: 'Was war in dieser Zeit anders als davor – und woran hätte es ein Reisender gemerkt?',
+      },
+      {
+        key: 'wende',
+        label: 'Was sie beendet hat',
+        kind: 'textarea',
+        hint: 'Zeitalter enden selten leise. Was war der Bruch?',
+      },
+      {
+        key: 'quellen',
+        label: 'Was überliefert ist',
+        kind: 'textarea',
+        hint: 'Wer hat davon berichtet – und wie zuverlässig ist das?',
+      },
+      REFS,
+    ],
+  },
   {
     type: 'cycle',
     label: 'Kreislauf',
