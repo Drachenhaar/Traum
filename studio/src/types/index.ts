@@ -112,6 +112,15 @@ export type FieldValue = string | string[] | boolean;
 
 export interface Entry {
   id: string;
+  /**
+   * Zu welchem Buch dieser Eintrag gehört.
+   *
+   * Optional im Typ, aber nicht in den Daten: Beim Hereinkommen bekommt jeder
+   * Eintrag den seinen (siehe `lib/heilung.ts`), und die Datenbankfassung 3
+   * hat alle Bestandsdaten gestempelt. Das `?` steht hier nur, damit ältere
+   * Sicherungsdateien noch gelesen werden können, ohne dass der Typ lügt.
+   */
+  bookId?: string;
   title: string;
   subtitle: string;
   type: EntryType;
@@ -154,6 +163,15 @@ export interface Entry {
 
 export interface Relation {
   id: string;
+  /**
+   * Zu welchem Buch diese Verbindung gehört.
+   *
+   * Ableitbar wäre sie – über `fromId` hinge sie am Eintrag. Sie steht
+   * trotzdem hier, weil sonst kein Buch seine Kanten laden könnte, ohne
+   * vorher die Einträge *aller* Bücher zu lesen. Genau das soll die
+   * Bibliothek vermeiden.
+   */
+  bookId?: string;
   /** Ausgangseintrag */
   fromId: string;
   /** Zieleintrag */
@@ -180,6 +198,17 @@ export interface Relation {
 
 export interface StoredImageMeta {
   id: string;
+  /**
+   * In welches Buch dieses Bild gelegt wurde.
+   *
+   * Die Datei selbst (`StoredImageBlob`) trägt bewusst keine Buchzugehörigkeit
+   * – sie hängt an dieser Id, und ein Bild ein zweites Mal zu speichern, nur
+   * weil es in einem zweiten Buch vorkommt, wäre die teuerste denkbare
+   * Antwort. Soll ein Bild später in mehreren Büchern stehen, kommt eine
+   * Liste *daneben*; dieses Feld bleibt dann, was es ist: das Buch, in dem es
+   * zuerst lag.
+   */
+  bookId?: string;
   title: string;
   description: string;
   tags: string[];
@@ -210,6 +239,12 @@ export interface StoredImageBlob {
 /** Zeitpunkt-Aufnahme eines Eintrags – Grundlage für Zeitleiste und Rückkehr. */
 export interface Revision {
   id: string;
+  /**
+   * Buch. Über `entryId` wäre es meist ableitbar – aber gerade nicht dann,
+   * wenn man es braucht: Die Fassung eines endgültig entfernten Eintrags hat
+   * keinen Eintrag mehr, an dem sie hinge.
+   */
+  bookId?: string;
   entryId: string;
   at: number;
   /** Was ist passiert? „angelegt“, „bearbeitet“, „gelöscht“ … */
@@ -242,6 +277,8 @@ export interface CanvasItem {
 
 export interface CanvasBoard {
   id: string;
+  /** Buch. Ein Bogen hängt an keinem Eintrag, also steht es hier oder nirgends. */
+  bookId?: string;
   name: string;
   items: CanvasItem[];
   /** Kamera beim letzten Verlassen – man kehrt dorthin zurück */
@@ -326,6 +363,75 @@ export interface BookIdentity {
 }
 
 /**
+ * Ein Band in der Bibliothek.
+ *
+ * Dragoncore war ein Buch und ist jetzt eine Bibliothek. Das ist keine zweite
+ * Datenwelt: Es kommt genau eine Ebene *darüber*. Ein `LibraryBook` ist
+ * deshalb kein neues Objekt neben der Buchidentität, sondern dieselbe
+ * Identität, um das erweitert, was erst Sinn ergibt, wenn ein Buch neben
+ * anderen steht – wann es zuletzt offen lag, ob es im Regal steht oder im
+ * Archiv, welcher Welt und welcher Reihe es angehört.
+ *
+ * Und um seine eigenen Einstellungen. Das ist die zweite Entscheidung dieser
+ * Datei: Was einem Buch gehört – sein Weltname, sein Lesebändchen, seine
+ * Ziele, seine eigenen Typen –, steht im Buch. Was dem Gerät gehört – die
+ * Navigation, die Erinnerung ans Sichern –, bleibt in `Settings`. Vorher lag
+ * beides in derselben Zeile, was richtig war, solange es genau ein Buch gab.
+ */
+export interface LibraryBook extends BookIdentity {
+  /**
+   * Der Buchrücken. Was im Regal zu sehen ist, wenn das Buch geschlossen
+   * steht. Ohne eigenen Text steht dort der Titel.
+   */
+  spine?: { text?: string; ornament?: string };
+  /** Die Rückseite – ein Satz über dieses Buch, wie auf einem Klappentext. */
+  backCover?: { text?: string };
+  /** Wann es zuletzt aufgeschlagen wurde. Bestimmt, was vorne liegt. */
+  lastOpenedAt?: number;
+  /**
+   * Aus dem Regal genommen, nicht weggeworfen. Ein Buch kann Jahre Arbeit
+   * enthalten; das Löschen ist eine zweite, ausdrückliche Handlung.
+   */
+  archived?: boolean;
+  /**
+   * Die Welt, in der dieses Buch spielt.
+   *
+   * Noch ohne Wirkung – vorbereitet für den Tag, an dem ein Weltbuch und zwei
+   * Romane dieselbe Welt teilen. Bis dahin ist ein Buch seine eigene Welt,
+   * und das steht hier auch so: Jedes neue Buch bekommt eine eigene `worldId`.
+   */
+  worldId?: string;
+  /** Eine Reihe: „Mooshalde I, II, III". Noch ohne Verwaltung. */
+  seriesId?: string;
+  /**
+   * Die Ausrichtung – siehe `lib/onboarding/wege.ts`.
+   *
+   * Sie schaltet nichts frei und nichts ab. Sie entscheidet über Beispiele
+   * und Vorschläge, sonst nichts. Ein Traumbuch kann jederzeit eine Kampagne
+   * werden, ohne dass etwas verlorengeht.
+   */
+  weg?: string;
+
+  /* ------------------------------------------- Was dieses Buch ausmacht */
+
+  /** Der Name der Welt in diesem Buch. */
+  worldName: string;
+  worldTagline: string;
+  /** Wo das Buch zuletzt zugeklappt wurde – sein Lesebändchen. */
+  lastSpreadKey?: string;
+  /** Zuletzt geöffnete Seiten dieses Buches. */
+  recentIds: string[];
+  /** Wie oft eine Seite gelesen wurde – daraus entsteht die Abnutzung. */
+  visits?: Record<string, number>;
+  goals: CreativeGoal[];
+  customTypes: CustomTypeDef[];
+  promptTemplates?: StoredPromptTemplate[];
+  spiegelAus?: boolean;
+  spiegelVerlauf?: { at: number; motive: string[] }[];
+  leitfaden?: { an: boolean; erledigt: string[] };
+}
+
+/**
  * Die abweichende Fassung einer Prompt-Vorlage.
  *
  * Nur die Abweichung wird gespeichert – wer nichts ändert, bekommt spätere
@@ -337,14 +443,40 @@ export interface StoredPromptTemplate {
   updatedAt: number;
 }
 
+/**
+ * Die Einstellungen, wie die Oberfläche sie sieht.
+ *
+ * Achtung, hier stehen zwei Dinge in einem Objekt – absichtlich, und mit einer
+ * klaren Trennung dahinter:
+ *
+ *   **Global** (`nav`, `backupReminderDays`, `seedVersion`, `lastBackupAt`,
+ *   `activeBookId`) gehört dem Gerät. Es liegt in der Zeile `settings` der
+ *   Datenbank und gilt für die ganze Bibliothek.
+ *
+ *   **Buchbezogen** (`book`, `worldName`, `lastSpreadKey`, `goals`,
+ *   `customTypes`, `leitfaden` …) gehört dem aufgeschlagenen Buch. Es liegt
+ *   im `LibraryBook` selbst, in der Tabelle `books`.
+ *
+ * Der Store legt beides beim Laden übereinander und zerlegt jede Änderung
+ * wieder – siehe `lib/bibliothek.ts`. Für Seiten und Komponenten ändert sich
+ * dadurch nichts: `settings.worldName` ist weiterhin der Weltname, er gehört
+ * nur jetzt zu *diesem* Buch statt zum Gerät.
+ */
 export interface Settings {
   id: 'settings';
   nav: NavItem[];
   /**
-   * Das Buch selbst. Fehlt es, hat dieses Gerät noch keines – dann beginnt
-   * beim Start die Erschaffung statt das Lesen.
+   * Welches Buch aufgeschlagen ist. Fehlt es, steht man in der Bibliothek.
+   * Der einzige Ort, an dem das steht – jede buchbezogene Abfrage hängt hier.
    */
-  book?: BookIdentity;
+  activeBookId?: string;
+  /**
+   * Das aufgeschlagene Buch. Fehlt es, hat dieses Gerät noch keines – dann
+   * beginnt beim Start die Erschaffung statt das Lesen.
+   *
+   * Wird vom Store aus der Tabelle `books` eingelegt, nicht hier gespeichert.
+   */
+  book?: LibraryBook;
   /** Eigene Fassungen von Prompt-Vorlagen. */
   promptTemplates?: StoredPromptTemplate[];
   /**

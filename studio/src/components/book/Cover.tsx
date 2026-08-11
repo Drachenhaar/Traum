@@ -35,6 +35,7 @@ export function Cover({
   resumePage,
   resumeLabel,
   onOpen,
+  onRegal,
 }: {
   book: BookStructure;
   /** Der Einband, wie ihn der Verfasser erschaffen hat. */
@@ -43,6 +44,14 @@ export function Cover({
   resumePage?: number;
   resumeLabel?: string;
   onOpen: () => void;
+  /**
+   * Zurueck ins Regal.
+   *
+   * Fehlt, wenn dieses Geraet nur dieses eine Buch kennt: Ein Regal mit einem
+   * Band darin ist kein Regal, und ein Verweis darauf waere ein Umweg zu
+   * nichts. Erst ab dem zweiten Buch steht die Zeile hier.
+   */
+  onRegal?: () => void;
 }) {
   const [phase, setPhase] = useState<Phase>('zu');
   const timers = useRef<number[]>([]);
@@ -213,6 +222,18 @@ export function Cover({
 
           {resumeLabel && (
             <p className="mt-3 font-serif text-[12.5px] italic text-paper-400/50">{resumeLabel}</p>
+          )}
+
+          {onRegal && (
+            <div className="mt-7">
+              <button
+                type="button"
+                onClick={onRegal}
+                className="min-h-[40px] font-serif text-[13px] italic text-paper-400/45 transition-colors hover:text-gild-400 no-tap-highlight"
+              >
+                Deine anderen Bücher
+              </button>
+            </div>
           )}
 
           <p className="mt-8 font-serif text-[11.5px] tracking-[0.18em] text-paper-400/35">

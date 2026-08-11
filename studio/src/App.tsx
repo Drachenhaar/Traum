@@ -35,14 +35,16 @@ import { OwnershipSpread } from './pages/book/OwnershipSpread';
 import { MeinBuchSheet } from './pages/book/MeinBuch';
 import { Geburt } from './pages/geburt/Geburt';
 import { Onboarding } from './pages/onboarding/Onboarding';
+import { Bibliothek } from './pages/bibliothek/Bibliothek';
 import { useStudio } from './store/useStudio';
 import { buildBook } from './lib/book';
-import { hasBookIdentity } from './lib/bookIdentity';
+import { istEinBuch } from './lib/bibliothek';
 
 export default function App() {
   const ready = useStudio((s) => s.ready);
   const init = useStudio((s) => s.init);
   const identity = useStudio((s) => s.settings.book);
+  const books = useStudio((s) => s.books);
 
   /*
    * Ob die Erschaffung läuft, wird genau einmal entschieden – beim ersten
@@ -62,8 +64,15 @@ export default function App() {
   }, [init]);
 
   useEffect(() => {
-    if (ready && imWerden === null) setImWerden(!hasBookIdentity(identity));
-  }, [ready, identity, imWerden]);
+    /*
+     * Nur wer *gar keinen* Band besitzt, kommt in die Erschaffung. Wer Bücher
+     * hat, aber gerade keines aufgeschlagen – etwa, weil alle im Archiv
+     * stehen –, gehört in die Bibliothek und nicht an den Anfang: Ihm sein
+     * erstes Buch anzubieten, während seine im Regal stehen, wäre ein
+     * Schrecken, kein Empfang.
+     */
+    if (ready && imWerden === null) setImWerden(!istEinBuch(identity) && books.length === 0);
+  }, [ready, identity, books.length, imWerden]);
 
   if (!ready || imWerden === null) {
     return (
@@ -115,11 +124,41 @@ export default function App() {
     );
   }
 
+  /*
+   * Bücher, aber keines offen: Der Weg geht in die Bibliothek. Das ist der
+   * Zustand nach dem Löschen des letzten aufgeschlagenen Bandes oder wenn
+   * alles im Archiv steht.
+   */
+  if (!istEinBuch(identity)) {
+    return (
+      <HashRouter>
+        <Routes>
+          <Route path="/bibliothek" element={<Bibliothek />} />
+          <Route path="/neues-buch" element={<NeuesBuch />} />
+          <Route path="*" element={<Navigate to="/bibliothek" replace />} />
+        </Routes>
+        <ConfirmHost />
+        <Toasts />
+      </HashRouter>
+    );
+  }
+
   return (
     <HashRouter>
       <Routes>
         {/* Der Einband – der erste Bildschirm, ohne jede Software darum herum. */}
         <Route path="/" element={<CoverGate />} />
+
+        {/*
+          Die Bibliothek.
+
+          Sie steht neben dem Umschlag, nicht davor: Wer Dragoncore oeffnet,
+          haelt sein Buch in der Hand, nicht einen Regalplan. Erst wer es
+          zuklappt, sieht, was sonst noch dasteht. Siehe §34 – die Metapher
+          darf die Arbeit nicht verlangsamen.
+        */}
+        <Route path="/bibliothek" element={<Bibliothek />} />
+        <Route path="/neues-buch" element={<NeuesBuch />} />
 
         <Route element={<BookShell />}>
           {/* Die Besitzseite steht vor dem Vorwort – die erste Seite des Bandes. */}
@@ -169,7 +208,6 @@ export default function App() {
         <Route path="/bilder" element={<Navigate to="/tafelteil" replace />} />
         <Route path="/einstellungen" element={<Navigate to="/kolophon" replace />} />
         <Route path="/artbible" element={<Navigate to="/inhalt" replace />} />
-        <Route path="/bibliothek" element={<Navigate to="/inhalt" replace />} />
         <Route path="/dna" element={<Navigate to="/kapitel/essenz" replace />} />
 
         {/*
@@ -208,11 +246,31 @@ function NeuBinden() {
   return <Geburt modus="neubinden" onFertig={() => navigate('/mein-buch')} />;
 }
 
+/**
+ * Ein weiteres Buch.
+ *
+ * Dieselben Szenen wie bei der Erschaffung, andere Worte – und eine Szene
+ * mehr: die Ausrichtung. Am Ende liegt das neue Buch aufgeschlagen da; wer
+ * abbricht, steht wieder in der Bibliothek und hat nichts angelegt.
+ */
+function NeuesBuch() {
+  const navigate = useNavigate();
+  /*
+   * Direkt auf die erste Seite, nicht auf den Umschlag.
+   *
+   * „Schlag es auf" ist der letzte Satz der Zeremonie; wer darauf tippt, hat
+   * das Buch aufgeschlagen. Auf dem Umschlag zu landen und dort ein zweites
+   * Mal „Das Buch aufschlagen" zu lesen, nimmt dem Satz sein Wort.
+   */
+  return <Geburt modus="weiterer" onFertig={() => navigate('/besitz')} />;
+}
+
 function CoverGate() {
   const navigate = useNavigate();
   const entries = useStudio((s) => s.entries);
   const images = useStudio((s) => s.images);
   const settings = useStudio((s) => s.settings);
+  const books = useStudio((s) => s.books);
   const [book] = useState(() => buildBook(entries, images.length));
 
   const resume = useMemo(() => {
@@ -230,6 +288,13 @@ function CoverGate() {
    */
   const ziel = resume?.path ?? (settings.lastSpreadKey ? '/vorwort' : '/besitz');
 
+  /*
+   * Der Umschlag ist der geschlossene Zustand des Buches – und damit der
+   * Ort, an dem die Bibliothek sichtbar wird. Erst ab dem zweiten Band:
+   * Vorher gaebe es dort nichts zu sehen als dieses Buch.
+   */
+  const mehrereBaende = books.filter((b) => !b.archived).length > 1;
+
   return (
     <Cover
       book={book}
@@ -238,6 +303,7 @@ function CoverGate() {
       resumePage={resume?.page}
       resumeLabel={resume ? resume.label : undefined}
       onOpen={() => navigate(ziel)}
+      onRegal={mehrereBaende ? () => navigate('/bibliothek') : undefined}
     />
   );
 }

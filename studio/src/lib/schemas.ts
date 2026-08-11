@@ -183,6 +183,20 @@ export const backupSchema = z.object({
     })
     .passthrough()
     .optional(),
+
+  /*
+   * Die Bände.
+   *
+   * Fehlt dieses Feld, stammt die Datei aus der Zeit „ein Dragoncore = ein
+   * Buch". Genau daran erkennt der Import sie – und legt sie als *neues*
+   * Buch in die vorhandene Bibliothek, statt sie darüber zu schreiben.
+   *
+   * Steht ein einzelner Band darin, ist es eine Buchsicherung. Stehen
+   * mehrere, ist es die ganze Bibliothek.
+   */
+  books: z.array(z.record(z.unknown())).optional(),
+  /** `book` oder `library` – nur zur Erklärung, entschieden wird an `books`. */
+  kind: z.string().optional(),
 });
 
 export type BackupFile = z.infer<typeof backupSchema>;

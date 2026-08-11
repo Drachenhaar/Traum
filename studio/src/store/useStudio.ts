@@ -13,13 +13,13 @@
 import { create } from 'zustand';
 import { FRESH_SETTINGS, SEED_VERSION, db, wipeDatabase } from '../db/db';
 import type {
-  BookIdentity,
   Block,
   CanvasBoard,
   CreativeGoal,
   CustomTypeDef,
   Entry,
   EntryType,
+  LibraryBook,
   NavItem,
   Relation,
   Revision,
@@ -31,7 +31,13 @@ import { createBlock, duplicateBlock } from '../lib/blocks';
 import { deleteImage as deleteImageFiles } from '../lib/images';
 import { newId } from '../lib/utils';
 import { DEFAULT_NAV } from '../lib/nav';
-import { newBookIdentity } from '../lib/bookIdentity';
+import {
+  buchAusAltenEinstellungen,
+  neuesBuch,
+  regalfolge,
+  sichtbareEinstellungen,
+  zerlegeAenderung,
+} from '../lib/bibliothek';
 import { seedIfEmpty } from '../db/seed';
 import { buildRelationIndex, makeRelation, type RelationIndex } from '../lib/relations';
 import { kinderVon, naechsteOrdnung } from '../lib/roman/struktur';
@@ -56,7 +62,32 @@ interface StudioState {
   saving: boolean;
   savedAt: number;
 
+  /**
+   * Die Bibliothek: alle Bände, auch die archivierten.
+   *
+   * Sie liegt vollständig im Speicher, und das ist kein Widerspruch zu „nicht
+   * alle Bücher laden": Ein Band ist ein paar hundert Byte – Titel, Einband,
+   * Lesebändchen. Was Platz braucht, sind seine Einträge, und die kommen nur
+   * für das aufgeschlagene Buch.
+   */
+  books: LibraryBook[];
+  /** Welches Buch aufgeschlagen ist. Alles unten hängt daran. */
+  activeBookId?: string;
+
   init: () => Promise<void>;
+
+  /* Die Bibliothek */
+  oeffneBuch: (id: string) => Promise<void>;
+  schliesseBuch: () => void;
+  erstelleBuch: (patch?: Partial<LibraryBook>) => Promise<LibraryBook>;
+  archiviereBuch: (id: string, archiviert: boolean) => Promise<void>;
+  dupliziereBuch: (id: string) => Promise<LibraryBook | null>;
+  loescheBuch: (id: string) => Promise<void>;
+  /**
+   * Zu welchem Buch gehört diese Seite? Für Verweise, die aus einem anderen
+   * Buch kommen – siehe `components/book/BuchWeiche.tsx`.
+   */
+  buchVonEintrag: (entryId: string) => Promise<string | undefined>;
 
   /* Einträge */
   createEntry: (type: EntryType, patch?: Partial<Entry>) => Promise<Entry>;
@@ -108,7 +139,7 @@ interface StudioState {
   restoreRevision: (revisionId: string) => Promise<void>;
 
   /* Das Buch selbst */
-  saveBook: (patch: Partial<BookIdentity>) => BookIdentity;
+  saveBook: (patch: Partial<LibraryBook>) => LibraryBook;
   savePromptTemplate: (id: string, content: string) => void;
   resetPromptTemplate: (id: string) => void;
 
@@ -183,6 +214,9 @@ async function recordRevision(entry: Entry, action: Revision['action'], summary:
   try {
     await db.revisions.put({
       id: newId('rev'),
+      /* Die Fassung gehoert dem Buch, nicht nur dem Eintrag – sonst waere sie
+         nach dem endgueltigen Loeschen des Eintrags heimatlos. */
+      bookId: entry.bookId,
       entryId: entry.id,
       at: now,
       action,
@@ -198,6 +232,60 @@ async function recordRevision(entry: Entry, action: Revision['action'], summary:
   } catch (err) {
     console.error('Fassung konnte nicht abgelegt werden', err);
   }
+}
+
+/**
+ * Alles, was noch zu keinem Buch gehört, diesem zuschlagen.
+ *
+ * Das Netz unter der Datenbankaufwertung. Die Tabellen stehen einzeln da und
+ * nicht in einer Schleife, weil Dexies Tabellentypen sich nicht zu einem
+ * gemeinsamen Aufruf vereinigen lassen – eine Schleife bräuchte hier ein
+ * `as never`, und das wäre genau an der Stelle gelogen, an der die Daten
+ * eines Menschen umgeschrieben werden.
+ */
+async function stempele(bookId: string): Promise<void> {
+  const ohneBuch = <T extends { bookId?: string }>(z: T) => !z.bookId;
+
+  const entries = await db.entries.filter(ohneBuch).toArray();
+  if (entries.length) await db.entries.bulkPut(entries.map((z) => ({ ...z, bookId })));
+
+  const relations = await db.relations.filter(ohneBuch).toArray();
+  if (relations.length) await db.relations.bulkPut(relations.map((z) => ({ ...z, bookId })));
+
+  const images = await db.images.filter(ohneBuch).toArray();
+  if (images.length) await db.images.bulkPut(images.map((z) => ({ ...z, bookId })));
+
+  const boards = await db.boards.filter(ohneBuch).toArray();
+  if (boards.length) await db.boards.bulkPut(boards.map((z) => ({ ...z, bookId })));
+
+  const revisions = await db.revisions.filter(ohneBuch).toArray();
+  if (revisions.length) await db.revisions.bulkPut(revisions.map((z) => ({ ...z, bookId })));
+}
+
+/**
+ * Liegt hier etwas herrenlos herum?
+ *
+ * Ein Eintrag ohne Buch ist seit der Bibliothek unsichtbar – keine Ansicht
+ * fragt nach ihm, kein Register führt ihn, keine Suche findet ihn. Er ist
+ * nicht gelöscht, aber er ist fort, und das ist der schlimmere Fall: Es gibt
+ * keine Meldung und keinen Papierkorb, aus dem man ihn holen könnte.
+ *
+ * Deshalb wird bei jedem Start nachgesehen. Nicht durch Lesen aller Einträge
+ * – das wären bei zehntausend Seiten mehrere Sekunden vor dem ersten Bild –,
+ * sondern durch zwei Zählungen über den Index: Was insgesamt da ist gegen
+ * das, was allen Bänden zusammen gehört. Stimmen sie überein, war es das.
+ *
+ * Erst wenn sie auseinandergehen, wird gesucht und geheilt. Das kostet dann
+ * einen Durchlauf – einmal, und danach nie wieder.
+ */
+async function findeHerrenloses(buecher: LibraryBook[]): Promise<boolean> {
+  const gesamt = await db.entries.count();
+  if (gesamt === 0) return false;
+  let zugeordnet = 0;
+  for (const b of buecher) {
+    zugeordnet += await db.entries.where('bookId').equals(b.id).count();
+  }
+  return zugeordnet < gesamt;
 }
 
 /* ------------------------------------------------------------------- Store */
@@ -257,9 +345,49 @@ export const useStudio = create<StudioState>((set, get) => {
     set({ relations, relIndex: buildRelationIndex(relations) });
   };
 
-  const persistSettings = (settings: Settings) => {
-    set({ settings });
-    void db.settings.put(settings);
+  /**
+   * Einstellungen ablegen – an zwei Orten, aus einem Aufruf.
+   *
+   * Jede Stelle im Projekt schreibt weiterhin `persistSettings({ ...settings,
+   * irgendwas })`, so wie es sie schon immer getan hat. Was sich geändert
+   * hat, liegt hier: Der Weltname landet im Band, die Erinnerung ans Sichern
+   * im Gerät. Welcher Schlüssel wohin gehört, steht an genau einer Stelle –
+   * in `BUCH_SCHLUESSEL`.
+   *
+   * Der Grund für diesen Trichter: Die Trennung nach §24 des Auftrags soll in
+   * den *Daten* stehen, nicht in fünfzig Komponenten. Wer sie in die
+   * Komponenten trägt, hat sie fünfzigmal, und beim einundfünfzigsten Mal
+   * falsch.
+   */
+  const persistSettings = (naechste: Settings) => {
+    const { global, buch } = zerlegeAenderung(naechste);
+    const zeile = { ...FRESH_SETTINGS, ...global, id: 'settings' as const };
+    void db.settings.put(zeile);
+
+    const aktiv = naechste.book;
+    if (!aktiv) {
+      set({ settings: { ...naechste, ...zeile, book: undefined } });
+      return;
+    }
+    const band: LibraryBook = { ...aktiv, ...buch };
+    set((s) => ({
+      settings: { ...naechste, book: band },
+      books: s.books.map((b) => (b.id === band.id ? band : b)),
+    }));
+    void db.books.put(band);
+  };
+
+  /** Die Daten eines Buches holen – und nur die. */
+  const ladeBuchinhalt = async (bookId: string) => {
+    const [roheEintraege, roheKanten, images, boards] = await Promise.all([
+      db.entries.where('bookId').equals(bookId).toArray(),
+      db.relations.where('bookId').equals(bookId).toArray(),
+      db.images.where('bookId').equals(bookId).toArray(),
+      db.boards.where('bookId').equals(bookId).toArray(),
+    ]);
+    const entries = heileEintraege(roheEintraege);
+    const relations = heileBeziehungen(roheKanten);
+    return { entries, relations, images, boards };
   };
 
   return {
@@ -270,6 +398,8 @@ export const useStudio = create<StudioState>((set, get) => {
     images: [],
     boards: [],
     settings: DEFAULT_SETTINGS,
+    books: [],
+    activeBookId: undefined,
     toasts: [],
     saving: false,
     savedAt: 0,
@@ -279,10 +409,65 @@ export const useStudio = create<StudioState>((set, get) => {
 
       initPromise = (async () => {
         try {
-          const stored = await db.settings.get('settings');
-          const settings: Settings = stored
+          const [stored, buecher] = await Promise.all([
+            db.settings.get('settings'),
+            db.books.toArray(),
+          ]);
+          const global: Settings = stored
             ? { ...DEFAULT_SETTINGS, ...stored, nav: mergeNav(stored.nav) }
             : DEFAULT_SETTINGS;
+
+          /*
+           * Der Nachzügler.
+           *
+           * Die Datenbankfassung 3 macht aus einem alten Einzelbuch den ersten
+           * Band der Bibliothek – aber nur, wenn sie überhaupt läuft. Eine
+           * Installation, die zwischendurch schon auf Fassung 3 gehoben wurde
+           * und *danach* erst ein Buch bekam (etwa durch das Zurückspielen
+           * einer alten Sicherung), hätte Inhalte ohne Band. Deshalb steht die
+           * Übernahme hier ein zweites Mal – als Netz, nicht als Regel.
+           */
+          if (!buecher.length && (stored?.book || (stored && wirktBenutzt(global)))) {
+            const erster = buchAusAltenEinstellungen(stored as unknown as Record<string, unknown>);
+            await db.books.put(erster);
+            buecher.push(erster);
+            global.activeBookId = erster.id;
+            await stempele(erster.id);
+          }
+
+          /*
+           * Und ein Netz darunter.
+           *
+           * Was aus irgendeinem Grund ohne Band in der Datenbank liegt – ein
+           * abgebrochener Import, eine Sicherung aus einer Zwischenfassung,
+           * ein Fehler, den wir noch nicht kennen –, wäre unsichtbar. Es
+           * bekommt das Buch, das gerade vorne liegt.
+           *
+           * Das ist eine Vermutung, und sie kann bei mehreren Bänden das
+           * falsche Buch treffen. Sie ist trotzdem richtig: Eine Seite im
+           * falschen Buch kann man verschieben. Eine Seite in keinem Buch
+           * findet niemand je wieder.
+           */
+          if (buecher.length && (await findeHerrenloses(buecher))) {
+            const heimat =
+              buecher.find((b) => b.id === global.activeBookId && !b.archived) ??
+              regalfolge(buecher.filter((b) => !b.archived))[0] ??
+              buecher[0];
+            await stempele(heimat.id);
+          }
+
+          /*
+           * Welches Buch liegt offen?
+           *
+           * Das zuletzt aufgeschlagene, wenn es das noch gibt – sonst das
+           * vorderste im Regal. Nie eines, das im Archiv steht: Wer ein Buch
+           * weggeräumt hat, will es beim nächsten Start nicht wieder in der
+           * Hand halten.
+           */
+          const offen =
+            buecher.find((b) => b.id === global.activeBookId && !b.archived) ??
+            regalfolge(buecher.filter((b) => !b.archived))[0];
+          global.activeBookId = offen?.id;
 
           /*
            * Beispieldaten nur noch für Bestandsinstallationen.
@@ -296,39 +481,14 @@ export const useStudio = create<StudioState>((set, get) => {
            * Die Saatversion wird trotzdem gesetzt, sonst holte der nächste
            * Start das Impfen nach, sobald ein Buch existiert.
            */
-          if (settings.book || wirktBenutzt(settings)) {
-            const seeded = await seedIfEmpty(settings.seedVersion);
-            if (seeded) settings.seedVersion = seeded;
+          if (offen) {
+            const seeded = await seedIfEmpty(global.seedVersion, offen.id);
+            if (seeded) global.seedVersion = seeded;
           } else {
-            settings.seedVersion = SEED_VERSION;
+            global.seedVersion = SEED_VERSION;
           }
 
-          /*
-           * Bestandsübernahme.
-           *
-           * Die Buchidentität gibt es erst seit kurzem. Wer das Artbook schon
-           * benutzt hat, bekäme ohne diese Zeilen beim nächsten Start die
-           * Erschaffung eines neuen Buches vorgesetzt – „Jede Welt beginnt mit
-           * einem leeren Buch" – und müsste glauben, seine sei fort. Sie ist
-           * es nicht; es fehlt nur der Einband.
-           *
-           * Also wird er aus dem gemacht, was schon da ist: aus dem Weltnamen,
-           * dem Untertitel und dem Zeichen, das dieses Buch bisher trug.
-           *
-           * Nur bei sichtbaren Spuren von Gebrauch. Eine frische Installation
-           * hat zwar Beispieldaten, aber kein Lesebändchen, keine zuletzt
-           * geöffneten Seiten und den unveränderten Weltnamen – die soll die
-           * Erschaffung sehen, denn für sie ist sie gedacht.
-           */
-          if (!settings.book && wirktBenutzt(settings)) {
-            settings.book = newBookIdentity({
-              title: settings.worldName?.trim() || 'Dragoncore',
-              subtitle: settings.worldTagline ?? '',
-              emblemType: 'preset',
-              emblemId: 'dragoncore',
-            });
-          }
-
+          const settings = sichtbareEinstellungen(global, offen);
           setCustomTypes(settings.customTypes ?? []);
 
           /*
@@ -340,24 +500,21 @@ export const useStudio = create<StudioState>((set, get) => {
            * um beim Zeichnen die ganze Seite zu reissen. Hier ist die einzige
            * Stelle, an der Daten hereinkommen – also wird hier einmal geheilt
            * und danach darf sich jede Seite darauf verlassen.
+           *
+           * Geladen wird nur, was zum offenen Band gehört. Neunzehn andere
+           * Bücher dürfen tausende Einträge haben; sie kosten hier nichts.
            */
-          const [roheEintraege, roheKanten, images, boards] = await Promise.all([
-            db.entries.toArray(),
-            db.relations.toArray(),
-            db.images.toArray(),
-            db.boards.toArray(),
-          ]);
-          const entries = heileEintraege(roheEintraege);
-          const relations = heileBeziehungen(roheKanten);
+          const inhalt = offen
+            ? await ladeBuchinhalt(offen.id)
+            : { entries: [], relations: [], images: [], boards: [] };
 
-          await db.settings.put(settings);
+          await db.settings.put({ ...FRESH_SETTINGS, ...zerlegeAenderung(settings).global, id: 'settings' });
           set({
-            entries,
-            relations,
-            relIndex: buildRelationIndex(relations),
-            images,
-            boards,
+            ...inhalt,
+            relIndex: buildRelationIndex(inhalt.relations),
             settings,
+            books: buecher,
+            activeBookId: offen?.id,
             ready: true,
           });
         } catch (err) {
@@ -373,6 +530,198 @@ export const useStudio = create<StudioState>((set, get) => {
       return initPromise;
     },
 
+    /* ------------------------------------------------------- Bibliothek */
+
+    /**
+     * Ein Buch aufschlagen.
+     *
+     * Zwei Dinge passieren gleichzeitig, und beide sind wichtig: Der Inhalt
+     * des alten Buches verlässt den Speicher, und der des neuen kommt herein.
+     * Erst dadurch bleibt eine Bibliothek aus zwanzig Bänden so schnell wie
+     * ein einzelnes Buch.
+     */
+    async oeffneBuch(id) {
+      const buch = get().books.find((b) => b.id === id);
+      if (!buch) {
+        get().notify('Dieses Buch steht nicht mehr im Regal.', 'error');
+        return;
+      }
+      /* Ausstehende Schreibvorgaenge gehoeren noch zum alten Buch. */
+      await flushNow(setSaving);
+      lastRevisionAt.clear();
+
+      const geoeffnet: LibraryBook = { ...buch, lastOpenedAt: Date.now() };
+      const inhalt = await ladeBuchinhalt(id);
+      const global = { ...get().settings, activeBookId: id };
+      const settings = sichtbareEinstellungen(global, geoeffnet);
+      setCustomTypes(settings.customTypes ?? []);
+      set((s) => ({
+        ...inhalt,
+        relIndex: buildRelationIndex(inhalt.relations),
+        settings,
+        activeBookId: id,
+        books: s.books.map((b) => (b.id === id ? geoeffnet : b)),
+      }));
+      await db.books.put(geoeffnet);
+      await db.settings.put({
+        ...FRESH_SETTINGS,
+        ...zerlegeAenderung(settings).global,
+        id: 'settings',
+      });
+    },
+
+    /**
+     * Ein Buch zuklappen.
+     *
+     * Es bleibt aktiv – wer die Bibliothek nur ansieht und dasselbe Buch
+     * wieder aufschlägt, soll nicht neu laden müssen. Aufgeräumt wird erst,
+     * wenn ein anderes geöffnet wird.
+     */
+    schliesseBuch() {
+      void flushNow(setSaving);
+    },
+
+    async erstelleBuch(patch = {}) {
+      const buch = neuesBuch(patch);
+      await db.books.put(buch);
+      set((s) => ({ books: [...s.books, buch] }));
+      return buch;
+    },
+
+    async archiviereBuch(id, archiviert) {
+      const buch = get().books.find((b) => b.id === id);
+      if (!buch) return;
+      const naechstes = { ...buch, archived: archiviert, updatedAt: Date.now() };
+      set((s) => ({ books: s.books.map((b) => (b.id === id ? naechstes : b)) }));
+      await db.books.put(naechstes);
+      get().notify(
+        archiviert ? `„${buch.title}“ steht jetzt im Archiv.` : `„${buch.title}“ steht wieder im Regal.`,
+        'success',
+      );
+    },
+
+    /**
+     * Ein Buch abschreiben.
+     *
+     * Alles bekommt neue Kennungen, sonst zeigten die Beziehungen der Kopie
+     * auf die Einträge des Originals – und zwei Bücher teilten sich still
+     * ihre Welt. Bilder werden *nicht* zweitgeschrieben: Die Datei bleibt
+     * eine, beide Bände zeigen darauf.
+     */
+    async dupliziereBuch(id) {
+      const quelle = get().books.find((b) => b.id === id);
+      if (!quelle) return null;
+      const kopie = neuesBuch({
+        ...quelle,
+        id: undefined as unknown as string,
+        title: `${quelle.title} (Abschrift)`,
+        worldId: quelle.worldId,
+        lastSpreadKey: undefined,
+        archived: false,
+      });
+      kopie.id = `buch_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+
+      const [entries, relations, images, boards] = await Promise.all([
+        db.entries.where('bookId').equals(id).toArray(),
+        db.relations.where('bookId').equals(id).toArray(),
+        db.images.where('bookId').equals(id).toArray(),
+        db.boards.where('bookId').equals(id).toArray(),
+      ]);
+
+      const neueId = new Map(entries.map((e) => [e.id, newId('e')]));
+      const kopierteEintraege = entries.map((e) => ({
+        ...clone(e),
+        id: neueId.get(e.id)!,
+        bookId: kopie.id,
+      }));
+      const kopierteKanten = relations
+        .filter((r) => neueId.has(r.fromId) && neueId.has(r.toId))
+        .map((r) => ({
+          ...clone(r),
+          id: newId('rel'),
+          bookId: kopie.id,
+          fromId: neueId.get(r.fromId)!,
+          toId: neueId.get(r.toId)!,
+        }));
+      /*
+       * Bilder bekommen einen zweiten Datensatz, aber keine zweite Datei:
+       * Die Metadaten gehoeren dem Buch, der Blob gehoert der Kennung – und
+       * die bleibt dieselbe. Ein Artbook zu verdoppeln kostet so ein paar
+       * Kilobyte statt ein paar hundert Megabyte.
+       */
+      const kopierteBilder = images.map((m) => ({ ...m, bookId: kopie.id }));
+      const kopierteBoegen = boards.map((b) => ({
+        ...clone(b),
+        id: newId('board'),
+        bookId: kopie.id,
+      }));
+
+      await db.transaction('rw', [db.books, db.entries, db.relations, db.images, db.boards], async () => {
+        await db.books.put(kopie);
+        if (kopierteEintraege.length) await db.entries.bulkPut(kopierteEintraege);
+        if (kopierteKanten.length) await db.relations.bulkPut(kopierteKanten);
+        if (kopierteBoegen.length) await db.boards.bulkPut(kopierteBoegen);
+        for (const m of kopierteBilder) await db.images.put(m);
+      });
+      set((s) => ({ books: [...s.books, kopie] }));
+      get().notify(`„${kopie.title}“ steht im Regal.`, 'success');
+      return kopie;
+    },
+
+    /**
+     * Ein Buch endgültig aus der Bibliothek nehmen.
+     *
+     * Die zweite, ausdrückliche Handlung nach dem Archivieren. Hier ist
+     * nichts mehr zurückzuholen, deshalb fragt die Oberfläche davor.
+     */
+    async loescheBuch(id) {
+      const buch = get().books.find((b) => b.id === id);
+      const bilder = await db.images.where('bookId').equals(id).primaryKeys();
+      await db.transaction(
+        'rw',
+        [db.books, db.entries, db.relations, db.images, db.imageBlobs, db.boards, db.revisions],
+        async () => {
+          await db.entries.where('bookId').equals(id).delete();
+          await db.relations.where('bookId').equals(id).delete();
+          await db.boards.where('bookId').equals(id).delete();
+          await db.revisions.where('bookId').equals(id).delete();
+          await db.images.where('bookId').equals(id).delete();
+          /*
+           * Die Dateien nur, wenn kein anderes Buch mehr auf sie zeigt.
+           * Nach einer Abschrift tun das zwei.
+           */
+          for (const bildId of bilder as string[]) {
+            const nochDa = await db.images.where('id').equals(bildId).count();
+            if (!nochDa) await db.imageBlobs.delete(bildId);
+          }
+          await db.books.delete(id);
+        },
+      );
+      set((s) => ({ books: s.books.filter((b) => b.id !== id) }));
+      if (get().activeBookId === id) {
+        set({ entries: [], relations: [], relIndex: buildRelationIndex([]), images: [], boards: [] });
+        const naechstes = regalfolge(get().books.filter((b) => !b.archived))[0];
+        if (naechstes) await get().oeffneBuch(naechstes.id);
+        else set({ activeBookId: undefined, settings: { ...get().settings, book: undefined } });
+      }
+      if (buch) get().notify(`„${buch.title}“ ist aus der Bibliothek genommen.`, 'success');
+    },
+
+    /**
+     * Zu welchem Buch gehört diese Seite?
+     *
+     * Für Verweise von außen. Eintragskennungen sind über die ganze
+     * Bibliothek eindeutig, also lässt sich zu jeder Adresse das Buch finden
+     * – auch zu einer aus einem Band, der gerade nicht offen liegt. Deshalb
+     * musste die Buchkennung nicht in jede Adresse.
+     */
+    async buchVonEintrag(entryId) {
+      const hier = get().entries.find((e) => e.id === entryId);
+      if (hier) return hier.bookId ?? get().activeBookId;
+      const gespeichert = await db.entries.get(entryId);
+      return gespeichert?.bookId;
+    },
+
     /* --------------------------------------------------------- Einträge */
 
     async createEntry(type, patch = {}) {
@@ -380,6 +729,7 @@ export const useStudio = create<StudioState>((set, get) => {
       const tpl = templateFor(type);
       const entry: Entry = {
         id: newId('e'),
+        bookId: get().activeBookId,
         title: patch.title ?? tpl.newTitle,
         subtitle: '',
         type,
@@ -416,6 +766,7 @@ export const useStudio = create<StudioState>((set, get) => {
       const copy: Entry = {
         ...clone(source),
         id: newId('e'),
+        bookId: get().activeBookId,
         title: `${source.title} (Kopie)`,
         createdAt: now,
         updatedAt: now,
@@ -428,14 +779,15 @@ export const useStudio = create<StudioState>((set, get) => {
       // Welt wäre ein loses Blatt.
       const inherited = get()
         .relations.filter((r) => r.fromId === id || r.toId === id)
-        .map((r) =>
-          makeRelation(
+        .map((r) => ({
+          ...makeRelation(
             r.fromId === id ? copy.id : r.fromId,
             r.toId === id ? copy.id : r.toId,
             r.type,
             r.note,
           ),
-        );
+          bookId: get().activeBookId,
+        }));
       if (inherited.length) {
         await db.relations.bulkPut(inherited);
         commitRelations([...get().relations, ...inherited]);
@@ -505,7 +857,7 @@ export const useStudio = create<StudioState>((set, get) => {
           ((r.fromId === fromId && r.toId === toId) || (r.fromId === toId && r.toId === fromId)),
       );
       if (exists) return;
-      const rel = makeRelation(fromId, toId, type, note);
+      const rel = { ...makeRelation(fromId, toId, type, note), bookId: get().activeBookId };
       commitRelations([...get().relations, rel]);
       void db.relations.put(rel);
     },
@@ -541,7 +893,10 @@ export const useStudio = create<StudioState>((set, get) => {
     setSingleRelation(fromId, type, toId) {
       const uebrig = get().relations.filter((r) => !(r.fromId === fromId && r.type === type));
       const entfernt = get().relations.filter((r) => r.fromId === fromId && r.type === type);
-      const naechste = toId && toId !== fromId ? [...uebrig, makeRelation(fromId, toId, type)] : uebrig;
+      const naechste =
+        toId && toId !== fromId
+          ? [...uebrig, { ...makeRelation(fromId, toId, type), bookId: get().activeBookId }]
+          : uebrig;
       commitRelations(naechste);
       void db.transaction('rw', db.relations, async () => {
         if (entfernt.length) await db.relations.bulkDelete(entfernt.map((r) => r.id));
@@ -709,6 +1064,7 @@ export const useStudio = create<StudioState>((set, get) => {
       const now = Date.now();
       const board: CanvasBoard = {
         id: newId('board'),
+        bookId: get().activeBookId,
         name,
         items: [],
         camera: { x: 0, y: 0, zoom: 1 },
@@ -788,14 +1144,24 @@ export const useStudio = create<StudioState>((set, get) => {
      */
     saveBook(patch) {
       const alt = get().settings.book;
-      const book: BookIdentity = alt
+      const book: LibraryBook = alt
         ? { ...alt, ...patch, id: alt.id, createdAt: alt.createdAt, updatedAt: Date.now() }
-        : newBookIdentity(patch);
+        : neuesBuch(patch);
 
       const settings = { ...get().settings, book };
       if (book.title.trim()) settings.worldName = book.title.trim();
       if (book.subtitle?.trim()) settings.worldTagline = book.subtitle.trim();
 
+      /*
+       * Ein Buch, das es noch nicht gab, kommt hier in die Bibliothek – und
+       * wird sofort das aufgeschlagene. Das ist der Weg der Erschaffung: Sie
+       * kennt keine Bibliothek, sie schreibt ein Buch, und die Bibliothek
+       * nimmt es auf.
+       */
+      if (!alt) {
+        settings.activeBookId = book.id;
+        set((s) => ({ books: [...s.books, book], activeBookId: book.id }));
+      }
       persistSettings(settings);
       return book;
     },
@@ -860,24 +1226,35 @@ export const useStudio = create<StudioState>((set, get) => {
       persistSettings({ ...get().settings, goals });
     },
 
+    /**
+     * Alles noch einmal aus der Datenbank holen.
+     *
+     * Nach einem Import, nach einer Wiederherstellung, nach einer Heilung.
+     * Auch die Bibliothek wird neu gelesen – ein Import kann Baende gebracht
+     * haben, die es beim letzten Laden noch nicht gab.
+     */
     async reloadFromDb() {
-      const [roheEintraege, roheKanten, images, boards, settings] = await Promise.all([
-        db.entries.toArray(),
-        db.relations.toArray(),
-        db.images.toArray(),
-        db.boards.toArray(),
+      const [gespeichert, buecher] = await Promise.all([
         db.settings.get('settings'),
+        db.books.toArray(),
       ]);
-      const entries = heileEintraege(roheEintraege);
-      const relations = heileBeziehungen(roheKanten);
-      if (settings) setCustomTypes(settings.customTypes ?? []);
+      const global: Settings = gespeichert
+        ? { ...DEFAULT_SETTINGS, ...gespeichert, nav: mergeNav(gespeichert.nav) }
+        : { ...get().settings };
+      const offen =
+        buecher.find((b) => b.id === global.activeBookId && !b.archived) ??
+        regalfolge(buecher.filter((b) => !b.archived))[0];
+      const settings = sichtbareEinstellungen(global, offen);
+      setCustomTypes(settings.customTypes ?? []);
+      const inhalt = offen
+        ? await ladeBuchinhalt(offen.id)
+        : { entries: [], relations: [], images: [], boards: [] };
       set({
-        entries,
-        relations,
-        relIndex: buildRelationIndex(relations),
-        images,
-        boards,
-        ...(settings ? { settings: { ...DEFAULT_SETTINGS, ...settings, nav: mergeNav(settings.nav) } } : {}),
+        ...inhalt,
+        relIndex: buildRelationIndex(inhalt.relations),
+        settings,
+        books: buecher,
+        activeBookId: offen?.id,
       });
     },
 
@@ -895,6 +1272,8 @@ export const useStudio = create<StudioState>((set, get) => {
         relIndex: buildRelationIndex([]),
         images: [],
         boards: [],
+        books: [],
+        activeBookId: undefined,
         settings: { ...FRESH_SETTINGS, seedVersion: SEED_VERSION },
       });
     },

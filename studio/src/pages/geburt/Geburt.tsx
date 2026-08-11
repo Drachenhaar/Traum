@@ -15,11 +15,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useStudio } from '../../store/useStudio';
-import { newBookIdentity } from '../../lib/bookIdentity';
+import { neuesBuch } from '../../lib/bibliothek';
 import { BUCH_TEXTE } from '../../lib/bookTexts';
+import { WEGE } from '../../lib/onboarding/wege';
 import { deskStyle } from '../../lib/textures';
+import { cx } from '../../lib/utils';
 import { ClosedBook } from '../../components/book/CoverBoard';
-import type { BookIdentity } from '../../types';
+import type { LibraryBook } from '../../types';
 import { Einbandwahl } from './Einbandwahl';
 import { Titelwahl } from './Titelwahl';
 import { Zeichenwahl } from './Zeichenwahl';
@@ -32,8 +34,19 @@ const T = BUCH_TEXTE.geburt;
  * Absichtlich eine schlichte Liste: Sie ist die einzige Stelle, an der die
  * Abfolge steht. Eine weitere Szene ist ein Eintrag hier und ein Fall unten.
  */
-const SZENEN = ['anfang', 'einband', 'titel', 'zeichen', 'vollendet'] as const;
+const SZENEN = ['anfang', 'einband', 'titel', 'zeichen', 'ausrichtung', 'vollendet'] as const;
 type Szene = (typeof SZENEN)[number];
+
+/**
+ * Die Ausrichtung wird nur beim *weiteren* Buch gefragt.
+ *
+ * Beim ersten hat das Onboarding sie schon erfragt – ein zweites Mal danach
+ * zu fragen waere Formularlogik, nicht Zeremonie. Und ohne diese Szene faellt
+ * sie einfach aus der Abfolge heraus, ohne dass irgendwo ein Schritt fehlt.
+ */
+function szenenFolge(modus: Modus): readonly Szene[] {
+  return modus === 'weiterer' ? SZENEN : SZENEN.filter((s) => s !== 'ausrichtung');
+}
 
 /**
  * Zwei Anlaesse, dieselben Szenen.
@@ -43,15 +56,19 @@ type Szene = (typeof SZENEN)[number];
  * Ende; der Weg dazwischen ist derselbe, und das ist der Punkt: Wer sein Buch
  * neu bindet, soll denselben Ernst erleben wie beim ersten Mal.
  */
-export type Modus = 'geburt' | 'neubinden';
+export type Modus = 'geburt' | 'neubinden' | 'weiterer';
 
-export function Geburt({ onFertig, modus = 'geburt' }: { onFertig: () => void; modus?: Modus }) {
+export function Geburt({ onFertig, modus = 'geburt' }: { onFertig: (buchId?: string) => void; modus?: Modus }) {
   const saveBook = useStudio((s) => s.saveBook);
+  const erstelleBuch = useStudio((s) => s.erstelleBuch);
+  const oeffneBuch = useStudio((s) => s.oeffneBuch);
   const vorhanden = useStudio((s) => s.settings.book);
 
   const neu = modus === 'neubinden';
-  const worteAnfang = neu ? T.anfangNeu : T.anfang;
-  const worteEnde = neu ? T.vollendenNeu : T.vollenden;
+  const weiterer = modus === 'weiterer';
+  const worteAnfang = weiterer ? T.anfangWeiterer : neu ? T.anfangNeu : T.anfang;
+  const worteEnde = weiterer ? T.vollendenWeiterer : neu ? T.vollendenNeu : T.vollenden;
+  const folge = szenenFolge(modus);
 
   /*
    * Der Entwurf lebt im Arbeitsspeicher, bis das Buch vollendet wird. Wer
@@ -60,8 +77,16 @@ export function Geburt({ onFertig, modus = 'geburt' }: { onFertig: () => void; m
    *
    * Ist bereits ein Buch da (spaeteres Bearbeiten), wird es der Entwurf.
    */
-  const [entwurf, setEntwurf] = useState<BookIdentity>(() => vorhanden ?? newBookIdentity());
+  /*
+   * Beim weiteren Buch beginnt der Entwurf leer – das offene Buch ist hier
+   * nicht die Vorlage, sondern nur das, was gerade danebenliegt.
+   */
+  const [entwurf, setEntwurf] = useState<LibraryBook>(() =>
+    modus === 'weiterer' ? neuesBuch() : vorhanden ?? neuesBuch(),
+  );
   const [szene, setSzene] = useState<Szene>('anfang');
+  /** Die Kennung des soeben angelegten Bandes – nur im Modus „weiterer". */
+  const [angelegt, setAngelegt] = useState<string>();
   /** Sichtbarkeit fuer das ruhige Ein- und Ausblenden zwischen den Szenen. */
   const [sichtbar, setSichtbar] = useState(false);
   const timers = useRef<number[]>([]);
@@ -75,7 +100,7 @@ export function Geburt({ onFertig, modus = 'geburt' }: { onFertig: () => void; m
     return () => window.clearTimeout(t);
   }, []);
 
-  const aendern = (patch: Partial<BookIdentity>) =>
+  const aendern = (patch: Partial<LibraryBook>) =>
     setEntwurf((alt) => ({ ...alt, ...patch, updatedAt: Date.now() }));
 
   /** Szenenwechsel: erst verklingen lassen, dann wechseln, dann aufblenden. */
@@ -89,13 +114,13 @@ export function Geburt({ onFertig, modus = 'geburt' }: { onFertig: () => void; m
     );
   };
 
-  const index = SZENEN.indexOf(szene);
-  const zurueck = () => index > 1 && wechseln(SZENEN[index - 1]);
-  const weiter = () => index < SZENEN.length - 1 && wechseln(SZENEN[index + 1]);
+  const index = folge.indexOf(szene);
+  const zurueck = () => index > 1 && wechseln(folge[index - 1]);
+  const weiter = () => index < folge.length - 1 && wechseln(folge[index + 1]);
 
   /** Das Buch vollenden: jetzt erst wird geschrieben. */
   const vollenden = () => {
-    saveBook({
+    const einband = {
       title: entwurf.title.trim() || 'Mein Buch',
       subtitle: entwurf.subtitle?.trim() ?? '',
       coverMaterial: entwurf.coverMaterial,
@@ -106,7 +131,24 @@ export function Geburt({ onFertig, modus = 'geburt' }: { onFertig: () => void; m
       emblemScale: entwurf.emblemScale,
       emblemRotation: entwurf.emblemRotation,
       emblemPrompt: entwurf.emblemPrompt,
-    });
+    };
+
+    /*
+     * Ein weiteres Buch entsteht *neben* dem offenen und wird nicht mit ihm
+     * verwechselt: `saveBook` schriebe in den aufgeschlagenen Band. Es kommt
+     * als eigener Band in die Bibliothek – aufgeschlagen wird es erst am
+     * Ende, wenn jemand darauf tippt.
+     */
+    if (weiterer) {
+      void erstelleBuch({
+        ...einband,
+        worldName: einband.title,
+        worldTagline: einband.subtitle,
+        weg: entwurf.weg,
+      }).then((band) => setAngelegt(band.id));
+    } else {
+      saveBook(einband);
+    }
     wechseln('vollendet');
   };
 
@@ -160,11 +202,28 @@ export function Geburt({ onFertig, modus = 'geburt' }: { onFertig: () => void; m
                 identity={entwurf}
                 onChange={aendern}
                 onZurueck={zurueck}
+                onVollenden={weiterer ? weiter : vollenden}
+                vollendenLabel={weiterer ? T.weiter : worteEnde.knopf}
+              />
+            )}
+            {szene === 'ausrichtung' && (
+              <Ausrichtungswahl
+                gewaehlt={entwurf.weg}
+                onChange={(weg) => aendern({ weg })}
+                onZurueck={zurueck}
                 onVollenden={vollenden}
                 vollendenLabel={worteEnde.knopf}
               />
             )}
-            {szene === 'vollendet' && <Vollendet onOeffnen={onFertig} worte={worteEnde} />}
+            {szene === 'vollendet' && (
+              <Vollendet
+                onOeffnen={() => {
+                  if (weiterer && angelegt) void oeffneBuch(angelegt).then(() => onFertig(angelegt));
+                  else onFertig();
+                }}
+                worte={worteEnde}
+              />
+            )}
           </div>
         </div>
       )}
@@ -212,6 +271,84 @@ function Anfang({
         </p>
       </div>
     </button>
+  );
+}
+
+/* --------------------------------------------------- Szene: Ausrichtung ---- */
+
+/**
+ * Wovon das Buch handelt.
+ *
+ * Die einzige Szene mit einem ausdrücklichen „egal“, und das ist Absicht:
+ * Diese Wahl darf niemanden aufhalten. Sie schaltet nichts frei und nichts
+ * ab – sie entscheidet über Beispiele und erste Vorschläge, sonst nichts.
+ * Wäre es mehr, wären aus einem Buch fünf Programme geworden.
+ */
+function Ausrichtungswahl({
+  gewaehlt,
+  onChange,
+  onZurueck,
+  onVollenden,
+  vollendenLabel,
+}: {
+  gewaehlt?: string;
+  onChange: (weg: string | undefined) => void;
+  onZurueck: () => void;
+  onVollenden: () => void;
+  vollendenLabel: string;
+}) {
+  return (
+    <div>
+      <SzenenFrage frage={T.ausrichtung.frage} hinweis={T.ausrichtung.hinweis} />
+
+      <div className="mx-auto grid max-w-md gap-1.5">
+        {WEGE.map((w) => (
+          <button
+            key={w.id}
+            type="button"
+            onClick={() => onChange(gewaehlt === w.id ? undefined : w.id)}
+            className={cx(
+              'rounded-[3px] border px-4 py-3 text-left transition-colors no-tap-highlight',
+              gewaehlt === w.id
+                ? 'border-gild-500/50 bg-gild-400/10'
+                : 'border-paper-400/15 hover:border-gild-500/30',
+            )}
+          >
+            <p className="font-serif text-[15.5px] text-paper-200/90">{w.name}</p>
+            <p className="mt-0.5 font-serif text-[12.5px] italic leading-snug text-paper-400/45">
+              {w.fuer}
+            </p>
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={() => onChange(undefined)}
+          className={cx(
+            'mt-1 min-h-[40px] font-serif text-[13px] italic transition-colors no-tap-highlight',
+            gewaehlt ? 'text-paper-400/40 hover:text-gild-500' : 'text-gild-500/70',
+          )}
+        >
+          {T.ausrichtung.ohne}
+        </button>
+      </div>
+
+      <div className="mt-7 flex items-center justify-center gap-5">
+        <button
+          type="button"
+          onClick={onZurueck}
+          className="min-h-[44px] font-serif text-[13.5px] italic text-paper-400/45 transition-colors hover:text-paper-300 no-tap-highlight"
+        >
+          {T.zurueck}
+        </button>
+        <button
+          type="button"
+          onClick={onVollenden}
+          className="inline-flex min-h-[46px] items-center rounded-full border border-gild-500/35 px-7 font-serif text-[15px] text-gild-300 transition-colors duration-300 hover:border-gild-400/70 no-tap-highlight"
+        >
+          {vollendenLabel}
+        </button>
+      </div>
+    </div>
   );
 }
 
