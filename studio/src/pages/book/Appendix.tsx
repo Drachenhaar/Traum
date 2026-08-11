@@ -74,6 +74,11 @@ export function AppendixSpread() {
       note: 'Die Welt in der Zeit. Wann etwas begann, wie lange es bestand – und was zu einem gewählten Jahr existierte.',
     },
     {
+      to: '/entdeckungen',
+      title: 'Entdeckungen',
+      note: 'Was dem Buch an deiner Welt auffällt – Widersprüche, offene Enden, Fragen. Es liest nur; entscheiden tust du.',
+    },
+    {
       to: '/spiegel',
       title: 'Der Spiegel',
       note: 'Was in deinen Welten wiederkehrt. Er betrachtet das Werk, nicht den Verfasser – und schweigt, solange er zu wenig gesehen hat.',

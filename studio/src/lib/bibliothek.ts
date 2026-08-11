@@ -117,6 +117,7 @@ export const BUCH_SCHLUESSEL = [
   'spiegelAus',
   'spiegelVerlauf',
   'leitfaden',
+  'entdeckungenAbsicht',
 ] as const;
 
 export type BuchSchluessel = (typeof BUCH_SCHLUESSEL)[number];

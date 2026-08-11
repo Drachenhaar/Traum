@@ -30,6 +30,7 @@ import { Schreibraum } from './pages/roman/Schreibraum';
 import { ConfirmHost } from './components/ui/Confirm';
 import { Toasts } from './components/ui/Toasts';
 import { ZeitstrahlSheet } from './pages/book/Zeitstrahl';
+import { EntdeckungenSheet } from './pages/book/Entdeckungen';
 import { SpiegelSheet } from './pages/book/Spiegel';
 import { OwnershipSpread } from './pages/book/OwnershipSpread';
 import { MeinBuchSheet } from './pages/book/MeinBuch';
@@ -177,6 +178,7 @@ export default function App() {
           <Route path="/register" element={<RegisterSheet />} />
           <Route path="/tafelteil" element={<PlatesSheet />} />
           <Route path="/zeitstrahl" element={<ZeitstrahlSheet />} />
+          <Route path="/entdeckungen" element={<EntdeckungenSheet />} />
           <Route path="/spiegel" element={<SpiegelSheet />} />
           <Route path="/chronik" element={<ChronicleSheet />} />
           <Route path="/werkbank" element={<WorkbenchSheet />} />
