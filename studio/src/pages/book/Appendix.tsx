@@ -36,6 +36,8 @@ export function AppendixSpread() {
   const assets = entries.filter((e) => e.type === 'asset' && !e.deletedAt).length;
 
   const szenen = entries.filter((e) => e.type === 'szene' && !e.deletedAt).length;
+  /* Die anderen Baende – nur fuer die Wortwahl, nicht fuer das Ob. */
+  const andereBaende = books.filter((b) => !b.archived).length - 1;
 
   const primary: AppendixEntry[] = [
     {
@@ -148,33 +150,43 @@ export function AppendixSpread() {
             Das Buch zuklappen.
 
             Kein Home-Knopf und keine Kopfzeile: Es steht hinten im Buch, dort
-            wo man ein Buch auch zuschlägt. Und nur ab dem zweiten Band – wer
-            eines hat, hat kein Regal, und der Weg dorthin wäre ein Weg zu
-            sich selbst.
+            wo man ein Buch auch zuschlägt.
+
+            Diese Zeile stand zuerst nur ab dem zweiten Band – „wer eines hat,
+            hat kein Regal". Das war ein Denkfehler mit Folgen: Der einzige
+            Weg, ein zweites Buch zu beginnen, führt durch die Bibliothek. Wer
+            eines hatte, kam nie hin und konnte deshalb nie ein zweites
+            anlegen. Die Tür stand hinter sich selbst verschlossen.
+
+            Jetzt ist sie immer da. Nur die zweite Zeile ändert sich: Bei
+            einem Band lädt sie ein, bei mehreren sagt sie, wer wartet.
           */}
-          {books.filter((b) => !b.archived).length > 1 && (
-            <section className="mt-12 border-t border-paper-300/70 pt-6">
-              <button
-                type="button"
-                onClick={() => {
-                  schliesseBuch();
-                  navigate('/bibliothek');
-                }}
-                className="group flex min-h-[44px] w-full items-center gap-2.5 text-left no-tap-highlight"
-                data-leitfaden="regal"
-              >
-                <Library size={15} className="shrink-0 text-ink-faint/45 transition-colors group-hover:text-gild-600" />
-                <span>
-                  <span className="block font-serif text-[17px] leading-snug text-ink transition-colors group-hover:text-gild-600">
-                    Dieses Buch zuklappen
-                  </span>
-                  <span className="mt-0.5 block font-serif text-[13.5px] italic leading-snug text-ink-muted">
-                    Zurück in deine Bibliothek – die anderen Bände stehen dort und warten.
-                  </span>
+          <section className="mt-12 border-t border-paper-300/70 pt-6">
+            <button
+              type="button"
+              onClick={() => {
+                schliesseBuch();
+                navigate('/bibliothek');
+              }}
+              className="group flex min-h-[44px] w-full items-center gap-2.5 text-left no-tap-highlight"
+              data-leitfaden="regal"
+            >
+              <Library
+                size={15}
+                className="shrink-0 text-ink-faint/45 transition-colors group-hover:text-gild-600"
+              />
+              <span>
+                <span className="block font-serif text-[17px] leading-snug text-ink transition-colors group-hover:text-gild-600">
+                  Dieses Buch zuklappen
                 </span>
-              </button>
-            </section>
-          )}
+                <span className="mt-0.5 block font-serif text-[13.5px] italic leading-snug text-ink-muted">
+                  {andereBaende > 0
+                    ? `Zurück in deine Bibliothek – ${andereBaende === 1 ? 'ein weiterer Band steht' : `${andereBaende} weitere Bände stehen`} dort und ${andereBaende === 1 ? 'wartet' : 'warten'}.`
+                    : 'Zurück in deine Bibliothek. Dort steht dieses Buch – und daneben ist Platz für weitere.'}
+                </span>
+              </span>
+            </button>
+          </section>
 
           <section className="mt-12 border-t border-paper-300/70 pt-6">
             <p className="rubric mb-2">Über diesen Band</p>

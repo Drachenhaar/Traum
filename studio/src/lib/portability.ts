@@ -670,7 +670,7 @@ export async function renderEntryHtml(entry: Entry): Promise<string> {
 }
 
 
-/* ----------------------------------------------------- Art Bible als HTML */
+/* ------------------------------------------------------ Weltbuch als HTML */
 
 /**
  * Die ganze Welt als eine Datei.
@@ -678,7 +678,7 @@ export async function renderEntryHtml(entry: Entry): Promise<string> {
  * Bewusst dieselbe Gliederung wie in der App: DNA, Farben, dann die Kapitel.
  * Bilder werden eingebettet, damit die Datei allein weitergegeben werden kann.
  */
-export async function renderArtBibleHtml(
+export async function renderWeltbuchHtml(
   entries: Entry[],
   index: RelationIndex,
   worldName: string,
@@ -769,7 +769,7 @@ export async function renderArtBibleHtml(
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>${escapeHtml(worldName)} – Art Bible</title>
+<title>${escapeHtml(worldName)} – Weltbuch</title>
 <style>
   :root { color-scheme: light; }
   * { box-sizing: border-box; }
@@ -814,7 +814,7 @@ export async function renderArtBibleHtml(
 <main class="sheet">
   <h1>${escapeHtml(worldName)}</h1>
   ${tagline ? `<p class="tagline">${escapeHtml(tagline)}</p>` : ''}
-  <p class="meta">Art Bible · ${entries.length} Einträge · Stand ${new Date().toLocaleDateString('de-DE')}</p>
+  <p class="meta">Weltbuch · ${entries.length} Einträge · Stand ${new Date().toLocaleDateString('de-DE')}</p>
 
   ${
     dna.length

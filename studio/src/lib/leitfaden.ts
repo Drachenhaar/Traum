@@ -73,6 +73,21 @@ export const WEGPUNKTE: Wegpunkt[] = [
     pfad: '/anhang',
     text: 'Hinten im Buch entsteht etwas: Hier schreibst du, während deine Welt danebensteht.',
   },
+  {
+    /*
+     * Der Weg aus dem Buch heraus.
+     *
+     * Er steht hier, weil ihn sonst niemand findet: Dieses Buch ist die ganze
+     * Welt, solange man nicht weiss, dass daneben Platz ist. Und weil das
+     * Anlegen eines weiteren Buches in der Bibliothek liegt, ist dieser
+     * Wegweiser zugleich der einzige Hinweis darauf, dass es weitere geben
+     * kann.
+     */
+    id: 'regal',
+    ziel: 'regal',
+    pfad: '/anhang',
+    text: 'Dein Buch steht in einer Bibliothek. Hier klappst du es zu – und beginnst, wenn du magst, ein zweites.',
+  },
 
   /*
    * Ab hier: die Bereiche.

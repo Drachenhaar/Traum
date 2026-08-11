@@ -513,7 +513,7 @@ export interface Settings {
   goals: CreativeGoal[];
   /** Zuletzt geöffnete Einträge – „Weitermachen, wo du warst“ */
   recentIds: string[];
-  /** Name der Welt, erscheint in Art Bible und Story-Modus */
+  /** Name der Welt, erscheint im Weltbuch und im Story-Modus */
   worldName: string;
   worldTagline: string;
   /**

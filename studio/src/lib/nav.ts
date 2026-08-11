@@ -14,7 +14,7 @@ export const DEFAULT_NAV: NavItem[] = [
   { id: 'graph', label: 'Weltgraph', icon: 'Waypoints', path: '/graph', removable: false, hidden: false },
   { id: 'library', label: 'Bibliothek', icon: 'Library', path: '/bibliothek', removable: false, hidden: false },
   { id: 'canvas', label: 'Concept Canvas', icon: 'Brush', path: '/canvas', removable: false, hidden: false },
-  { id: 'artbible', label: 'Art Bible', icon: 'BookOpen', path: '/artbible', removable: false, hidden: false },
+  { id: 'artbible', label: 'Weltbuch', icon: 'BookOpen', path: '/artbible', removable: false, hidden: false },
   { id: 'pipeline', label: 'Pipeline', icon: 'Workflow', path: '/pipeline', removable: false, hidden: false },
   { id: 'images', label: 'Bilder', icon: 'Images', path: '/bilder', removable: false, hidden: false },
   { id: 'timeline', label: 'Zeitleiste', icon: 'History', path: '/zeitleiste', removable: false, hidden: false },

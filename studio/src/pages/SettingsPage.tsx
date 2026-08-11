@@ -152,7 +152,7 @@ export function SettingsPage() {
       <section className="card p-4 sm:p-5">
         <h2 className="mb-1 font-serif text-xl text-ink">Deine Welt</h2>
         <p className="mb-4 text-[15px] text-ink-muted">
-          Name und Leitsatz erscheinen in der Seitenleiste, in der Art Bible und im Story-Modus.
+          Name und Leitsatz erscheinen in der Seitenleiste, im Weltbuch und im Story-Modus.
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Name der Welt">
