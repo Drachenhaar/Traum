@@ -34,8 +34,7 @@ import type {
 } from '../types';
 import { escapeHtml, fileStamp, newId } from './utils';
 import { blockDef, blockImageIds } from './blocks';
-import { asBool, asList, asText, templateFor, templatesByFamily } from './templates';
-import { relationsOf, type RelationIndex } from './relations';
+import { asBool, asList, asText, templateFor } from './templates';
 
 export const EXPORT_VERSION = 1;
 
@@ -705,190 +704,13 @@ export async function renderEntryHtml(entry: Entry): Promise<string> {
 }
 
 
-/* ------------------------------------------------------ Weltbuch als HTML */
-
-/**
- * Die ganze Welt als eine Datei.
+/*
+ * Hier stand einmal `renderWeltbuchHtml` – die ganze Welt als eine
+ * Bildschirmseite zum Weitergeben. Sie hatte nie einen Aufrufer: gebaut,
+ * getestet, nie verdrahtet, und damit toter Code, der bei jeder Aenderung an
+ * Vorlagen und Beziehungen mitgepflegt werden wollte.
  *
- * Bewusst dieselbe Gliederung wie in der App: DNA, Farben, dann die Kapitel.
- * Bilder werden eingebettet, damit die Datei allein weitergegeben werden kann.
+ * Was daran gut war, lebt weiter in `lib/druck/weltbuch.ts` – dort ist es
+ * kein Export mehr, sondern ein Satz, und die Farbtafel ist von dort
+ * uebernommen.
  */
-export async function renderWeltbuchHtml(
-  entries: Entry[],
-  index: RelationIndex,
-  worldName: string,
-  tagline?: string,
-): Promise<string> {
-  const byId = new Map(entries.map((e) => [e.id, e]));
-
-  // Nur Titelbilder einbetten – sonst wird die Datei unhandlich groß.
-  const srcById = new Map<string, string>();
-  for (const entry of entries) {
-    if (!entry.coverImage || srcById.has(entry.coverImage)) continue;
-    const record = await db.imageBlobs.get(entry.coverImage);
-    if (record) srcById.set(entry.coverImage, await blobToDataUrl(record.thumb));
-  }
-
-  const colors = new Map<string, { color: string; name: string; count: number }>();
-  const addColor = (color: string, name: string) => {
-    if (!/^#[0-9a-f]{6}$/i.test(color)) return;
-    const key = color.toLowerCase();
-    const hit = colors.get(key);
-    if (hit) hit.count += 1;
-    else colors.set(key, { color, name, count: 1 });
-  };
-  for (const entry of entries) {
-    asList(entry.fields.palette).forEach((raw) => {
-      const [color, ...rest] = raw.split('|');
-      addColor(color, rest.join('|'));
-    });
-    entry.blocks.forEach((b) => {
-      b.data.swatches?.forEach((s) => addColor(s.color, s.name));
-      b.data.materials?.forEach((m) => addColor(m.color, m.name));
-    });
-  }
-  const palette = [...colors.values()].sort((a, b) => b.count - a.count).slice(0, 24);
-
-  const entryHtml = (entry: Entry) => {
-    const tpl = templateFor(entry.type);
-    const cover = entry.coverImage ? srcById.get(entry.coverImage) : undefined;
-    const rels = relationsOf(index, entry.id)
-      .map((r) => {
-        const other = byId.get(r.otherId);
-        return other ? `<li><span class="rel">${escapeHtml(r.label)}</span> ${escapeHtml(other.title)}</li>` : '';
-      })
-      .join('');
-    const facts = tpl.fields
-      .filter((f) => f.kind === 'text' || f.kind === 'textarea')
-      .map((f) => ({ label: f.label, value: asText(entry.fields[f.key]) }))
-      .filter((f) => f.value)
-      .map((f) => `<div class="fact"><dt>${escapeHtml(f.label)}</dt><dd>${escapeHtml(f.value)}</dd></div>`)
-      .join('');
-    const swatches = asList(entry.fields.palette)
-      .map((raw) => {
-        const [color, ...rest] = raw.split('|');
-        return `<span class="swatch"><i style="background:${escapeHtml(color)}"></i>${escapeHtml(rest.join('|') || color)}</span>`;
-      })
-      .join('');
-
-    return `<article class="entry" id="${escapeHtml(entry.id)}">
-      ${cover ? `<img class="cover" src="${cover}" alt="" />` : ''}
-      <div class="entry-body">
-        <p class="kind" style="color:${escapeHtml(tpl.accent)}">${escapeHtml(tpl.label)}${
-          entry.category ? ` · ${escapeHtml(entry.category)}` : ''
-        }</p>
-        <h3>${escapeHtml(entry.title)}</h3>
-        ${entry.subtitle ? `<p class="sub">${escapeHtml(entry.subtitle)}</p>` : ''}
-        ${entry.description ? `<p>${escapeHtml(entry.description)}</p>` : ''}
-        ${swatches ? `<div class="swatches">${swatches}</div>` : ''}
-        ${facts ? `<dl class="facts">${facts}</dl>` : ''}
-        ${rels ? `<ul class="rels">${rels}</ul>` : ''}
-      </div>
-    </article>`;
-  };
-
-  const dna = entries.filter((e) => e.type === 'dna');
-  const chapters = templatesByFamily()
-    .filter((f) => f.family !== 'system')
-    .map((family) => {
-      const types = new Set(family.items.map((t) => t.type));
-      const items = entries
-        .filter((e) => types.has(e.type))
-        .sort((a, b) => a.type.localeCompare(b.type) || a.title.localeCompare(b.title, 'de'));
-      return { label: family.label, items };
-    })
-    .filter((c) => c.items.length > 0);
-
-  return `<!doctype html>
-<html lang="de">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>${escapeHtml(worldName)} – Weltbuch</title>
-<style>
-  :root { color-scheme: light; }
-  * { box-sizing: border-box; }
-  body { margin:0; padding:56px 24px 96px; background:#F7F2E8; color:#3B2E23;
-    font:16px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  .sheet { max-width: 1000px; margin: 0 auto; }
-  h1 { font-family: Georgia, serif; font-size: clamp(2.4rem, 7vw, 4rem); margin:0; line-height:1.05; }
-  h2 { font-family: Georgia, serif; font-size: 1.8rem; margin: 56px 0 6px; }
-  h3 { font-family: Georgia, serif; font-size: 1.2rem; margin: 0 0 2px; }
-  .tagline { font-family: Georgia, serif; font-style: italic; font-size:1.3rem; color:#7C6A57; margin:8px 0 0; }
-  .meta { color:#A4907A; font-size:.9rem; margin-top:16px; }
-  .lead { color:#7C6A57; margin:0 0 20px; }
-  hr { border:0; border-top:1px solid #E5DCCA; margin:36px 0; }
-  .grid { display:grid; gap:14px; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); }
-  .entry { display:flex; gap:14px; background:#FCFAF5; border:1px solid #E5DCCA; border-radius:14px; padding:12px; break-inside: avoid; }
-  .entry .cover { width:96px; height:96px; object-fit:cover; border-radius:10px; flex:0 0 auto; }
-  .entry-body { min-width:0; }
-  .kind { font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; margin:0 0 2px; }
-  .sub { color:#7C6A57; margin:0 0 6px; font-style:italic; }
-  .entry p { margin:4px 0; font-size:.92rem; }
-  .swatches { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; }
-  .swatch { display:flex; align-items:center; gap:5px; font-size:.72rem; color:#7C6A57; }
-  .swatch i { width:15px; height:15px; border-radius:4px; display:block; border:1px solid rgba(0,0,0,.12); }
-  .facts { margin:8px 0 0; display:grid; gap:4px; }
-  .fact dt { font-size:.68rem; text-transform:uppercase; letter-spacing:.05em; color:#A4907A; }
-  .fact dd { margin:0; font-size:.85rem; }
-  .rels { list-style:none; padding:0; margin:8px 0 0; font-size:.8rem; color:#7C6A57; }
-  .rels .rel { color:#A8853F; }
-  .palette { display:grid; grid-template-columns: repeat(auto-fill, minmax(110px,1fr)); gap:10px; }
-  .palette div { border:1px solid #E5DCCA; border-radius:10px; overflow:hidden; background:#FCFAF5; }
-  .palette span { display:block; padding:6px 8px; font-size:.75rem; }
-  .palette i { display:block; height:52px; }
-  .rule { background:#FCFAF5; border:1px solid #E5DCCA; border-left:3px solid #A8853F; border-radius:12px; padding:12px 14px; }
-  @media print {
-    body { background:#fff; padding:0; }
-    .entry, .rule { break-inside: avoid; }
-    h2 { break-after: avoid; }
-  }
-</style>
-</head>
-<body>
-<main class="sheet">
-  <h1>${escapeHtml(worldName)}</h1>
-  ${tagline ? `<p class="tagline">${escapeHtml(tagline)}</p>` : ''}
-  <p class="meta">Weltbuch · ${entries.length} Einträge · Stand ${new Date().toLocaleDateString('de-DE')}</p>
-
-  ${
-    dna.length
-      ? `<h2>Die DNA</h2><p class="lead">Woran sich alles messen lässt.</p><div class="grid">${dna
-          .map(
-            (r) =>
-              `<div class="rule"><p class="kind">${escapeHtml(r.category)}</p><h3>${escapeHtml(
-                r.title,
-              )}</h3><p>${escapeHtml(asText(r.fields.rule) || r.description)}</p></div>`,
-          )
-          .join('')}</div>`
-      : ''
-  }
-
-  ${
-    palette.length
-      ? `<h2>Farben der Welt</h2><div class="palette">${palette
-          .map(
-            (c) =>
-              `<div><i style="background:${escapeHtml(c.color)}"></i><span>${escapeHtml(
-                c.name || c.color,
-              )}<br /><small>${escapeHtml(c.color)}</small></span></div>`,
-          )
-          .join('')}</div>`
-      : ''
-  }
-
-  ${chapters
-    .map(
-      (chapter) =>
-        `<h2>${escapeHtml(chapter.label)}</h2><div class="grid">${chapter.items
-          .map(entryHtml)
-          .join('')}</div>`,
-    )
-    .join('')}
-
-  <hr />
-  <p class="meta">Erzeugt mit Dragoncore Studio.</p>
-</main>
-</body>
-</html>`;
-}

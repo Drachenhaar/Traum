@@ -32,6 +32,7 @@ import { Toasts } from './components/ui/Toasts';
 import { ZeitstrahlSheet } from './pages/book/Zeitstrahl';
 import { EntdeckungenSheet } from './pages/book/Entdeckungen';
 import { ReiseSheet } from './pages/book/Reise';
+import { DruckSheet } from './pages/book/Druck';
 import { SpiegelSheet } from './pages/book/Spiegel';
 import { OwnershipSpread } from './pages/book/OwnershipSpread';
 import { MeinBuchSheet } from './pages/book/MeinBuch';
@@ -181,6 +182,7 @@ export default function App() {
           <Route path="/zeitstrahl" element={<ZeitstrahlSheet />} />
           <Route path="/entdeckungen" element={<EntdeckungenSheet />} />
           <Route path="/reise" element={<ReiseSheet />} />
+          <Route path="/druck" element={<DruckSheet />} />
           <Route path="/spiegel" element={<SpiegelSheet />} />
           <Route path="/chronik" element={<ChronicleSheet />} />
           <Route path="/werkbank" element={<WorkbenchSheet />} />

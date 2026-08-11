@@ -103,6 +103,15 @@ export function AppendixSpread() {
       title: 'Lose Blätter',
       note: `${boards.length} ${boards.length === 1 ? 'Bogen' : 'Bögen'} zum Sammeln, Skizzieren und Sortieren.`,
     },
+    {
+      /*
+       * Steht zuletzt, weil es der letzte Schritt ist: Alles davor arbeitet
+       * am Buch, dies hier macht es fertig.
+       */
+      to: '/druck',
+      title: 'Druckfassung',
+      note: 'Die ganze Welt gesetzt – Einband, Titelblatt, Inhalt, Kapiteltrenner, Farbtafel. Zum Drucken oder als PDF.',
+    },
   ];
 
   const secondary: AppendixEntry[] = [
