@@ -191,6 +191,15 @@ export interface Relation {
    */
   beginn?: string;
   ende?: string;
+  /**
+   * Ein Satz zur Zeit dieser Verbindung.
+   *
+   * „Nur im Sommer", „bis zum Bruch von Arven", „angeblich schon früher" –
+   * Dinge, die keine Spanne sind und trotzdem zur Zeit gehören. Sie werden
+   * nicht gerechnet, nur gelesen: Was sich nicht datieren lässt, soll
+   * trotzdem dastehen dürfen.
+   */
+  zeitnotiz?: string;
   createdAt: number;
 }
 

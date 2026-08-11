@@ -23,6 +23,8 @@ import { datiere, weltzustand } from '../../lib/chronik/zustand';
 import { pruefe, type Befund } from '../../lib/chronik/pruefung';
 import { EBENEN, ebeneById } from '../../lib/chronik/ebenen';
 import { Zeitachse, verteileSpuren } from '../../components/chronik/Zeitachse';
+import { epocheBei, epochen } from '../../lib/welt/epochen';
+import { weltsicht } from '../../lib/welt/abfrage';
 import { jahrLaenge, ordnung } from '../../lib/chronik/zeit';
 import { templateFor } from '../../lib/templates';
 import { AppendixSheet } from './Appendix';
@@ -97,6 +99,13 @@ export function ZeitstrahlSheet() {
   );
 
   const jahr = ausOrdnung(markeWert, kalender).jahr;
+
+  /* In welchem Zeitalter steht die Marke gerade? Ohne Epochen: in keinem. */
+  const zeitalter = useMemo(
+    () => epochen(weltsicht(entries, relations, [], kalender)),
+    [entries, relations, kalender],
+  );
+  const jetzigesZeitalter = epocheBei(zeitalter, markeWert);
   const mitZeit = alleDatiert.filter((d) => d.datiert).length;
   /*
    * Seiten, auf denen etwas steht, das sich nicht lesen laesst.
@@ -164,8 +173,19 @@ export function ZeitstrahlSheet() {
 
           {/* ------------------------------------------------- Weltzustand */}
           <section className="mt-9 border-t border-paper-300/60 pt-6">
-            <p className="rubric mb-1">Die Welt im Jahr {schreibeJahr(jahr, kalender)}</p>
+            <p className="rubric mb-1">
+              {/*
+                Steht ein Zeitalter dahinter, gehoert sein Name hierher – „Die
+                Welt in der Ära der Nebelkönige" sagt einem Verfasser mehr als
+                „im Jahr 487". Die Jahreszahl bleibt daneben stehen: Sie ist
+                genauer, nur eben nicht sprechender.
+              */}
+              {jetzigesZeitalter
+                ? `Die Welt · ${jetzigesZeitalter.entry.title}`
+                : `Die Welt im Jahr ${schreibeJahr(jahr, kalender)}`}
+            </p>
             <p className="mb-4 font-serif text-[13.5px] italic leading-relaxed text-ink-faint">
+              {jetzigesZeitalter && `Jahr ${schreibeJahr(jahr, kalender)}. `}
               Was zu diesem Augenblick bestand. Später Entstandenes bleibt außen vor.
             </p>
 

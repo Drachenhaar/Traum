@@ -59,6 +59,20 @@ export const EBENEN: Ebene[] = [
     gilt: () => true,
   },
   {
+    /*
+     * Die Zeitalter fuer sich.
+     *
+     * Sie stehen ganz vorn, weil sie das Geruest sind: Wer wissen will, wann
+     * etwas war, sieht zuerst nach, *in welcher Zeit* es war. Eine Welt ohne
+     * Epochen zeigt hier nichts – und das ist kein Mangel.
+     */
+    id: 'zeitalter',
+    label: 'Zeitalter',
+    note: 'Das Gerüst der Zeit – Ären, Dynastien, Zwischenzeiten.',
+    farbe: '#8C6510',
+    gilt: vonTyp('epoche'),
+  },
+  {
     id: 'personen',
     label: 'Figuren',
     note: 'Wer gelebt hat, und wie lange.',

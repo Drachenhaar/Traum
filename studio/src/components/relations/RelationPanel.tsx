@@ -198,7 +198,7 @@ export function RelationPanel({ entry }: { entry: Entry }) {
  */
 function RelationsZeit({ relation }: { relation: Relation }) {
   const updateRelation = useStudio((s) => s.updateRelation);
-  const gesetzt = !!(relation.beginn?.trim() || relation.ende?.trim());
+  const gesetzt = !!(relation.beginn?.trim() || relation.ende?.trim() || relation.zeitnotiz?.trim());
   const [offen, setOffen] = useState(false);
 
   const spanne =
@@ -208,7 +208,7 @@ function RelationsZeit({ relation }: { relation: Relation }) {
         ? `seit ${relation.beginn}`
         : relation.ende?.trim()
           ? `bis ${relation.ende}`
-          : '';
+          : relation.zeitnotiz?.trim() ?? '';
 
   if (!offen) {
     return (
@@ -239,6 +239,19 @@ function RelationsZeit({ relation }: { relation: Relation }) {
         placeholder="bis 1050"
         aria-label="Verbindung gilt bis"
         className="w-[84px] rounded-md border border-line bg-white px-2 py-1 text-[12.5px] text-ink outline-none focus:border-brass-400"
+      />
+      {/*
+        Was keine Spanne ist und trotzdem zur Zeit gehoert.
+        „Nur im Sommer", „bis zum Bruch von Arven" – es wird nicht gerechnet,
+        nur gelesen. Was sich nicht datieren laesst, soll trotzdem dastehen
+        duerfen, statt in ein Feld gezwungen zu werden, das es nicht meint.
+      */}
+      <input
+        value={relation.zeitnotiz ?? ''}
+        onChange={(e) => updateRelation(relation.id, { zeitnotiz: e.target.value })}
+        placeholder="nur im Sommer"
+        aria-label="Anmerkung zur Zeit"
+        className="min-w-[120px] flex-1 rounded-md border border-line bg-white px-2 py-1 text-[12.5px] text-ink outline-none focus:border-brass-400"
       />
       <button
         type="button"

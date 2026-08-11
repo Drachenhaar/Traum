@@ -234,6 +234,29 @@ export const CHAPTERS: ChapterDef[] = [
     ribbon: '#7C6A57',
   },
   {
+    /*
+     * Die Zeitalter.
+     *
+     * Ein eigenes Kapitel, weil eine Epoche nichts *in* der Welt ist, sondern
+     * der Rahmen, in dem alles andere liegt. Zwischen die Legenden gestellt
+     * waere sie eine Geschichte unter Geschichten – und sie ist das Blatt,
+     * auf dem die Geschichten stehen.
+     */
+    id: 'zeitalter',
+    title: 'Die Zeitalter',
+    intro:
+      'Ären, Dynastien, Zwischenzeiten. Nicht jede Welt zählt in Jahren – wer seine in Zeitaltern zählt, findet hier ihr Gerüst.',
+    questions: [
+      'Woran hätte ein Reisender gemerkt, in welcher Zeit er ist?',
+      'Was hat dieses Zeitalter beendet – und wer hat es kommen sehen?',
+      'Wer nennt es so? Und wie nennen es die anderen?',
+      'Was aus dieser Zeit steht heute noch?',
+    ],
+    types: ['epoche'],
+    accent: '#8C6510',
+    ribbon: '#8C6510',
+  },
+  {
     id: 'werkstatt',
     title: 'Die Werkstatt',
     intro:
