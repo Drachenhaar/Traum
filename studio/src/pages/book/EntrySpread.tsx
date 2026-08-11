@@ -184,6 +184,7 @@ export function EntrySpread() {
                 onClick={() => setEditing(true)}
                 aria-label="Diese Seite bearbeiten"
                 title="Bearbeiten"
+                data-leitfaden="bearbeiten"
                 className="grid h-9 w-9 place-items-center text-ink-faint/35 transition-colors hover:text-gild-500 no-tap-highlight"
               >
                 <PenLine size={15} />

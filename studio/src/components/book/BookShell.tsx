@@ -18,6 +18,7 @@ import { deskStyle } from '../../lib/textures';
 import { cx } from '../../lib/utils';
 import { GlobalSearch } from '../search/GlobalSearch';
 import { Gedankenfang } from '../entry/Gedankenfang';
+import { Leitfaden } from '../leitfaden/Leitfaden';
 import { Spread } from './Spread';
 
 /** Der gebaute Buchblock – einmal je Datenänderung, überall nutzbar. */
@@ -136,6 +137,7 @@ export function BookShell() {
             className="group -ml-1 flex h-11 shrink-0 items-center gap-2 px-1 no-tap-highlight"
             aria-label="Inhaltsverzeichnis"
             title="Inhaltsverzeichnis"
+            data-leitfaden="inhalt"
           >
             <BookmarkIcon
               size={15}
@@ -167,6 +169,7 @@ export function BookShell() {
           className="grid h-11 w-11 shrink-0 place-items-center text-gild-500/50 transition-colors hover:text-gild-400 no-tap-highlight"
           aria-label="Einen Gedanken festhalten"
           title="Einen Gedanken festhalten"
+          data-leitfaden="gedanke"
         >
           <FilePlus2 size={17} />
         </button>
@@ -177,6 +180,7 @@ export function BookShell() {
           className="grid h-11 w-11 shrink-0 place-items-center text-gild-500/50 transition-colors hover:text-gild-400 no-tap-highlight"
           aria-label="Register durchsuchen"
           title="Register"
+          data-leitfaden="suche"
         >
           <Search size={17} />
         </button>
@@ -204,6 +208,7 @@ export function BookShell() {
 
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
       <Gedankenfang open={fangOffen} onClose={() => setFangOffen(false)} />
+      <Leitfaden />
     </div>
   );
 }
