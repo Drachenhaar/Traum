@@ -429,6 +429,8 @@ export interface LibraryBook extends BookIdentity {
   spiegelAus?: boolean;
   spiegelVerlauf?: { at: number; motive: string[] }[];
   leitfaden?: { an: boolean; erledigt: string[] };
+  /** Welche Entdeckungen in *diesem* Band Absicht sind. */
+  entdeckungenAbsicht?: string[];
 }
 
 /**
@@ -493,6 +495,15 @@ export interface Settings {
    * und zwar ohne Begründung und ohne Nachfrage.
    */
   spiegelAus?: boolean;
+  /**
+   * Entdeckungen, die der Verfasser als Absicht gekennzeichnet hat.
+   *
+   * Eine Fantasy-Welt darf ungewöhnlich sein. Wer für seinen Waldkoi
+   * entschieden hat, dass er weit reist, will nicht jedes Mal aufs Neue
+   * danach gefragt werden. Gespeichert wird die Kennung des Befundes – ändert
+   * sich die Welt so, dass er neu entsteht, ist er auch wieder eine Frage.
+   */
+  entdeckungenAbsicht?: string[];
   /**
    * Wie weit der Leitfaden ist – siehe `lib/leitfaden.ts`.
    *
