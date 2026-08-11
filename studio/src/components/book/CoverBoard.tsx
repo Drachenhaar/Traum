@@ -65,6 +65,23 @@ export function coverSurface(identity: Pick<BookIdentity, 'coverMaterial' | 'cov
 }
 
 /**
+ * Wie gross der Titel auf dem Deckel steht.
+ *
+ * Drei Stufen, keine Rechnung. Ein Titel ist kurz, lang oder sehr lang; alles
+ * dazwischen zu messen hiesse, die Schriftbreite der geladenen Schrift zu
+ * kennen, und die kennt man nicht, bevor sie da ist.
+ *
+ * Die dritte Stufe fehlte und war der Grund, warum ein einzelnes langes Wort
+ * ueber die Kante lief: Ab 22 Zeichen wurde auf 18 Punkt verkleinert und dann
+ * nie wieder.
+ */
+function schriftgrad(titel: string): number {
+  if (titel.length > 34) return 15;
+  if (titel.length > 22) return 18;
+  return 24;
+}
+
+/**
  * Was auf dem Deckel steht.
  *
  * Ohne eigenen Hintergrund – den setzt der Aufrufer mit `coverSurface`, weil
@@ -127,10 +144,18 @@ export function CoverFace({
         {!klein && (
           <>
             <p
-              className="font-serif leading-tight tracking-[0.12em]"
+              /*
+               * `break-words`, weil ein Titel ein einziges Wort sein darf.
+               *
+               * Zeilenumbruch an Leerzeichen genuegt nur, solange es welche
+               * gibt. „Die Chroniken von Mooshalde" bricht von selbst;
+               * „Weltenchronikkompendium" bricht nirgends und schiebt sich
+               * ueber die Deckelkante hinaus, wo der Rahmen es abschneidet.
+               */
+              className="font-serif leading-tight tracking-[0.12em] break-words"
               style={{
                 color: farbe.foil,
-                fontSize: identity.title.length > 22 ? 18 : 24,
+                fontSize: schriftgrad(identity.title),
                 textShadow: '0 1px 3px rgba(0,0,0,0.85), 0 0 18px rgba(212,175,55,0.18)',
               }}
             >
@@ -159,11 +184,28 @@ export function CoverFace({
 }
 
 /**
+ * Das Mass, fuer das der Deckel gezeichnet ist.
+ *
+ * Alles in `CoverFace` – Raender, Zeichen, Schriftgrad, Blindlinie – steht in
+ * festen Pixeln, und zwar in diesen. Wer den Deckel kleiner braucht, skaliert
+ * ihn; er rechnet ihn nicht neu.
+ */
+const NENNBREITE = 286;
+const NENNHOEHE = 390;
+
+/**
  * Ein ganzes geschlossenes Buch: Deckel, Buchblock, Schatten auf dem Tisch.
  *
  * Wird bei der Erschaffung gebraucht, wo das Buch sich unter den Haenden
  * veraendert. Der Umschlag beim Aufschlagen baut sein Buch selbst, weil dort
  * jede Schicht einzeln gedreht werden muss.
+ *
+ * Der Deckel wird als Ganzes skaliert, nicht in einen kleineren Rahmen
+ * gequetscht. Vorher stand `CoverFace` bei jeder Groesse in Originalmassen im
+ * Rahmen: In der Bibliothek ist ein Band 104 Punkt breit, das Zeichen darauf
+ * war 130 – breiter als der Deckel – und der Titel lief hinaus. Auf dem
+ * Regal stand „ragoncor“. Skaliert bleibt es dasselbe Buch, nur kleiner, und
+ * genau das ist der Sinn eines Einbands, den zwei Orte teilen.
  */
 export function ClosedBook({
   identity,
@@ -209,7 +251,16 @@ export function ClosedBook({
           transition: 'background-image 420ms ease',
         }}
       >
-        <CoverFace identity={identity} />
+        <div
+          className="absolute left-0 top-0 origin-top-left"
+          style={{
+            width: NENNBREITE,
+            height: NENNHOEHE,
+            transform: `scale(${width / NENNBREITE})`,
+          }}
+        >
+          <CoverFace identity={identity} />
+        </div>
       </div>
 
       {/* Schatten auf dem Tisch */}
