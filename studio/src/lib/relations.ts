@@ -7,7 +7,7 @@
  *   Nebeltal     --beherbergt--> Weggefährte     (dieselbe Kante, andersherum gelesen)
  *
  * Aus dieser Gerichtetheit entsteht alles Weitere: der Weltgraph, die
- * Entdeckung entfernter Zusammenhänge und die Art Bible, die sich selbst
+ * Entdeckung entfernter Zusammenhänge und das Weltbuch, das sich selbst
  * gliedert. Ohne Bedeutung wären es nur Fäden; mit Bedeutung wird es eine Welt.
  */
 

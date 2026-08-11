@@ -25,7 +25,7 @@ export function StoryMode({
   onClose,
 }: {
   startId?: string;
-  /** Feste Reihenfolge (z. B. aus der Art Bible). Ohne sie wird gewandert. */
+  /** Feste Reihenfolge (z. B. aus dem Weltbuch). Ohne sie wird gewandert. */
   ids?: string[];
   onClose: () => void;
 }) {

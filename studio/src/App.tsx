@@ -290,10 +290,14 @@ function CoverGate() {
 
   /*
    * Der Umschlag ist der geschlossene Zustand des Buches – und damit der
-   * Ort, an dem die Bibliothek sichtbar wird. Erst ab dem zweiten Band:
-   * Vorher gaebe es dort nichts zu sehen als dieses Buch.
+   * Ort, an dem die Bibliothek sichtbar wird.
+   *
+   * Auch mit einem einzigen Band. Die Zeile war zuerst an „mehr als eines"
+   * geknuepft, und weil das Anlegen eines weiteren Buches *in* der Bibliothek
+   * liegt, kam man mit einem Buch nie zu einem zweiten. Ein Regal mit einem
+   * Band ist kein leerer Ort – es ist der Ort, an dem Platz ist.
    */
-  const mehrereBaende = books.filter((b) => !b.archived).length > 1;
+  void books;
 
   return (
     <Cover
@@ -303,7 +307,7 @@ function CoverGate() {
       resumePage={resume?.page}
       resumeLabel={resume ? resume.label : undefined}
       onOpen={() => navigate(ziel)}
-      onRegal={mehrereBaende ? () => navigate('/bibliothek') : undefined}
+      onRegal={() => navigate('/bibliothek')}
     />
   );
 }

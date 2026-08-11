@@ -1,7 +1,7 @@
 /**
  * Blöcke, nur zum Lesen.
  *
- * Wird im Story-Modus und in der Art Bible verwendet: dieselben Inhalte,
+ * Wird im Story-Modus und im Weltbuch verwendet: dieselben Inhalte,
  * aber ohne jedes Bedienelement. Die Oberfläche verschwindet, der Inhalt bleibt.
  */
 
