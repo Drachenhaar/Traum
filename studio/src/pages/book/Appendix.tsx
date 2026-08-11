@@ -74,6 +74,11 @@ export function AppendixSpread() {
       note: 'Die Welt in der Zeit. Wann etwas begann, wie lange es bestand – und was zu einem gewählten Jahr existierte.',
     },
     {
+      to: '/reise',
+      title: 'Reise',
+      note: 'Deine Welt von innen: bei einer Figur beginnen und Schritt für Schritt entscheiden, wohin es weitergeht.',
+    },
+    {
       to: '/entdeckungen',
       title: 'Entdeckungen',
       note: 'Was dem Buch an deiner Welt auffällt – Widersprüche, offene Enden, Fragen. Es liest nur; entscheiden tust du.',
