@@ -68,6 +68,7 @@ export function Mehr({
         aria-expanded={offen}
         aria-haspopup="menu"
         aria-label={label}
+        data-leitfaden="mehr"
         className={cx(
           'grid h-9 w-9 place-items-center transition-colors no-tap-highlight',
           offen ? 'text-gild-500' : 'text-ink-faint/35 hover:text-gild-500',

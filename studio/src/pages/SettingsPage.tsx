@@ -21,7 +21,8 @@ import { CustomTypes } from '../components/settings/CustomTypes';
 import { iconByName } from '../lib/icons';
 import { DEFAULT_NAV } from '../lib/nav';
 import { backupFileName, buildFullBackup, importBackup } from '../lib/portability';
-import { downloadFile, formatDateTime, moveItem } from '../lib/utils';
+import { cx, downloadFile, formatDateTime, moveItem } from '../lib/utils';
+import { WEGPUNKTE, leitfadenStand } from '../lib/leitfaden';
 
 export function SettingsPage() {
   const settings = useStudio((s) => s.settings);
@@ -273,6 +274,71 @@ export function SettingsPage() {
         <button type="button" className="btn-quiet mt-3 px-3" onClick={() => updateNav(DEFAULT_NAV)}>
           Standardreihenfolge wiederherstellen
         </button>
+      </section>
+
+      {/* --------------------------------------------------------- Leitfaden */}
+      <section className="rounded-2xl border border-line bg-cream-50 p-4 sm:p-5">
+        <h2 className="mb-1 font-serif text-xl text-ink">Leitfaden</h2>
+        <p className="mb-4 text-[15px] leading-relaxed text-ink-muted">
+          Ein Buch ohne Knöpfe ist ruhig – und schweigt auch darüber, was man tun kann.
+          Der Leitfaden zeigt es einmal, an Ort und Stelle: ein Hinweis, nie zwei
+          gleichzeitig, und nur dort, wo es die Sache wirklich gibt.
+        </p>
+
+        <ol className="mb-4">
+          {WEGPUNKTE.map((w) => {
+            const fertig = (settings.leitfaden?.erledigt ?? []).includes(w.id);
+            return (
+              <li key={w.id} className="flex gap-2.5 border-b border-line py-2 last:border-0">
+                <span
+                  aria-hidden
+                  className={cx(
+                    'mt-[9px] h-[5px] w-[5px] shrink-0 rounded-full',
+                    fertig ? 'bg-olive-500' : 'bg-gild-500/60',
+                  )}
+                />
+                <span
+                  className={cx(
+                    'text-[14.5px] leading-relaxed',
+                    fertig ? 'text-ink-faint' : 'text-ink-muted',
+                  )}
+                >
+                  {w.text}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="btn-ghost h-10 min-h-0 px-3 text-[14px]"
+            onClick={() => {
+              const an = !(settings.leitfaden?.an ?? true);
+              updateSettings({ leitfaden: { an, erledigt: settings.leitfaden?.erledigt ?? [] } });
+              notify(an ? 'Der Leitfaden zeigt wieder.' : 'Der Leitfaden schweigt.', 'success');
+            }}
+          >
+            {(settings.leitfaden?.an ?? true) ? 'Leitfaden ausblenden' : 'Leitfaden einblenden'}
+          </button>
+
+          <button
+            type="button"
+            className="btn-ghost h-10 min-h-0 px-3 text-[14px]"
+            onClick={() => {
+              updateSettings({ leitfaden: { an: true, erledigt: [] } });
+              notify('Der Leitfaden beginnt von vorn.', 'success');
+            }}
+          >
+            Von vorn zeigen
+          </button>
+
+          <span className="text-[13.5px] text-ink-faint">
+            {leitfadenStand(settings.leitfaden).erledigt} von{' '}
+            {leitfadenStand(settings.leitfaden).gesamt} gesehen
+          </span>
+        </div>
       </section>
 
       {/* ------------------------------------------------------ Zurücksetzen */}

@@ -1,9 +1,15 @@
 /**
  * Die Schauseiten.
  *
- * Kein Tutorial. Keine Fortschrittsanzeige, keine Häkchenliste, keine
- * Sprechblasen, die auf Knöpfe zeigen. Es sind Buchseiten, die man umblättert
- * – und jede trägt genau einen Gedanken.
+ * Keine Häkchenliste, keine Sprechblasen, die auf Knöpfe zeigen. Es sind
+ * Buchseiten, die man umblättert – und jede trägt genau einen Gedanken.
+ *
+ * Was hier aber sehr wohl steht: dass es eine Führung ist. Das fehlte, und
+ * es hat gefehlt. „Die Chroniken von Mooshalde" als erste Rubrik las sich
+ * wie der Anfang des eigenen Buches – als hätte jemand einem eine fremde
+ * Geschichte hineingeschrieben. Deshalb liegt über jeder dieser Seiten ein
+ * Band, das sagt, was sie sind: eine Vorführung an einem Beispiel, und der
+ * Weg hinaus steht daneben.
  *
  * Was hier gezeigt wird, ist keine Attrappe: Es sind gewöhnliche Einträge und
  * gewöhnliche Beziehungen, dieselben Formen wie überall. Nur stehen sie im
@@ -45,6 +51,24 @@ export function Schauseiten({
   return (
     <div className="paper-sheet flex min-h-full w-full flex-col px-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-[calc(1.5rem+env(safe-area-inset-top))] sm:px-10">
       <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col">
+        {/*
+          Das Band. Es steht auf jeder Schauseite, nicht nur auf der ersten:
+          Wer mitten hineinkommt oder kurz weggesehen hat, soll nicht raten
+          müssen, wessen Welt er da gerade liest.
+        */}
+        <div className="flex items-center justify-between gap-3 border-b border-gild-500/25 pb-2.5">
+          <p className="rubric text-gild-600">
+            Führung · ein Beispiel, nicht deine Welt
+          </p>
+          <button
+            type="button"
+            onClick={onFertig}
+            className="shrink-0 font-serif text-[13px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+          >
+            Überspringen
+          </button>
+        </div>
+
         {/*
          * Die Seite selbst. `key` erzwingt einen neuen Knoten je Seite – so
          * blendet jede für sich auf, statt dass Text unter Text wechselt.

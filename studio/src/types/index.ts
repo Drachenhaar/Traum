@@ -362,6 +362,13 @@ export interface Settings {
    */
   spiegelAus?: boolean;
   /**
+   * Wie weit der Leitfaden ist – siehe `lib/leitfaden.ts`.
+   *
+   * Fehlt er, ist er an: Ein neues Buch soll zeigen, was man tun kann. Wer
+   * ihn abstellt, hat ihn abgestellt; er kommt nicht von selbst zurueck.
+   */
+  leitfaden?: { an: boolean; erledigt: string[] };
+  /**
    * Frühere Spiegelungen: was der Spiegel zu einem früheren Zeitpunkt als
    * stärkste Motive gesehen hat. Daraus entsteht eine Chronik des kreativen
    * Vorgangs – „vor einem Jahr war dies eines der stärksten Motive".

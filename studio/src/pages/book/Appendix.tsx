@@ -159,7 +159,7 @@ export function AppendixSpread() {
 function AppendixLine({ to, title, note }: AppendixEntry) {
   return (
     <li className="group border-b border-paper-300/50 last:border-b-0">
-      <Link to={to} className="block py-3 no-tap-highlight">
+      <Link to={to} className="block py-3 no-tap-highlight" data-leitfaden={`anhang:${to}`}>
         <p className="font-serif text-[17px] leading-snug text-ink transition-colors group-hover:text-gild-600">
           {title}
         </p>
