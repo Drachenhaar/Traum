@@ -11,7 +11,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { BookOpen, Copy, PenLine, Printer, Star, Trash2 } from 'lucide-react';
+import { BookOpen, Copy, PenLine, Printer, Star, Trash2, Compass } from 'lucide-react';
 import type { Entry } from '../../types';
 import { useStudio, livingEntries } from '../../store/useStudio';
 import { templateFor, asList, asText, asBool } from '../../lib/templates';
@@ -200,8 +200,22 @@ export function EntrySpread() {
               <Mehr
                 eintraege={[
                   {
+                    /*
+                     * Von hier aufbrechen.
+                     *
+                     * Die Reise gibt es auch hinten im Anhang – aber dort
+                     * muesste man erst suchen, wo man gerade schon steht. Der
+                     * Wunsch „von *dieser* Figur aus losgehen" entsteht auf
+                     * ihrer Seite, nicht in einem Verzeichnis.
+                     */
+                    label: 'Von hier aus reisen',
+                    icon: <Compass size={14} />,
+                    onClick: () => navigate(`/reise?weg=${entry.id}`),
+                  },
+                  {
                     label: 'Als Blatt drucken',
                     icon: <Printer size={14} />,
+                    abgesetzt: true,
                     onClick: () => setDruck(true),
                   },
                   {
