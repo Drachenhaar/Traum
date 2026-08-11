@@ -2,21 +2,36 @@
  * Import und Export.
  *
  * Formate:
- *  - Vollsicherung  → JSON mit allen Einträgen, Bild-Metadaten und (optional)
- *                     den Bilddaten als Data-URL
- *  - Einzeleintrag  → JSON mit einem Eintrag und seinen Bildern
- *  - Druckansicht   → in sich geschlossene HTML-Datei mit eingebetteten Bildern
+ *  - Buchsicherung     → ein Band mit allem, was zu ihm gehört
+ *  - Bibliothekssicherung → alle Bände und die Geräteeinstellungen
+ *  - Einzeleintrag     → JSON mit einem Eintrag und seinen Bildern
+ *  - Druckansicht      → in sich geschlossene HTML-Datei mit eingebetteten Bildern
+ *
+ * Buch- und Bibliothekssicherung sind dieselbe Datei in zwei Größen: Beide
+ * tragen ein Feld `books`, einmal mit einem Band darin, einmal mit allen.
+ * Zwei Formate wären zwei Importwege, und der zweite wäre der schlechter
+ * geprüfte.
+ *
+ * Eine Datei *ohne* `books` stammt aus der Zeit, in der ein Dragoncore ein
+ * Buch war. Sie kommt als neuer Band in die Bibliothek – niemals als Ersatz
+ * für sie.
  *
  * Der Import prüft die Datei gegen ein Zod-Schema und meldet klar, was fehlt.
- * ZIP- und PDF-Export lassen sich später ergänzen: `collectEntryImages` und
- * `renderEntryHtml` liefern bereits alle nötigen Bausteine.
  */
 
 import { db, FRESH_SETTINGS } from '../db/db';
 import { blobToDataUrl } from './images';
 import { backupSchema, singleEntrySchema, type BackupFile } from './schemas';
-import type { CanvasBoard, Entry, Relation, Settings, StoredImageMeta } from '../types';
-import { escapeHtml, fileStamp } from './utils';
+import { buchAusAltenEinstellungen } from './bibliothek';
+import type {
+  CanvasBoard,
+  Entry,
+  LibraryBook,
+  Relation,
+  Settings,
+  StoredImageMeta,
+} from '../types';
+import { escapeHtml, fileStamp, newId } from './utils';
 import { blockDef, blockImageIds } from './blocks';
 import { asBool, asList, asText, templateFor, templatesByFamily } from './templates';
 import { relationsOf, type RelationIndex } from './relations';
@@ -47,18 +62,27 @@ function auslassen<T extends object, K extends keyof T>(wert: T, schluessel: K[]
   return kopie;
 }
 
+/**
+ * Die ganze Bibliothek – alle Bände, alle Seiten, die Geräteeinstellungen.
+ *
+ * Die einzige Sicherung, aus der sich ein Gerät vollständig wiederherstellen
+ * lässt. Wer nur einen Band weitergeben will, nimmt `buildBookBackup`.
+ */
 export async function buildFullBackup(withImages: boolean): Promise<string> {
-  const [entries, relations, boards, images, settings] = await Promise.all([
+  const [entries, relations, boards, images, settings, books] = await Promise.all([
     db.entries.toArray(),
     db.relations.toArray(),
     db.boards.toArray(),
     db.images.toArray(),
     db.settings.get('settings'),
+    db.books.toArray(),
   ]);
   const payload = {
     app: 'dragoncore-studio' as const,
+    kind: 'library' as const,
     version: EXPORT_VERSION,
     exportedAt: Date.now(),
+    books,
     entries,
     relations,
     boards,
@@ -76,6 +100,43 @@ export async function buildFullBackup(withImages: boolean): Promise<string> {
      * harmlosere Fehler.
      */
     settings: settings ? auslassen(settings, ['id']) : undefined,
+  };
+  return JSON.stringify(payload, null, 2);
+}
+
+/**
+ * Ein einzelnes Buch sichern.
+ *
+ * Nur die Daten dieses Bandes – nicht die Bibliothek, nicht die anderen
+ * Bücher, nicht die Geräteeinstellungen. So lässt sich ein Buch weitergeben,
+ * ohne alles andere mitzugeben, und auf einem anderen Gerät neben die dort
+ * vorhandenen stellen.
+ */
+export async function buildBookBackup(bookId: string, withImages: boolean): Promise<string> {
+  const [buch, entries, relations, boards, images] = await Promise.all([
+    db.books.get(bookId),
+    db.entries.where('bookId').equals(bookId).toArray(),
+    db.relations.where('bookId').equals(bookId).toArray(),
+    db.boards.where('bookId').equals(bookId).toArray(),
+    db.images.where('bookId').equals(bookId).toArray(),
+  ]);
+  if (!buch) throw new Error('Dieses Buch steht nicht in der Bibliothek.');
+
+  const payload = {
+    app: 'dragoncore-studio' as const,
+    kind: 'book' as const,
+    version: EXPORT_VERSION,
+    exportedAt: Date.now(),
+    books: [buch],
+    entries,
+    relations,
+    boards,
+    images: await packImages(images, withImages),
+    /*
+     * Keine Einstellungen. Was diesem Buch gehoert, steht im Band selbst;
+     * was dem Geraet gehoert – Navigation, Erinnerung ans Sichern –, geht
+     * niemanden etwas an, der nur ein Buch bekommt.
+     */
   };
   return JSON.stringify(payload, null, 2);
 }
@@ -122,16 +183,35 @@ export interface ImportResult {
   message: string;
   entries: number;
   images: number;
+  /** Welcher Band beim Einlesen entstanden ist – falls einer entstand. */
+  buchId?: string;
 }
 
 /**
  * Sicherung einlesen.
- * `mode = 'replace'` löscht vorher alles, `mode = 'merge'` ergänzt bzw.
- * aktualisiert vorhandene Einträge anhand der ID.
+ *
+ * Drei Wege, und der Auftrag verlangt jeden einzelnen:
+ *
+ *   **`bibliothek`** – nur für eine Bibliothekssicherung. Sie ersetzt das
+ *   ganze Gerät: alle Bände, alle Seiten, alle Einstellungen. Das ist
+ *   Wiederherstellung nach einem Verlust, sonst nichts.
+ *
+ *   **`buch`** – die Datei kommt als *neuer Band* in die vorhandene
+ *   Bibliothek. Alles darin bekommt dessen Kennung. Nichts, was schon da ist,
+ *   wird angefasst. Das ist der Weg für eine Buchsicherung, für ein fremdes
+ *   Buch – und für jede alte Sicherung aus der Zeit, in der ein Dragoncore
+ *   ein Buch war (§21).
+ *
+ *   **`merge`** – die Inhalte kommen in das gerade offene Buch. Für einzelne
+ *   Seiten, die jemand weitergegeben hat.
+ *
+ * `aktivesBuch` ist nur für `merge` nötig; ohne offenes Buch lässt sich
+ * nirgends hineinlegen.
  */
 export async function importBackup(
   text: string,
-  mode: 'replace' | 'merge',
+  mode: 'bibliothek' | 'buch' | 'merge',
+  aktivesBuch?: string,
 ): Promise<ImportResult> {
   let raw: unknown;
   try {
@@ -173,10 +253,97 @@ export async function importBackup(
     data = result.data;
   }
 
-  const entries = data.entries as unknown as Entry[];
-  const relations = (data.relations ?? []) as unknown as Relation[];
-  const boards = (data.boards ?? []) as unknown as CanvasBoard[];
+  const buecher = (data.books ?? []) as unknown as LibraryBook[];
+  let entries = data.entries as unknown as Entry[];
+  let relations = (data.relations ?? []) as unknown as Relation[];
+  let boards = (data.boards ?? []) as unknown as CanvasBoard[];
   const images = data.images as unknown as (StoredImageMeta & { dataUrl?: string })[];
+
+  /*
+   * Eine Bibliothekssicherung braucht mehr als einen Band. Wer eine
+   * Buchsicherung mit „ganze Bibliothek ersetzen" einliest, hat sich
+   * vergriffen – und wuerde alles andere verlieren.
+   */
+  if (mode === 'bibliothek' && buecher.length === 0) {
+    return {
+      ok: false,
+      message:
+        'Diese Datei enthält keine Bibliothek, sondern ein einzelnes Buch. Lies sie als neues Buch ein – dann bleibt alles andere stehen.',
+      entries: 0,
+      images: 0,
+    };
+  }
+
+  /*
+   * Wohin gehört das alles?
+   *
+   * Beim Einlesen als Buch entsteht *ein* Band, und alles bekommt dessen
+   * Kennung – auch dann, wenn die Datei schon Kennungen mitbringt. Sonst
+   * hinge der Inhalt am Band eines fremden Geräts, den es hier nicht gibt.
+   */
+  let neuerBand: LibraryBook | undefined;
+  if (mode === 'buch') {
+    neuerBand = buecher[0]
+      ? { ...buecher[0], lastOpenedAt: Date.now(), archived: false }
+      : buchAusAltenEinstellungen((data.settings ?? {}) as Record<string, unknown>);
+
+    /* Ein Band mit dieser Kennung kann hier schon stehen – dann ein neuer. */
+    if (await db.books.get(neuerBand.id)) {
+      neuerBand = { ...neuerBand, id: `buch_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}` };
+    }
+    const bookId = neuerBand.id;
+
+    /*
+     * Neue Kennungen, wenn eine schon vergeben ist.
+     *
+     * Ohne das ist „als neues Buch einlesen" kein Hinzufügen, sondern ein
+     * Umzug: Eine Seite mit bekannter Kennung würde überschrieben und trüge
+     * danach die Kennung des neuen Bandes – sie wäre aus dem alten Buch
+     * *verschwunden*. Wer seine eigene Buchsicherung ein zweites Mal
+     * einliest, um sie danebenzulegen, hätte damit das Original geleert.
+     *
+     * Kollidiert auch nur eine, werden alle umgeschrieben. Halb umbenannt
+     * hiesse: Beziehungen zwischen alten und neuen Kennungen, also eine
+     * Abschrift, die still an der Vorlage hängt.
+     */
+    const vorhanden = new Set(await db.entries.toCollection().primaryKeys());
+    if (entries.some((e) => vorhanden.has(e.id))) {
+      const neu = new Map(entries.map((e) => [e.id, newId('e')]));
+      const um = (alt: string) => neu.get(alt) ?? alt;
+      entries = entries.map((e) => ({
+        ...e,
+        id: um(e.id),
+        linkedEntryIds: (e.linkedEntryIds ?? []).map(um),
+      }));
+      relations = relations.map((r) => ({
+        ...r,
+        id: newId('rel'),
+        fromId: um(r.fromId),
+        toId: um(r.toId),
+      }));
+      boards = boards.map((b) => ({
+        ...b,
+        id: newId('board'),
+        items: (b.items ?? []).map((i) =>
+          i.kind === 'entry' && i.refId ? { ...i, refId: um(i.refId) } : i,
+        ),
+      }));
+    }
+
+    entries = entries.map((e) => ({ ...e, bookId }));
+    relations = relations.map((r) => ({ ...r, bookId }));
+    boards = boards.map((b) => ({ ...b, bookId }));
+    images.forEach((m) => {
+      m.bookId = bookId;
+    });
+  } else if (mode === 'merge' && aktivesBuch) {
+    entries = entries.map((e) => ({ ...e, bookId: aktivesBuch }));
+    relations = relations.map((r) => ({ ...r, bookId: aktivesBuch }));
+    boards = boards.map((b) => ({ ...b, bookId: aktivesBuch }));
+    images.forEach((m) => {
+      m.bookId = aktivesBuch;
+    });
+  }
 
   // Beziehungen, deren Gegenstück fehlt, würden im Graphen ins Leere zeigen.
   const knownIds = new Set(entries.map((e) => e.id));
@@ -189,17 +356,25 @@ export async function importBackup(
   try {
     await db.transaction(
       'rw',
-      [db.entries, db.relations, db.boards, db.images, db.imageBlobs, db.settings],
+      [db.entries, db.relations, db.boards, db.images, db.imageBlobs, db.settings, db.books],
       async () => {
-      if (mode === 'replace') {
+      if (mode === 'bibliothek') {
         await Promise.all([
           db.entries.clear(),
           db.relations.clear(),
           db.boards.clear(),
           db.images.clear(),
           db.imageBlobs.clear(),
+          db.books.clear(),
         ]);
       }
+      if (buecher.length && mode !== 'merge') {
+        /* Beim Buchimport nur der eine, umgeschriebene Band. */
+        await db.books.bulkPut(mode === 'buch' ? [neuerBand!] : buecher);
+      } else if (neuerBand) {
+        await db.books.put(neuerBand);
+      }
+
       await db.entries.bulkPut(entries);
       if (usableRelations.length) await db.relations.bulkPut(usableRelations);
       if (boards.length) await db.boards.bulkPut(boards);
@@ -216,24 +391,27 @@ export async function importBackup(
       }
 
       /*
-       * Einstellungen zurueckholen – aber nur beim Ersetzen.
+       * Einstellungen zurueckholen – aber nur beim Wiederherstellen der
+       * ganzen Bibliothek.
        *
-       * Vorher wurde hier ausschliesslich `backupReminderDays` uebernommen.
-       * Alles andere blieb das des aktuellen Geraets: Weltname, eigene Typen,
-       * Ziele – und die Buchidentitaet. Eine Sicherung auf einem neuen Geraet
-       * brachte damit die Inhalte zurueck, aber nicht den Band, in dem sie
-       * standen. Eigene Typen fehlten sogar den Eintraegen, die sie brauchen.
+       * Was einem Buch gehoert, steht seit der Bibliothek im Band selbst und
+       * kommt mit ihm. Was hier noch zurueckkommt, ist das Geraet: die
+       * Navigation, die Erinnerung ans Sichern, das zuletzt offene Buch.
        *
-       * Beim *Zusammenfuehren* bleibt es dabei, dass nichts angefasst wird:
-       * Wer fremde Seiten in sein Buch legt, will nicht dessen Einband
-       * tauschen. Das ist keine Auslassung, sondern der Unterschied zwischen
-       * „wiederherstellen“ und „hinzufuegen“.
+       * Beim *Zusammenfuehren* und beim *Buchimport* bleibt es dabei, dass
+       * nichts angefasst wird: Wer fremde Seiten in sein Buch legt oder ein
+       * Buch ins Regal stellt, will nicht sein Geraet umbauen.
        */
-      if (mode === 'replace' && data.settings) {
+      if (mode === 'bibliothek' && data.settings) {
         const current = await db.settings.get('settings');
+        const uebernommen = { ...(data.settings as Partial<Settings>) };
+        /* Zeigt die Sicherung auf ein Buch, das nicht mitkam, lieber keines. */
+        if (uebernommen.activeBookId && !buecher.some((b) => b.id === uebernommen.activeBookId)) {
+          delete uebernommen.activeBookId;
+        }
         await db.settings.put({
           ...(current ?? FRESH_SETTINGS),
-          ...(data.settings as Partial<Settings>),
+          ...uebernommen,
           id: 'settings',
         } as Settings);
       }
@@ -261,7 +439,15 @@ export async function importBackup(
   if (droppedRelations > 0) {
     message += `; ${droppedRelations} Verbindungen ohne Gegenstück wurden ausgelassen`;
   }
-  return { ok: true, message: `${message}.`, entries: entries.length, images: images.length };
+  if (neuerBand) message += ` – als „${neuerBand.title}“ in deine Bibliothek gestellt`;
+  else if (mode === 'bibliothek') message += ` – ${buecher.length} Bände wiederhergestellt`;
+  return {
+    ok: true,
+    message: `${message}.`,
+    entries: entries.length,
+    images: images.length,
+    buchId: neuerBand?.id,
+  };
 }
 
 async function dataUrlToBlob(dataUrl: string): Promise<Blob> {

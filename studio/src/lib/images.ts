@@ -97,6 +97,8 @@ export interface ImportImageOptions {
   category?: string;
   tags?: string[];
   linkedEntryIds?: string[];
+  /** In welches Buch dieses Bild gelegt wird. Ohne Buch sähe es niemand. */
+  bookId?: string;
 }
 
 /**
@@ -121,6 +123,7 @@ export async function importImageFiles(
       const id = newId('img');
       const meta: StoredImageMeta = {
         id,
+        bookId: options.bookId,
         title: file.name.replace(/\.[^.]+$/, ''),
         description: '',
         tags: options.tags ?? [],

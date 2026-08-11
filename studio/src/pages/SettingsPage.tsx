@@ -20,7 +20,7 @@ import { Field, SelectInput, TextInput } from '../components/ui/Fields';
 import { CustomTypes } from '../components/settings/CustomTypes';
 import { iconByName } from '../lib/icons';
 import { DEFAULT_NAV } from '../lib/nav';
-import { backupFileName, buildFullBackup, importBackup } from '../lib/portability';
+import { backupFileName, buildBookBackup, buildFullBackup, importBackup } from '../lib/portability';
 import { cx, downloadFile, formatDateTime, moveItem } from '../lib/utils';
 import { WEGPUNKTE, leitfadenStand } from '../lib/leitfaden';
 
@@ -34,6 +34,8 @@ export function SettingsPage() {
   const reloadFromDb = useStudio((s) => s.reloadFromDb);
   const wipeAll = useStudio((s) => s.wipeAll);
   const notify = useStudio((s) => s.notify);
+  const activeBookId = useStudio((s) => s.activeBookId);
+  const books = useStudio((s) => s.books);
 
   const [busy, setBusy] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -47,14 +49,37 @@ export function SettingsPage() {
 
   /* ------------------------------------------------------------- Sicherung */
 
-  const exportAll = async (withImages: boolean) => {
+  /**
+   * Sichern – zwei Groessen, ein Format.
+   *
+   * `umfang: 'buch'` nimmt nur den aufgeschlagenen Band mit; er laesst sich
+   * anderswo neben vorhandene Buecher stellen. `umfang: 'bibliothek'` nimmt
+   * alles und ist die einzige Sicherung, aus der sich ein Geraet vollstaendig
+   * wiederherstellen laesst.
+   */
+  const exportAll = async (withImages: boolean, umfang: 'buch' | 'bibliothek' = 'bibliothek') => {
     setBusy(true);
     try {
-      const json = await buildFullBackup(withImages);
-      downloadFile(backupFileName(), json, 'application/json');
-      updateSettings({ lastBackupAt: Date.now() });
+      const nurBuch = umfang === 'buch' && !!activeBookId;
+      const json = nurBuch
+        ? await buildBookBackup(activeBookId!, withImages)
+        : await buildFullBackup(withImages);
+      const name = nurBuch
+        ? backupFileName(`dragoncore-${dateiName(settings.book?.title ?? 'buch')}`)
+        : backupFileName('dragoncore-bibliothek');
+      downloadFile(name, json, 'application/json');
+      /*
+       * Nur die Bibliothekssicherung setzt die Erinnerung zurueck. Ein
+       * einzelnes Buch zu sichern ist kein Schutz fuer alles andere, und die
+       * Erinnerung waere danach eine falsche Beruhigung.
+       */
+      if (!nurBuch) updateSettings({ lastBackupAt: Date.now() });
       notify(
-        withImages ? 'Vollsicherung gespeichert (mit Bildern).' : 'Sicherung gespeichert (ohne Bilddaten).',
+        nurBuch
+          ? `„${settings.book?.title ?? 'Das Buch'}“ gesichert.`
+          : withImages
+            ? 'Bibliothek gesichert (mit Bildern).'
+            : 'Bibliothek gesichert (ohne Bilddaten).',
         'success',
       );
     } catch (err) {
@@ -75,21 +100,21 @@ export function SettingsPage() {
     }
   };
 
-  const runImport = async (mode: 'merge' | 'replace') => {
+  const runImport = async (mode: 'merge' | 'buch' | 'bibliothek') => {
     if (!importText) return;
-    if (mode === 'replace') {
+    if (mode === 'bibliothek') {
       const ok = await confirm({
-        title: 'Alles ersetzen?',
+        title: 'Die ganze Bibliothek ersetzen?',
         message:
-          'Der vorhandene Inhalt wird gelöscht und durch die Datei ersetzt. Sichere vorher am besten deinen aktuellen Stand.',
-        confirmLabel: 'Alles ersetzen',
+          'Alle Bände dieses Geräts werden entfernt und durch die aus der Datei ersetzt – nicht nur das offene Buch. Sichere vorher am besten deinen aktuellen Stand.',
+        confirmLabel: 'Bibliothek ersetzen',
         danger: true,
       });
       if (!ok) return;
     }
     setBusy(true);
     try {
-      const result = await importBackup(importText, mode);
+      const result = await importBackup(importText, mode, activeBookId);
       if (!result.ok) {
         notify(result.message, 'error');
         return;
@@ -183,17 +208,38 @@ export function SettingsPage() {
       <section className="card p-4 sm:p-5">
         <h2 className="mb-1 font-serif text-xl text-ink">Sicherung & Übertragung</h2>
         <p className="mb-4 text-[15px] text-ink-muted">
-          Die Vollsicherung enthält auch die Bilddaten und ist dadurch deutlich größer, dafür aber
-          vollständig wiederherstellbar.
+          Die Bibliothekssicherung nimmt alle Bände mit und ist die einzige, aus der sich dieses
+          Gerät vollständig wiederherstellen lässt. Ein einzelnes Buch lässt sich weitergeben und
+          anderswo neben vorhandene stellen.
         </p>
 
         <div className="flex flex-wrap gap-2">
-          <button type="button" className="btn-accent" onClick={() => void exportAll(true)} disabled={busy}>
-            <Download size={18} /> Vollsicherung (mit Bildern)
+          <button
+            type="button"
+            className="btn-accent"
+            onClick={() => void exportAll(true, 'bibliothek')}
+            disabled={busy}
+          >
+            <Download size={18} /> Bibliothek sichern (mit Bildern)
           </button>
-          <button type="button" className="btn-ghost" onClick={() => void exportAll(false)} disabled={busy}>
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={() => void exportAll(false, 'bibliothek')}
+            disabled={busy}
+          >
             <Download size={18} /> Nur Daten (ohne Bilder)
           </button>
+          {activeBookId && (
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => void exportAll(true, 'buch')}
+              disabled={busy}
+            >
+              <Download size={18} /> Nur dieses Buch
+            </button>
+          )}
           <button type="button" className="btn-ghost" onClick={() => fileRef.current?.click()} disabled={busy}>
             <Upload size={18} /> Sicherung einlesen
           </button>
@@ -345,17 +391,29 @@ export function SettingsPage() {
       <section className="rounded-2xl border border-red-800/20 bg-red-50/60 p-4 sm:p-5">
         <h2 className="mb-1 font-serif text-xl text-ink">Von vorn beginnen</h2>
         <p className="mb-4 text-[15px] text-ink-muted">
-          Nimmt dieses Buch aus dem Regal – Seiten, Tafeln, Einband, Titel und Zeichen. Danach
-          steht wieder ein leerer Tisch da, und die Erschaffung beginnt von Neuem. Erstelle vorher
-          unbedingt eine Sicherung: Ohne sie ist der Band nicht zurückzuholen.
+          Leert die <strong>ganze Bibliothek</strong> – jeden Band mit allen Seiten, Tafeln,
+          Einbänden und Zeichen, auch die im Archiv. Danach steht wieder ein leerer Tisch da, und
+          die Erschaffung beginnt von Neuem. Erstelle vorher unbedingt eine Sicherung: Ohne sie ist
+          nichts davon zurückzuholen.
         </p>
+        {books.length > 1 && (
+          /*
+           * Bei mehreren Baenden ist dieser Knopf gefaehrlicher geworden, als
+           * er aussieht: Er hiess einmal „dieses Buch" und meint jetzt alle.
+           * Wer nur einen loswerden will, findet den Weg dorthin hier.
+           */
+          <p className="mb-4 text-[14px] italic text-ink-muted">
+            Willst du nur <em>ein</em> Buch loswerden, nimm es in der Bibliothek aus dem Regal –
+            dort bleibt alles andere stehen.
+          </p>
+        )}
         <button
           type="button"
           className="btn-danger"
           disabled={busy}
           onClick={async () => {
             const ok = await confirm({
-              title: 'Dieses Buch aus dem Regal nehmen?',
+              title: 'Die ganze Bibliothek leeren?',
               /*
                * Die Nachfrage stand noch aus der Zeit vor der Buchidentitaet
                * und sprach nur von „Eintraegen und Bildern". Es geht aber um
@@ -363,7 +421,7 @@ export function SettingsPage() {
                * nicht weiss, klickt es weg und wundert sich.
                */
               message:
-                'Alle Seiten, Tafeln und Verbindungen werden entfernt – und mit ihnen der Einband, der Titel und das Zeichen. Danach beginnt die Erschaffung von vorn. Das lässt sich nur über eine vorher erstellte Sicherung rückgängig machen.',
+                'Alle Bände werden entfernt – jede Seite, jede Tafel, jede Verbindung, und mit ihnen jeder Einband, Titel und jedes Zeichen. Auch das Archiv. Danach beginnt die Erschaffung von vorn. Das lässt sich nur über eine vorher erstellte Sicherung rückgängig machen.',
               confirmLabel: 'Von vorn beginnen',
               danger: true,
             });
@@ -402,22 +460,51 @@ export function SettingsPage() {
               Abbrechen
             </button>
             <button type="button" className="btn-ghost" onClick={() => void runImport('merge')} disabled={busy}>
-              Ergänzen
+              Ins offene Buch
             </button>
-            <button type="button" className="btn-danger" onClick={() => void runImport('replace')} disabled={busy}>
-              Ersetzen
+            <button type="button" className="btn-accent" onClick={() => void runImport('buch')} disabled={busy}>
+              Als neues Buch
+            </button>
+            <button
+              type="button"
+              className="btn-danger"
+              onClick={() => void runImport('bibliothek')}
+              disabled={busy}
+            >
+              Bibliothek ersetzen
             </button>
           </>
         }
       >
         <p className="text-[15px] leading-relaxed text-ink-muted">
-          <strong className="text-ink">Ergänzen</strong> fügt die Inhalte zum aktuellen Bestand hinzu und
-          aktualisiert gleiche Einträge.
+          <strong className="text-ink">Als neues Buch</strong> stellt die Datei als eigenen Band ins
+          Regal. Nichts, was schon da ist, wird angefasst – das ist der richtige Weg für ein
+          weitergegebenes Buch und für ältere Sicherungen.
           <br />
-          <strong className="text-ink">Ersetzen</strong> löscht zuerst alles Vorhandene.
+          <strong className="text-ink">Ins offene Buch</strong> legt die Inhalte zu{' '}
+          {settings.book?.title ? `„${settings.book.title}“` : 'dem gerade offenen Band'} und
+          aktualisiert gleiche Seiten.
+          <br />
+          <strong className="text-ink">Bibliothek ersetzen</strong> entfernt <em>alle</em> Bände
+          dieses Geräts. Nur für die Wiederherstellung nach einem Verlust.
         </p>
       </Modal>
     </div>
+  );
+}
+
+/** Ein Buchtitel als Dateiname – ohne Umlautsalat und ohne Schraegstriche. */
+function dateiName(titel: string): string {
+  return (
+    titel
+      .toLowerCase()
+      .replace(/ä/g, 'ae')
+      .replace(/ö/g, 'oe')
+      .replace(/ü/g, 'ue')
+      .replace(/ß/g, 'ss')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40) || 'buch'
   );
 }
 

@@ -11,7 +11,7 @@
 
 import type { ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Library } from 'lucide-react';
 import { useStudio } from '../../store/useStudio';
 import { useCurrentSpread } from '../../components/book/BookShell';
 import { Spread } from '../../components/book/Spread';
@@ -24,10 +24,13 @@ interface AppendixEntry {
 
 export function AppendixSpread() {
   const { book, spread, wear } = useCurrentSpread();
+  const navigate = useNavigate();
   const images = useStudio((s) => s.images);
   const boards = useStudio((s) => s.boards);
   const entries = useStudio((s) => s.entries);
   const settings = useStudio((s) => s.settings);
+  const books = useStudio((s) => s.books);
+  const schliesseBuch = useStudio((s) => s.schliesseBuch);
 
   const trashed = entries.filter((e) => e.deletedAt).length;
   const assets = entries.filter((e) => e.type === 'asset' && !e.deletedAt).length;
@@ -140,6 +143,38 @@ export function AppendixSpread() {
               <AppendixLine key={item.to} {...item} />
             ))}
           </ol>
+
+          {/*
+            Das Buch zuklappen.
+
+            Kein Home-Knopf und keine Kopfzeile: Es steht hinten im Buch, dort
+            wo man ein Buch auch zuschlägt. Und nur ab dem zweiten Band – wer
+            eines hat, hat kein Regal, und der Weg dorthin wäre ein Weg zu
+            sich selbst.
+          */}
+          {books.filter((b) => !b.archived).length > 1 && (
+            <section className="mt-12 border-t border-paper-300/70 pt-6">
+              <button
+                type="button"
+                onClick={() => {
+                  schliesseBuch();
+                  navigate('/bibliothek');
+                }}
+                className="group flex min-h-[44px] w-full items-center gap-2.5 text-left no-tap-highlight"
+                data-leitfaden="regal"
+              >
+                <Library size={15} className="shrink-0 text-ink-faint/45 transition-colors group-hover:text-gild-600" />
+                <span>
+                  <span className="block font-serif text-[17px] leading-snug text-ink transition-colors group-hover:text-gild-600">
+                    Dieses Buch zuklappen
+                  </span>
+                  <span className="mt-0.5 block font-serif text-[13.5px] italic leading-snug text-ink-muted">
+                    Zurück in deine Bibliothek – die anderen Bände stehen dort und warten.
+                  </span>
+                </span>
+              </button>
+            </section>
+          )}
 
           <section className="mt-12 border-t border-paper-300/70 pt-6">
             <p className="rubric mb-2">Über diesen Band</p>

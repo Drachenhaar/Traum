@@ -445,16 +445,19 @@ function buildSeed(): { entries: Entry[]; relations: Relation[] } {
 /**
  * Legt die Startwelt an, wenn die Datenbank leer ist.
  * Rückgabe: neue Seed-Version, oder 0 wenn nichts getan wurde.
+ *
+ * `bookId` ist keine Bequemlichkeit, sondern Bedingung: Eine Beispielwelt
+ * ohne Band gehörte zu keinem Buch und wäre damit in keinem sichtbar.
  */
-export async function seedIfEmpty(currentVersion: number): Promise<number> {
+export async function seedIfEmpty(currentVersion: number, bookId: string): Promise<number> {
   if (currentVersion >= SEED_VERSION) return 0;
   const count = await db.entries.count();
   if (count > 0) return SEED_VERSION; // Es gibt schon Inhalte – nichts überschreiben.
 
   const { entries, relations } = buildSeed();
   await db.transaction('rw', [db.entries, db.relations], async () => {
-    await db.entries.bulkPut(entries);
-    await db.relations.bulkPut(relations);
+    await db.entries.bulkPut(entries.map((e) => ({ ...e, bookId })));
+    await db.relations.bulkPut(relations.map((r) => ({ ...r, bookId })));
   });
   return SEED_VERSION;
 }

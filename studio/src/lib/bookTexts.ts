@@ -70,6 +70,33 @@ export const BUCH_TEXTE = {
       ruhe: 'Neu gebunden.',
       oeffnen: 'Zurück zum Buch',
     },
+
+    /*
+     * Und noch einmal dieselben Szenen – fuer ein weiteres Buch neben denen,
+     * die schon im Regal stehen.
+     *
+     * „Jede Welt beginnt mit einem leeren Buch" waere auch hier falsch: Wer
+     * sein drittes Buch anlegt, faengt nicht an, er faengt *noch etwas* an.
+     * Das ist ein anderer Satz und ein anderer Ton – ruhiger, ohne die
+     * Feierlichkeit des ersten Males, die man nicht wiederholen kann, ohne
+     * sie zu entwerten.
+     */
+    anfangWeiterer: {
+      zeile: 'Neben deinen Büchern ist Platz.',
+      unterzeile: 'Beginne noch eines.',
+      aria: 'Ein weiteres Buch beginnen',
+    },
+    vollendenWeiterer: {
+      knopf: 'Dieses Buch beginnen',
+      ruhe: 'Dein neues Buch.',
+      oeffnen: 'Schlag es auf.',
+    },
+    ausrichtung: {
+      frage: 'Wovon soll dieses Buch handeln?',
+      hinweis:
+        'Das entscheidet nur, womit es dich empfängt – welche Beispiele, welche ersten Vorschläge. Es schaltet nichts frei und nichts ab, und du kannst es jederzeit ändern.',
+      ohne: 'Das ergibt sich',
+    },
     zurueck: 'Zurück',
     weiter: 'Weiter',
   },

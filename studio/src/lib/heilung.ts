@@ -84,6 +84,16 @@ export function heileEintrag(roh: unknown): Entry | null {
   return {
     id,
     /*
+     * Die Buchzugehoerigkeit geht als erstes durch.
+     *
+     * Diese Heilung baut den Eintrag Feld fuer Feld neu auf – was hier nicht
+     * steht, ist danach fort, und zwar auch in der Datenbank, sobald der
+     * Eintrag das naechste Mal gespeichert wird. Ein vergessenes `bookId`
+     * haette jeden bearbeiteten Eintrag lautlos aus seinem Buch fallen
+     * lassen.
+     */
+    bookId: typeof e.bookId === 'string' ? e.bookId : undefined,
+    /*
      * Ein Eintrag ohne Titel ist kein kaputter Eintrag, sondern einer, den
      * niemand wiederfindet. Er bekommt einen, der sagt, was los ist.
      */
@@ -125,6 +135,8 @@ export function heileBeziehung(roh: unknown): Relation | null {
 
   return {
     id,
+    /* Siehe oben: Was hier fehlt, faellt beim naechsten Speichern weg. */
+    bookId: typeof r.bookId === 'string' ? r.bookId : undefined,
     fromId,
     toId,
     type: text(r.type) || 'related',

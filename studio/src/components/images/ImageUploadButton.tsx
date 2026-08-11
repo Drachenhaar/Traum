@@ -28,6 +28,8 @@ export function ImageUploadButton({
   const [busy, setBusy] = useState(false);
   const addImages = useStudio((s) => s.addImages);
   const notify = useStudio((s) => s.notify);
+  /* Ein Bild kommt in das Buch, das gerade offen liegt – wie eine Tafel. */
+  const bookId = useStudio((s) => s.activeBookId);
 
   const handleFiles = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
@@ -36,6 +38,7 @@ export function ImageUploadButton({
       const { metas, errors } = await importImageFiles(Array.from(fileList), {
         category,
         linkedEntryIds,
+        bookId,
       });
       if (metas.length) {
         addImages(metas);
