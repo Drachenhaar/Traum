@@ -23,6 +23,8 @@ import type {
   Settings,
   StoredImageBlob,
   StoredImageMeta,
+  StoredKlang,
+  StoredKlangBlob,
 } from '../types';
 import { DEFAULT_NAV } from '../lib/nav';
 import { buchAusAltenEinstellungen } from '../lib/bibliothek';
@@ -42,6 +44,8 @@ export class StudioDatabase extends Dexie {
   boards!: Table<CanvasBoard, string>;
   settings!: Table<Settings, string>;
   books!: Table<LibraryBook, string>;
+  klaenge!: Table<StoredKlang, string>;
+  klangBlobs!: Table<StoredKlangBlob, string>;
 
   constructor() {
     super('dragoncore-studio');
@@ -152,6 +156,21 @@ export class StudioDatabase extends Dexie {
           await tabelle.bulkPut(alle.map((z) => ({ ...z, bookId: erster.id })));
         }
       });
+
+    /*
+     * Fassung 4: die Klaenge.
+     *
+     * Nur zwei neue Tabellen, kein Umschreiben. Nach demselben Muster wie die
+     * Bilder – Angaben getrennt von Datei –, damit ein Klangverzeichnis nicht
+     * jedes Mal zwanzig Megabyte laedt.
+     *
+     * Keine `upgrade`-Funktion: Es gibt nichts zu ueberfuehren. Wer bisher
+     * kein Geraeusch hatte, hat danach auch keins, und genau das ist richtig.
+     */
+    this.version(4).stores({
+      klaenge: 'id, bookId, createdAt',
+      klangBlobs: 'id',
+    });
   }
 }
 
@@ -196,6 +215,8 @@ export async function wipeDatabase(): Promise<void> {
       db.boards,
       db.settings,
       db.books,
+      db.klaenge,
+      db.klangBlobs,
     ],
     async () => {
       await Promise.all([
@@ -207,6 +228,8 @@ export async function wipeDatabase(): Promise<void> {
         db.boards.clear(),
         db.settings.clear(),
         db.books.clear(),
+        db.klaenge.clear(),
+        db.klangBlobs.clear(),
       ]);
       await db.settings.put({ ...FRESH_SETTINGS });
     },

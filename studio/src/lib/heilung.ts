@@ -22,7 +22,7 @@
  * kaputte Sicherung einspielt, soll den lesbaren Teil seiner Welt behalten.
  */
 
-import type { Block, Entry, Relation } from '../types';
+import type { Block, Entry, EntryAtmosphaere, Relation } from '../types';
 import { ENTRY_STATUSES } from '../types';
 
 const istListe = (v: unknown): v is unknown[] => Array.isArray(v);
@@ -114,7 +114,35 @@ export function heileEintrag(roh: unknown): Entry | null {
     pipelineStage: typeof e.pipelineStage === 'string' ? e.pipelineStage : undefined,
     beginn: typeof e.beginn === 'string' ? e.beginn : undefined,
     ende: typeof e.ende === 'string' ? e.ende : undefined,
+    /*
+     * Die Atmosphaere kommt nur durch, wenn sie einen Klang nennt. Ein
+     * Atmosphaerenobjekt ohne `klangId` waere ein Lautsprecher ohne Kabel:
+     * Es stuende im Datensatz, wuerde in der Oberflaeche als „hat Klang"
+     * gelesen und blieb doch stumm. Die Zahlen bekommen Rueckfalle, damit
+     * eine halbe Angabe nicht in eine Lautstaerke von `NaN` muendet.
+     */
+    atmosphaere: heileAtmosphaere(e.atmosphaere),
     deletedAt: typeof e.deletedAt === 'number' ? e.deletedAt : undefined,
+  };
+}
+
+/** Die Atmosphaere einer Seite – oder nichts, wenn sie keinen Klang nennt. */
+function heileAtmosphaere(roh: unknown): EntryAtmosphaere | undefined {
+  if (!roh || typeof roh !== 'object') return undefined;
+  const a = roh as Record<string, unknown>;
+  const klangId = text(a.klangId);
+  if (!klangId) return undefined;
+  const zwischen = (wert: unknown, rueckfall: number, min: number, max: number) => {
+    const n = typeof wert === 'number' && Number.isFinite(wert) ? wert : rueckfall;
+    return Math.max(min, Math.min(max, n));
+  };
+  return {
+    klangId,
+    lautstaerke: zwischen(a.lautstaerke, 0.45, 0, 1),
+    schleife: a.schleife !== false,
+    einblenden: zwischen(a.einblenden, 1800, 0, 20000),
+    ausblenden: zwischen(a.ausblenden, 900, 0, 20000),
+    vonSelbst: a.vonSelbst !== false,
   };
 }
 
