@@ -73,6 +73,45 @@ export const WEGPUNKTE: Wegpunkt[] = [
     pfad: '/anhang',
     text: 'Hinten im Buch entsteht etwas: Hier schreibst du, während deine Welt danebensteht.',
   },
+
+  /*
+   * Ab hier: die Bereiche.
+   *
+   * Jeder dieser Wegweiser hat einen `pfad` und schweigt deshalb ueberall
+   * sonst. Man bekommt sie nicht vorgesetzt, sondern trifft sie an, wenn man
+   * das erste Mal dort steht – und dann zeigen sie auf das eine, was diesen
+   * Ort ausmacht und was man sonst uebersieht.
+   */
+  {
+    id: 'karte',
+    ziel: 'karte-zeit',
+    pfad: '/karte',
+    text: 'Ein Jahr wählen – und die Karte zeigt, was damals bestand. Die Sterne wandern nicht, nur ihr Licht ändert sich.',
+  },
+  {
+    id: 'setzerei',
+    ziel: 'setzerei-feld',
+    pfad: '/setzerei',
+    text: 'Geschriebenes hier einlegen – auch aus einem Gespräch mit ChatGPT. Das Buch erkennt die Angaben und setzt daraus eine Seite.',
+  },
+  {
+    id: 'chronik',
+    ziel: 'chronik-papierkorb',
+    pfad: '/chronik',
+    text: 'Nichts geht verloren: Entnommene Seiten warten hier, und frühere Fassungen lassen sich zurückholen.',
+  },
+  {
+    id: 'kapitelzeichen',
+    ziel: 'kapitelzeichen',
+    pfad: '/schreiben/',
+    text: 'Das Lesebändchen fächert die Kapitel auf. Antippen springt – danach faltet es sich wieder zusammen.',
+  },
+  {
+    id: 'szenenblatt',
+    ziel: 'szenenblatt',
+    pfad: '/schreiben/',
+    text: 'Hier steht, wer vorkommt und wo es spielt – und was die Welt zu dieser Zeit dazu sagt. Es öffnet neben dem Text, nicht darüber.',
+  },
 ];
 
 /** Was der Leitfaden sich merkt. Liegt in den Einstellungen. */
@@ -96,9 +135,15 @@ export function naechsterWegpunkt(
 ): Wegpunkt | undefined {
   if (!stand?.an) return undefined;
   const erledigt = new Set(stand.erledigt);
-  return WEGPUNKTE.find(
+  const offen = WEGPUNKTE.filter(
     (w) => !erledigt.has(w.id) && (!w.pfad || pfad.startsWith(w.pfad)) && vorhanden(w.ziel),
   );
+  /*
+   * Wer gerade auf der Faltkarte steht, soll etwas ueber die Faltkarte
+   * hoeren – nicht ueber das Lesebaendchen, das es ueberall gibt. Was an
+   * einen Ort gebunden ist, geht deshalb vor.
+   */
+  return offen.find((w) => w.pfad) ?? offen[0];
 }
 
 /** Wie weit ist der Leitfaden? Für die stille Zeile in den Einstellungen. */

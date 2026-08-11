@@ -170,6 +170,7 @@ export function Setzerei() {
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
+            data-leitfaden="setzerei-feld"
             placeholder={'Titel: Waldkoi\nKategorie: Kreatur\nArt: Schleierkarpfen\nGröße: 40 cm\nVerhalten: schwimmt durch Luft wie durch Wasser\nFarbpalette: Moosgrün #55604A, Messing #A8853F\n\nDer Waldkoi zieht in kleinen Schwärmen durch den Nebelwald …'}
             /*
              * Acht Zeilen statt sechzehn. Auf dem Telefon schob ein Feld

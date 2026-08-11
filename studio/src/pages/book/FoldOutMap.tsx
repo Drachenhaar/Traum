@@ -346,6 +346,12 @@ export function FoldOutMap() {
             <button
               type="button"
               onClick={() => setJahr(jahr === null ? spanneDerWelt.bis : null)}
+              /*
+                Der Wegweiser zeigt auf die Tuer, nicht auf den Raum dahinter:
+                Der Regler erscheint erst nach diesem Klick, und auf etwas zu
+                zeigen, das noch nicht da ist, kann der Leitfaden nicht.
+              */
+              data-leitfaden="karte-zeit"
               className="shrink-0 font-serif text-[12.5px] italic text-gild-400/75 transition-colors hover:text-gild-300 no-tap-highlight"
             >
               {jahr === null ? 'Ein Jahr wählen' : 'Alle Zeiten'}

@@ -61,6 +61,7 @@ export function Kapitelzeichen({
         onClick={offen ? onSchliessen : onOeffnen}
         aria-expanded={offen}
         aria-label="Kapitel"
+        data-leitfaden="kapitelzeichen"
         className={cx(
           'grid h-10 w-10 place-items-center transition-colors no-tap-highlight',
           offen ? 'text-gild-500' : 'text-ink-faint/45 hover:text-gild-500',

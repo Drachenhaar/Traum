@@ -84,7 +84,9 @@ export function TimelinePage() {
           onClick={() => setTab('papierkorb')}
           className={tab === 'papierkorb' ? 'btn-primary px-4' : 'btn-ghost px-4'}
         >
-          Papierkorb {trashed.length > 0 && <span className="opacity-70">{trashed.length}</span>}
+          <span data-leitfaden="chronik-papierkorb">
+            Papierkorb {trashed.length > 0 && <span className="opacity-70">{trashed.length}</span>}
+          </span>
         </button>
       </div>
 
