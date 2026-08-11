@@ -38,6 +38,7 @@ import {
 import { randnotizen } from '../../lib/roman/randnotizen';
 import { Kapitelzeichen } from '../../components/roman/Kapitelzeichen';
 import { SzenenBlatt } from '../../components/roman/SzenenBlatt';
+import { Leitfaden } from '../../components/leitfaden/Leitfaden';
 import { deskStyle } from '../../lib/textures';
 import { cx, debounce } from '../../lib/utils';
 
@@ -264,6 +265,7 @@ export function Schreibraum() {
           onClick={() => setBlattOffen((o) => !o)}
           aria-label="Diese Szene"
           aria-expanded={blattOffen}
+          data-leitfaden="szenenblatt"
           className={cx(
             'relative grid h-10 w-10 place-items-center transition-colors no-tap-highlight',
             blattOffen ? 'text-gild-500' : 'text-ink-faint/45 hover:text-gild-500',
@@ -354,6 +356,15 @@ export function Schreibraum() {
         offen={blattOffen}
         onSchliessen={() => setBlattOffen(false)}
       />
+
+      {/*
+        Der Leitfaden haengt sonst in der Buchhuelle – der Schreibraum steht
+        bewusst ausserhalb davon, also braucht er ihn hier noch einmal.
+        Nur nicht in der Ruhe: Wenn die Werkzeuge verblassen, weil jemand
+        schreibt, waere ein Wegweiser auf einen unsichtbaren Knopf das
+        Gegenteil von Hilfe.
+      */}
+      {!ruhe && !kapitelOffen && !blattOffen && <Leitfaden />}
     </div>
   );
 }
