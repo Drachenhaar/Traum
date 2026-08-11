@@ -155,8 +155,38 @@ export interface Entry {
    */
   beginn?: string;
   ende?: string;
+  /**
+   * Die Atmosphäre dieser Seite.
+   *
+   * Optional, immer. Ein Buch, das beim Aufschlagen Geräusche macht, die
+   * niemand bestellt hat, ist ein Schrecken – deshalb hängt hier nichts, bis
+   * jemand etwas einlegt, und selbst dann entscheidet der Verfasser, ob es
+   * von selbst beginnt.
+   */
+  atmosphaere?: EntryAtmosphaere;
   /** Papierkorb: gelöschte Einträge bleiben wiederherstellbar */
   deletedAt?: number;
+}
+
+/** Was an einer Seite klingt. Siehe `lib/atmosphaere.ts`. */
+export interface EntryAtmosphaere {
+  /** Kennung in der Tabelle `klaenge`. Fehlt sie, klingt nichts. */
+  klangId: string;
+  /** 0 bis 1. Ein Wald ist leiser als eine Glocke. */
+  lautstaerke: number;
+  /** Läuft der Klang endlos? Für Wind ja, für einen Donner nicht. */
+  schleife: boolean;
+  /** Wie lange das Ein- und Ausblenden dauert, in Millisekunden. */
+  einblenden: number;
+  ausblenden: number;
+  /**
+   * Beginnt er beim Aufschlagen von selbst?
+   *
+   * Auch dann nur, wenn die Atmosphäre insgesamt eingeschaltet ist – zwei
+   * Schalter, und beide müssen zustimmen. Ton, den man nicht bestellt hat,
+   * bekommt man in diesem Buch nicht.
+   */
+  vonSelbst: boolean;
 }
 
 /* --------------------------------------------------------------- Beziehungen */
@@ -241,6 +271,37 @@ export interface StoredImageBlob {
   id: string;
   full: Blob;
   thumb: Blob;
+}
+
+/* -------------------------------------------------------------------- Klang */
+
+/**
+ * Ein Klang in der Sammlung.
+ *
+ * Nach demselben Muster wie Bilder – Angaben hier, Datei daneben. Das ist
+ * keine Verdopplung des Bildmodells, sondern dieselbe Antwort auf dieselbe
+ * Frage: Listen müssen leicht bleiben, Dateien dürfen schwer sein. Ein
+ * Klangverzeichnis, das jedes Mal zwanzig Megabyte lädt, wäre kein
+ * Verzeichnis.
+ */
+export interface StoredKlang {
+  id: string;
+  bookId?: string;
+  title: string;
+  fileName: string;
+  mime: string;
+  size: number;
+  /** Länge in Sekunden, sofern der Browser sie verraten hat. */
+  dauer?: number;
+  /** Woher er stammt – eine Aufnahme, eine Bibliothek, ein Name. */
+  quelle?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface StoredKlangBlob {
+  id: string;
+  datei: Blob;
 }
 
 /* ------------------------------------------------------------------ Verlauf */
@@ -526,6 +587,16 @@ export interface Settings {
    * Vorgangs – „vor einem Jahr war dies eines der stärksten Motive".
    */
   spiegelVerlauf?: { at: number; motive: string[] }[];
+  /**
+   * Ob das Buch überhaupt klingen darf.
+   *
+   * Fehlt der Wert, ist die Antwort *nein*. Das ist die einzige vertretbare
+   * Vorgabe: Wer ein Buch aufschlägt, erwartet Stille, und ein Programm, das
+   * ungefragt Ton macht, hat einmal zu viel Vertrauen genommen. Gehört dem
+   * Gerät, nicht dem Band – ob es hier leise sein muss, entscheidet der Ort,
+   * an dem man sitzt, nicht die Welt, die man liest.
+   */
+  atmosphaereAn?: boolean;
   lastBackupAt?: number;
   backupReminderDays: number;
   seedVersion: number;

@@ -11,8 +11,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { BookOpen, Copy, PenLine, Printer, Star, Trash2, Compass } from 'lucide-react';
+import { BookOpen, Copy, PenLine, Printer, Star, Trash2, Compass, Music } from 'lucide-react';
 import type { Entry } from '../../types';
+import { Atmosphaerenwahl, Atmosphaerenzeichen } from '../../components/entry/Atmosphaere';
 import { useStudio, livingEntries } from '../../store/useStudio';
 import { templateFor, asList, asText, asBool } from '../../lib/templates';
 import { useCurrentSpread } from '../../components/book/BookShell';
@@ -49,6 +50,7 @@ export function EntrySpread() {
   const { spread, wear } = useCurrentSpread();
   const [editing, setEditing] = useState(false);
   const [druck, setDruck] = useState(false);
+  const [klangwahl, setKlangwahl] = useState(false);
   const [vorlesen, setVorlesen] = useState(false);
 
   const entriesById = useMemo(() => new Map(entries.map((e) => [e.id, e])), [entries]);
@@ -190,6 +192,16 @@ export function EntrySpread() {
                 <PenLine size={15} />
               </button>
               {/*
+                Das Zeichen der Atmosphaere.
+
+                Es steht *neben* dem Stift und nicht unter „Mehr", weil es
+                kein Handgriff ist, sondern ein Zustand: Man will sehen, ob
+                diese Seite klingt, ohne ein Menue zu oeffnen. Und es
+                erscheint nur, wenn sie ueberhaupt etwas traegt – ein Symbol
+                fuer „hier ist nichts" waere ein Symbol zu viel.
+              */}
+              <Atmosphaerenzeichen entry={entry} />
+              {/*
                 Alles Seltene liegt gefaltet daneben.
 
                 Zwei dieser Handgriffe waren zuletzt ueberhaupt nicht mehr
@@ -211,6 +223,11 @@ export function EntrySpread() {
                     label: 'Von hier aus reisen',
                     icon: <Compass size={14} />,
                     onClick: () => navigate(`/reise?weg=${entry.id}`),
+                  },
+                  {
+                    label: entry.atmosphaere ? 'Atmosphäre ändern' : 'Atmosphäre einlegen',
+                    icon: <Music size={14} />,
+                    onClick: () => setKlangwahl(true),
                   },
                   {
                     label: 'Als Blatt drucken',
@@ -408,6 +425,11 @@ export function EntrySpread() {
           <Neighbours entryId={entry.id} onGo={(path) => navigate(path)} />
 
           {druck && <PrintPreview entry={entry} onClose={() => setDruck(false)} />}
+          <Atmosphaerenwahl
+            entry={entry}
+            offen={klangwahl}
+            onSchliessen={() => setKlangwahl(false)}
+          />
           {vorlesen && <StoryMode startId={entry.id} onClose={() => setVorlesen(false)} />}
         </>
       }

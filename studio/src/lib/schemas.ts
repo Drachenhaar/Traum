@@ -197,6 +197,14 @@ export const backupSchema = z.object({
   books: z.array(z.record(z.unknown())).optional(),
   /** `book` oder `library` – nur zur Erklärung, entschieden wird an `books`. */
   kind: z.string().optional(),
+
+  /**
+   * Die Klänge, jeweils mit der Datei als Data-URL.
+   *
+   * Ohne sie zeigte eine wiederhergestellte Seite auf einen Klang, den es
+   * nicht gibt – sie behauptete zu klingen und wäre stumm.
+   */
+  klaenge: z.array(z.record(z.unknown())).optional(),
 });
 
 export type BackupFile = z.infer<typeof backupSchema>;

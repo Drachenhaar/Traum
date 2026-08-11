@@ -12,8 +12,11 @@ import {
   Eye,
   EyeOff,
   Upload,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import { useStudio } from '../store/useStudio';
+import { alleStill } from '../lib/atmosphaere';
 import { Modal } from '../components/ui/Modal';
 import { confirm } from '../components/ui/Confirm';
 import { Field, SelectInput, TextInput } from '../components/ui/Fields';
@@ -36,6 +39,8 @@ export function SettingsPage() {
   const notify = useStudio((s) => s.notify);
   const activeBookId = useStudio((s) => s.activeBookId);
   const books = useStudio((s) => s.books);
+  /* Wie viele Seiten ueberhaupt etwas tragen – sonst waere der Schalter blind. */
+  const klingende = entries.filter((e) => !e.deletedAt && e.atmosphaere).length;
 
   const [busy, setBusy] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -384,6 +389,37 @@ export function SettingsPage() {
             {leitfadenStand(settings.leitfaden).erledigt} von{' '}
             {leitfadenStand(settings.leitfaden).gesamt} gesehen
           </span>
+        </div>
+      </section>
+
+      {/* -------------------------------------------------------- Atmosphäre */}
+      <section className="card p-4 sm:p-5">
+        <h2 className="mb-1 font-serif text-xl text-ink">Atmosphäre</h2>
+        <p className="mb-4 text-[15px] leading-relaxed text-ink-muted">
+          Seiten können klingen – Wind, Wasser, das Knarren von Holz. Solange dieser Schalter aus
+          ist, bleibt das Buch still, auch wenn Seiten einen Klang tragen. Er steht von sich aus
+          aus: Wer ein Buch aufschlägt, erwartet Stille.
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            className={settings.atmosphaereAn ? 'btn-accent' : 'btn-ghost'}
+            onClick={() => {
+              const an = !settings.atmosphaereAn;
+              updateSettings({ atmosphaereAn: an });
+              /* Beim Abschalten sofort still – nicht erst beim naechsten Blaettern. */
+              if (!an) alleStill();
+              notify(an ? 'Das Buch darf klingen.' : 'Das Buch ist still.', 'success');
+            }}
+          >
+            {settings.atmosphaereAn ? <Volume2 size={18} /> : <VolumeX size={18} />}
+            {settings.atmosphaereAn ? 'Das Buch darf klingen' : 'Das Buch ist still'}
+          </button>
+          {klingende > 0 && (
+            <span className="text-[13.5px] text-ink-faint">
+              {klingende} {klingende === 1 ? 'Seite trägt' : 'Seiten tragen'} eine Atmosphäre
+            </span>
+          )}
         </div>
       </section>
 

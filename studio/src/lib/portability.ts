@@ -30,6 +30,7 @@ import type {
   Relation,
   Settings,
   StoredImageMeta,
+  StoredKlang,
 } from '../types';
 import { escapeHtml, fileStamp, newId } from './utils';
 import { blockDef, blockImageIds } from './blocks';
@@ -53,6 +54,26 @@ async function packImages(metas: StoredImageMeta[], withData: boolean): Promise<
     out.push({ ...meta, dataUrl: record ? await blobToDataUrl(record.full) : undefined });
   }
   return out;
+}
+
+/**
+ * Klaenge fuer den Export einsammeln.
+ *
+ * Haengt an derselben Wahl wie die Bilder: Wer „nur Daten" sichert, bekommt
+ * die Angaben ohne die Dateien. Eine Sicherung mit zwanzig Megabyte Wind ist
+ * nicht immer die, die man will.
+ */
+async function packKlaenge(
+  klaenge: StoredKlang[],
+  mitDaten: boolean,
+): Promise<(StoredKlang & { dataUrl?: string })[]> {
+  if (!mitDaten) return klaenge.map((k) => ({ ...k }));
+  const aus: (StoredKlang & { dataUrl?: string })[] = [];
+  for (const k of klaenge) {
+    const eintrag = await db.klangBlobs.get(k.id);
+    aus.push({ ...k, dataUrl: eintrag ? await blobToDataUrl(eintrag.datei) : undefined });
+  }
+  return aus;
 }
 
 /** Ein Objekt ohne die genannten Schluessel – ohne das Original anzufassen. */
@@ -83,6 +104,7 @@ export async function buildFullBackup(withImages: boolean): Promise<string> {
     version: EXPORT_VERSION,
     exportedAt: Date.now(),
     books,
+    klaenge: await packKlaenge(await db.klaenge.toArray(), withImages),
     entries,
     relations,
     boards,
@@ -128,6 +150,7 @@ export async function buildBookBackup(bookId: string, withImages: boolean): Prom
     version: EXPORT_VERSION,
     exportedAt: Date.now(),
     books: [buch],
+    klaenge: await packKlaenge(await db.klaenge.where('bookId').equals(bookId).toArray(), withImages),
     entries,
     relations,
     boards,
@@ -254,6 +277,7 @@ export async function importBackup(
   }
 
   const buecher = (data.books ?? []) as unknown as LibraryBook[];
+  const klaenge = (data.klaenge ?? []) as unknown as (StoredKlang & { dataUrl?: string })[];
   let entries = data.entries as unknown as Entry[];
   let relations = (data.relations ?? []) as unknown as Relation[];
   let boards = (data.boards ?? []) as unknown as CanvasBoard[];
@@ -336,6 +360,9 @@ export async function importBackup(
     images.forEach((m) => {
       m.bookId = bookId;
     });
+    klaenge.forEach((k) => {
+      k.bookId = bookId;
+    });
   } else if (mode === 'merge' && aktivesBuch) {
     entries = entries.map((e) => ({ ...e, bookId: aktivesBuch }));
     relations = relations.map((r) => ({ ...r, bookId: aktivesBuch }));
@@ -356,7 +383,7 @@ export async function importBackup(
   try {
     await db.transaction(
       'rw',
-      [db.entries, db.relations, db.boards, db.images, db.imageBlobs, db.settings, db.books],
+      [db.entries, db.relations, db.boards, db.images, db.imageBlobs, db.settings, db.books, db.klaenge, db.klangBlobs],
       async () => {
       if (mode === 'bibliothek') {
         await Promise.all([
@@ -366,6 +393,8 @@ export async function importBackup(
           db.images.clear(),
           db.imageBlobs.clear(),
           db.books.clear(),
+          db.klaenge.clear(),
+          db.klangBlobs.clear(),
         ]);
       }
       if (buecher.length && mode !== 'merge') {
@@ -378,6 +407,12 @@ export async function importBackup(
       await db.entries.bulkPut(entries);
       if (usableRelations.length) await db.relations.bulkPut(usableRelations);
       if (boards.length) await db.boards.bulkPut(boards);
+
+      for (const k of klaenge) {
+        const { dataUrl, ...angaben } = k;
+        await db.klaenge.put(angaben);
+        if (dataUrl) await db.klangBlobs.put({ id: angaben.id, datei: await dataUrlToBlob(dataUrl) });
+      }
 
       for (const img of images) {
         const { dataUrl, ...meta } = img;

@@ -25,6 +25,7 @@ import type {
   Revision,
   Settings,
   StoredImageMeta,
+  StoredKlang,
 } from '../types';
 import { emptyFields, setCustomTypes, templateFor } from '../lib/templates';
 import { createBlock, duplicateBlock } from '../lib/blocks';
@@ -43,6 +44,7 @@ import { buildRelationIndex, makeRelation, type RelationIndex } from '../lib/rel
 import { kinderVon, naechsteOrdnung } from '../lib/roman/struktur';
 import { heileBeziehungen, heileEintraege } from '../lib/heilung';
 import { DEFAULT_STAGE } from '../lib/pipeline';
+import { MAX_KLANG_BYTES, alleStill, dauerVon } from '../lib/atmosphaere';
 
 export interface Toast {
   id: string;
@@ -73,6 +75,8 @@ interface StudioState {
   books: LibraryBook[];
   /** Welches Buch aufgeschlagen ist. Alles unten hängt daran. */
   activeBookId?: string;
+  /** Die Klänge dieses Buches. Nur die Angaben – die Dateien bleiben liegen. */
+  klaenge: StoredKlang[];
 
   init: () => Promise<void>;
 
@@ -122,6 +126,10 @@ interface StudioState {
   moveBlock: (entryId: string, from: number, to: number) => void;
   duplicateBlockAt: (entryId: string, blockId: string) => void;
   deleteBlock: (entryId: string, blockId: string) => void;
+
+  /* Klänge */
+  legeKlang: (datei: File) => Promise<StoredKlang | null>;
+  entferneKlang: (id: string) => Promise<void>;
 
   /* Bilder */
   addImages: (metas: StoredImageMeta[]) => void;
@@ -379,15 +387,16 @@ export const useStudio = create<StudioState>((set, get) => {
 
   /** Die Daten eines Buches holen – und nur die. */
   const ladeBuchinhalt = async (bookId: string) => {
-    const [roheEintraege, roheKanten, images, boards] = await Promise.all([
+    const [roheEintraege, roheKanten, images, boards, klaenge] = await Promise.all([
       db.entries.where('bookId').equals(bookId).toArray(),
       db.relations.where('bookId').equals(bookId).toArray(),
       db.images.where('bookId').equals(bookId).toArray(),
       db.boards.where('bookId').equals(bookId).toArray(),
+      db.klaenge.where('bookId').equals(bookId).toArray(),
     ]);
     const entries = heileEintraege(roheEintraege);
     const relations = heileBeziehungen(roheKanten);
-    return { entries, relations, images, boards };
+    return { entries, relations, images, boards, klaenge };
   };
 
   return {
@@ -400,6 +409,7 @@ export const useStudio = create<StudioState>((set, get) => {
     settings: DEFAULT_SETTINGS,
     books: [],
     activeBookId: undefined,
+    klaenge: [],
     toasts: [],
     saving: false,
     savedAt: 0,
@@ -506,7 +516,7 @@ export const useStudio = create<StudioState>((set, get) => {
            */
           const inhalt = offen
             ? await ladeBuchinhalt(offen.id)
-            : { entries: [], relations: [], images: [], boards: [] };
+            : { entries: [], relations: [], images: [], boards: [], klaenge: [] };
 
           await db.settings.put({ ...FRESH_SETTINGS, ...zerlegeAenderung(settings).global, id: 'settings' });
           set({
@@ -549,6 +559,8 @@ export const useStudio = create<StudioState>((set, get) => {
       /* Ausstehende Schreibvorgaenge gehoeren noch zum alten Buch. */
       await flushNow(setSaving);
       lastRevisionAt.clear();
+      /* Der Wald des einen Bandes darf nicht im anderen weiterrauschen. */
+      alleStill();
 
       const geoeffnet: LibraryBook = { ...buch, lastOpenedAt: Date.now() };
       const inhalt = await ladeBuchinhalt(id);
@@ -1014,6 +1026,77 @@ export const useStudio = create<StudioState>((set, get) => {
       patchEntry(entryId, (e) => ({ ...e, blocks: e.blocks.filter((b) => b.id !== blockId) }), 'Block gelöscht');
     },
 
+    /* ----------------------------------------------------------- Klänge */
+
+    /**
+     * Einen Klang ins Buch legen.
+     *
+     * Die Datei bleibt, wie sie ist – kein Umkodieren, kein Verkleinern. Bei
+     * einem Bild lohnt sich das, weil eine Vorschau genügt; bei einem Klang
+     * gibt es keine Vorschau, und jede Umrechnung wäre ein Qualitätsverlust
+     * ohne Gegenwert.
+     */
+    async legeKlang(datei) {
+      if (!datei.type.startsWith('audio/')) {
+        get().notify(`„${datei.name}“ ist keine Klangdatei.`, 'error');
+        return null;
+      }
+      if (datei.size > MAX_KLANG_BYTES) {
+        get().notify(
+          `„${datei.name}“ ist größer als ${Math.round(MAX_KLANG_BYTES / 1024 / 1024)} MB. Eine Atmosphäre ist ein Raum, kein Hörbuch – eine kurze Schleife trägt weiter.`,
+          'error',
+        );
+        return null;
+      }
+
+      const dauer = await dauerVon(datei);
+      const now = Date.now();
+      const klang: StoredKlang = {
+        id: newId('klang'),
+        bookId: get().activeBookId,
+        title: datei.name.replace(/\.[^.]+$/, ''),
+        fileName: datei.name,
+        mime: datei.type,
+        size: datei.size,
+        dauer,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await db.transaction('rw', [db.klaenge, db.klangBlobs], async () => {
+        await db.klaenge.put(klang);
+        await db.klangBlobs.put({ id: klang.id, datei });
+      });
+      set((s) => ({ klaenge: [klang, ...s.klaenge] }));
+      return klang;
+    },
+
+    /**
+     * Einen Klang wieder herausnehmen.
+     *
+     * Und ihn von jeder Seite lösen, die ihn trug. Ohne das bliebe eine
+     * Atmosphäre stehen, die auf eine Datei zeigt, die es nicht mehr gibt –
+     * die Seite behauptete zu klingen und wäre stumm.
+     */
+    async entferneKlang(id) {
+      const betroffen = get().entries.filter((e) => e.atmosphaere?.klangId === id);
+      const bereinigt = betroffen.map((e) => ({ ...e, atmosphaere: undefined, updatedAt: Date.now() }));
+      set((s) => ({
+        klaenge: s.klaenge.filter((k) => k.id !== id),
+        entries: s.entries.map((e) => bereinigt.find((b) => b.id === e.id) ?? e),
+      }));
+      await db.transaction('rw', [db.klaenge, db.klangBlobs, db.entries], async () => {
+        await db.klaenge.delete(id);
+        await db.klangBlobs.delete(id);
+        if (bereinigt.length) await db.entries.bulkPut(bereinigt);
+      });
+      get().notify(
+        betroffen.length
+          ? `Klang entfernt – ${betroffen.length} ${betroffen.length === 1 ? 'Seite ist' : 'Seiten sind'} wieder still.`
+          : 'Klang entfernt.',
+        'success',
+      );
+    },
+
     /* ----------------------------------------------------------- Bilder */
 
     addImages(metas) {
@@ -1248,7 +1331,7 @@ export const useStudio = create<StudioState>((set, get) => {
       setCustomTypes(settings.customTypes ?? []);
       const inhalt = offen
         ? await ladeBuchinhalt(offen.id)
-        : { entries: [], relations: [], images: [], boards: [] };
+        : { entries: [], relations: [], images: [], boards: [], klaenge: [] };
       set({
         ...inhalt,
         relIndex: buildRelationIndex(inhalt.relations),
@@ -1264,6 +1347,7 @@ export const useStudio = create<StudioState>((set, get) => {
       pendingImages.clear();
       pendingBoards.clear();
       lastRevisionAt.clear();
+      alleStill();
       await wipeDatabase();
       setCustomTypes([]);
       set({
@@ -1274,6 +1358,7 @@ export const useStudio = create<StudioState>((set, get) => {
         boards: [],
         books: [],
         activeBookId: undefined,
+        klaenge: [],
         settings: { ...FRESH_SETTINGS, seedVersion: SEED_VERSION },
       });
     },
