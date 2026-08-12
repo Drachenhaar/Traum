@@ -11,7 +11,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { BookmarkIcon, ChevronLeft, ChevronRight, FilePlus2, Search } from 'lucide-react';
+import { BookmarkIcon, ChevronLeft, ChevronRight, Eye, FilePlus2, Search } from 'lucide-react';
 import { useStudio, livingEntries } from '../../store/useStudio';
 import { buildBook, chapterById, pageWear } from '../../lib/book';
 import { deskStyle } from '../../lib/textures';
@@ -143,6 +143,28 @@ export function BookShell() {
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
+      {/*
+        Der Tischmodus, sichtbar.
+
+        Ein Balken ueber dem ganzen Buch, nicht ein Punkt in der Ecke. Das ist
+        keine Geschmacksfrage: Wer glaubt, der Tischmodus sei an, und er ist es
+        nicht, dreht den Bildschirm um und zeigt alles. Der Zustand muss so
+        deutlich sein, dass man ihn im Augenwinkel sieht, waehrend man auf
+        etwas anderes schaut.
+
+        Er erscheint nur, wenn er an ist – ein Balken, der staendig „aus" sagt,
+        wird nach einer Woche nicht mehr gelesen.
+      */}
+      {settings.tischmodus && (
+        <button
+          type="button"
+          onClick={() => updateSettings({ tischmodus: false })}
+          className="flex w-full shrink-0 items-center justify-center gap-2 bg-gild-600/85 py-1.5 font-serif text-[12.5px] tracking-[0.14em] text-[#1a1206] transition-colors hover:bg-gild-500 no-tap-highlight"
+        >
+          <Eye size={13} /> AM TISCH · VERBORGENES IST ZU · ANTIPPEN ZUM BEENDEN
+        </button>
+      )}
+
       {/* ------------------------------------------------------- Kopfzeile */}
       <header className="flex shrink-0 items-center gap-3 px-4 pt-safe sm:px-7">
         <div className="flex h-12 min-w-0 flex-1 items-center gap-3">

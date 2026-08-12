@@ -11,9 +11,10 @@
 
 import { useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ChevronDown, Library } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Eye, EyeOff, Library } from 'lucide-react';
 import { useStudio } from '../../store/useStudio';
 import { ordne, profilVon, type Werkzeug } from '../../lib/profil';
+import { geheimZeile } from '../../lib/geheim';
 import { useCurrentSpread } from '../../components/book/BookShell';
 import { Spread } from '../../components/book/Spread';
 
@@ -42,6 +43,7 @@ export function AppendixSpread() {
   const boards = useStudio((s) => s.boards);
   const entries = useStudio((s) => s.entries);
   const settings = useStudio((s) => s.settings);
+  const updateSettings = useStudio((s) => s.updateSettings);
   const books = useStudio((s) => s.books);
   const schliesseBuch = useStudio((s) => s.schliesseBuch);
 
@@ -54,6 +56,7 @@ export function AppendixSpread() {
 
   const profil = profilVon(settings);
   const [offen, setOffen] = useState(false);
+  const verborgen = geheimZeile(entries);
 
   /*
    * Eine Liste, nicht zwei.
@@ -282,6 +285,41 @@ export function AppendixSpread() {
             Jetzt ist sie immer da. Nur die zweite Zeile ändert sich: Bei
             einem Band lädt sie ein, bei mehreren sagt sie, wer wartet.
           */}
+          {/*
+            Der Tischmodus.
+
+            Er erscheint nur, wenn dieses Buch ueberhaupt etwas verbirgt – und
+            das ist die ehrlichste Form der schrittweisen Entdeckung: Nicht das
+            Profil entscheidet, ob jemand ihn braucht, sondern seine Welt. Wer
+            nie ein Geheimnis notiert hat, sieht diese Zeile nie; wer eines
+            notiert, findet sie beim naechsten Blick in den Anhang.
+          */}
+          {verborgen && (
+            <section className="mt-12 border-t border-paper-300/70 pt-6">
+              <button
+                type="button"
+                onClick={() => updateSettings({ tischmodus: !settings.tischmodus })}
+                className="group flex min-h-[44px] w-full items-start gap-2.5 text-left no-tap-highlight"
+              >
+                {settings.tischmodus ? (
+                  <EyeOff size={15} className="mt-1 shrink-0 text-gild-600" />
+                ) : (
+                  <Eye size={15} className="mt-1 shrink-0 text-ink-faint/45 transition-colors group-hover:text-gild-600" />
+                )}
+                <span>
+                  <span className="block font-serif text-[17px] leading-snug text-ink transition-colors group-hover:text-gild-600">
+                    {settings.tischmodus ? 'Den Tischmodus beenden' : 'Für den Tisch zuklappen'}
+                  </span>
+                  <span className="mt-0.5 block font-serif text-[13.5px] italic leading-snug text-ink-muted">
+                    {settings.tischmodus
+                      ? 'Das Buch zeigt gerade nur, was alle sehen dürfen.'
+                      : `${verborgen} – im Tischmodus bleibt das zu, wenn du den Bildschirm herumdrehst.`}
+                  </span>
+                </span>
+              </button>
+            </section>
+          )}
+
           <section className="mt-12 border-t border-paper-300/70 pt-6">
             <button
               type="button"

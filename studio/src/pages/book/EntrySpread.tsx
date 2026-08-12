@@ -33,6 +33,7 @@ import { leseZeit, schreibeZeit } from '../../lib/chronik/zeit';
 import { datiere } from '../../lib/chronik/zustand';
 import { zeitgenossenVon } from '../../lib/chronik/zeitgenossen';
 import { cx } from '../../lib/utils';
+import { ganzVerborgen, zeigtGeheimes } from '../../lib/geheim';
 
 export function EntrySpread() {
   const { id } = useParams();
@@ -109,6 +110,39 @@ export function EntrySpread() {
   }
 
   const tpl = templateFor(entry.type);
+  const geheimSichtbar = zeigtGeheimes(settings);
+
+  /*
+   * Eine ganz verborgene Seite im Tischmodus.
+   *
+   * Sie steht in keiner Liste – aber ein Lesezeichen, ein Verweis von einer
+   * anderen Seite oder die zurueckgelegte Adresse fuehren trotzdem hierher.
+   * Deshalb faengt es die Seite selbst ab, und zwar mit einer Auskunft, die
+   * *nichts verraet*: nicht den Titel, nicht die Art, nicht dass es sie gibt.
+   * „Diese Seite gibt es nicht mehr" waere gelogen; „hier ist ein Geheimnis"
+   * waere die halbe Auskunft. Also: der Tischmodus ist an, mehr nicht.
+   */
+  if (!geheimSichtbar && ganzVerborgen(entry)) {
+    return (
+      <Spread
+        pageLeft={spread?.page ?? 6}
+        left={
+          <div className="pt-20 text-center">
+            <p className="rubric">Zugeklappt</p>
+            <h1 className="mt-3 font-serif text-[30px] text-ink">Nicht für den Tisch</h1>
+            <p className="prose-book mt-4">
+              Das Buch zeigt gerade nur, was alle sehen dürfen. Wer den Tischmodus beendet, sieht
+              wieder alles.
+            </p>
+            <Link to="/inhalt" className="mt-6 inline-block font-serif text-[15px] text-gild-600 underline">
+              Zum Inhaltsverzeichnis
+            </Link>
+          </div>
+        }
+        right={null}
+      />
+    );
+  }
 
   if (editing) {
     return <EntryEditor entry={entry} onDone={() => setEditing(false)} pageLeft={spread?.page ?? 6} />;
@@ -305,6 +339,27 @@ export function EntrySpread() {
           )}
 
           {/*
+            Was am Tisch nicht steht.
+
+            Zwei Zustaende, und beide muessen deutlich sein: Ausserhalb des
+            Tischmodus steht das Geheimnis da, sichtbar eingefasst, damit man
+            weiss, was man versteckt hat. Im Tischmodus steht an seiner Stelle
+            *nichts* – keine Luecke, kein Schloss, kein „hier ist etwas
+            verborgen". Ein Hinweis auf ein Geheimnis ist am Spieltisch schon
+            die halbe Auskunft.
+          */}
+          {geheimSichtbar && entry.geheim?.text?.trim() && (
+            <section className="mt-8 border-l-2 border-gild-500/45 pl-4">
+              <p className="rubric mb-1.5">Nur für dich</p>
+              <div className="prose-book">
+                {entry.geheim.text.split(/\n{2,}/).map((para, i) => (
+                  <p key={i}>{para}</p>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/*
             Die Frage traegt den Abstand, nicht der Absatz darunter: Sie ist
             eine Zaesur im Text, kein weiteres Etikett. Ohne die groessere
             Luft davor liest sie sich wie eine Rubrik – und damit waere die
@@ -495,7 +550,17 @@ function OpenQuestion({ entry }: { entry: Entry }) {
  * Behauptung ueber eine Welt, die noch keine Zeit kennt.
  */
 function Zeitgenossen({ entry }: { entry: Entry }) {
-  const entries = useStudio((s) => s.entries);
+  const alleEintraege = useStudio((s) => s.entries);
+  /*
+   * Ueber `livingEntries` und nicht ueber die rohe Liste.
+   *
+   * Diese Zeile war ein Leck, und zwar ein besonders unangenehmes: Wer am
+   * Spieltisch eine voellig harmlose Seite aufschlug, las darunter „Begann
+   * waehrend: Der Verrat des Kanzlers" – der Titel einer Seite, die er nie
+   * haette sehen duerfen, gefunden ueber ein gemeinsames Datum. Ein
+   * Geheimnis verraet sich nicht nur dort, wo es steht.
+   */
+  const entries = useMemo(() => livingEntries(alleEintraege), [alleEintraege]);
 
   const gefunden = useMemo(() => {
     if (!entry.beginn?.trim() && !entry.ende?.trim()) return undefined;

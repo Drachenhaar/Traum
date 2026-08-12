@@ -46,6 +46,10 @@ export function EntryEditor({
   const [coverPickerOpen, setCoverPickerOpen] = useState(false);
   /* Steht schon ein Ende da, ist die Frage beantwortet – dann bleibt es offen. */
   const [endeOffen, setEndeOffen] = useState(() => Boolean(entry.ende?.trim()));
+  /* Ebenso das Geheimnis: Steht schon eines da, bleibt die Stelle offen. */
+  const [geheimOffen, setGeheimOffen] = useState(
+    () => Boolean(entry.geheim?.text?.trim() || entry.geheim?.ganzeSeite),
+  );
   const tpl = templateFor(entry.type);
 
   const defaults = useMemo<EntryMetaValues>(
@@ -54,6 +58,8 @@ export function EntryEditor({
       subtitle: entry.subtitle ?? '',
       category: entry.category ?? '',
       description: entry.description ?? '',
+      geheimText: entry.geheim?.text ?? '',
+      geheimGanzeSeite: entry.geheim?.ganzeSeite === true,
       status: entry.status,
       tags: entry.tags ?? [],
       beginn: entry.beginn ?? '',
@@ -93,6 +99,13 @@ export function EntryEditor({
       subtitle: values.subtitle,
       category: values.category,
       description: values.description,
+      geheim:
+        values.geheimText.trim() || values.geheimGanzeSeite
+          ? {
+              text: values.geheimText.trim() || undefined,
+              ganzeSeite: values.geheimGanzeSeite || undefined,
+            }
+          : undefined,
       status: values.status as EntryStatus,
       tags: values.tags,
       beginn: values.beginn.trim(),
@@ -217,6 +230,74 @@ export function EntryEditor({
                 }}
               />
             </Field>
+
+            {/*
+              Was am Tisch nicht gezeigt wird.
+
+              Steht unter der Beschreibung und nicht in einem eigenen Reiter:
+              Ein Geheimnis gehoert zu dem, was daneben steht, und wer es in
+              einem zweiten Bereich sucht, schreibt es nicht auf.
+
+              Aufgeklappt wird nur, wenn schon etwas drinsteht – sonst traegt
+              jede Seite jeder Welt eine Frage, die nur ein Spieltisch stellt.
+            */}
+            <section className="mt-8 border-t border-paper-300/70 pt-6">
+              {geheimOffen ? (
+                <>
+                  <p className="rubric mb-4">Nur für dich</p>
+                  <Field label="Was am Tisch nicht steht" error={errors.geheimText?.message}>
+                    <AutoTextarea
+                      {...register('geheimText')}
+                      onBlur={commit}
+                      placeholder="Was nur die Spielleitung weiß."
+                      minRows={3}
+                    />
+                  </Field>
+                  <label className="mt-3 flex items-start gap-2.5 font-serif text-[14.5px] text-ink-muted">
+                    <input
+                      type="checkbox"
+                      {...register('geheimGanzeSeite')}
+                      onChange={(e) => {
+                        /*
+                         * Sofort sichern, nicht erst beim Verlassen.
+                         *
+                         * Ein Haekchen hat kein `blur` – wer es setzt und die
+                         * Seite verlaesst, haette sonst eine Seite, die er fuer
+                         * verborgen haelt und die es nicht ist. Genau der
+                         * Fehler, der am Spieltisch auffliegt.
+                         */
+                        setValue('geheimGanzeSeite', e.target.checked);
+                        updateEntry(entry.id, {
+                          geheim:
+                            getValues('geheimText').trim() || e.target.checked
+                              ? {
+                                  text: getValues('geheimText').trim() || undefined,
+                                  ganzeSeite: e.target.checked || undefined,
+                                }
+                              : undefined,
+                        });
+                      }}
+                      className="mt-1 h-4 w-4 accent-gild-600"
+                    />
+                    <span>
+                      Diese ganze Seite bleibt am Tisch zu
+                      <span className="mt-0.5 block font-serif text-[12.5px] italic text-ink-faint">
+                        Sie verschwindet dann auch aus Inhalt, Register und Suche – ein Titel
+                        allein ist oft schon das Geheimnis.
+                      </span>
+                    </span>
+                  </label>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setGeheimOffen(true)}
+                  className="min-h-[40px] font-serif text-[14px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+                >
+                  Etwas notieren, das am Tisch nicht steht
+                </button>
+              )}
+            </section>
 
             {tpl.fields.length > 0 && (
               <section className="mt-8 border-t border-paper-300/70 pt-6">

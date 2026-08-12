@@ -1272,7 +1272,25 @@ export const useStudio = create<StudioState>((set, get) => {
     },
 
     updateSettings(patch) {
+      const vorher = get().settings.tischmodus === true;
       persistSettings({ ...get().settings, ...patch });
+      /*
+       * Der Tischmodus aendert, welche Eintraege sichtbar sind – aber nicht
+       * die Eintraege selbst. Und genau daran haengt fast jede Ansicht:
+       * `useMemo(() => livingEntries(entries), [entries])`. Ohne neue
+       * Kennung der Liste rechnet keiner dieser Memos noch einmal, und die
+       * verborgene Seite stuende weiter im Register, obwohl der Filter
+       * laengst greift.
+       *
+       * Das ist der Preis dafuer, dass `livingEntries` den Modus selbst
+       * nachschlaegt, statt ihn an zwanzig Aufrufstellen durchgereicht zu
+       * bekommen. Der Preis ist eine Zeile hier – die Alternative waeren
+       * zwanzig Stellen, an denen man es vergessen kann, und beim Spielleiter
+       * faellt so ein Vergessen erst am Tisch auf.
+       */
+      if (patch.tischmodus !== undefined && (patch.tischmodus === true) !== vorher) {
+        set((s) => ({ entries: [...s.entries] }));
+      }
     },
 
     saveCustomType(def) {
@@ -1438,9 +1456,28 @@ function removeImageFromEntry(entry: Entry, imageId: string): Entry {
 
 /* ---------------------------------------------------------- Kleine Selektoren */
 
-/** Lebende Einträge – ohne das, was im Papierkorb liegt. */
+/**
+ * Lebende Einträge – ohne den Papierkorb, und ohne das, was am Tisch zu ist.
+ *
+ * Die zweite Bedingung steht hier und nicht an zwanzig Aufrufstellen, und das
+ * ist der ganze Punkt. Dieselbe Funktion speist Inhalt, Register, Suche,
+ * Karte, Zeitstrahl, Reise, Spiegel und das Blättern selbst. Sie einzeln zu
+ * ändern hieße, eine Liste zu pflegen, die genau einmal unvollständig sein
+ * muss – und die eine vergessene Stelle wäre dann die, an der ein Titel doch
+ * durchrutscht.
+ *
+ * Der Tischmodus wird direkt aus dem Speicher gelesen statt durchgereicht.
+ * Das ist eine bewusste Unsauberkeit: Die Alternative wäre ein zusätzliches
+ * Argument an zwanzig Aufrufen, das an neunzehn davon niemand vergessen darf.
+ *
+ * Was hier ausdrücklich *nicht* gefiltert wird: die Eintragsseite selbst, der
+ * Bearbeiter und jede Sicherung. Die greifen nicht hierher, und das ist
+ * richtig – ein Geheimnis, das man selbst nicht mehr aufmachen kann, ist
+ * kein Geheimnis, sondern ein Verlust.
+ */
 export function livingEntries(entries: Entry[]): Entry[] {
-  return entries.filter((e) => !e.deletedAt);
+  const amTisch = useStudio.getState().settings.tischmodus === true;
+  return entries.filter((e) => !e.deletedAt && !(amTisch && e.geheim?.ganzeSeite));
 }
 
 export function countByType(entries: Entry[], type: EntryType): number {

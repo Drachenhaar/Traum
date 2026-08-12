@@ -22,7 +22,7 @@
  * kaputte Sicherung einspielt, soll den lesbaren Teil seiner Welt behalten.
  */
 
-import type { Block, Entry, EntryAtmosphaere, Relation } from '../types';
+import type { Block, Entry, EntryAtmosphaere, EntryGeheim, Relation } from '../types';
 import { ENTRY_STATUSES } from '../types';
 
 const istListe = (v: unknown): v is unknown[] => Array.isArray(v);
@@ -122,6 +122,15 @@ export function heileEintrag(roh: unknown): Entry | null {
      * eine halbe Angabe nicht in eine Lautstaerke von `NaN` muendet.
      */
     atmosphaere: heileAtmosphaere(e.atmosphaere),
+    /*
+     * Das Geheimnis muss hier stehen, sonst gibt es keins.
+     *
+     * Diese Datei heilt Feld fuer Feld – was nicht aufgezaehlt ist, faellt
+     * beim naechsten Speichern weg. Bei einem verborgenen Absatz waere das
+     * der schlimmste denkbare Verlust: Er verschwindet lautlos, und gemerkt
+     * wird es am Spieltisch, wenn er fehlt.
+     */
+    geheim: heileGeheimnis(e.geheim),
     deletedAt: typeof e.deletedAt === 'number' ? e.deletedAt : undefined,
   };
 }
@@ -144,6 +153,23 @@ function heileAtmosphaere(roh: unknown): EntryAtmosphaere | undefined {
     ausblenden: zwischen(a.ausblenden, 900, 0, 20000),
     vonSelbst: a.vonSelbst !== false,
   };
+}
+
+/**
+ * Was am Tisch verborgen bleibt – oder nichts.
+ *
+ * Ein leeres Geheimnis ist kein Geheimnis: Steht weder Text noch die
+ * Ganzseitigkeit darin, faellt das Feld weg. Sonst truege die Seite dauerhaft
+ * ein Schloss ohne Inhalt, und die Oberflaeche wuerde eine Warnung anzeigen,
+ * die nichts meint.
+ */
+function heileGeheimnis(roh: unknown): EntryGeheim | undefined {
+  if (!roh || typeof roh !== 'object') return undefined;
+  const g = roh as Record<string, unknown>;
+  const inhalt = text(g.text).trim();
+  const ganzeSeite = g.ganzeSeite === true;
+  if (!inhalt && !ganzeSeite) return undefined;
+  return { text: inhalt || undefined, ganzeSeite: ganzeSeite || undefined };
 }
 
 /**
