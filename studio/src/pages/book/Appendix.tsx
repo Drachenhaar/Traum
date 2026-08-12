@@ -9,14 +9,27 @@
  * Buchsatz sein wollen, dürfen hier Werkzeuge bleiben.
  */
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Library } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Library } from 'lucide-react';
 import { useStudio } from '../../store/useStudio';
+import { ordne, profilVon, type Werkzeug } from '../../lib/profil';
 import { useCurrentSpread } from '../../components/book/BookShell';
 import { Spread } from '../../components/book/Spread';
 
-interface AppendixEntry {
+/**
+ * Ein Anhang – und zugleich ein Werkzeug im Sinne von `lib/profil.ts`.
+ *
+ * `gewicht` sagt, welchen Schwerpunkten dieser Anhang dient. Es sagt
+ * ausdruecklich *nicht*, welchen Zielgruppen: Der Zeitstrahl weiss nichts von
+ * Spielleitern, nur etwas von Welt und Erzaehlung. Dadurch kostet ein neues
+ * Profil hier keine Zeile.
+ *
+ * `ab` haelt zurueck, was erst mit Erfahrung Sinn ergibt – unabhaengig davon,
+ * wie schwer es wiegt.
+ */
+interface AppendixEntry extends Werkzeug {
+  id: string;
   to: string;
   title: string;
   note: string;
@@ -39,54 +52,86 @@ export function AppendixSpread() {
   /* Die anderen Baende – nur fuer die Wortwahl, nicht fuer das Ob. */
   const andereBaende = books.filter((b) => !b.archived).length - 1;
 
-  const primary: AppendixEntry[] = [
+  const profil = profilVon(settings);
+  const [offen, setOffen] = useState(false);
+
+  /*
+   * Eine Liste, nicht zwei.
+   *
+   * Vorher standen hier „primary" und „secondary" – eine Einteilung, die
+   * jemand einmal getroffen hatte und die fuer jeden gleich war. Wer Bilder
+   * sammelt, fand die Werkbank unter „Weiteres"; wer Systeme entwirft, fand
+   * die Entdeckungen zwischen Karte und Tafelteil. Jetzt entscheidet das
+   * Profil, was vorn liegt – und „Weiteres" ist nicht mehr eine Restekiste,
+   * sondern die zweite Haelfte derselben Ordnung.
+   */
+  const werkzeuge: AppendixEntry[] = [
     {
       /*
        * Der Roman steht zuoberst, weil er der einzige Anhang ist, in dem
        * etwas entsteht statt betrachtet zu werden. Alles darunter sieht die
        * Welt an; hier wird sie erzählt.
        */
+      id: 'roman',
       to: '/roman',
       title: 'Manuskript',
       note:
         szenen > 0
           ? `${szenen} ${szenen === 1 ? 'Szene' : 'Szenen'} – schreiben, während die Welt danebensteht.`
           : 'Einen Roman schreiben, in dem deine Figuren deine Figuren bleiben.',
+      gewicht: { schreiben: 1, spiel: 0.2 },
     },
     {
+      id: 'setzerei',
       to: '/setzerei',
       title: 'Setzerei',
       note: 'Geschriebenes einlegen – etwa aus ChatGPT – und das Buch setzt daraus eine Seite.',
+      gewicht: { schreiben: 0.7, welt: 0.5 },
     },
     {
+      id: 'karte',
       to: '/karte',
       title: 'Faltkarte',
       note: 'Die Ordnung der Welt als Sternkarte. Aufklappen, betrachten, zuklappen.',
+      gewicht: { welt: 1, spiel: 0.8, bild: 0.4, system: 0.4 },
     },
     {
+      id: 'tafeln',
       to: '/tafeln',
       title: 'Tafelteil',
       note: `${images.length} ${images.length === 1 ? 'Tafel' : 'Tafeln'} – Illustrationen und Referenzen in voller Größe.`,
+      gewicht: { bild: 1, welt: 0.4 },
     },
     {
+      id: 'zeitstrahl',
       to: '/zeitstrahl',
       title: 'Zeitstrahl',
       note: 'Die Welt in der Zeit. Wann etwas begann, wie lange es bestand – und was zu einem gewählten Jahr existierte.',
+      gewicht: { welt: 0.9, schreiben: 0.5, system: 0.4 },
     },
     {
+      id: 'reise',
       to: '/reise',
       title: 'Reise',
       note: 'Deine Welt von innen: bei einer Figur beginnen und Schritt für Schritt entscheiden, wohin es weitergeht.',
+      gewicht: { welt: 0.7, spiel: 0.8, schreiben: 0.4 },
+      ab: 'standard',
     },
     {
+      id: 'entdeckungen',
       to: '/entdeckungen',
       title: 'Entdeckungen',
       note: 'Was dem Buch an deiner Welt auffällt – Widersprüche, offene Enden, Fragen. Es liest nur; entscheiden tust du.',
+      gewicht: { system: 0.9, welt: 0.6 },
+      ab: 'standard',
     },
     {
+      id: 'spiegel',
       to: '/spiegel',
       title: 'Der Spiegel',
       note: 'Was in deinen Welten wiederkehrt. Er betrachtet das Werk, nicht den Verfasser – und schweigt, solange er zu wenig gesehen hat.',
+      gewicht: { schreiben: 0.8 },
+      ab: 'tief',
     },
     {
       /*
@@ -94,43 +139,67 @@ export function AppendixSpread() {
        * dem Zeitstrahl irreführend. Die Chronik ist der Verlauf der eigenen
        * Arbeit, nicht der Verlauf der Welt.
        */
+      id: 'chronik',
       to: '/chronik',
       title: 'Chronik',
       note: `Der Verlauf deiner Arbeit. ${trashed > 0 ? `${trashed} entnommene ${trashed === 1 ? 'Seite' : 'Seiten'} liegen hier bereit.` : 'Frühere Fassungen lassen sich zurückholen.'}`,
+      gewicht: { welt: 0.4, system: 0.5 },
+      ab: 'standard',
     },
     {
+      id: 'lose',
       to: '/lose-blaetter',
       title: 'Lose Blätter',
       note: `${boards.length} ${boards.length === 1 ? 'Bogen' : 'Bögen'} zum Sammeln, Skizzieren und Sortieren.`,
+      gewicht: { bild: 0.9, welt: 0.4, spiel: 0.5 },
     },
     {
       /*
        * Steht zuletzt, weil es der letzte Schritt ist: Alles davor arbeitet
        * am Buch, dies hier macht es fertig.
        */
+      id: 'druck',
       to: '/druck',
       title: 'Druckfassung',
       note: 'Die ganze Welt gesetzt – Einband, Titelblatt, Inhalt, Kapiteltrenner, Farbtafel. Zum Drucken oder als PDF.',
+      gewicht: { bild: 0.6, welt: 0.5, schreiben: 0.4 },
+      ab: 'standard',
     },
-  ];
-
-  const secondary: AppendixEntry[] = [
     {
+      id: 'werkbank',
       to: '/werkbank',
       title: 'Werkbank',
       note: `Produktionsstand von ${assets} ${assets === 1 ? 'Asset' : 'Assets'}.`,
+      gewicht: { bild: 0.6, system: 0.6 },
+      ab: 'tief',
     },
     {
+      id: 'register',
       to: '/register',
       title: 'Register',
       note: 'Alle Einträge alphabetisch, mit Seitenzahl.',
-    },
-    {
-      to: '/kolophon',
-      title: 'Kolophon',
-      note: 'Die Geschichte hinter dem Buch – Einstellungen, Sicherung, Import und Export.',
+      gewicht: { welt: 0.5, system: 0.5, spiel: 0.4 },
     },
   ];
+
+  const { vorn, weiter } = ordne(werkzeuge, profil);
+
+  /*
+   * Das Kolophon steht ausserhalb der Ordnung.
+   *
+   * Nicht weil es wichtiger waere, sondern weil es nicht zum Handwerk gehoert:
+   * Es ist die Rueckseite des Buches selbst – Sicherung, Einspielen, und die
+   * Stelle, an der man dieses Profil wieder aendert. Ein Anhang, der die
+   * Einstellungen enthaelt, darf nicht von den Einstellungen wegsortiert
+   * werden koennen.
+   */
+  const kolophon: AppendixEntry = {
+    id: 'kolophon',
+    to: '/kolophon',
+    title: 'Kolophon',
+    note: 'Die Geschichte hinter dem Buch – Einstellungen, Sicherung, Import und Export.',
+    gewicht: {},
+  };
 
   return (
     <Spread
@@ -150,7 +219,7 @@ export function AppendixSpread() {
           </p>
 
           <ol className="mt-8">
-            {primary.map((item) => (
+            {vorn.map((item) => (
               <AppendixLine key={item.to} {...item} />
             ))}
           </ol>
@@ -159,10 +228,43 @@ export function AppendixSpread() {
       right={
         <div className="py-4 lg:py-10">
           <p className="rubric mb-3">Weiteres</p>
+
+          {/*
+            Die Falte.
+
+            Sie nennt beim Namen, was hinter ihr liegt – „Neun weitere:
+            Chronik, Spiegel, Werkbank …" statt „Mehr anzeigen". Eine Falte,
+            die verschweigt, was sie verbirgt, ist eine Wundertuete, und
+            Wundertueten tippt niemand an.
+
+            Bei „System" ist sie gar nicht da, weil dann nichts dahintersteht.
+          */}
+          {weiter.length > 0 && !offen && (
+            <button
+              type="button"
+              onClick={() => setOffen(true)}
+              className="group mb-1 flex min-h-[44px] w-full items-start gap-2.5 border-b border-paper-300/50 py-3 text-left no-tap-highlight"
+            >
+              <ChevronDown
+                size={15}
+                className="mt-1 shrink-0 text-ink-faint/45 transition-colors group-hover:text-gild-600"
+              />
+              <span>
+                <span className="block font-serif text-[17px] leading-snug text-ink transition-colors group-hover:text-gild-600">
+                  {weiter.length} {weiter.length === 1 ? 'weiteres Werkzeug' : 'weitere Werkzeuge'}
+                </span>
+                <span className="mt-0.5 block font-serif text-[13.5px] italic leading-snug text-ink-muted">
+                  {weiter.map((w) => w.title).join(', ')}. Alles da – nur nicht im Weg.
+                </span>
+              </span>
+            </button>
+          )}
+
           <ol>
-            {secondary.map((item) => (
+            {(offen ? weiter : []).map((item) => (
               <AppendixLine key={item.to} {...item} />
             ))}
+            <AppendixLine {...kolophon} />
           </ol>
 
           {/*

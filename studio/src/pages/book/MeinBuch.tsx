@@ -22,7 +22,13 @@ import { COVER_COLORS, COVER_MATERIALS } from '../../lib/bookIdentity';
 import { coverSurface, ClosedBook } from '../../components/book/CoverBoard';
 import { AppendixSheet } from './Appendix';
 import { Zeichenwahl } from '../geburt/Zeichenwahl';
-import { WEGE } from '../../lib/onboarding/wege';
+import {
+  ABSICHTEN,
+  TIEFEN,
+  profilAus,
+  profilVon,
+  type Profil,
+} from '../../lib/profil';
 import type { BookIdentity } from '../../types';
 import { cx } from '../../lib/utils';
 
@@ -33,9 +39,9 @@ const TT = BUCH_TEXTE.geburt.titel;
 export function MeinBuchSheet() {
   const book = useStudio((s) => s.settings.book);
   const saveBook = useStudio((s) => s.saveBook);
-  const weg = useStudio((s) => s.settings.weg);
+  const profil = profilVon(useStudio((s) => s.settings));
   const updateSettings = useStudio((s) => s.updateSettings);
-  const saveWeg = (id: string) => updateSettings({ weg: id });
+  const setzeProfil = (p: Profil) => updateSettings({ profil: p });
 
   if (!book) return null;
 
@@ -114,37 +120,70 @@ export function MeinBuchSheet() {
           </Abschnitt>
 
           {/*
-           * Der gewählte Weg.
+           * Was hier entsteht – und wie viel davon offenliegt.
            *
-           * Er schaltet nichts frei und nichts ab – er entscheidet über
-           * Beispiele und spätere Vorschläge. Genau deshalb steht er hier und
-           * nicht in einer Einrichtung: Es ist eine Frage der Ansprache, keine
-           * Einstellung.
+           * Der alte Abschnitt hiess „Dein Weg" und war ehrlich beschriftet:
+           * „Er schaltet nichts frei und nichts ab." Er tat auch sonst nichts.
+           * Fuenf Namen, einmal gefragt, danach wirkungslos.
+           *
+           * Jetzt steht hier dieselbe Frage und sie wirkt – aber sie bleibt
+           * eine Frage der Ansprache und keine Einrichtung: Was hier steht,
+           * ordnet, was zuerst offenliegt. Es nimmt nichts weg. Deshalb steht
+           * unter der Tiefe auch, was das bedeutet, und nicht, wie viele
+           * Funktionen es „freischaltet".
            */}
-          <Abschnitt titel="Dein Weg">
-            <div className="flex flex-wrap gap-x-5 gap-y-2">
-              {WEGE.map((w) => (
+          <Abschnitt titel="Was hier entsteht">
+            <div className="grid gap-2 sm:grid-cols-2">
+              {ABSICHTEN.map((a) => (
                 <button
-                  key={w.id}
+                  key={a.id}
                   type="button"
-                  onClick={() => saveWeg(w.id)}
-                  aria-pressed={weg === w.id}
+                  onClick={() => setzeProfil(profilAus(a.id, profil))}
+                  aria-pressed={profil.absicht === a.id}
                   className={cx(
-                    'min-h-[40px] font-serif text-[14.5px] transition-colors no-tap-highlight',
-                    weg === w.id ? 'text-gild-600' : 'text-ink-faint hover:text-ink-muted',
+                    'rounded-sm border px-3.5 py-2.5 text-left transition-colors no-tap-highlight',
+                    profil.absicht === a.id
+                      ? 'border-gild-600/60 bg-gild-600/10'
+                      : 'border-paper-400/30 hover:border-paper-400/60',
                   )}
                 >
-                  {w.name}
+                  <span className="block font-serif text-[14.5px] text-ink">{a.name}</span>
+                  <span className="mt-0.5 block font-serif text-[12.5px] italic leading-snug text-ink-faint">
+                    {a.zeile}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </Abschnitt>
+
+          <Abschnitt titel="Wie viel offenliegt">
+            <div className="flex flex-wrap gap-x-5 gap-y-2">
+              {TIEFEN.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setzeProfil({ ...profil, tiefe: t.id })}
+                  aria-pressed={profil.tiefe === t.id}
+                  className={cx(
+                    'min-h-[40px] font-serif text-[14.5px] transition-colors no-tap-highlight',
+                    profil.tiefe === t.id ? 'text-gild-600' : 'text-ink-faint hover:text-ink-muted',
+                  )}
+                >
+                  {t.name}
                   <span
                     aria-hidden
                     className={cx(
                       'mx-auto mt-0.5 block h-px transition-all duration-300',
-                      weg === w.id ? 'w-full bg-gild-500/60' : 'w-0',
+                      profil.tiefe === t.id ? 'w-full bg-gild-500/60' : 'w-0',
                     )}
                   />
                 </button>
               ))}
             </div>
+            <p className="mt-3 max-w-[46ch] font-serif text-[13.5px] italic leading-relaxed text-ink-muted">
+              {TIEFEN.find((t) => t.id === profil.tiefe)?.satz} Nichts davon verschwindet – was
+              nicht offenliegt, steht hinten im Buch unter „Weiteres".
+            </p>
           </Abschnitt>
 
           {/*
