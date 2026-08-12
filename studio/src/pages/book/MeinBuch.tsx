@@ -24,6 +24,7 @@ import { AppendixSheet } from './Appendix';
 import { Zeichenwahl } from '../geburt/Zeichenwahl';
 import {
   ABSICHTEN,
+  ANMUTUNGEN,
   TIEFEN,
   profilAus,
   profilVon,
@@ -184,6 +185,38 @@ export function MeinBuchSheet() {
               {TIEFEN.find((t) => t.id === profil.tiefe)?.satz} Nichts davon verschwindet – was
               nicht offenliegt, steht hinten im Buch unter „Weiteres".
             </p>
+          </Abschnitt>
+
+          {/*
+           * Die Anmutung.
+           *
+           * Sie aendert Satz und Bildgroesse, sonst nichts – kein Inhalt wird
+           * anders, keine Funktion faellt weg. Deshalb steht sie hier bei den
+           * Einbandfragen und nicht bei der Absicht: Es ist eine Frage der
+           * Ausgabe, nicht des Vorhabens. Dasselbe Buch, anders gesetzt.
+           */}
+          <Abschnitt titel="Wie es gesetzt ist">
+            <div className="grid gap-2 sm:grid-cols-3">
+              {ANMUTUNGEN.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => setzeProfil({ ...profil, anmutung: a.id })}
+                  aria-pressed={profil.anmutung === a.id}
+                  className={cx(
+                    'rounded-sm border px-3.5 py-2.5 text-left transition-colors no-tap-highlight',
+                    profil.anmutung === a.id
+                      ? 'border-gild-600/60 bg-gild-600/10'
+                      : 'border-paper-400/30 hover:border-paper-400/60',
+                  )}
+                >
+                  <span className="block font-serif text-[14.5px] text-ink">{a.name}</span>
+                  <span className="mt-0.5 block font-serif text-[12.5px] italic leading-snug text-ink-faint">
+                    {a.satz}
+                  </span>
+                </button>
+              ))}
+            </div>
           </Abschnitt>
 
           {/*

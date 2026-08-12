@@ -27,6 +27,9 @@ export const entryMetaSchema = z.object({
    */
   beginn: z.string().max(60),
   ende: z.string().max(60),
+  /** Was am Tisch nicht gezeigt wird – siehe `lib/geheim.ts`. */
+  geheimText: z.string().max(4000, 'Höchstens 4000 Zeichen.'),
+  geheimGanzeSeite: z.boolean(),
 });
 
 export type EntryMetaValues = z.infer<typeof entryMetaSchema>;

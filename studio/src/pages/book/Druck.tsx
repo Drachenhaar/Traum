@@ -17,13 +17,14 @@
 
 import { useMemo, useState } from 'react';
 import { BookOpen, FileDown } from 'lucide-react';
-import { useStudio, livingEntries } from '../../store/useStudio';
+import { useStudio } from '../../store/useStudio';
 import { AppendixSheet } from './Appendix';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { FORMATE, druckfassung, type Format } from '../../lib/druck/weltbuch';
 import { buildRelationIndex } from '../../lib/relations';
 import { chapterOfType } from '../../lib/book';
 import { cx, downloadFile } from '../../lib/utils';
+import { geheimZeile } from '../../lib/geheim';
 
 export function DruckSheet() {
   return (
@@ -56,10 +57,28 @@ function Druck() {
 
   const [formatId, setFormatId] = useState(FORMATE[0].id);
   const [mitBildern, setMitBildern] = useState(true);
+  /*
+   * Standardmaessig *ohne* Geheimes.
+   *
+   * Die vorsichtigere Vorgabe gewinnt: Ein Ausdruck, dem ein Absatz fehlt,
+   * laesst sich nachdrucken. Einer, der zu viel enthaelt und auf dem Spieltisch
+   * liegt, nicht.
+   */
+  const [mitGeheimem, setMitGeheimem] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const buch = books.find((b) => b.id === activeBookId);
-  const lebende = useMemo(() => livingEntries(entries), [entries]);
+  /*
+   * Bewusst *nicht* `livingEntries`.
+   *
+   * Das filtert im Tischmodus verborgene Seiten heraus – richtig fuer jede
+   * Ansicht am Bildschirm und falsch fuer den Druck. Sonst haette der
+   * Schalter „Fuer dich" ins Leere gegriffen, sobald jemand beim Drucken
+   * zufaellig im Tischmodus war: Er haette „mit allem" gewaehlt und ein
+   * unvollstaendiges Buch bekommen, ohne dass irgendwo etwas dagegen spricht.
+   * Was in den Druck kommt, entscheidet der Druck.
+   */
+  const lebende = useMemo(() => entries.filter((e) => !e.deletedAt), [entries]);
 
   /* Was tatsächlich in den Satz kommt – dieselbe Rechnung wie dort. */
   const kapitelzahl = useMemo(
@@ -70,6 +89,7 @@ function Druck() {
     () => new Set(lebende.map((e) => e.coverImage).filter(Boolean)).size,
     [lebende],
   );
+  const verborgen = useMemo(() => geheimZeile(entries), [entries]);
 
   if (!buch || lebende.length === 0) {
     return (
@@ -164,6 +184,7 @@ function Druck() {
       index: buildRelationIndex(relations),
       format: f,
       mitBildern,
+      mitGeheimem,
     });
 
   return (
@@ -230,6 +251,52 @@ function Druck() {
                 : `${tafeln} ${tafeln === 1 ? 'Titelbild bleibt' : 'Titelbilder bleiben'} draußen. Die Datei wird klein und ist in einem Augenblick fertig.`}
             </span>
           </button>
+        </>
+      )}
+
+      {/*
+        -------------------------------------------------------- Das Verborgene
+
+        Nur wenn dieses Buch etwas verbirgt – und mit der vorsichtigen Vorgabe.
+        Ein Ausdruck verlaesst den Bildschirm: Er wird weitergereicht, liegt auf
+        einem Tisch, wird vergessen. Deshalb ist das hier eine eigene, bewusste
+        Entscheidung und nicht der Tischmodus des Geraets.
+      */}
+      {verborgen && (
+        <>
+          <h2 className="mt-9 font-serif text-[19px] text-ink">Für wen ist der Druck?</h2>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {[
+              {
+                an: false,
+                titel: 'Für den Tisch',
+                note: `Ohne alles, was nur du weißt. ${verborgen}.`,
+              },
+              {
+                an: true,
+                titel: 'Für dich',
+                note: 'Mit den verborgenen Seiten und Stellen, sichtbar eingefasst.',
+              },
+            ].map((w) => (
+              <button
+                key={String(w.an)}
+                type="button"
+                onClick={() => setMitGeheimem(w.an)}
+                aria-pressed={mitGeheimem === w.an}
+                className={cx(
+                  'rounded-sm border px-4 py-3 text-left transition-colors no-tap-highlight',
+                  mitGeheimem === w.an
+                    ? 'border-gild-600/60 bg-gild-600/10'
+                    : 'border-paper-400/30 hover:border-paper-400/60',
+                )}
+              >
+                <span className="block font-serif text-[15px] text-ink">{w.titel}</span>
+                <span className="mt-1 block font-serif text-[12.5px] leading-snug text-ink-faint">
+                  {w.note}
+                </span>
+              </button>
+            ))}
+          </div>
         </>
       )}
 

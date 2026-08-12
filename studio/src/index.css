@@ -198,14 +198,75 @@
   /* Lesetext: großzügig, ruhig, nie über 62 Zeichen breit. */
   .prose-book {
     font-family: 'Iowan Old Style', Georgia, 'Times New Roman', serif;
-    font-size: 17px;
-    line-height: 1.78;
+    font-size: var(--satz-grad, 17px);
+    line-height: var(--satz-zeile, 1.78);
     color: #3a2e20;
     hyphens: auto;
   }
   .prose-book p + p {
-    margin-top: 0.85em;
-    text-indent: 1.4em;
+    margin-top: var(--satz-absatz, 0.85em);
+    text-indent: var(--satz-einzug, 1.4em);
+  }
+
+  /* ------------------------------------------------------ Die Anmutung ---- */
+
+  /*
+   * Wie ein Buch sich anfuehlt – drei Saetze derselben Seiten.
+   *
+   * Hier steht die ganze Praesentationsschicht, und sie besteht aus vier
+   * Zahlen und zwei Bildgroessen. Das ist Absicht: Ein Artbook, das eigene
+   * Komponenten haette, waere ein zweites Programm. Ein Artbook, das dieselben
+   * Komponenten in anderem Satz zeigt, ist dasselbe Buch in anderer Ausgabe.
+   *
+   * Was hier *nicht* steht, ist ebenso wichtig: keine Regel, die etwas
+   * ausblendet. `display: none` waere die naheliegende Abkuerzung fuer „weniger
+   * Text" und genau der Bruch – dann waere ein Artbook ein Buch, aus dem
+   * jemand Seiten geschnitten hat.
+   */
+
+  /*
+   * Artbook: grosse Bilder, wenig Text, viel Raum.
+   *
+   * Der Schriftgrad steigt *und* die Zeilenluft steigt – weniger Text auf
+   * derselben Flaeche, nicht dieselbe Menge in groesserer Schrift. Und der
+   * Einzug faellt weg: Er gliedert lange Textstrecken, und die gibt es hier
+   * nicht.
+   */
+  [data-anmutung='artbook'] {
+    --satz-grad: 18.5px;
+    --satz-zeile: 1.92;
+    --satz-absatz: 1.15em;
+    --satz-einzug: 0;
+    --tafel-hoehe: 34rem;
+  }
+
+  /*
+   * Werkstatt: mehr auf einer Seite.
+   *
+   * Enger, aber nicht gedraengt – 15.5 Punkt auf 1.6 ist immer noch Buchsatz
+   * und kein Formular. Wer eine Welt als System entwirft, will beim Lesen
+   * einer Seite mehr davon im Blick haben; das ist ein anderer Wunsch als
+   * „kleiner".
+   */
+  [data-anmutung='werkstatt'] {
+    --satz-grad: 15.5px;
+    --satz-zeile: 1.62;
+    --satz-absatz: 0.6em;
+    --satz-einzug: 1.1em;
+    --tafel-hoehe: 16rem;
+  }
+
+  /*
+   * Die Tafel auf der Eintragsseite.
+   *
+   * Nur unter den beiden abweichenden Anmutungen – „Buch" behaelt seine
+   * bisherige Hoehe (auf dem Telefon der Bildhoehe folgend, am Schreibtisch
+   * 62 % der Seite) und weiss von dieser Regel nichts.
+   */
+  [data-anmutung='artbook'] .tafelplatz,
+  [data-anmutung='werkstatt'] .tafelplatz {
+    height: var(--tafel-hoehe);
+    max-height: 70vh;
   }
 
   /* Eigene, dezente Scrollbar (Desktop) */

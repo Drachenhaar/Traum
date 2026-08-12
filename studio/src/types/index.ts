@@ -144,6 +144,25 @@ export interface Entry {
   /** Produktionsstufe (nur bei Assets genutzt), siehe `lib/pipeline.ts` */
   pipelineStage?: string;
   /**
+   * Was am Tisch nicht gezeigt wird.
+   *
+   * Der einzige Zusatz, den das Spielen wirklich braucht – und ausdrücklich
+   * *ein Feld an der Seite* und keine zweite Art von Seite. Ein
+   * „Spielleitereintrag" neben dem Eintrag wäre ein zweites Weltmodell, und
+   * damit wäre der Preis für ein Geheimnis eine gespaltene Welt.
+   *
+   * Zwei Fälle, ein Feld:
+   *   `text`       – ein Absatz, den nur die Leitung liest. Der häufige Fall:
+   *                  Die Seite ist zeigbar, ein Satz darauf nicht.
+   *   `ganzeSeite` – die Seite selbst ist nicht für den Tisch. Der Plan des
+   *                  Gegenspielers steht nicht halb offen.
+   *
+   * Verborgen ist es nur im Tischmodus (`Settings.tischmodus`). Ohne ihn
+   * steht es da, deutlich als verborgen gekennzeichnet – wer nicht sieht, was
+   * er versteckt hat, versteckt nichts, sondern verliert es.
+   */
+  geheim?: EntryGeheim;
+  /**
    * Weltzeit: wann das hier begann und endete.
    *
    * Bewusst der rohe Text, den der Verfasser geschrieben hat – „1032",
@@ -273,6 +292,21 @@ export interface StoredImageBlob {
   id: string;
   full: Blob;
   thumb: Blob;
+}
+
+/**
+ * Was nicht jeder sehen soll.
+ *
+ * Bewusst ohne Verschlüsselung und ohne Zugriffsrechte: Das hier schützt vor
+ * Blicken über die Schulter am Spieltisch, nicht vor jemandem, der die Datei
+ * hat. Alles liegt offen im Browser dieses Geräts, so wie jede andere Seite
+ * auch – etwas anderes zu behaupten wäre gefährlicher als gar nichts.
+ */
+export interface EntryGeheim {
+  /** Der Absatz, den nur die Leitung liest. */
+  text?: string;
+  /** Die ganze Seite bleibt am Tisch zu. */
+  ganzeSeite?: boolean;
 }
 
 /* -------------------------------------------------------------------- Klang */
@@ -568,6 +602,15 @@ export interface Settings {
   promptTemplates?: StoredPromptTemplate[];
   /** Der alte Weg – nur noch zum Lesen, siehe `LibraryBook.weg`. */
   weg?: string;
+  /**
+   * Der Tischmodus – siehe `lib/geheim.ts`.
+   *
+   * Gehört dem *Gerät* und nicht dem Buch: Er beschreibt, wer gerade auf den
+   * Bildschirm sieht, und das ist keine Eigenschaft der Welt. Wer am
+   * Spieltisch zwischen zwei Bänden wechselt, will ihn nicht zweimal
+   * einschalten.
+   */
+  tischmodus?: boolean;
   /**
    * Das Profil dieses Buches – siehe `lib/profil.ts`.
    *

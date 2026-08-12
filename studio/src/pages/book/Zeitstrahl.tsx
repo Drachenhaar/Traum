@@ -17,7 +17,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, CircleHelp, Minus } from 'lucide-react';
 import type { Entry } from '../../types';
-import { useStudio } from '../../store/useStudio';
+import { useStudio, livingEntries } from '../../store/useStudio';
 import { DEFAULT_KALENDER, ausOrdnung, schreibeJahr } from '../../lib/chronik/zeit';
 import { datiere, weltzustand } from '../../lib/chronik/zustand';
 import { pruefe, type Befund } from '../../lib/chronik/pruefung';
@@ -31,7 +31,14 @@ import { AppendixSheet } from './Appendix';
 import { cx } from '../../lib/utils';
 
 export function ZeitstrahlSheet() {
-  const entries = useStudio((s) => s.entries);
+  /*
+   * Ueber `livingEntries` und nicht ueber die rohe Liste: Sonst stuende eine
+   * am Tisch verborgene Seite mit Datum weiter auf der Achse – mit Titel.
+   * Genau das ist hier passiert, und aufgefallen ist es erst, als ein Test
+   * nach der Zeichenkette gesucht hat.
+   */
+  const alleEintraege = useStudio((s) => s.entries);
+  const entries = useMemo(() => livingEntries(alleEintraege), [alleEintraege]);
   const relations = useStudio((s) => s.relations);
   const navigate = useNavigate();
 

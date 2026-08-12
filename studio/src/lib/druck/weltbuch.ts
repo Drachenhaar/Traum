@@ -91,6 +91,16 @@ export interface Druckauftrag {
   format: Format;
   /** Bilder einbetten? Ohne sie ist die Datei klein und die Seiten leer. */
   mitBildern: boolean;
+  /**
+   * Kommt mit, was am Tisch nicht steht?
+   *
+   * Ausdrücklich ein eigener Schalter und nicht der Tischmodus des Geräts.
+   * Ein Ausdruck verlässt den Bildschirm: Er wird weitergereicht, liegt auf
+   * einem Tisch, wird vergessen. Was darauf steht, muss beim Drucken
+   * entschieden worden sein und nicht davon abhängen, wie das Gerät gerade
+   * eingestellt war.
+   */
+  mitGeheimem: boolean;
 }
 
 /* --------------------------------------------------------------- Bilder ---- */
@@ -243,6 +253,7 @@ function eintragSeite(
   index: RelationIndex,
   byId: Map<string, Entry>,
   bilder: Map<string, string>,
+  mitGeheimem: boolean,
 ): string {
   const tpl = templateFor(entry.type);
   const bild = entry.coverImage ? bilder.get(entry.coverImage) : undefined;
@@ -261,6 +272,14 @@ function eintragSeite(
   ${bild ? `<figure><img src="${bild}" alt="" />${entry.subtitle?.trim() ? `<figcaption>${escapeHtml(entry.title)}</figcaption>` : ''}</figure>` : ''}
   ${entry.description?.trim() ? `<p class="lauf">${escapeHtml(entry.description).replace(/\n\n+/g, '</p><p class="lauf">').replace(/\n/g, '<br />')}</p>` : ''}
   ${felder(entry, byId)}
+  ${
+    mitGeheimem && entry.geheim?.text?.trim()
+      ? `<aside class="geheim"><p class="rubrik">Nur für die Leitung</p>${entry.geheim.text
+          .split(/\n\n+/)
+          .map((abs) => `<p>${escapeHtml(abs).replace(/\n/g, '<br />')}</p>`)
+          .join('')}</aside>`
+      : ''
+  }
   ${verbindungen(entry, index, byId)}
 </article>`;
 }
@@ -281,8 +300,15 @@ function cssText(s: string): string {
 /* ------------------------------------------------------------ Das Ganze ---- */
 
 export async function druckfassung(auftrag: Druckauftrag): Promise<string> {
-  const { buch, entries, index, format, mitBildern } = auftrag;
-  const lebende = entries.filter((e) => !e.deletedAt);
+  const { buch, entries, index, format, mitBildern, mitGeheimem } = auftrag;
+  /*
+   * Ohne Geheimes faellt eine ganz verborgene Seite hier heraus – vor dem
+   * Inhaltsverzeichnis, vor der Seitenzaehlung, vor allem. Sie erst beim
+   * Setzen zu ueberspringen haette sie im Inhalt stehen lassen.
+   */
+  const lebende = entries.filter(
+    (e) => !e.deletedAt && (mitGeheimem || !e.geheim?.ganzeSeite),
+  );
   const byId = new Map(lebende.map((e) => [e.id, e]));
   const bilder = await bilderLaden(lebende, mitBildern);
   const farbe = colorById(buch.coverColor);
@@ -578,6 +604,22 @@ figcaption { font-size: 8.5pt; font-style: italic; color: #8a7a63; margin-top: 0
 .farbe .name { font-size: 8pt; margin: 0.15cm 0 0; text-align: left; }
 .farbe .wert { font-size: 7.5pt; letter-spacing: 0.06em; color: #8a7a63; margin: 0; text-align: left; text-transform: uppercase; }
 
+/*
+ * Was nur die Leitung liest.
+ *
+ * Auf Papier sichtbar eingefasst und beschriftet – anders als am Bildschirm,
+ * wo es im Tischmodus spurlos verschwindet. Ein Ausdruck wird nicht
+ * herumgedreht; er wird weggelegt oder nicht gedruckt.
+ */
+.geheim {
+  break-inside: avoid;
+  margin: 0.45cm 0 0;
+  border-left: 2pt solid #c9bda8;
+  padding-left: 0.5cm;
+  color: #4a4239;
+}
+.geheim p { text-align: left; }
+
 .kolophon { break-before: page; }
 .kolophon h2 { font-size: 13pt; font-weight: normal; letter-spacing: 0.1em; text-transform: uppercase; margin: 0 0 0.8cm; }
 .kolophon p { max-width: 30em; color: #4a4239; }
@@ -659,7 +701,7 @@ ${kapitel
   }
 </section>
 <section class="kapitel">
-${k.eintraege.map((e) => eintragSeite(e, index, byId, bilder)).join('\n')}
+${k.eintraege.map((e) => eintragSeite(e, index, byId, bilder, mitGeheimem)).join('\n')}
 </section>`,
   )
   .join('\n')}
