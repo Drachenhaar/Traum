@@ -15,6 +15,7 @@ import { BookmarkIcon, ChevronLeft, ChevronRight, FilePlus2, Search } from 'luci
 import { useStudio, livingEntries } from '../../store/useStudio';
 import { buildBook, chapterById, pageWear } from '../../lib/book';
 import { deskStyle } from '../../lib/textures';
+import { profilVon } from '../../lib/profil';
 import { cx } from '../../lib/utils';
 import { GlobalSearch } from '../search/GlobalSearch';
 import { Gedankenfang } from '../entry/Gedankenfang';
@@ -122,6 +123,21 @@ export function BookShell() {
 
   return (
     <div
+      /*
+       * Die Anmutung steht als Merkmal am Buchkoerper, nicht als Klasse an
+       * jedem Absatz.
+       *
+       * Das ist die Praesentationsschicht aus dem Bauplan, und sie ist
+       * bewusst duenn: **ein** Attribut hier, und darunter regelt das
+       * Stylesheet Schriftgrad, Zeilenluft und Bildgroesse fuer alles, was im
+       * Buch steht. Jede Komponente einzeln umzubauen haette am Ende drei
+       * Saetze Komponenten ergeben – und damit genau die getrennten Versionen,
+       * die es nicht geben soll.
+       *
+       * Was sich hier aendert, ist ausschliesslich Satz. Kein Inhalt wird
+       * anders, keine Funktion faellt weg.
+       */
+      data-anmutung={profilVon(settings).anmutung}
       className="flex h-full w-full flex-col overflow-hidden"
       style={deskStyle}
       onTouchStart={onTouchStart}

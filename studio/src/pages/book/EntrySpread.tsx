@@ -358,7 +358,17 @@ export function EntrySpread() {
       right={
         <>
           {entry.coverImage ? (
-            <div className="mb-6 lg:h-[62%]">
+            /*
+             * Die Hoehe der Tafel kommt aus der Anmutung, nicht von hier.
+             *
+             * `.tafelplatz` greift nur unter „Artbook" und „Werkstatt". Ein
+             * Inline-Stil stand hier zuerst und war falsch: Ohne gesetzte
+             * Variable faellt `height: var(--tafel-hoehe)` auf `auto` zurueck
+             * und schlaegt dabei die Klasse `lg:h-[62%]` – die Ausgabe „Buch"
+             * haette sich mitveraendert, obwohl sich an ihr nichts aendern
+             * soll. Die Vorgabe muss unberuehrt bleiben, sonst ist sie keine.
+             */
+            <div className="tafelplatz mb-6 lg:h-[62%]">
               <CoverPlate imageId={entry.coverImage} rubric={tpl.label} caption={entry.title} />
             </div>
           ) : null}
