@@ -1,9 +1,14 @@
 /**
  * Der erste Weg durch das Buch.
  *
- * Vier Abschnitte, die ineinander übergehen: Das Buch entsteht, der Weg wird
- * gewählt, ein kleines Beispiel wird durchgeblättert, und dann steht die erste
- * eigene Frage.
+ * Vier Abschnitte, die ineinander übergehen: Erst die Frage, wofür das hier
+ * gedacht ist, dann entsteht das Buch, dann wird ein kleines Beispiel
+ * durchgeblättert, und dann steht die erste eigene Frage.
+ *
+ * Die Reihenfolge war einmal andersherum – erst das Buch, dann die Frage. Das
+ * ist an einer Stelle falsch, die man leicht übersieht: Wer erst den Einband
+ * bindet, hat die Frage schon beantwortet, ohne sie gehört zu haben. Und die
+ * Antwort entscheidet, was ihn danach empfängt.
  *
  * Es gibt keine Fortschrittsanzeige über das Ganze. Wer hier ist, soll nicht
  * wissen, wie viel noch kommt – er soll blättern.
@@ -12,43 +17,38 @@
 import { useState } from 'react';
 import type { EntryType } from '../../types';
 import { useStudio } from '../../store/useStudio';
+import { profilAus, type Absicht } from '../../lib/profil';
 import { Geburt } from '../geburt/Geburt';
-import { DeinWeg } from './DeinWeg';
+import { Absichtsfrage } from './Absichtsfrage';
 import { Schauseiten } from './Schauseiten';
 import { ErsterSchritt } from './ErsterSchritt';
 
-type Abschnitt = 'buch' | 'weg' | 'schau' | 'anfang';
+type Abschnitt = 'absicht' | 'buch' | 'schau' | 'anfang';
 
 export function Onboarding({ onFertig }: { onFertig: (ziel?: string) => void }) {
   const updateSettings = useStudio((s) => s.updateSettings);
   const createEntry = useStudio((s) => s.createEntry);
-  const [abschnitt, setAbschnitt] = useState<Abschnitt>('buch');
-  const [weg, setWeg] = useState('traumweber');
+  const [abschnitt, setAbschnitt] = useState<Abschnitt>('absicht');
+  const [absicht, setAbsicht] = useState<Absicht>('frei');
 
-  if (abschnitt === 'buch') {
-    return <Geburt onFertig={() => setAbschnitt('weg')} />;
-  }
-
-  if (abschnitt === 'weg') {
+  if (abschnitt === 'absicht') {
     return (
-      <DeinWeg
+      <Absichtsfrage
         onWahl={(gewaehlt) => {
-          setWeg(gewaehlt);
-          updateSettings({ weg: gewaehlt });
-          setAbschnitt('schau');
+          setAbsicht(gewaehlt);
+          updateSettings({ profil: profilAus(gewaehlt) });
+          setAbschnitt('buch');
         }}
       />
     );
   }
 
+  if (abschnitt === 'buch') {
+    return <Geburt onFertig={() => setAbschnitt('schau')} />;
+  }
+
   if (abschnitt === 'schau') {
-    return (
-      <Schauseiten
-        weg={weg}
-        onZurueck={() => setAbschnitt('weg')}
-        onFertig={() => setAbschnitt('anfang')}
-      />
-    );
+    return <Schauseiten absicht={absicht} onFertig={() => setAbschnitt('anfang')} />;
   }
 
   return (

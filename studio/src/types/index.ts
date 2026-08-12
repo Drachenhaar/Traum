@@ -476,11 +476,13 @@ export interface LibraryBook extends BookIdentity {
   /** Eine Reihe: „Mooshalde I, II, III". Noch ohne Verwaltung. */
   seriesId?: string;
   /**
-   * Die Ausrichtung – siehe `lib/onboarding/wege.ts`.
+   * Der alte Weg – nur noch zum Lesen.
    *
-   * Sie schaltet nichts frei und nichts ab. Sie entscheidet über Beispiele
-   * und Vorschläge, sonst nichts. Ein Traumbuch kann jederzeit eine Kampagne
-   * werden, ohne dass etwas verlorengeht.
+   * Fünf Namen, die einmal gefragt und nie benutzt wurden. Seit es `profil`
+   * gibt, schreibt niemand mehr hierher; gelesen wird es weiter, damit ein
+   * Buch aus jener Zeit sein Profil bekommt, statt bei null anzufangen.
+   *
+   * Nicht entfernen. Es steht in jeder Sicherung, die je erstellt wurde.
    */
   weg?: string;
 
@@ -564,12 +566,7 @@ export interface Settings {
   book?: LibraryBook;
   /** Eigene Fassungen von Prompt-Vorlagen. */
   promptTemplates?: StoredPromptTemplate[];
-  /**
-   * Der gewählte Weg – siehe `lib/onboarding/wege.ts`.
-   *
-   * Er schaltet nichts frei und nichts ab. Er entscheidet über Beispiele und
-   * spätere Vorschläge, sonst nichts, und lässt sich jederzeit ändern.
-   */
+  /** Der alte Weg – nur noch zum Lesen, siehe `LibraryBook.weg`. */
   weg?: string;
   /**
    * Das Profil dieses Buches – siehe `lib/profil.ts`.
