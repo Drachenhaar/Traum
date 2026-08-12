@@ -20,6 +20,7 @@ import { cx } from '../../lib/utils';
 import { GlobalSearch } from '../search/GlobalSearch';
 import { Gedankenfang } from '../entry/Gedankenfang';
 import { Leitfaden } from '../leitfaden/Leitfaden';
+import { Aufmerksamkeit } from '../anerbieten/Aufmerksamkeit';
 import { Spread } from './Spread';
 
 /** Der gebaute Buchblock – einmal je Datenänderung, überall nutzbar. */
@@ -247,6 +248,7 @@ export function BookShell() {
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
       <Gedankenfang open={fangOffen} onClose={() => setFangOffen(false)} />
       <Leitfaden />
+      <Aufmerksamkeit />
     </div>
   );
 }
