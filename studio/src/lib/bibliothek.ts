@@ -116,6 +116,7 @@ export const BUCH_SCHLUESSEL = [
   'promptTemplates',
   'weg',
   'profil',
+  'anerbieten',
   'spiegelAus',
   'spiegelVerlauf',
   'leitfaden',

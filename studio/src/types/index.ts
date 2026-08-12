@@ -11,6 +11,7 @@
  */
 
 import type { Profil } from '../lib/profil';
+import type { Notiz } from '../lib/anerbieten/gedaechtnis';
 
 /** Typ-Kennung eines Eintrags. Eingebaute Typen siehe `lib/types-registry.ts`. */
 export type EntryType = string;
@@ -550,6 +551,14 @@ export interface LibraryBook extends BookIdentity {
    * `weg` abgeleitet, und zwar in der sanftesten Auslegung.
    */
   profil?: Profil;
+  /**
+   * Was Dragoncore in diesem Band schon gesagt bekommen hat.
+   *
+   * Gehört dem Buch und nicht dem Gerät: „Nicht mehr hierzu" meint eine
+   * bestimmte Figur in einer bestimmten Welt. Wer denselben Hinweis in einem
+   * anderen Band bekäme, bekäme ihn zu Recht.
+   */
+  anerbieten?: Notiz[];
 }
 
 /**
@@ -622,6 +631,14 @@ export interface Settings {
    * `weg` abgeleitet, und zwar in der sanftesten Auslegung.
    */
   profil?: Profil;
+  /**
+   * Was Dragoncore in diesem Band schon gesagt bekommen hat.
+   *
+   * Gehört dem Buch und nicht dem Gerät: „Nicht mehr hierzu" meint eine
+   * bestimmte Figur in einer bestimmten Welt. Wer denselben Hinweis in einem
+   * anderen Band bekäme, bekäme ihn zu Recht.
+   */
+  anerbieten?: Notiz[];
   /**
    * Der Charakterspiegel lässt sich vollständig abschalten.
    *
