@@ -10,6 +10,8 @@
  * bedeutungstragenden Kanten entsteht der Weltgraph.
  */
 
+import type { Profil } from '../lib/profil';
+
 /** Typ-Kennung eines Eintrags. Eingebaute Typen siehe `lib/types-registry.ts`. */
 export type EntryType = string;
 
@@ -501,6 +503,17 @@ export interface LibraryBook extends BookIdentity {
   leitfaden?: { an: boolean; erledigt: string[] };
   /** Welche Entdeckungen in *diesem* Band Absicht sind. */
   entdeckungenAbsicht?: string[];
+  /**
+   * Das Profil dieses Buches – siehe `lib/profil.ts`.
+   *
+   * Es ordnet und faltet, es entfernt nie. Was hier steht, entscheidet, was
+   * zuerst offen liegt und wie dicht die Seiten gesetzt sind – nicht, was es
+   * gibt. Jede Funktion bleibt in jedem Profil erreichbar.
+   *
+   * Steht es nicht da, stammt das Buch aus der Zeit davor: Dann wird es aus
+   * `weg` abgeleitet, und zwar in der sanftesten Auslegung.
+   */
+  profil?: Profil;
 }
 
 /**
@@ -558,6 +571,17 @@ export interface Settings {
    * spätere Vorschläge, sonst nichts, und lässt sich jederzeit ändern.
    */
   weg?: string;
+  /**
+   * Das Profil dieses Buches – siehe `lib/profil.ts`.
+   *
+   * Es ordnet und faltet, es entfernt nie. Was hier steht, entscheidet, was
+   * zuerst offen liegt und wie dicht die Seiten gesetzt sind – nicht, was es
+   * gibt. Jede Funktion bleibt in jedem Profil erreichbar.
+   *
+   * Steht es nicht da, stammt das Buch aus der Zeit davor: Dann wird es aus
+   * `weg` abgeleitet, und zwar in der sanftesten Auslegung.
+   */
+  profil?: Profil;
   /**
    * Der Charakterspiegel lässt sich vollständig abschalten.
    *
