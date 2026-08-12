@@ -28,20 +28,18 @@ import {
   DEMO_ZEITPUNKTE,
   demoEintrag,
 } from '../../lib/onboarding/beispielwelt';
-import { wegById } from '../../lib/onboarding/wege';
+import { absichtById, type Absicht } from '../../lib/profil';
 import { relationType } from '../../lib/relations';
 import { leseZeit, ordnung, schreibeJahr } from '../../lib/chronik/zeit';
 import { datiere, weltzustand } from '../../lib/chronik/zustand';
 import { cx } from '../../lib/utils';
 
 export function Schauseiten({
-  weg,
+  absicht,
   onFertig,
-  onZurueck,
 }: {
-  weg: string;
+  absicht: Absicht;
   onFertig: () => void;
-  onZurueck: () => void;
 }) {
   const [seite, setSeite] = useState(0);
   const seiten = [Figur, Zusammenhaenge, Zeit, Folgen, WegSeite, Uebergabe];
@@ -74,7 +72,7 @@ export function Schauseiten({
          * blendet jede für sich auf, statt dass Text unter Text wechselt.
          */}
         <div key={seite} className="animate-fadeIn flex-1 py-6">
-          <Inhalt weg={weg} onFertig={onFertig} />
+          <Inhalt absicht={absicht} onFertig={onFertig} />
         </div>
 
         {/*
@@ -85,8 +83,18 @@ export function Schauseiten({
           <div className="flex items-center justify-between gap-4 border-t border-paper-300/60 pt-4">
             <button
               type="button"
-              onClick={() => (seite === 0 ? onZurueck() : setSeite((s) => s - 1))}
-              className="inline-flex min-h-[44px] items-center gap-1 font-serif text-[14px] italic text-ink-faint transition-colors hover:text-ink-muted no-tap-highlight"
+              /*
+                Auf der ersten Seite gibt es kein Zurueck mehr.
+                
+                Frueher fuehrte es zur Wegwahl. Die steht jetzt vor der
+                Bucherschaffung – zurueck hiesse also, ein bereits gebundenes
+                Buch noch einmal zu binden. Statt einer Tuer, die im Kreis
+                fuehrt, lieber gar keine: Wer die Wahl aendern will, findet sie
+                in „Mein Buch", und dort steht sie richtig.
+              */
+              onClick={() => setSeite((s) => Math.max(0, s - 1))}
+              disabled={seite === 0}
+              className="inline-flex min-h-[44px] items-center gap-1 font-serif text-[14px] italic text-ink-faint transition-colors hover:text-ink-muted disabled:invisible no-tap-highlight"
             >
               <ChevronLeft size={15} /> Zurück
             </button>
@@ -117,7 +125,7 @@ export function Schauseiten({
   );
 }
 
-type SeitenProps = { weg: string; onFertig: () => void };
+type SeitenProps = { absicht: Absicht; onFertig: () => void };
 
 /* ------------------------------------------------------------- Bausteine */
 
@@ -308,18 +316,22 @@ function Folgen() {
 /* --------------------------------------------------------------- Seite 5 */
 
 /**
- * Die Seite des gewaehlten Weges.
+ * Die Seite der gewaehlten Absicht.
  *
- * Sie zeigt dieselbe Welt aus einem anderen Blickwinkel – nichts davon ist
- * eine eigene Betriebsart. Und wo etwas erst kommen *koennte*, steht das
- * ausdruecklich dabei: Nichts wird als verfuegbar dargestellt, was es nicht
- * ist.
+ * Sie zeigt **dieselbe Welt** aus einem anderen Blickwinkel – und das ist
+ * woertlich gemeint: Mooshalde, Elian, Mara und der Fall von Arven kommen auf
+ * jeder dieser Seiten vor. Nur was daran betont wird, wechselt. Waeren es
+ * sechs verschiedene Beispielwelten, waere es eine Produktvorfuehrung mit
+ * sechs Produkten.
+ *
+ * Und wo etwas erst kommen *koennte*, steht das ausdruecklich dabei: Nichts
+ * wird als vorhanden dargestellt, was es nicht ist.
  */
-function WegSeite({ weg }: SeitenProps) {
-  const gewaehlt = wegById(weg);
+function WegSeite({ absicht }: SeitenProps) {
+  const gewaehlt = absichtById(absicht);
 
-  const inhalt: Record<string, { titel: string; zeilen: string[]; ausblick?: string }> = {
-    erzaehler: {
+  const inhalt: Record<Absicht, { titel: string; zeilen: string[]; ausblick?: string }> = {
+    erzaehlen: {
       titel: 'Was eine Figur sagt – und was sie tut.',
       zeilen: [
         'Elian sagt, Familie sei ihm das Wichtigste.',
@@ -328,7 +340,7 @@ function WegSeite({ weg }: SeitenProps) {
       ausblick:
         'Solche Spannungen sichtbar zu machen, ist das, wohin Dragoncore wächst – der Spiegel im Anhang zeigt heute wiederkehrende Muster, noch nicht die Widersprüche einzelner Figuren.',
     },
-    weltenbauer: {
+    welt: {
       titel: 'Ein Ort ist ein Geflecht.',
       zeilen: [
         'Mooshalde liegt am Nebelwald.',
@@ -336,7 +348,7 @@ function WegSeite({ weg }: SeitenProps) {
         'Mooshalde besteht seit 874 – und verändert sich über seine Geschichte.',
       ],
     },
-    spielleiter: {
+    spiel: {
       titel: 'Alles zu einem Ort, an einer Stelle.',
       zeilen: [
         'Mooshalde · zwei Figuren, die dort leben',
@@ -344,28 +356,38 @@ function WegSeite({ weg }: SeitenProps) {
         'Ein Ereignis, das noch nachwirkt: der Fall von Arven',
       ],
     },
-    traumweber: {
+    entwerfen: {
+      titel: 'Was voneinander abhängt.',
+      zeilen: [
+        'Nebeleichenholz stammt von der Nebeleiche – die nur im Nebelwald wächst.',
+        'Fällt der Nebelwald, fällt das Sternenbuchpult im Observatorium mit.',
+        'Solche Ketten sind lesbar, sobald die Verbindungen stehen.',
+      ],
+      ausblick:
+        'Was daraus folgt, liest der Anhang „Entdeckungen" – er zeigt Widersprüche und offene Enden, verändert aber nie etwas von selbst.',
+    },
+    zeigen: {
+      titel: 'Zuerst kommt das Bild.',
+      zeilen: [
+        'Mooshalde: drei Entwürfe nebeneinander, keiner davon fertig.',
+        'Moosgrün, Nebelsand, Bernstein – die Farben der Welt sammeln sich von selbst.',
+        'Was auf Papier soll, findet hinten im Buch seine Farbtafel.',
+      ],
+    },
+    frei: {
       titel: 'Es muss nicht ordentlich anfangen.',
       zeilen: [
         'Ein Ort. Ein Schlüssel. Eine Frau, die schweigt.',
         'Die Verbindungen entstehen später – oder gar nicht.',
       ],
     },
-    chronist: {
-      titel: 'Nichts geht verloren.',
-      zeilen: [
-        'Arven: 702 bis 1041.',
-        'Mara ist Elians Mutter – die Linie bleibt nachvollziehbar.',
-        'Jeder Zeitpunkt lässt sich betrachten, als stünde man darin.',
-      ],
-    },
   };
 
-  const w = inhalt[weg] ?? inhalt.traumweber;
+  const w = inhalt[absicht] ?? inhalt.frei;
 
   return (
     <>
-      {gewaehlt && <p className="rubric mb-2">Dein Weg · {gewaehlt.name}</p>}
+      {gewaehlt && <p className="rubric mb-2">{gewaehlt.name}</p>}
       <Ueberschrift>{w.titel}</Ueberschrift>
       <span aria-hidden className="rule-gild mt-6 block w-24 opacity-70" />
 

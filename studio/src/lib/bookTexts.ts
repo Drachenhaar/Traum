@@ -92,9 +92,15 @@ export const BUCH_TEXTE = {
       oeffnen: 'Schlag es auf.',
     },
     ausrichtung: {
-      frage: 'Wovon soll dieses Buch handeln?',
+      frage: 'Was möchtest du hier erschaffen?',
+      /*
+       * Der Hinweis stand vorher auf „Es schaltet nichts frei und nichts ab" –
+       * und das war damals woertlich wahr, weil die Wahl ueberhaupt nichts tat.
+       * Jetzt tut sie etwas, und der Satz muss genauer sein: Sie ordnet, was
+       * offenliegt. Weggenommen wird trotzdem nichts.
+       */
       hinweis:
-        'Das entscheidet nur, womit es dich empfängt – welche Beispiele, welche ersten Vorschläge. Es schaltet nichts frei und nichts ab, und du kannst es jederzeit ändern.',
+        'Daraus ergibt sich, womit dieses Buch beginnt und wie viel gleich offenliegt. Es nimmt nichts weg – alles bleibt erreichbar, und du kannst es jederzeit ändern.',
       ohne: 'Das ergibt sich',
     },
     zurueck: 'Zurück',

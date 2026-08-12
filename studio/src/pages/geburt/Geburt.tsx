@@ -17,7 +17,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useStudio } from '../../store/useStudio';
 import { neuesBuch } from '../../lib/bibliothek';
 import { BUCH_TEXTE } from '../../lib/bookTexts';
-import { WEGE } from '../../lib/onboarding/wege';
+import { ABSICHTEN, profilAus, profilVon, type Absicht } from '../../lib/profil';
 import { deskStyle } from '../../lib/textures';
 import { cx } from '../../lib/utils';
 import { ClosedBook } from '../../components/book/CoverBoard';
@@ -208,8 +208,10 @@ export function Geburt({ onFertig, modus = 'geburt' }: { onFertig: (buchId?: str
             )}
             {szene === 'ausrichtung' && (
               <Ausrichtungswahl
-                gewaehlt={entwurf.weg}
-                onChange={(weg) => aendern({ weg })}
+                gewaehlt={entwurf.profil?.absicht}
+                onChange={(absicht) =>
+                  aendern({ profil: absicht ? profilAus(absicht, profilVon(entwurf)) : undefined })
+                }
                 onZurueck={zurueck}
                 onVollenden={vollenden}
                 vollendenLabel={worteEnde.knopf}
@@ -291,8 +293,8 @@ function Ausrichtungswahl({
   onVollenden,
   vollendenLabel,
 }: {
-  gewaehlt?: string;
-  onChange: (weg: string | undefined) => void;
+  gewaehlt?: Absicht;
+  onChange: (absicht: Absicht | undefined) => void;
   onZurueck: () => void;
   onVollenden: () => void;
   vollendenLabel: string;
@@ -302,21 +304,21 @@ function Ausrichtungswahl({
       <SzenenFrage frage={T.ausrichtung.frage} hinweis={T.ausrichtung.hinweis} />
 
       <div className="mx-auto grid max-w-md gap-1.5">
-        {WEGE.map((w) => (
+        {ABSICHTEN.map((a) => (
           <button
-            key={w.id}
+            key={a.id}
             type="button"
-            onClick={() => onChange(gewaehlt === w.id ? undefined : w.id)}
+            onClick={() => onChange(gewaehlt === a.id ? undefined : a.id)}
             className={cx(
               'rounded-[3px] border px-4 py-3 text-left transition-colors no-tap-highlight',
-              gewaehlt === w.id
+              gewaehlt === a.id
                 ? 'border-gild-500/50 bg-gild-400/10'
                 : 'border-paper-400/15 hover:border-gild-500/30',
             )}
           >
-            <p className="font-serif text-[15.5px] text-paper-200/90">{w.name}</p>
+            <p className="font-serif text-[15.5px] text-paper-200/90">{a.satz}</p>
             <p className="mt-0.5 font-serif text-[12.5px] italic leading-snug text-paper-400/45">
-              {w.fuer}
+              {a.zeile}
             </p>
           </button>
         ))}
