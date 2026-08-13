@@ -260,6 +260,20 @@ export interface Relation {
 export interface StoredImageMeta {
   id: string;
   /**
+   * Unter welcher Kennung die Datei liegt.
+   *
+   * Fehlt das Feld, ist es die eigene Kennung – so war es immer, und deshalb
+   * muss kein Bestandsdatensatz angefasst werden. Kein Wanderungsschritt,
+   * keine Fassungserhöhung.
+   *
+   * Getrennt wurde beides, weil eine Buchabschrift **zwei Datensätze auf eine
+   * Datei** braucht: Der Datensatz sagt „dieses Buch zeigt dieses Bild", die
+   * Datei liegt einmal. Vorher trugen beide dieselbe Kennung, und das Anlegen
+   * des zweiten Datensatzes überschrieb den ersten – die Abschrift nahm dem
+   * Original seine Bilder weg. Siehe `lib/kopie.ts`.
+   */
+  blobId?: string;
+  /**
    * In welches Buch dieses Bild gelegt wurde.
    *
    * Die Datei selbst (`StoredImageBlob`) trägt bewusst keine Buchzugehörigkeit
@@ -289,6 +303,17 @@ export interface StoredImageMeta {
   updatedAt: number;
 }
 
+/**
+ * Welche Datei dieser Datensatz zeigt.
+ *
+ * Fehlt das Feld, ist es die eigene Kennung – so war es immer, und deshalb
+ * muss kein Bestandsdatensatz angefasst werden.
+ *
+ * Getrennt wurde beides, weil eine Buchabschrift *zwei Datensätze auf eine
+ * Datei* braucht: Der Datensatz sagt „dieses Buch zeigt dieses Bild", die
+ * Datei liegt einmal. Vorher trugen beide dieselbe Kennung, und das Anlegen
+ * des zweiten Datensatzes überschrieb den ersten.
+ */
 export interface StoredImageBlob {
   id: string;
   full: Blob;
