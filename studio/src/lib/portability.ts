@@ -49,7 +49,7 @@ async function packImages(metas: StoredImageMeta[], withData: boolean): Promise<
   if (!withData) return metas.map((m) => ({ ...m }));
   const out: ImageExport[] = [];
   for (const meta of metas) {
-    const record = await db.imageBlobs.get(meta.id);
+    const record = await db.imageBlobs.get(meta.blobId ?? meta.id);
     out.push({ ...meta, dataUrl: record ? await blobToDataUrl(record.full) : undefined });
   }
   return out;
@@ -414,7 +414,18 @@ export async function importBackup(
       }
 
       for (const img of images) {
-        const { dataUrl, ...meta } = img;
+        const { dataUrl, ...roh } = img;
+        /*
+         * Eingespielte Bilder stehen fuer sich.
+         *
+         * `blobId` wird auf die eigene Kennung gesetzt und die Datei genau
+         * dorthin geschrieben. Ein mitgebrachtes `blobId` zeigte sonst auf
+         * eine Datei aus dem Geraet, aus dem die Sicherung stammt – und die
+         * gibt es hier nicht. Geteilt werden Dateien nur innerhalb eines
+         * Geraets, durch die Abschrift; ein Import ist immer eine eigene
+         * Kopie.
+         */
+        const meta = { ...roh, blobId: roh.id };
         await db.images.put(meta);
         if (dataUrl) {
           const blob = await dataUrlToBlob(dataUrl);
@@ -496,7 +507,10 @@ export async function renderEntryHtml(entry: Entry): Promise<string> {
   const imageIds = collectEntryImages(entry);
   const srcById = new Map<string, string>();
   for (const id of imageIds) {
-    const record = await db.imageBlobs.get(id);
+    /* Ueber den Datensatz: Nach einer Abschrift liegt die Datei unter einer
+     * anderen Kennung. */
+    const meta = await db.images.get(id);
+    const record = await db.imageBlobs.get(meta?.blobId ?? id);
     if (record) srcById.set(id, await blobToDataUrl(record.full));
   }
 

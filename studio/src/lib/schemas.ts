@@ -152,7 +152,15 @@ const imageSchema = z.object({
   updatedAt: z.number(),
   /** Bilddaten als Data-URL – nur im Vollexport enthalten. */
   dataUrl: z.string().optional(),
-});
+})
+  /*
+   * `passthrough`, aus demselben Grund wie bei Eintraegen und Einstellungen:
+   * Zod verwirft, was nicht aufgezaehlt ist. Diese Liste war die dritte, die
+   * ein neues Feld stillschweigend verschluckt haette – `blobId` kam gerade
+   * dazu. Beim Pruefen einer *eigenen* Sicherung ist zu viel durchzulassen
+   * der harmlosere Fehler.
+   */
+  .passthrough();
 
 export const backupSchema = z.object({
   app: z.literal('dragoncore-studio'),

@@ -29,7 +29,18 @@ export async function getImageUrl(
   const cached = urlCache.get(key);
   if (cached) return cached;
 
-  const record = await db.imageBlobs.get(id);
+  /*
+   * Erst nachsehen, welche Datei dieser Datensatz zeigt.
+   *
+   * Meistens ist es die eigene Kennung. Nach einer Buchabschrift nicht: Dort
+   * hat der Datensatz eine neue Kennung und zeigt weiter auf dieselbe Datei.
+   * Ohne diesen Umweg bliebe die abgeschriebene Tafel leer.
+   *
+   * Der zweite Zugriff faellt nicht ins Gewicht – die Adresse wird ohnehin
+   * zwischengespeichert und danach nie wieder geholt.
+   */
+  const meta = await db.images.get(id);
+  const record = await db.imageBlobs.get(meta?.blobId ?? id);
   if (!record) return null;
 
   const blob = variant === 'full' ? record.full : record.thumb;
@@ -155,11 +166,20 @@ export async function importImageFiles(
   return { metas, errors };
 }
 
-/** Bild endgültig entfernen (Metadaten + Blobs + Cache). */
+/**
+ * Bild endgültig entfernen (Metadaten + Datei + Zwischenspeicher).
+ *
+ * Die Datei nur dann, wenn kein anderer Datensatz mehr auf sie zeigt. Nach
+ * einer Buchabschrift tun das zwei – und wer dann in einem Buch ein Bild
+ * entfernt, hätte es sonst auch im anderen gelöscht.
+ */
 export async function deleteImage(id: string): Promise<void> {
   await db.transaction('rw', db.images, db.imageBlobs, async () => {
+    const meta = await db.images.get(id);
+    const blobId = meta?.blobId ?? id;
     await db.images.delete(id);
-    await db.imageBlobs.delete(id);
+    const nochGenutzt = (await db.images.toArray()).some((m) => (m.blobId ?? m.id) === blobId);
+    if (!nochGenutzt) await db.imageBlobs.delete(blobId);
   });
   releaseImageUrls(id);
 }

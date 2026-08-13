@@ -117,7 +117,10 @@ async function bilderLaden(entries: Entry[], mit: boolean): Promise<Map<string, 
   if (!mit) return karte;
   for (const e of entries) {
     if (!e.coverImage || karte.has(e.coverImage)) continue;
-    const eintrag = await db.imageBlobs.get(e.coverImage);
+    /* Ueber den Datensatz, nicht direkt: Nach einer Abschrift liegt die Datei
+     * unter einer anderen Kennung als der Datensatz. */
+    const meta = await db.images.get(e.coverImage);
+    const eintrag = await db.imageBlobs.get(meta?.blobId ?? e.coverImage);
     if (eintrag) karte.set(e.coverImage, await blobToDataUrl(eintrag.full));
   }
   return karte;

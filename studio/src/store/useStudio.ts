@@ -43,6 +43,7 @@ import { seedIfEmpty } from '../db/seed';
 import { buildRelationIndex, makeRelation, type RelationIndex } from '../lib/relations';
 import { kinderVon, naechsteOrdnung } from '../lib/roman/struktur';
 import { heileBeziehungen, heileEintraege } from '../lib/heilung';
+import { frischeBuchdaten, schreibeAb, umschriftFuer } from '../lib/kopie';
 import { DEFAULT_STAGE } from '../lib/pipeline';
 import { MAX_KLANG_BYTES, alleStill, dauerVon } from '../lib/atmosphaere';
 
@@ -623,58 +624,71 @@ export const useStudio = create<StudioState>((set, get) => {
     async dupliziereBuch(id) {
       const quelle = get().books.find((b) => b.id === id);
       if (!quelle) return null;
+
+      const [entries, relations, images, boards, klaenge] = await Promise.all([
+        db.entries.where('bookId').equals(id).toArray(),
+        db.relations.where('bookId').equals(id).toArray(),
+        db.images.where('bookId').equals(id).toArray(),
+        db.boards.where('bookId').equals(id).toArray(),
+        db.klaenge.where('bookId').equals(id).toArray(),
+      ]);
+
+      const bestand = { entries, relations, images, boards, klaenge };
+      const u = umschriftFuer(bestand);
+
       const kopie = neuesBuch({
         ...quelle,
         id: undefined as unknown as string,
         title: `${quelle.title} (Abschrift)`,
         worldId: quelle.worldId,
-        lastSpreadKey: undefined,
         archived: false,
+        /*
+         * Was auf die Seiten des Originals zeigt, darf nicht mitkommen –
+         * Lesebaendchen, Verlauf, Entdeckungen, was Dragoncore schon gesagt
+         * hat. Siehe `lib/kopie.ts`.
+         */
+        ...frischeBuchdaten(u, quelle),
       });
       kopie.id = `buch_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 
-      const [entries, relations, images, boards] = await Promise.all([
-        db.entries.where('bookId').equals(id).toArray(),
-        db.relations.where('bookId').equals(id).toArray(),
-        db.images.where('bookId').equals(id).toArray(),
-        db.boards.where('bookId').equals(id).toArray(),
-      ]);
-
-      const neueId = new Map(entries.map((e) => [e.id, newId('e')]));
-      const kopierteEintraege = entries.map((e) => ({
-        ...clone(e),
-        id: neueId.get(e.id)!,
-        bookId: kopie.id,
-      }));
-      const kopierteKanten = relations
-        .filter((r) => neueId.has(r.fromId) && neueId.has(r.toId))
-        .map((r) => ({
-          ...clone(r),
-          id: newId('rel'),
-          bookId: kopie.id,
-          fromId: neueId.get(r.fromId)!,
-          toId: neueId.get(r.toId)!,
-        }));
       /*
-       * Bilder bekommen einen zweiten Datensatz, aber keine zweite Datei:
-       * Die Metadaten gehoeren dem Buch, der Blob gehoert der Kennung – und
-       * die bleibt dieselbe. Ein Artbook zu verdoppeln kostet so ein paar
-       * Kilobyte statt ein paar hundert Megabyte.
+       * Die ganze Umschrift steht in `lib/kopie.ts` und ist dort geprueft.
+       *
+       * Hier wird nur noch gespeichert. Vorher stand die Umschrift an dieser
+       * Stelle und war unvollstaendig: Bilder behielten ihre Kennung und
+       * ueberschrieben damit den Datensatz des Originals, Flaechen und
+       * Bloecke zeigten weiter auf die Seiten des Originalbuchs, und die
+       * Klaenge kamen gar nicht mit.
        */
-      const kopierteBilder = images.map((m) => ({ ...m, bookId: kopie.id }));
-      const kopierteBoegen = boards.map((b) => ({
-        ...clone(b),
-        id: newId('board'),
-        bookId: kopie.id,
-      }));
+      const ab = schreibeAb(bestand, kopie.id, u);
 
-      await db.transaction('rw', [db.books, db.entries, db.relations, db.images, db.boards], async () => {
-        await db.books.put(kopie);
-        if (kopierteEintraege.length) await db.entries.bulkPut(kopierteEintraege);
-        if (kopierteKanten.length) await db.relations.bulkPut(kopierteKanten);
-        if (kopierteBoegen.length) await db.boards.bulkPut(kopierteBoegen);
-        for (const m of kopierteBilder) await db.images.put(m);
-      });
+      await db.transaction(
+        'rw',
+        [db.books, db.entries, db.relations, db.images, db.boards, db.klaenge, db.klangBlobs],
+        async () => {
+          await db.books.put(kopie);
+          if (ab.entries.length) await db.entries.bulkPut(ab.entries);
+          if (ab.relations.length) await db.relations.bulkPut(ab.relations);
+          if (ab.boards.length) await db.boards.bulkPut(ab.boards);
+          if (ab.images.length) await db.images.bulkPut(ab.images);
+          if (ab.klaenge.length) {
+            await db.klaenge.bulkPut(ab.klaenge);
+            /*
+             * Klangdateien werden kopiert und nicht geteilt.
+             *
+             * Anders als bei Bildern gibt es hier keinen zweiten Verweis:
+             * `klangBlobs` haengt an der Klangkennung, und die ist neu. Ein
+             * Buch traegt selten mehr als eine Handvoll Klaenge, also ist das
+             * die kleinere Loesung – geteilte Dateien braeuchten dieselbe
+             * Trennung wie bei den Bildern, ohne dass es sich lohnt.
+             */
+            for (const [alt, neu] of u.klaenge) {
+              const datei = await db.klangBlobs.get(alt);
+              if (datei) await db.klangBlobs.put({ id: neu, datei: datei.datei });
+            }
+          }
+        },
+      );
       set((s) => ({ books: [...s.books, kopie] }));
       get().notify(`„${kopie.title}“ steht im Regal.`, 'success');
       return kopie;
@@ -688,10 +702,35 @@ export const useStudio = create<StudioState>((set, get) => {
      */
     async loescheBuch(id) {
       const buch = get().books.find((b) => b.id === id);
-      const bilder = await db.images.where('bookId').equals(id).primaryKeys();
+      /*
+       * Welche *Dateien* dieses Buch benutzt – nicht welche Datensaetze.
+       *
+       * Hier standen die Primaerschluessel der Datensaetze, und die Pruefung
+       * darunter konnte deshalb nie greifen: Nach einer Abschrift gab es
+       * (durch den ueberschreibenden `put`) nur einen Datensatz, also war die
+       * Datei angeblich frei und wurde geloescht – der Abschrift fielen die
+       * Bilder weg. Jetzt gibt es zwei Datensaetze auf eine Datei, und
+       * gezaehlt wird die Datei.
+       */
+      const dateien = [
+        ...new Set(
+          (await db.images.where('bookId').equals(id).toArray()).map((m) => m.blobId ?? m.id),
+        ),
+      ];
+      const klangDateien = (await db.klaenge.where('bookId').equals(id).primaryKeys()) as string[];
       await db.transaction(
         'rw',
-        [db.books, db.entries, db.relations, db.images, db.imageBlobs, db.boards, db.revisions],
+        [
+          db.books,
+          db.entries,
+          db.relations,
+          db.images,
+          db.imageBlobs,
+          db.boards,
+          db.revisions,
+          db.klaenge,
+          db.klangBlobs,
+        ],
         async () => {
           await db.entries.where('bookId').equals(id).delete();
           await db.relations.where('bookId').equals(id).delete();
@@ -702,10 +741,18 @@ export const useStudio = create<StudioState>((set, get) => {
            * Die Dateien nur, wenn kein anderes Buch mehr auf sie zeigt.
            * Nach einer Abschrift tun das zwei.
            */
-          for (const bildId of bilder as string[]) {
-            const nochDa = await db.images.where('id').equals(bildId).count();
-            if (!nochDa) await db.imageBlobs.delete(bildId);
+          const uebrige = await db.images.toArray();
+          for (const dateiId of dateien) {
+            const nochGenutzt = uebrige.some((m) => (m.blobId ?? m.id) === dateiId);
+            if (!nochGenutzt) await db.imageBlobs.delete(dateiId);
           }
+          /*
+           * Die Klaenge dieses Buches – vorher blieben sie samt Dateien
+           * liegen. Sie gehoeren keinem anderen Buch: Beim Abschreiben
+           * bekommt die Kopie eigene.
+           */
+          await db.klaenge.where('bookId').equals(id).delete();
+          for (const klangId of klangDateien) await db.klangBlobs.delete(klangId);
           await db.books.delete(id);
         },
       );
