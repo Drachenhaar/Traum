@@ -11,6 +11,7 @@
  */
 
 import type { Profil } from '../lib/profil';
+import type { Emblem } from '../lib/zeichen/emblem';
 import type { Notiz } from '../lib/anerbieten/gedaechtnis';
 
 /** Typ-Kennung eines Eintrags. Eingebaute Typen siehe `lib/types-registry.ts`. */
@@ -430,7 +431,14 @@ export interface CreativeGoal {
 }
 
 /** Woher das Zeichen des Buches stammt. */
-export type EmblemType = 'preset' | 'upload' | 'generated';
+/**
+ * Woher das Zeichen eines Buches kommt.
+ *
+ * `baukasten` ist neu und der einzige Wert, hinter dem eine *Konstruktion*
+ * steht statt eines fertigen Dings. Die drei anderen bleiben unangetastet:
+ * Wer sein Zeichen hochgeladen hat, soll es behalten.
+ */
+export type EmblemType = 'preset' | 'upload' | 'generated' | 'baukasten';
 
 /**
  * Die Identität des Buches: Titel, Einband, Zeichen.
@@ -463,6 +471,16 @@ export interface BookIdentity {
   emblemRotation?: number;
   /** Der Text, mit dem das Zeichen erzeugt wurde – bleibt als Herkunft erhalten. */
   emblemPrompt?: string;
+  /**
+   * Der Bauplan aus dem Zeichen-Baukasten – siehe `lib/zeichen/emblem.ts`.
+   *
+   * Ausdrücklich die Konstruktion und nicht das Bild. Ein Zeichen, das als
+   * Datei abgelegt wird, ist fertig; man kann es ansehen und wegwerfen, aber
+   * nicht mehr öffnen. Als Ebenenliste bleibt es für immer aufmachbar – und
+   * weil darin keine Farbe steht, erscheint derselbe Bauplan als Goldprägung
+   * auf Leder und als Tinte auf Papier, ohne zweimal zu existieren.
+   */
+  emblemBauplan?: Emblem;
   /** Wer das Buch begonnen hat. Erscheint auf der Besitzseite. */
   owner?: string;
   createdAt: number;

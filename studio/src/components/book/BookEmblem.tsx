@@ -14,6 +14,7 @@
 import type { BookIdentity } from '../../types';
 import { emblemById } from '../../lib/emblems';
 import { useImageUrl } from '../images/Thumb';
+import { Zeichnung } from '../zeichen/Zeichnung';
 
 export function BookEmblem({
   identity,
@@ -26,7 +27,7 @@ export function BookEmblem({
   identity: Pick<
     BookIdentity,
     'emblemType' | 'emblemId' | 'emblemImageId' | 'emblemScale' | 'emblemRotation'
-  >;
+  > & { emblemBauplan?: BookIdentity['emblemBauplan'] };
   size?: number;
   color?: string;
   embossed?: boolean;
@@ -56,6 +57,21 @@ export function BookEmblem({
           'drop-shadow(0 1.5px 2px rgba(0,0,0,0.8)) drop-shadow(0 -1px 0 rgba(240,215,150,0.22)) drop-shadow(0 0 9px rgba(212,175,55,0.10))',
       }
     : undefined;
+
+  /*
+   * Der Bauplan aus dem Baukasten.
+   *
+   * Steht vor allen anderen Faellen, weil er der einzige ist, der ohne Datei
+   * auskommt: Er wird gezeichnet, nicht geladen, und erbt Farbe und Praegung
+   * von aussen wie jede gezeichnete Vorlage auch.
+   */
+  if (identity.emblemType === 'baukasten' && identity.emblemBauplan) {
+    return (
+      <span aria-hidden className={className} style={{ ...praegung, color, lineHeight: 0 }}>
+        <Zeichnung emblem={identity.emblemBauplan} size={size} color={color} />
+      </span>
+    );
+  }
 
   if (identity.emblemType !== 'preset') {
     if (!url) {
