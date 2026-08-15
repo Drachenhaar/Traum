@@ -32,6 +32,7 @@ import type {
   StoredImageMeta,
   StoredKlang,
 } from '../types';
+import { heileKarte, type Kartendokument } from './karte/modell';
 import { escapeHtml, fileStamp, newId } from './utils';
 import { blockDef, blockImageIds } from './blocks';
 import { asBool, asList, asText, templateFor } from './templates';
@@ -89,13 +90,14 @@ function auslassen<T extends object, K extends keyof T>(wert: T, schluessel: K[]
  * lässt. Wer nur einen Band weitergeben will, nimmt `buildBookBackup`.
  */
 export async function buildFullBackup(withImages: boolean): Promise<string> {
-  const [entries, relations, boards, images, settings, books] = await Promise.all([
+  const [entries, relations, boards, images, settings, books, karten] = await Promise.all([
     db.entries.toArray(),
     db.relations.toArray(),
     db.boards.toArray(),
     db.images.toArray(),
     db.settings.get('settings'),
     db.books.toArray(),
+    db.karten.toArray(),
   ]);
   const payload = {
     app: 'dragoncore-studio' as const,
@@ -107,6 +109,16 @@ export async function buildFullBackup(withImages: boolean): Promise<string> {
     entries,
     relations,
     boards,
+    /*
+     * Die Karten.
+     *
+     * Sie brauchen kein `pack`: In einer Karte steht kein Blob, sondern
+     * Geometrie – ein paar Kilobyte Zahlen. Das ist der Lohn dafuer, dass
+     * nicht das Bild gespeichert wird, sondern das, woraus es entsteht. Ein
+     * Kartenbild waere hier ein Megabyte, das bei jedem Stilwechsel falsch
+     * wird.
+     */
+    karten,
     images: await packImages(images, withImages),
     /*
      * Alles ausser dem Schluessel der Zeile.
@@ -134,12 +146,13 @@ export async function buildFullBackup(withImages: boolean): Promise<string> {
  * vorhandenen stellen.
  */
 export async function buildBookBackup(bookId: string, withImages: boolean): Promise<string> {
-  const [buch, entries, relations, boards, images] = await Promise.all([
+  const [buch, entries, relations, boards, images, karten] = await Promise.all([
     db.books.get(bookId),
     db.entries.where('bookId').equals(bookId).toArray(),
     db.relations.where('bookId').equals(bookId).toArray(),
     db.boards.where('bookId').equals(bookId).toArray(),
     db.images.where('bookId').equals(bookId).toArray(),
+    db.karten.where('bookId').equals(bookId).toArray(),
   ]);
   if (!buch) throw new Error('Dieses Buch steht nicht in der Bibliothek.');
 
@@ -153,6 +166,7 @@ export async function buildBookBackup(bookId: string, withImages: boolean): Prom
     entries,
     relations,
     boards,
+    karten,
     images: await packImages(images, withImages),
     /*
      * Keine Einstellungen. Was diesem Buch gehoert, steht im Band selbst;
@@ -281,6 +295,17 @@ export async function importBackup(
   let relations = (data.relations ?? []) as unknown as Relation[];
   let boards = (data.boards ?? []) as unknown as CanvasBoard[];
   const images = data.images as unknown as (StoredImageMeta & { dataUrl?: string })[];
+  /*
+   * Die Karten kommen geheilt herein.
+   *
+   * Eine Sicherung ist eine Datei, die jemand bearbeitet haben kann, und eine
+   * Flaeche mit zwei Punkten oder einer unbekannten Bedeutung wuerde die
+   * Karte beim Zeichnen zerreissen. `heileKarte` wirft weg, was keine Flaeche
+   * ist, und behaelt den Rest – dieselbe Haltung wie bei den Eintraegen.
+   */
+  let karten = ((data.karten ?? []) as unknown[])
+    .map((k) => heileKarte(k))
+    .filter((k): k is Kartendokument => !!k);
 
   /*
    * Eine Bibliothekssicherung braucht mehr als einen Band. Wer eine
@@ -351,6 +376,22 @@ export async function importBackup(
           i.kind === 'entry' && i.refId ? { ...i, refId: um(i.refId) } : i,
         ),
       }));
+      /*
+       * Auch die Karte zeigt auf Seiten.
+       *
+       * `um` faellt auf die alte Kennung zurueck, wenn es keine neue gibt –
+       * fuer eine `entryId` waere das falsch: Der Verweis zeigte dann auf die
+       * Seite des Buches, aus dem die Sicherung stammt. Eine namenlose
+       * Landschaft ist gueltig, eine falsch benannte nicht.
+       */
+      karten = karten.map((k) => ({
+        ...k,
+        id: newId('karte'),
+        features: k.features.map((f) => ({
+          ...f,
+          entryId: f.entryId ? neu.get(f.entryId) : undefined,
+        })),
+      }));
     }
 
     entries = entries.map((e) => ({ ...e, bookId }));
@@ -362,6 +403,7 @@ export async function importBackup(
     klaenge.forEach((k) => {
       k.bookId = bookId;
     });
+    karten = karten.map((k) => ({ ...k, bookId }));
   } else if (mode === 'merge' && aktivesBuch) {
     entries = entries.map((e) => ({ ...e, bookId: aktivesBuch }));
     relations = relations.map((r) => ({ ...r, bookId: aktivesBuch }));
@@ -369,6 +411,7 @@ export async function importBackup(
     images.forEach((m) => {
       m.bookId = aktivesBuch;
     });
+    karten = karten.map((k) => ({ ...k, bookId: aktivesBuch }));
   }
 
   // Beziehungen, deren Gegenstück fehlt, würden im Graphen ins Leere zeigen.
@@ -382,7 +425,7 @@ export async function importBackup(
   try {
     await db.transaction(
       'rw',
-      [db.entries, db.relations, db.boards, db.images, db.imageBlobs, db.settings, db.books, db.klaenge, db.klangBlobs],
+      [db.entries, db.relations, db.boards, db.images, db.imageBlobs, db.settings, db.books, db.klaenge, db.klangBlobs, db.karten],
       async () => {
       if (mode === 'bibliothek') {
         await Promise.all([
@@ -394,6 +437,7 @@ export async function importBackup(
           db.books.clear(),
           db.klaenge.clear(),
           db.klangBlobs.clear(),
+          db.karten.clear(),
         ]);
       }
       if (buecher.length && mode !== 'merge') {
@@ -406,6 +450,7 @@ export async function importBackup(
       await db.entries.bulkPut(entries);
       if (usableRelations.length) await db.relations.bulkPut(usableRelations);
       if (boards.length) await db.boards.bulkPut(boards);
+      if (karten.length) await db.karten.bulkPut(karten);
 
       for (const k of klaenge) {
         const { dataUrl, ...angaben } = k;

@@ -216,6 +216,17 @@ export const backupSchema = z.object({
    * nicht gibt – sie behauptete zu klingen und wäre stumm.
    */
   klaenge: z.array(z.record(z.unknown())).optional(),
+
+  /**
+   * Die Karten.
+   *
+   * Bewusst nur „irgendwelche Objekte". Das eigentliche Prüfen macht
+   * `heileKarte` beim Einlesen, und es macht es gründlicher, als ein Schema es
+   * könnte: Es wirft nicht die ganze Datei weg, wenn eine Fläche zwei Punkte
+   * hat, sondern diese eine Fläche. Ein Schema, das hier streng wäre, würde
+   * eine Sicherung wegen einer kaputten Küstenlinie unbrauchbar machen.
+   */
+  karten: z.array(z.record(z.unknown())).optional(),
 });
 
 export type BackupFile = z.infer<typeof backupSchema>;

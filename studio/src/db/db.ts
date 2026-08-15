@@ -8,6 +8,7 @@
  *  - imageBlobs   → die Dateien als Blob (getrennt, damit Listen leicht bleiben)
  *  - revisions    → Zeitleiste: jede Fassung bleibt zurückholbar
  *  - boards       → Concept-Art-Flächen
+ *  - karten       → Weltkarten: Geometrie und Bedeutung, nie ein Bild
  *  - settings     → Navigation, eigene Typen, Ziele
  *
  * Bilder liegen als Blob vor – kein Base64, kein localStorage.
@@ -26,6 +27,7 @@ import type {
   StoredKlang,
   StoredKlangBlob,
 } from '../types';
+import type { Kartendokument } from '../lib/karte/modell';
 import { DEFAULT_NAV } from '../lib/nav';
 import { buchAusAltenEinstellungen } from '../lib/bibliothek';
 
@@ -46,6 +48,7 @@ export class StudioDatabase extends Dexie {
   books!: Table<LibraryBook, string>;
   klaenge!: Table<StoredKlang, string>;
   klangBlobs!: Table<StoredKlangBlob, string>;
+  karten!: Table<Kartendokument, string>;
 
   constructor() {
     super('dragoncore-studio');
@@ -171,6 +174,20 @@ export class StudioDatabase extends Dexie {
       klaenge: 'id, bookId, createdAt',
       klangBlobs: 'id',
     });
+
+    /*
+     * Fassung 5: die Karten.
+     *
+     * Eine Tabelle, kein Umschreiben, keine `upgrade`-Funktion. Ein Buch ohne
+     * Karte hat danach keine Karte, und das ist richtig – eine leere Karte
+     * anzulegen hiesse zu behaupten, jede Welt brauche eine.
+     *
+     * Der Index `bookId` ist der einzige, den es braucht: Karten werden nie
+     * gesucht, immer nur zu einem Buch geholt.
+     */
+    this.version(5).stores({
+      karten: 'id, bookId, updatedAt',
+    });
   }
 }
 
@@ -217,6 +234,7 @@ export async function wipeDatabase(): Promise<void> {
       db.books,
       db.klaenge,
       db.klangBlobs,
+      db.karten,
     ],
     async () => {
       await Promise.all([
@@ -230,6 +248,7 @@ export async function wipeDatabase(): Promise<void> {
         db.books.clear(),
         db.klaenge.clear(),
         db.klangBlobs.clear(),
+        db.karten.clear(),
       ]);
       await db.settings.put({ ...FRESH_SETTINGS });
     },
