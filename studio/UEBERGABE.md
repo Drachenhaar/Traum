@@ -187,7 +187,12 @@ DRAGONCORE SPACE
   hieße, dass ein Wisch dieselbe Sorte Ereignis wäre wie das Schreiben eines
   Satzes.
 - `Raumschicht.tsx` – Zeigerereignisse hinein, drei CSS-Variablen hinaus
-- `Richtungsbogen.tsx` – eine Grundkurve, vier Tonfälle (Welt/Wesen/Wissen/Notizen)
+- `Richtungsbogen.tsx` – eine **leuchtende Sichel** (gefüllter Körper mit heller
+  Vorderkante, keine Linie – eine weichgezeichnete Fläche wird Licht, eine
+  weichgezeichnete Linie wird Schmier) plus ein **Richtungszeichen**, das ab der
+  Andeutungsschwelle am Scheitel erscheint. Alle vier Bögen sind gleich; der
+  Charakter steckt im Zeichen, das ungestreckt und unverwischt in einer eigenen
+  Ebene sitzt.
 - `Tiefenraum.tsx` – rechts Tiefe 1–3, links/oben/unten je Tiefe 1
 - `InteractionLab.tsx` – 28 Live-Regler unter `?interactionLab=1`
 
@@ -267,6 +272,16 @@ Zweimal hat ein `click(x, y)` etwas anderes getroffen als gemeint – einmal ein
 Karte der Absichtsfrage (und damit die Frage beantwortet, bevor der Lauf sie
 lesen konnte), einmal eine Kachel im Tiefenraum. **Immer am Text oder an einer
 Rolle suchen, nie an Koordinaten**, außer man will eine Geste prüfen.
+
+### Kapitelkennungen werden nicht geraten
+
+`chapterOfType()` fällt bei einem unbekannten Typ **still auf das letzte
+Kapitel zurück**. Wer einen Raum nach `chapterOfType(e).id === 'wesen'` filtert,
+bekommt deshalb keinen Fehler, sondern eine leere Liste – und die Oberfläche
+behauptet dann, in diesem Buch lebe noch niemand. Ein Kapitel dieses Namens
+gibt es nicht; es heißt `bewohner`. Die echten Kennungen stehen in
+`lib/book.ts`; die Zuordnung der vier Richtungen steht als aufgezählte Liste in
+`components/raum/Tiefenraum.tsx` und wird in `tests/raum.test.mjs` geprüft.
 
 ### Der Testlauf, der log
 

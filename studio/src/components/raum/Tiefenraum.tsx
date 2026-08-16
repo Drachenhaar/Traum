@@ -31,8 +31,32 @@ import { RICHTUNGEN, type Ort } from '../../lib/raum/geste';
 import { relationsOf } from '../../lib/relations';
 import { templateFor } from '../../lib/templates';
 import { chapterOfType } from '../../lib/book';
+import { useImageUrl } from '../images/Thumb';
 import { cx } from '../../lib/utils';
 import type { Entry } from '../../types';
+
+/**
+ * Welche Kapitel des Buches zu welcher Richtung gehören.
+ *
+ * **Aufgezählt und nicht geraten.** Hier stand zuerst
+ * `chapterOfType(e.type).id === 'wesen'` – ein Kapitel dieses Namens gibt es
+ * nicht, es heißt `bewohner`. Die Folge war kein Fehler und keine Meldung,
+ * sondern zwei Räume, die still leer blieben und behaupteten, in diesem Buch
+ * lebe noch niemand. Gefunden hat es erst ein Bild, nicht eine Prüfung: Der
+ * Testlauf hatte nur die Überschriften gelesen.
+ *
+ * Deshalb steht die Zuordnung jetzt hier, mit den echten Kennungen aus
+ * `lib/book.ts`, und ein Tippfehler fällt beim Lesen auf statt beim Benutzen.
+ */
+const KAPITEL: Record<'wesen' | 'welt', string[]> = {
+  /* Wer lebt und spricht: Bewohner, Tiere und Kreaturen, Stimmen. */
+  wesen: ['bewohner', 'tiere', 'stimmen'],
+  /* Wo es liegt: Orte und Biome, Natur, Gebautes. */
+  welt: ['lebendige-welt', 'natur', 'architektur'],
+};
+
+const gehoertZu = (e: Entry, wohin: 'wesen' | 'welt') =>
+  KAPITEL[wohin].includes(chapterOfType(e.type).id);
 
 /** Die Überschrift eines Raums – Richtung und Tiefe, in Buchsprache. */
 const TITEL: Record<string, string> = {
@@ -139,18 +163,26 @@ function Inhalt({ ort, tiefe, anker, lebende, nach, index }: RaumProps) {
  */
 function WesenNah({ anker, lebende, nach, index }: Omit<RaumProps, 'ort' | 'tiefe'>) {
   const wesen = useMemo(() => {
-    const alleWesen = lebende.filter((e) => chapterOfType(e.type).id === 'wesen');
+    const alleWesen = lebende.filter((e) => gehoertZu(e, 'wesen'));
     if (!anker) return alleWesen.slice(0, 24);
     const nahe = relationsOf(index, anker.id)
       .map((r) => nach.get(r.otherId))
-      .filter((e): e is Entry => !!e && chapterOfType(e.type).id === 'wesen');
+      .filter((e): e is Entry => !!e && gehoertZu(e, 'wesen'));
     const gesehen = new Set(nahe.map((e) => e.id));
     return [...nahe, ...alleWesen.filter((e) => !gesehen.has(e.id) && e.id !== anker.id)].slice(0, 24);
   }, [anker, lebende, nach, index]);
 
   if (!wesen.length) return <Leer text="In diesem Buch lebt noch niemand." />;
   return (
-    <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+    /*
+     * Eine Spalte auf dem Telefon.
+     *
+     * Zu zweit nebeneinander blieben neben Bildnis und Pfeil noch neunzig
+     * Punkte für den Text – „Charakter" wurde zu „CHARAKT…". Eine Liste, in
+     * der die Auskunft abgeschnitten ist, ist keine Auskunft. Auf dem
+     * Entwurfsblatt steht sie ebenfalls einspaltig, und das ist kein Zufall.
+     */
+    <ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
       {wesen.map((e) => (
         <Kachel key={e.id} entry={e} />
       ))}
@@ -184,7 +216,7 @@ function Zusammenhang({ anker, nach, index }: Omit<RaumProps, 'ort' | 'tiefe' | 
             <span className="h-2 w-2 rounded-full" style={{ background: g.farbe }} aria-hidden />
             {g.label}
           </p>
-          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
             {g.wer.map((e) => (
               <Kachel key={e.id} entry={e} />
             ))}
@@ -198,42 +230,139 @@ function Zusammenhang({ anker, nach, index }: Omit<RaumProps, 'ort' | 'tiefe' | 
 /**
  * Rechts, Tiefe 3: das ganze Geflecht.
  *
- * Zwei Schritte weit – was mit dem Werk verbunden ist und was daran hängt.
- * Kein Graph mit Kräften und Knoten: Auf einer Handbreite ist ein
- * Kräftegraph Nebel. Hier steht, wer über wen erreichbar ist, und das ist die
- * Auskunft, die man in dieser Tiefe wirklich sucht.
+ * Hier stand zuerst eine Liste in Prosa – „X führt weiter zu Y, Z". Auf dem
+ * Entwurfsblatt ist es ein **Rad**: das Werk in der Mitte, leuchtend, seine
+ * Nachbarn ringsum, Linien dazwischen. Das ist besser, und der Grund ist nicht
+ * Geschmack: Ein Geflecht ist eine *räumliche* Aussage, und ein Satz ist die
+ * schlechteste Art, sie zu machen. Man liest drei Zeilen und hat kein Bild;
+ * man sieht ein Rad und hat es sofort.
+ *
+ * **Trotzdem kein Kräftegraph.** Die Winkel stehen fest – jeder Nachbar bekommt
+ * seinen Platz aus seiner Stelle in der Liste, und die Liste steht. Ein
+ * Verfahren mit Kräften würde bei jedem Öffnen anders auspendeln, und dann wäre
+ * dieselbe Welt zweimal ein anderes Bild. Dasselbe Gesetz wie beim Wald auf der
+ * Karte: Was gleich ist, muss gleich aussehen.
+ *
+ * Zwei Ringe, nicht mehr. Der innere trägt Namen, der äußere nur Marken – wer
+ * zwei Schritte weit weg ist, gehört zum Bild, aber nicht zur Auskunft. Drei
+ * Ringe wären auf einer Handbreite Nebel.
  */
 function Geflecht({ anker, nach, index }: Omit<RaumProps, 'ort' | 'tiefe' | 'lebende'>) {
-  const wege = useMemo(() => {
-    if (!anker) return [];
-    const erste = relationsOf(index, anker.id);
-    return erste
-      .map((r) => {
-        const ueber = nach.get(r.otherId);
-        if (!ueber) return null;
-        const weiter = relationsOf(index, ueber.id)
-          .map((z) => nach.get(z.otherId))
-          .filter((e): e is Entry => !!e && e.id !== anker.id);
-        return { ueber, label: r.label, farbe: r.color, weiter };
-      })
-      .filter((x): x is NonNullable<typeof x> => !!x && x.weiter.length > 0);
+  const rad = useMemo(() => {
+    if (!anker) return null;
+    /* Doppelte Kanten zum selben Nachbarn ergeben einen Speichenplatz, nicht zwei. */
+    const gesehen = new Set<string>();
+    const nahe: { entry: Entry; label: string; farbe: string; weiter: number }[] = [];
+    for (const r of relationsOf(index, anker.id)) {
+      if (gesehen.has(r.otherId)) continue;
+      const e = nach.get(r.otherId);
+      if (!e) continue;
+      gesehen.add(r.otherId);
+      const weiter = new Set(
+        relationsOf(index, e.id)
+          .map((z) => z.otherId)
+          .filter((id) => id !== anker.id && nach.has(id)),
+      );
+      nahe.push({ entry: e, label: r.label, farbe: r.color, weiter: weiter.size });
+    }
+    /* Zwölf Speichen sind das Meiste, was auf einer Handbreite noch ein Rad ist. */
+    return nahe.slice(0, 12);
   }, [anker, nach, index]);
 
   if (!anker) return <Leer text="Kein Werk in der Mitte." />;
-  if (!wege.length) return <Leer text="Über die erste Reihe hinaus führt noch nichts." />;
+  if (!rad?.length) return <Leer text={`${anker.title} steht noch für sich allein.`} />;
+
+  const M = 100;
+  const innen = 54;
+  const aussen = 82;
 
   return (
-    <ul className="space-y-4">
-      {wege.map((w) => (
-        <li key={w.ueber.id} className="border-l pl-4" style={{ borderColor: w.farbe }}>
-          <p className="font-serif text-[15px] text-paper-200">{w.ueber.title}</p>
-          <p className="text-[11.5px] uppercase tracking-[0.16em] text-paper-400/40">{w.label}</p>
-          <p className="mt-1 font-serif text-[13px] leading-relaxed text-paper-300/70">
-            führt weiter zu {w.weiter.map((e) => e.title).join(', ')}
-          </p>
-        </li>
-      ))}
-    </ul>
+    <div>
+      <svg
+        viewBox="0 0 200 200"
+        className="mx-auto block w-full max-w-[22rem]"
+        role="img"
+        aria-label={`Das Geflecht um ${anker.title}`}
+      >
+        {/* Ein stiller Ring als Grund – er sagt, dass alles gleich weit weg ist. */}
+        <circle cx={M} cy={M} r={innen} fill="none" stroke="currentColor" strokeOpacity="0.12" />
+
+        {rad.map((n, i) => {
+          /*
+           * Ein halber Schritt Versatz.
+           *
+           * Ohne ihn sitzen vier Nachbarn genau auf Nord, Ost, Süd und West –
+           * und ein Rad mit vier Speichen auf den Achsen liest sich als
+           * Pluszeichen, also als Verzierung, nicht als Auskunft. Um einen
+           * halben Schritt gedreht steht kein Knoten mehr auf einer Achse, und
+           * dieselben vier Namen ergeben ein Bild statt eines Symbols.
+           *
+           * Fest und nicht gewürfelt: Dieselbe Welt muss zweimal gleich
+           * aussehen – dasselbe Gesetz wie beim Wald auf der Karte.
+           */
+          const w = ((i + 0.5) / rad.length) * Math.PI * 2 - Math.PI / 2;
+          const x = M + Math.cos(w) * innen;
+          const y = M + Math.sin(w) * innen;
+          return (
+            <g key={n.entry.id}>
+              <line x1={M} y1={M} x2={x} y2={y} stroke={n.farbe} strokeOpacity="0.5" strokeWidth="1" />
+              {/*
+                Was zwei Schritte weit liegt, steht als kleiner Punkt weiter
+                draußen. Keine Namen: Dieser Ring beantwortet „es geht weiter",
+                nicht „wohin".
+              */}
+              {Array.from({ length: Math.min(4, n.weiter) }).map((_, j, alle) => {
+                const spreizung = 0.26;
+                const wj = w + (j - (alle.length - 1) / 2) * spreizung;
+                return (
+                  <circle
+                    key={j}
+                    cx={M + Math.cos(wj) * aussen}
+                    cy={M + Math.sin(wj) * aussen}
+                    r="1.7"
+                    fill={n.farbe}
+                    fillOpacity="0.4"
+                  />
+                );
+              })}
+              <circle cx={x} cy={y} r="4.2" fill={n.farbe} />
+            </g>
+          );
+        })}
+
+        {/* Das Werk selbst – der einzige Punkt, der leuchtet. */}
+        <circle cx={M} cy={M} r="11" fill="var(--dc-accent)" fillOpacity="0.16" />
+        <circle cx={M} cy={M} r="5.5" fill="var(--dc-accent)" />
+      </svg>
+
+      <p className="mt-1 text-center font-serif text-[15px] text-paper-200">{anker.title}</p>
+
+      {/*
+        Die Namen stehen unter dem Rad, nicht darin.
+
+        Zwölf Beschriftungen an einem Kreis auf einer Handbreite überlagern
+        einander unweigerlich – und jede Ausweichlogik dafür macht das Bild
+        unruhig. Unten stehen sie in derselben Reihenfolge wie im Rad, im
+        Uhrzeigersinn ab oben, und tragen ihre Farbe.
+      */}
+      <ul className="mt-5 grid grid-cols-2 gap-x-4 gap-y-1.5">
+        {rad.map((n) => (
+          <li key={n.entry.id} className="flex items-baseline gap-2 text-[13.5px]">
+            <span
+              className="mt-1 h-2 w-2 shrink-0 rounded-full"
+              style={{ background: n.farbe }}
+              aria-hidden
+            />
+            <span className="min-w-0">
+              <span className="block truncate font-serif text-paper-200">{n.entry.title}</span>
+              <span className="block truncate text-[11px] uppercase tracking-[0.13em] text-paper-400/40">
+                {n.label}
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -241,7 +370,7 @@ function Geflecht({ anker, nach, index }: Omit<RaumProps, 'ort' | 'tiefe' | 'leb
 function Welt({ lebende }: { lebende: Entry[] }) {
   const navigate = useNavigate();
   const orte = useMemo(
-    () => lebende.filter((e) => chapterOfType(e.type).id === 'welt').slice(0, 30),
+    () => lebende.filter((e) => gehoertZu(e, 'welt')).slice(0, 30),
     [lebende],
   );
   return (
@@ -255,7 +384,7 @@ function Welt({ lebende }: { lebende: Entry[] }) {
         <span className="font-serif text-[15px] text-paper-200">Zur Weltkarte</span>
       </button>
       {orte.length ? (
-        <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
           {orte.map((e) => (
             <Kachel key={e.id} entry={e} />
           ))}
@@ -381,6 +510,16 @@ function Leer({ text }: { text: string }) {
 function Kachel({ entry, breit = false }: { entry: Entry; breit?: boolean }) {
   const navigate = useNavigate();
   const setzeAnker = useRaum((s) => s.setzeAnker);
+  /*
+   * Das Bildnis.
+   *
+   * Auf dem Entwurfsblatt hat jede Figur ihr Gesicht, und das ist mehr als
+   * Zierde: Eine Liste aus vier Namen liest man, eine Liste aus vier Gesichtern
+   * erkennt man. Wer keins hat, bekommt keinen Platzhalter mit Fragezeichen –
+   * sondern seine Anfangsbuchstaben im Ring, damit die Reihe trotzdem ruhig
+   * bleibt und niemand aussieht, als fehle ihm etwas.
+   */
+  const bild = useImageUrl(entry.coverImage);
 
   return (
     <li className={breit ? 'w-full' : undefined}>
@@ -392,15 +531,30 @@ function Kachel({ entry, breit = false }: { entry: Entry; breit?: boolean }) {
         }}
         title="In die Mitte holen"
         className={cx(
-          'group flex w-full items-center gap-2 rounded-xl border border-paper-400/15 px-3 py-2.5 text-left transition-colors hover:border-gild-500/35 no-tap-highlight',
+          'group flex w-full items-center gap-2.5 rounded-xl border border-paper-400/15 px-2.5 py-2.5 text-left transition-colors hover:border-gild-500/35 no-tap-highlight',
         )}
       >
+        <span className="relative grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full border border-gild-500/25 bg-olive-800">
+          {bild ? (
+            <img src={bild} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className="font-serif text-[13px] text-gild-500/70">{zeichenVon(entry.title)}</span>
+          )}
+        </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate font-serif text-[14.5px] text-paper-200">
             {entry.title}
           </span>
-          <span className="block truncate text-[11px] uppercase tracking-[0.14em] text-paper-400/35">
-            {templateFor(entry.type).label}
+          {/*
+            Was darunter steht: der Untertitel, wenn es einen gibt.
+
+            Auf dem Entwurfsblatt steht dort „Wächter von Mooshalde" und nicht
+            „Charakter". Die Art kennt man am Raum, in dem man steht – der
+            Untertitel ist das, was diese Figur von den anderen unterscheidet.
+            Fehlt er, tritt die Art ein, damit die Zeile nie leer bleibt.
+          */}
+          <span className="block truncate text-[11.5px] text-paper-400/45">
+            {entry.subtitle?.trim() || templateFor(entry.type).label}
           </span>
         </span>
         <ArrowRightLeft
@@ -411,6 +565,14 @@ function Kachel({ entry, breit = false }: { entry: Entry; breit?: boolean }) {
       </button>
     </li>
   );
+}
+
+/** Ein oder zwei Buchstaben – aus „Der Mooswald" wird „DM", aus „Mira" ein „M". */
+function zeichenVon(titel: string): string {
+  const worte = titel.trim().split(/\s+/).filter(Boolean);
+  if (!worte.length) return '·';
+  if (worte.length === 1) return worte[0][0].toUpperCase();
+  return (worte[0][0] + worte[worte.length - 1][0]).toUpperCase();
 }
 
 /** Für die Kopfzeile: ein stilles Zeichen, dass Tiefe existiert. */

@@ -20,8 +20,12 @@ for (const f of ['geste', 'konfig'])
   execSync(`npx esbuild src/lib/raum/${f}.ts --bundle --format=esm --outfile=${S}/t/r-${f}.mjs`, {
     stdio: 'pipe',
   });
+execSync(`npx esbuild src/lib/book.ts --bundle --format=esm --outfile=${S}/t/r-buch.mjs`, {
+  stdio: 'pipe',
+});
 const G = await import(S + '/t/r-geste.mjs');
 const K = await import(S + '/t/r-konfig.mjs');
+const B = await import(S + '/t/r-buch.mjs');
 
 let ok = 0,
   bad = 0;
@@ -307,6 +311,44 @@ wahr(
   '  und sie unterscheiden sich hörbar',
   K.VORLAGEN.RUHIG.geste.verpflichtung !== K.VORLAGEN.ANTWORTFREUDIG.geste.verpflichtung,
 );
+
+/* -------------------------------------- 11. Die Räume zeigen wirklich etwas */
+
+/*
+ * Die Zusicherung, die einen stillen Fehler gefunden hätte.
+ *
+ * Die Tiefenräume filtern Einträge nach dem Kapitel, in dem sie stehen –
+ * `bewohner`, `tiere`, `stimmen` für die Wesen, `lebendige-welt`, `natur`,
+ * `architektur` für die Welt. Im ersten Bau standen dort erfundene Kennungen
+ * (`wesen`, `welt`), und weil `chapterOfType` bei Unbekanntem still auf das
+ * letzte Kapitel zurückfällt, gab es keinen Fehler: Der Raum blieb einfach
+ * leer und behauptete, in diesem Buch lebe noch niemand.
+ *
+ * Gefunden hat es ein gerendertes Bild. Deshalb steht die Prüfung jetzt hier –
+ * sie kostet vier Zeilen und macht aus einem stillen Fehler einen lauten.
+ */
+const KAPITEL = {
+  wesen: ['bewohner', 'tiere', 'stimmen'],
+  welt: ['lebendige-welt', 'natur', 'architektur'],
+};
+const alleKapitel = new Set(B.CHAPTERS.map((c) => c.id));
+for (const [wohin, liste] of Object.entries(KAPITEL))
+  for (const id of liste)
+    wahr(`11 „${id}" ist ein Kapitel dieses Buches (${wohin})`, alleKapitel.has(id));
+
+/* Und die Gegenprobe: Ein Kapitel, das es nicht gibt, fällt still zurück –
+ * genau das war die Falle. */
+p(
+  '  ein unbekannter Typ landet still im letzten Kapitel',
+  B.chapterOfType('gibtesnicht').id,
+  B.CHAPTERS[B.CHAPTERS.length - 1].id,
+);
+
+/* Die wichtigsten Typen liegen wirklich dort, wo die Räume sie suchen. */
+p('  eine Figur gehört zu den Wesen', B.chapterOfType('character').id, 'bewohner');
+p('  ein Ort gehört zur Welt', B.chapterOfType('location').id, 'lebendige-welt');
+wahr('  und beide werden gefunden', KAPITEL.wesen.includes(B.chapterOfType('character').id)
+  && KAPITEL.welt.includes(B.chapterOfType('location').id));
 
 console.log(`\n${ok} bestanden, ${bad} gescheitert`);
 process.exit(bad ? 1 : 0);

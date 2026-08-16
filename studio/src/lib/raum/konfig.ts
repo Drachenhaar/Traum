@@ -132,15 +132,17 @@ export const VORGABE: Raumkonfig = {
     maxEinzugAnteil: 0.52,
     weichzeichnenMinPx: 0,
     /*
-     * Vier statt zwölf.
+     * Sieben.
      *
-     * Zwölf Punkte Weichzeichnung standen im Bauplan als Startwert und waren
-     * am Gerät sofort falsch: auf eine 1,6 Punkte breite Linie angewandt
-     * bleibt davon kein Bogen übrig, sondern ein Hauch. Der Regler geht
-     * weiterhin bis dreißig – wer ihn dorthin schiebt, sieht, warum er hier
-     * tiefer steht.
+     * Zwölf standen im Bauplan und waren am Gerät sofort falsch – aber nur,
+     * solange der Bogen eine Haarlinie war: Weichgezeichnet blieb davon ein
+     * Schmier. Seit er ein Sichelkörper ist, ist Weichzeichnung genau das
+     * Richtige, weil aus einer weichgezeichneten Fläche Licht wird und aus
+     * einer weichgezeichneten Linie nichts. Der Wert stieg deshalb von vier
+     * auf sieben zurück – ein gutes Beispiel dafür, dass eine Zahl hier ohne
+     * das Bauteil daneben nichts bedeutet.
      */
-    weichzeichnenMaxPx: 4,
+    weichzeichnenMaxPx: 7,
     staerke: 1,
   },
   bewegung: {

@@ -52,7 +52,7 @@ import {
 import { beiKonfig, konfig } from '../../lib/raum/konfig';
 import { haptik } from '../../lib/raum/haptik';
 import { useRaum } from '../../lib/raum/useRaum';
-import { Fokuspunkt, Richtungsbogen } from './Richtungsbogen';
+import { Fokuspunkt, Richtungsbogen, Richtungszeichen } from './Richtungsbogen';
 
 interface Lauf {
   id: number;
@@ -147,6 +147,26 @@ export function Raumschicht({ children }: { children: ReactNode }) {
     el.style.setProperty(
       '--dc-bogen-weich',
       String(mische(b.weichzeichnenMinPx, b.weichzeichnenMaxPx, weg)),
+    );
+
+    /*
+     * Das Richtungszeichen.
+     *
+     * Es wandert mit dem Bogen herein (`--dc-zeichen-weg` ist derselbe
+     * Fortschritt) und wird erst *ab der Andeutungsschwelle* sichtbar – dort
+     * steht im Entwurf „ab ca. 15 % wird die Richtung deutlich".
+     *
+     * Die Einblendung braucht danach noch ein Stück Weg, sonst erschiene das
+     * Zeichen schlagartig und man hätte einen Sprung statt eines Erkennens.
+     * Ein Drittel des verbleibenden Weges hat sich als das gezeigt, was
+     * „deutlich werden" bedeutet – und es ist über `andeutung` mit dem Regler
+     * verbunden statt eine eigene feste Zahl zu sein.
+     */
+    el.style.setProperty('--dc-zeichen-weg', String(weg));
+    const einblenden = Math.max(0.05, (1 - k.geste.andeutung) / 3);
+    el.style.setProperty(
+      '--dc-zeichen-deck',
+      String(Math.min(1, Math.max(0, (weg - k.geste.andeutung) / einblenden))),
     );
 
     /* Die Mitte antwortet – kaum merklich, siehe das erste Gesetz. */
@@ -437,7 +457,12 @@ export function Raumschicht({ children }: { children: ReactNode }) {
     >
       <div className={drin ? 'contents' : 'dc-mitte flex min-h-0 flex-1 flex-col'}>{children}</div>
 
-      {gestenrichtung && <Richtungsbogen richtung={gestenrichtung} />}
+      {gestenrichtung && (
+        <>
+          <Richtungsbogen richtung={gestenrichtung} />
+          <Richtungszeichen richtung={gestenrichtung} />
+        </>
+      )}
       {phase === 'verpflichtend' && <Fokuspunkt />}
 
       <button

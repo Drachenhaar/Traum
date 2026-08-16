@@ -344,6 +344,8 @@
   --dc-bogen-deck: 0;
   --dc-bogen-weich: 0;
   --dc-bogen-strich: 1.6;
+  --dc-zeichen-weg: 0;
+  --dc-zeichen-deck: 0;
 
   /* Bewegungsdauern. Das Labor schreibt sie um. */
   --dc-dauer-oeffnen: 330ms;
@@ -365,6 +367,20 @@
 .dc-schicht[data-abbruch='ja'] .dc-bogen {
   transition:
     transform var(--dc-dauer-abbruch) cubic-bezier(0.22, 0.61, 0.36, 1),
+    opacity var(--dc-dauer-abbruch) ease-out;
+}
+
+/*
+ * Das Richtungszeichen federt mit zurück.
+ *
+ * Es haengt an `left`/`top` und nicht an `transform` – die Stelle wird aus
+ * dem Fortschritt gerechnet. Ohne diese Zeilen bliebe es beim Abbrechen stehen
+ * und verschwaende an Ort und Stelle, waehrend die Sichel zurueckwandert.
+ */
+.dc-schicht[data-abbruch='ja'] .dc-zeichen {
+  transition:
+    left var(--dc-dauer-abbruch) cubic-bezier(0.22, 0.61, 0.36, 1),
+    top var(--dc-dauer-abbruch) cubic-bezier(0.22, 0.61, 0.36, 1),
     opacity var(--dc-dauer-abbruch) ease-out;
 }
 
