@@ -313,7 +313,12 @@ export function CanvasBoardPage() {
   }
 
   return (
-    <div className="-mx-4 -mt-5 flex h-[calc(100vh-var(--sat)-var(--sab)-112px)] flex-col sm:-mx-6 lg:-mt-8 lg:h-[calc(100vh-var(--sat)-56px)]">
+    <div
+      /* Gezogene Zettel und Bilder brauchen den Finger selbst – siehe
+         `components/raum/Raumschicht.tsx`, „Wem gehoert der Finger?". */
+      data-raum="aus"
+      className="-mx-4 -mt-5 flex h-[calc(100vh-var(--sat)-var(--sab)-112px)] flex-col sm:-mx-6 lg:-mt-8 lg:h-[calc(100vh-var(--sat)-56px)]"
+    >
       {/* Werkzeugleiste */}
       <div className="flex flex-wrap items-center gap-1.5 px-3 py-2 sm:px-5">
         <button

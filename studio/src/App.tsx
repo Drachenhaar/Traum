@@ -42,6 +42,8 @@ import { Geburt } from './pages/geburt/Geburt';
 import { Onboarding } from './pages/onboarding/Onboarding';
 import { Bibliothek } from './pages/bibliothek/Bibliothek';
 import { useStudio } from './store/useStudio';
+import { InteractionLab } from './components/raum/InteractionLab';
+import { ladeKonfig } from './lib/raum/konfig';
 import { buildBook } from './lib/book';
 import { istEinBuch } from './lib/bibliothek';
 
@@ -65,6 +67,14 @@ export default function App() {
   const [imWerden, setImWerden] = useState<boolean | null>(null);
 
   useEffect(() => {
+    /*
+     * Die gestimmten Werte zuerst.
+     *
+     * Vor `init`, weil die Raumschicht ihre Dauern beim ersten Zeichnen ins
+     * DOM schreibt – lädt die Konfiguration danach, hat man einen Bau lang
+     * die Vorgabe und danach etwas anderes.
+     */
+    ladeKonfig();
     void init();
   }, [init]);
 
@@ -125,6 +135,7 @@ export default function App() {
         </Routes>
         <ConfirmHost />
         <Toasts />
+        <InteractionLab />
       </HashRouter>
     );
   }
@@ -144,6 +155,7 @@ export default function App() {
         </Routes>
         <ConfirmHost />
         <Toasts />
+        <InteractionLab />
       </HashRouter>
     );
   }
@@ -242,6 +254,7 @@ export default function App() {
 
       <ConfirmHost />
       <Toasts />
+      <InteractionLab />
     </HashRouter>
   );
 }

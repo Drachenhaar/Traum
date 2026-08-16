@@ -303,6 +303,16 @@ export function Weltkarte({ karte, onChange, werkzeug, gewaehlt, onWaehle, namen
       <div
         ref={huelle}
         className="relative aspect-square w-full overflow-hidden rounded-2xl border border-line"
+        /*
+         * Diese Flaeche gehoert dem Finger allein.
+         *
+         * Die Raumschicht fragt vor jeder Geste, ob unter dem Finger etwas
+         * liegt, das ihn selbst braucht – `data-raum="aus"` ist die Antwort.
+         * Ohne sie wuerde ein Strich, der am rechten Kartenrand beginnt, den
+         * Wesensraum andeuten, waehrend jemand eine Kueste malt. Zwei Gesten,
+         * die sich um denselben Finger streiten, ergeben keine Bedienung.
+         */
+        data-raum="aus"
         style={{ background: stil.papier, touchAction: 'none' }}
         onPointerDown={runter}
         onPointerMove={bewegen}

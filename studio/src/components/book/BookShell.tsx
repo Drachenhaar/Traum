@@ -22,6 +22,9 @@ import { Gedankenfang } from '../entry/Gedankenfang';
 import { Leitfaden } from '../leitfaden/Leitfaden';
 import { Aufmerksamkeit } from '../anerbieten/Aufmerksamkeit';
 import { Spread } from './Spread';
+import { Raumschicht } from '../raum/Raumschicht';
+import { Tiefenmarke, Tiefenraum } from '../raum/Tiefenraum';
+import { useRaum, gesteLaeuft } from '../../lib/raum/useRaum';
 
 /** Der gebaute Buchblock – einmal je Datenänderung, überall nutzbar. */
 export function useBook() {
@@ -56,6 +59,10 @@ export function BookShell() {
   const updateSettings = useStudio((s) => s.updateSettings);
   const entries = useStudio((s) => s.entries);
 
+  const tiefe = useRaum((s) => s.tiefe);
+  const ankerId = useRaum((s) => s.ankerId);
+  const setzeAnker = useRaum((s) => s.setzeAnker);
+
   const [searchOpen, setSearchOpen] = useState(false);
   const [fangOffen, setFangOffen] = useState(false);
   const [direction, setDirection] = useState<'forward' | 'back'>('forward');
@@ -71,6 +78,22 @@ export function BookShell() {
       lastIndex.current = index;
     }
   }, [index]);
+
+  /*
+   * Der Anker folgt der Mitte – aber nur, solange der Blick bei der Mitte ist.
+   *
+   * Das ist die praktische Hälfte des Gesetzes „Anker und sichtbare Mitte sind
+   * nicht dasselbe". Bei Tiefe 0 sind sie es sehr wohl: Was aufgeschlagen ist,
+   * ist das Werk, und man muss es nicht eigens erklären. Sobald man eine Ebene
+   * hinausgeht, friert der Anker ein – und genau dann fängt der Unterschied an
+   * zu zählen, weil man drei Räume weiter sonst nicht mehr wüsste, worum es
+   * eigentlich ging.
+   */
+  useEffect(() => {
+    if (tiefe > 0) return;
+    const id = pathname.startsWith('/eintrag/') ? pathname.slice('/eintrag/'.length) : undefined;
+    if (id && id !== ankerId) setzeAnker(id);
+  }, [pathname, tiefe, ankerId, setzeAnker]);
 
   /* Wo das Buch zuletzt aufgeschlagen war. */
   useEffect(() => {
@@ -114,6 +137,17 @@ export function BookShell() {
     const dx = e.changedTouches[0].clientX - touch.current.x;
     const dy = e.changedTouches[0].clientY - touch.current.y;
     touch.current = null;
+    /*
+     * Blaettern und Raumtiefe sind zwei verschiedene Dinge.
+     *
+     * Blaettern bewegt sich *innerhalb* des Werkes, der Richtungsbogen fuehrt
+     * *aus* ihm hinaus. Beide sind waagerechte Wische, und ohne diese Frage
+     * taete ein Zug vom rechten Rand beides gleichzeitig: den Wesensraum
+     * andeuten und eine Seite umschlagen. Der Raum hat Vorrang, weil er zuerst
+     * entscheidet – er beansprucht den Finger nur aus einem Randstreifen und
+     * nur bei passender Richtung.
+     */
+    if (gesteLaeuft()) return;
     // Nur eindeutig waagerechte Gesten blättern – sonst kämpft es mit dem Scrollen.
     if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.8) return;
     turn(dx < 0 ? 'next' : 'prev');
@@ -187,9 +221,13 @@ export function BookShell() {
             />
           </button>
 
-          <p className="truncate font-serif text-[12.5px] tracking-[0.16em] text-paper-400/45">
-            {chapter ? chapter.title.toUpperCase() : spread?.label.toUpperCase() ?? ''}
-          </p>
+          {tiefe > 0 ? (
+            <Tiefenmarke />
+          ) : (
+            <p className="truncate font-serif text-[12.5px] tracking-[0.16em] text-paper-400/45">
+              {chapter ? chapter.title.toUpperCase() : spread?.label.toUpperCase() ?? ''}
+            </p>
+          )}
         </div>
 
         {/*
@@ -226,24 +264,38 @@ export function BookShell() {
       </header>
 
       {/* --------------------------------------------------- Der Buchblock */}
-      <div className="flex min-h-0 flex-1 items-stretch gap-0 px-0 pb-3 sm:px-3 sm:pb-6">
-        <TurnEdge side="left" onClick={() => turn('prev')} enabled={!!prev} />
+      {/*
+        Die Raumschicht liegt *um* den Buchblock, nicht darin.
 
-        <div
-          key={spread?.key ?? pathname}
-          className={cx(
-            'flex min-w-0 flex-1',
-            direction === 'forward' ? 'animate-turnForward' : 'animate-turnBack',
-          )}
-          style={{
-            filter: 'drop-shadow(0 26px 44px rgba(0,0,0,0.6))',
-          }}
-        >
-          <Outlet context={{ book, spread, wear, living }} />
-        </div>
+        Sie ist die Ebene, aus der heraus die Richtungsboegen wachsen und in
+        der die Tiefe erscheint. Der Buchkoerper darunter bleibt unveraendert –
+        das ist der Punkt: Die Bedienung wurde nicht in das Buch eingebaut,
+        sondern darum herum gelegt.
+      */}
+      <Raumschicht>
+        {tiefe > 0 ? (
+          <Tiefenraum />
+        ) : (
+          <div className="flex min-h-0 flex-1 items-stretch gap-0 px-0 pb-3 sm:px-3 sm:pb-6">
+            <TurnEdge side="left" onClick={() => turn('prev')} enabled={!!prev} />
 
-        <TurnEdge side="right" onClick={() => turn('next')} enabled={!!next} />
-      </div>
+            <div
+              key={spread?.key ?? pathname}
+              className={cx(
+                'flex min-w-0 flex-1',
+                direction === 'forward' ? 'animate-turnForward' : 'animate-turnBack',
+              )}
+              style={{
+                filter: 'drop-shadow(var(--dc-book-shadow))',
+              }}
+            >
+              <Outlet context={{ book, spread, wear, living }} />
+            </div>
+
+            <TurnEdge side="right" onClick={() => turn('next')} enabled={!!next} />
+          </div>
+        )}
+      </Raumschicht>
 
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
       <Gedankenfang open={fangOffen} onClose={() => setFangOffen(false)} />
