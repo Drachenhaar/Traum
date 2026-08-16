@@ -46,6 +46,16 @@ Die App läuft vollständig lokal im Browser. Kein Backend, kein Konto, keine
 Übertragung. Alles liegt in IndexedDB auf dem Gerät, Bilder als echte Blobs.
 Auf dem Schreibtisch liegt eine Doppelseite, in der Hand eine Seite.
 
+
+---
+
+## Für Mitarbeitende
+
+`UEBERGABE.md` daneben erklärt die Architektur, die unverhandelbaren Gesetze,
+die sieben Stellen, die eine neue Tabelle anfassen muss, und die Fallen, die in
+diesem Projekt schon Zeit oder Daten gekostet haben. Wer hier weiterbaut – ob
+Mensch oder Maschine –, liest sie zuerst.
+
 ---
 
 ## Installation
