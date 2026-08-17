@@ -44,6 +44,7 @@ import { buildRelationIndex, makeRelation, type RelationIndex } from '../lib/rel
 import { kinderVon, naechsteOrdnung } from '../lib/roman/struktur';
 import { heileBeziehungen, heileEintraege } from '../lib/heilung';
 import { frischeBuchdaten, schreibeAb, umschriftFuer } from '../lib/kopie';
+import { heileKarte, type Kartendokument } from '../lib/karte/modell';
 import { DEFAULT_STAGE } from '../lib/pipeline';
 import { MAX_KLANG_BYTES, alleStill, dauerVon } from '../lib/atmosphaere';
 
@@ -78,6 +79,15 @@ interface StudioState {
   activeBookId?: string;
   /** Die Klänge dieses Buches. Nur die Angaben – die Dateien bleiben liegen. */
   klaenge: StoredKlang[];
+  /**
+   * Die Karten dieses Buches.
+   *
+   * Eine Liste, obwohl es vorerst höchstens eine gibt. Eine Welt hat später
+   * eine Übersichtskarte und drei Regionen, und eine Liste kostet heute
+   * nichts – ein einzelnes Feld später in eine Liste zu verwandeln kostet
+   * eine Wanderung.
+   */
+  karten: Kartendokument[];
 
   init: () => Promise<void>;
 
@@ -136,6 +146,17 @@ interface StudioState {
   addImages: (metas: StoredImageMeta[]) => void;
   updateImage: (id: string, patch: Partial<StoredImageMeta>) => void;
   deleteImage: (id: string) => Promise<void>;
+
+  /**
+   * Eine Karte sichern.
+   *
+   * Ein einziger Zugang, absichtlich grob: Die Karte ist ein Dokument, keine
+   * Sammlung einzeln änderbarer Zeilen. Sie wiegt ein paar Kilobyte, und ein
+   * feingliedriger Zugang („Fläche ändern", „Fläche löschen") hätte nur den
+   * Zweck, die Rückgängig-Logik in den Speicher zu verlegen, wo sie nicht
+   * hingehört – die Karte selbst hält ihre Schritte.
+   */
+  speichereKarte: (karte: Kartendokument) => Promise<void>;
 
   /* Flächen (Concept Canvas) */
   createBoard: (name: string) => Promise<CanvasBoard>;
@@ -388,16 +409,21 @@ export const useStudio = create<StudioState>((set, get) => {
 
   /** Die Daten eines Buches holen – und nur die. */
   const ladeBuchinhalt = async (bookId: string) => {
-    const [roheEintraege, roheKanten, images, boards, klaenge] = await Promise.all([
+    const [roheEintraege, roheKanten, images, boards, klaenge, roheKarten] = await Promise.all([
       db.entries.where('bookId').equals(bookId).toArray(),
       db.relations.where('bookId').equals(bookId).toArray(),
       db.images.where('bookId').equals(bookId).toArray(),
       db.boards.where('bookId').equals(bookId).toArray(),
       db.klaenge.where('bookId').equals(bookId).toArray(),
+      db.karten.where('bookId').equals(bookId).toArray(),
     ]);
     const entries = heileEintraege(roheEintraege);
     const relations = heileBeziehungen(roheKanten);
-    return { entries, relations, images, boards, klaenge };
+    /* Auch die Karte kommt geheilt herein – siehe `lib/karte/modell.ts`. */
+    const karten = roheKarten
+      .map((k) => heileKarte(k))
+      .filter((k): k is Kartendokument => !!k);
+    return { entries, relations, images, boards, klaenge, karten };
   };
 
   return {
@@ -411,6 +437,7 @@ export const useStudio = create<StudioState>((set, get) => {
     books: [],
     activeBookId: undefined,
     klaenge: [],
+    karten: [],
     toasts: [],
     saving: false,
     savedAt: 0,
@@ -517,7 +544,7 @@ export const useStudio = create<StudioState>((set, get) => {
            */
           const inhalt = offen
             ? await ladeBuchinhalt(offen.id)
-            : { entries: [], relations: [], images: [], boards: [], klaenge: [] };
+            : { entries: [], relations: [], images: [], boards: [], klaenge: [], karten: [] };
 
           await db.settings.put({ ...FRESH_SETTINGS, ...zerlegeAenderung(settings).global, id: 'settings' });
           set({
@@ -625,15 +652,16 @@ export const useStudio = create<StudioState>((set, get) => {
       const quelle = get().books.find((b) => b.id === id);
       if (!quelle) return null;
 
-      const [entries, relations, images, boards, klaenge] = await Promise.all([
+      const [entries, relations, images, boards, klaenge, karten] = await Promise.all([
         db.entries.where('bookId').equals(id).toArray(),
         db.relations.where('bookId').equals(id).toArray(),
         db.images.where('bookId').equals(id).toArray(),
         db.boards.where('bookId').equals(id).toArray(),
         db.klaenge.where('bookId').equals(id).toArray(),
+        db.karten.where('bookId').equals(id).toArray(),
       ]);
 
-      const bestand = { entries, relations, images, boards, klaenge };
+      const bestand = { entries, relations, images, boards, klaenge, karten };
       const u = umschriftFuer(bestand);
 
       const kopie = neuesBuch({
@@ -664,13 +692,14 @@ export const useStudio = create<StudioState>((set, get) => {
 
       await db.transaction(
         'rw',
-        [db.books, db.entries, db.relations, db.images, db.boards, db.klaenge, db.klangBlobs],
+        [db.books, db.entries, db.relations, db.images, db.boards, db.klaenge, db.klangBlobs, db.karten],
         async () => {
           await db.books.put(kopie);
           if (ab.entries.length) await db.entries.bulkPut(ab.entries);
           if (ab.relations.length) await db.relations.bulkPut(ab.relations);
           if (ab.boards.length) await db.boards.bulkPut(ab.boards);
           if (ab.images.length) await db.images.bulkPut(ab.images);
+          if (ab.karten.length) await db.karten.bulkPut(ab.karten);
           if (ab.klaenge.length) {
             await db.klaenge.bulkPut(ab.klaenge);
             /*
@@ -730,9 +759,11 @@ export const useStudio = create<StudioState>((set, get) => {
           db.revisions,
           db.klaenge,
           db.klangBlobs,
+          db.karten,
         ],
         async () => {
           await db.entries.where('bookId').equals(id).delete();
+          await db.karten.where('bookId').equals(id).delete();
           await db.relations.where('bookId').equals(id).delete();
           await db.boards.where('bookId').equals(id).delete();
           await db.revisions.where('bookId').equals(id).delete();
@@ -758,7 +789,7 @@ export const useStudio = create<StudioState>((set, get) => {
       );
       set((s) => ({ books: s.books.filter((b) => b.id !== id) }));
       if (get().activeBookId === id) {
-        set({ entries: [], relations: [], relIndex: buildRelationIndex([]), images: [], boards: [] });
+        set({ entries: [], relations: [], relIndex: buildRelationIndex([]), images: [], boards: [], karten: [] });
         const naechstes = regalfolge(get().books.filter((b) => !b.archived))[0];
         if (naechstes) await get().oeffneBuch(naechstes.id);
         else set({ activeBookId: undefined, settings: { ...get().settings, book: undefined } });
@@ -1190,6 +1221,25 @@ export const useStudio = create<StudioState>((set, get) => {
 
     /* ----------------------------------------------------------- Flächen */
 
+    /**
+     * Eine Karte sichern.
+     *
+     * Ohne Bündelung, anders als bei Einträgen. Das ist kein Versehen: Eine
+     * Karte wird nicht getippt, sie wird in Schüben verändert – ein Strich
+     * endet, wenn der Finger abhebt. Diese Momente sind selten genug, um jeden
+     * einzeln zu schreiben, und wichtig genug, um nicht in einer halben
+     * Sekunde Wartezeit verlorenzugehen, wenn jemand die Seite verlässt.
+     */
+    async speichereKarte(karte) {
+      const gesichert: Kartendokument = { ...karte, updatedAt: Date.now() };
+      set((s) => ({
+        karten: s.karten.some((k) => k.id === gesichert.id)
+          ? s.karten.map((k) => (k.id === gesichert.id ? gesichert : k))
+          : [...s.karten, gesichert],
+      }));
+      await db.karten.put(gesichert);
+    },
+
     async createBoard(name) {
       const now = Date.now();
       const board: CanvasBoard = {
@@ -1396,7 +1446,7 @@ export const useStudio = create<StudioState>((set, get) => {
       setCustomTypes(settings.customTypes ?? []);
       const inhalt = offen
         ? await ladeBuchinhalt(offen.id)
-        : { entries: [], relations: [], images: [], boards: [], klaenge: [] };
+        : { entries: [], relations: [], images: [], boards: [], klaenge: [], karten: [] };
       set({
         ...inhalt,
         relIndex: buildRelationIndex(inhalt.relations),
@@ -1424,6 +1474,7 @@ export const useStudio = create<StudioState>((set, get) => {
         books: [],
         activeBookId: undefined,
         klaenge: [],
+        karten: [],
         settings: { ...FRESH_SETTINGS, seedVersion: SEED_VERSION },
       });
     },

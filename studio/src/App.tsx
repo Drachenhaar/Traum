@@ -33,6 +33,7 @@ import { ZeitstrahlSheet } from './pages/book/Zeitstrahl';
 import { EntdeckungenSheet } from './pages/book/Entdeckungen';
 import { ReiseSheet } from './pages/book/Reise';
 import { DruckSheet } from './pages/book/Druck';
+import { WeltkarteSheet } from './pages/book/Weltkarte';
 import { CharakterspiegelSheet } from './pages/book/Charakterspiegel';
 import { SpiegelSheet } from './pages/book/Spiegel';
 import { OwnershipSpread } from './pages/book/OwnershipSpread';
@@ -41,6 +42,8 @@ import { Geburt } from './pages/geburt/Geburt';
 import { Onboarding } from './pages/onboarding/Onboarding';
 import { Bibliothek } from './pages/bibliothek/Bibliothek';
 import { useStudio } from './store/useStudio';
+import { InteractionLab } from './components/raum/InteractionLab';
+import { ladeKonfig } from './lib/raum/konfig';
 import { buildBook } from './lib/book';
 import { istEinBuch } from './lib/bibliothek';
 
@@ -64,6 +67,14 @@ export default function App() {
   const [imWerden, setImWerden] = useState<boolean | null>(null);
 
   useEffect(() => {
+    /*
+     * Die gestimmten Werte zuerst.
+     *
+     * Vor `init`, weil die Raumschicht ihre Dauern beim ersten Zeichnen ins
+     * DOM schreibt – lädt die Konfiguration danach, hat man einen Bau lang
+     * die Vorgabe und danach etwas anderes.
+     */
+    ladeKonfig();
     void init();
   }, [init]);
 
@@ -124,6 +135,7 @@ export default function App() {
         </Routes>
         <ConfirmHost />
         <Toasts />
+        <InteractionLab />
       </HashRouter>
     );
   }
@@ -143,6 +155,7 @@ export default function App() {
         </Routes>
         <ConfirmHost />
         <Toasts />
+        <InteractionLab />
       </HashRouter>
     );
   }
@@ -177,7 +190,18 @@ export default function App() {
 
           {/* Anhänge: eigene Blätter, kein Buchsatz */}
           <Route path="/setzerei" element={<Setzerei />} />
+          {/*
+            Zwei Karten, zwei Wege – vorerst.
+
+            `/karte` ist die Sternkarte: der Weltgraph, hinten ins Buch
+            geklebt. `/weltkarte` ist die gemalte Landkarte. Der Auftrag
+            wuenscht langfristig `/karte` fuer die neue; sie jetzt schon
+            umzuhaengen hiesse, jeden Verweis, jedes Lesebaendchen und jede
+            Navigationszeile mitzuziehen, um einen Pfad zu gewinnen. Der
+            Durchstich beweist die Karte, nicht die Adresse.
+          */}
           <Route path="/karte" element={<FoldOutMap />} />
+          <Route path="/weltkarte" element={<WeltkarteSheet />} />
           <Route path="/register" element={<RegisterSheet />} />
           <Route path="/tafelteil" element={<PlatesSheet />} />
           <Route path="/zeitstrahl" element={<ZeitstrahlSheet />} />
@@ -230,6 +254,7 @@ export default function App() {
 
       <ConfirmHost />
       <Toasts />
+      <InteractionLab />
     </HashRouter>
   );
 }

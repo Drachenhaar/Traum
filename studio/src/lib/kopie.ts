@@ -53,6 +53,7 @@ import type {
   StoredImageMeta,
   StoredKlang,
 } from '../types';
+import type { Kartendokument } from './karte/modell';
 import { newId } from './utils';
 import { templateFor } from './templates';
 
@@ -62,6 +63,7 @@ export interface Bestand {
   images: StoredImageMeta[];
   boards: CanvasBoard[];
   klaenge: StoredKlang[];
+  karten: Kartendokument[];
 }
 
 /**
@@ -77,6 +79,7 @@ export interface Umschrift {
   images: Map<string, string>;
   boards: Map<string, string>;
   klaenge: Map<string, string>;
+  karten: Map<string, string>;
 }
 
 /** Ein Wert wird nur ersetzt, wenn er wirklich zur Kopie gehört. */
@@ -110,6 +113,7 @@ export function umschriftFuer(bestand: Bestand): Umschrift {
     images: new Map(bestand.images.map((m) => [m.id, newId('img')])),
     boards: new Map(bestand.boards.map((b) => [b.id, newId('board')])),
     klaenge: new Map(bestand.klaenge.map((k) => [k.id, newId('klang')])),
+    karten: new Map(bestand.karten.map((k) => [k.id, newId('karte')])),
   };
 }
 
@@ -224,6 +228,32 @@ export function schreibeAb(
     })),
 
     klaenge: bestand.klaenge.map((k) => ({ ...k, id: u.klaenge.get(k.id)!, bookId })),
+
+    /*
+     * Die Karte.
+     *
+     * Der Startwert *bleibt* – und das ist die einzige interessante Zeile
+     * hier. Er ist keine Kennung, sondern eine Eigenschaft der Fläche wie ihr
+     * Umriss: Wer ihn beim Abschreiben neu zieht, bekommt eine Abschrift, in
+     * der jeder Wald anders steht als im Original. Zwei Bücher, die dieselbe
+     * Zahl teilen, stören einander nicht; zwei Bücher, die dieselbe Karte
+     * verschieden zeichnen, sind ein Fehler, den niemand mehr repariert.
+     *
+     * Die `entryId` dagegen ist eine Kennung und wird umgeschrieben. Eine
+     * Fläche, deren Verweis ins Leere zeigt, verliert ihn ganz – eine
+     * namenlose Landschaft ist gültig, eine Landschaft mit dem Namen einer
+     * fremden Buchseite nicht.
+     */
+    karten: bestand.karten.map((k) => ({
+      ...k,
+      id: u.karten.get(k.id)!,
+      bookId,
+      features: k.features.map((f) => ({
+        ...f,
+        id: newId('f'),
+        entryId: f.entryId ? u.entries.get(f.entryId) : undefined,
+      })),
+    })),
   };
 }
 

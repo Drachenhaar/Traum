@@ -305,3 +305,171 @@
     -webkit-tap-highlight-color: transparent;
   }
 }
+
+/* =========================================================================
+ * DIE INTERAKTIONSHAUT
+ *
+ * Farben, Radien und Schatten der Bedienungsschicht – als Marken und nicht
+ * als Zahlen in Komponenten. Das ist der Punkt aus dem Bauplan, an dem später
+ * verschiedene Buchidentitäten hängen werden: Clean Artbook, RPG, Writer. Die
+ * Bedienung bleibt dieselbe, die Haut wechselt.
+ *
+ * Noch keine Materialität. Kein Leder, kein Pergament, kein Metall. Wenn die
+ * Bedienung ohne all das nicht trägt, trägt sie mit all dem auch nicht – sie
+ * wäre dann nur zugedeckt.
+ * ========================================================================= */
+
+:root {
+  --dc-space-bg: #0e0c0a;
+  --dc-paper: #f7f2e8;
+  --dc-ink: #3b2e23;
+  --dc-muted-ink: #7c6a57;
+  --dc-accent: #d4af37;
+  --dc-divider: #e5dcca;
+  --dc-book-shadow: 0 26px 44px rgba(0, 0, 0, 0.6);
+  --dc-page-radius: 4px;
+
+  /* Abstände – eine Leiter, keine freien Zahlen. */
+  --dc-gap-1: 4px;
+  --dc-gap-2: 8px;
+  --dc-gap-3: 14px;
+  --dc-gap-4: 22px;
+  --dc-gap-5: 34px;
+
+  /*
+   * Die Werte, die die Geste beschreibt. Sie werden zur Laufzeit
+   * überschrieben – hier stehen sie nur, damit nichts leer ist.
+   */
+  --dc-bogen: 0;
+  --dc-bogen-deck: 0;
+  --dc-bogen-weich: 0;
+  --dc-bogen-strich: 1.6;
+  --dc-zeichen-weg: 0;
+  --dc-zeichen-deck: 0;
+
+  /* Bewegungsdauern. Das Labor schreibt sie um. */
+  --dc-dauer-oeffnen: 330ms;
+  --dc-dauer-abbruch: 240ms;
+  --dc-dauer-heim: 360ms;
+}
+
+/*
+ * Der Bogen folgt dem Finger – ohne eigene Animation.
+ *
+ * Während gezogen wird, darf hier keine Übergangszeit stehen: Der Bogen soll
+ * dort sein, wo der Finger ist, und nicht hinterherlaufen. Erst beim Abbrechen
+ * und beim Öffnen übernimmt eine Dauer.
+ */
+.dc-bogen {
+  transition: none;
+}
+.dc-schicht[data-phase='einrastend'] .dc-bogen,
+.dc-schicht[data-abbruch='ja'] .dc-bogen {
+  transition:
+    transform var(--dc-dauer-abbruch) cubic-bezier(0.22, 0.61, 0.36, 1),
+    opacity var(--dc-dauer-abbruch) ease-out;
+}
+
+/*
+ * Das Richtungszeichen federt mit zurück.
+ *
+ * Es haengt an `left`/`top` und nicht an `transform` – die Stelle wird aus
+ * dem Fortschritt gerechnet. Ohne diese Zeilen bliebe es beim Abbrechen stehen
+ * und verschwaende an Ort und Stelle, waehrend die Sichel zurueckwandert.
+ */
+.dc-schicht[data-abbruch='ja'] .dc-zeichen {
+  transition:
+    left var(--dc-dauer-abbruch) cubic-bezier(0.22, 0.61, 0.36, 1),
+    top var(--dc-dauer-abbruch) cubic-bezier(0.22, 0.61, 0.36, 1),
+    opacity var(--dc-dauer-abbruch) ease-out;
+}
+
+/* Der Augenblick, in dem sich Bedeutung verdichtet. */
+.dc-fokus {
+  background: var(--dc-accent);
+  box-shadow: 0 0 18px 6px rgba(212, 175, 55, 0.35);
+  animation: dcVerdichten var(--dc-dauer-oeffnen) cubic-bezier(0.3, 0, 0.2, 1) both;
+}
+
+@keyframes dcVerdichten {
+  0% {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  45% {
+    transform: scale(1);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+/* Aus dem Punkt entfaltet sich der Raum. Nicht Bildschirm A raus, B rein. */
+.dc-entfalten {
+  animation: dcEntfalten var(--dc-dauer-oeffnen) cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes dcEntfalten {
+  0% {
+    transform: scale(0.955);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Die Heimkehr darf schneller sein als das Hineingehen. */
+.dc-heimkehr {
+  animation: dcHeimkehr var(--dc-dauer-heim) cubic-bezier(0.32, 0.72, 0.24, 1) both;
+}
+
+@keyframes dcHeimkehr {
+  0% {
+    transform: scale(1.035);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/*
+ * Die Mitte reagiert – minimal.
+ *
+ * Eine sehr leichte Verkleinerung und ein kleiner Versatz, während der Bogen
+ * wächst. Mehr wäre eine Kartenstapelanimation, und Dragoncore ist kein
+ * Kartenstapel.
+ */
+.dc-mitte {
+  transform: scale(var(--dc-mitte-skala, 1)) translate(var(--dc-mitte-x, 0px), var(--dc-mitte-y, 0px));
+  will-change: transform;
+}
+
+/*
+ * Weniger Bewegung, wenn das Gerät darum bittet.
+ *
+ * Die Gestenlogik bleibt vollständig erhalten – nur Weichzeichnung, Versatz
+ * und Dauer werden zurückgenommen. Wer weniger Bewegung eingestellt hat, will
+ * die Bedienung nicht verlieren, sondern die Unruhe.
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dc-dauer-oeffnen: 140ms;
+    --dc-dauer-abbruch: 110ms;
+    --dc-dauer-heim: 140ms;
+  }
+  .dc-bogen {
+    filter: none !important;
+  }
+  .dc-mitte {
+    transform: none !important;
+  }
+  .dc-fokus {
+    animation-duration: 120ms;
+  }
+}

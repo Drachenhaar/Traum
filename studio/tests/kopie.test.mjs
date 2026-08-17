@@ -86,6 +86,16 @@ const bestand = () => ({
     },
   ],
   klaenge: [{ id: 'k_1', bookId: 'A', title: 'Wind', fileName: 'w.wav', mime: 'audio/wav', size: 1, createdAt: j, updatedAt: j }],
+  karten: [
+    {
+      id: 'ka_1', bookId: 'A', seed: 99, styleId: 'artbook', createdAt: j, updatedAt: j,
+      features: [
+        { id: 'kf_1', art: 'land', seed: 4711, punkte: [[0, 0], [10, 0], [10, 10]], entryId: 'e_ort' },
+        /* Eine namenlose Landschaft – sie muss mitkommen, ohne Verweis. */
+        { id: 'kf_2', art: 'wald', seed: 815, punkte: [[20, 20], [30, 20], [30, 30]] },
+      ],
+    },
+  ],
 });
 
 const quelle = bestand();
@@ -105,6 +115,8 @@ const alteKennungen = [
   ...quelle.images.map((x) => x.id),
   ...quelle.boards.map((x) => x.id),
   ...quelle.klaenge.map((x) => x.id),
+  ...quelle.karten.map((x) => x.id),
+  ...quelle.karten.flatMap((x) => x.features.map((f) => f.id)),
 ];
 const alsText = JSON.stringify({ ...ab, images: ab.images.map(({ blobId, ...r }) => r) });
 const durchgerutscht = alteKennungen.filter((k) => alsText.includes(`"${k}"`));
@@ -150,6 +162,27 @@ wahr('  und auf das kopierte Bild',
 p('  ein Textzettel bleibt unberuehrt',
   bogen.items.find((i) => i.kind === 'note').text, 'nur Text');
 
+/* ------------------------------------------------------ 3b. Die Karte -- */
+
+/*
+ * Die Karte ist der juengste Bestandteil und faellt beim Abschreiben am
+ * leichtesten hinten runter – deshalb steht sie hier ausdruecklich.
+ *
+ * Der interessante Fall ist der Startwert: Er sieht aus wie etwas, das man
+ * beim Kopieren neu zieht, und ist es nicht. Zwei Buecher duerfen dieselbe
+ * Zahl tragen; was sie nicht duerfen, ist dieselbe Karte verschieden
+ * zeichnen.
+ */
+const kopieKarte = ab.karten[0];
+p('3b die Karte kommt mit', ab.karten.length, 1);
+p('  im neuen Buch', kopieKarte.bookId, 'B');
+p('  mit neuer Kennung', kopieKarte.id === quelle.karten[0].id, false);
+p('  die Startwerte bleiben', kopieKarte.features.map((f) => f.seed), [4711, 815]);
+p('  und die Umrisse auch', kopieKarte.features[0].punkte, [[0, 0], [10, 0], [10, 10]]);
+wahr('  der Verweis zeigt auf die kopierte Seite',
+  neueEintragIds.has(kopieKarte.features[0].entryId));
+p('  eine namenlose Flaeche bleibt namenlos', kopieKarte.features[1].entryId, undefined);
+
 /* -------------------------------------- 4. Kanten ins Nichts fallen weg */
 
 p('4 nur vollstaendige Kanten', ab.relations.length, 2);
@@ -168,7 +201,7 @@ wahr('  aber das Zeichen zeigt auf das kopierte Bild',
 
 /* --------------------------------------------------- 6. Randfaelle */
 
-const leer = { entries: [], relations: [], images: [], boards: [], klaenge: [] };
+const leer = { entries: [], relations: [], images: [], boards: [], klaenge: [], karten: [] };
 p('6 ein leeres Buch bleibt leer', K.schreibeAb(leer, 'B'), leer);
 const ohneBloecke = {
   ...leer,
