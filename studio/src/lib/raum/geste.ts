@@ -53,6 +53,27 @@ export const GEGEN: Record<Richtung, Richtung> = {
 export interface Feld {
   breite: number;
   hoehe: number;
+  /**
+   * Zusätzlicher Einzug oben und unten – die Zonen, die das Gerät für sich
+   * beansprucht.
+   *
+   * **Hier lag ein echter Fehler.** Links und rechts funktionierte die
+   * Bedienung auf dem iPhone sofort, oben und unten überhaupt nicht. Der
+   * Grund steht nicht im Code, sondern im `index.html`: Die Seite läuft mit
+   * `viewport-fit=cover` und reicht damit *unter* die Dynamic Island und
+   * *unter* den Home-Indikator. Ein Streifen zwischen zwölf und
+   * sechsundvierzig Punkten vom oberen Rand liegt also mitten in der
+   * Statusleiste – und ein Zug nach unten von dort öffnet die
+   * Mitteilungszentrale. Unten dasselbe mit der Geste zum Startbildschirm.
+   *
+   * Beide Zonen gehören iOS, und dagegen gewinnt keine Anwendung. Also weicht
+   * Dragoncore ihnen aus: Die senkrechten Streifen beginnen unterhalb der
+   * sicheren Fläche und oberhalb des Indikators. Waagerecht braucht es das
+   * nicht – dort liegt nur Safaris Zurück-Wisch am äußersten Rand, und der
+   * ist mit `randEinzugPx` bereits umgangen.
+   */
+  oben?: number;
+  unten?: number;
 }
 
 /**
@@ -72,8 +93,13 @@ export function randRichtung(
   const bis = von + k.geste.randBreitePx;
   if (x >= von && x <= bis) return 'links';
   if (x >= feld.breite - bis && x <= feld.breite - von) return 'rechts';
-  if (y >= von && y <= bis) return 'oben';
-  if (y >= feld.hoehe - bis && y <= feld.hoehe - von) return 'unten';
+
+  /* Senkrecht zusätzlich um die Systemzonen versetzt – siehe `Feld`. */
+  const vonOben = von + (feld.oben ?? 0);
+  const vonUnten = von + (feld.unten ?? 0);
+  if (y >= vonOben && y <= vonOben + k.geste.randBreitePx) return 'oben';
+  if (y >= feld.hoehe - vonUnten - k.geste.randBreitePx && y <= feld.hoehe - vonUnten)
+    return 'unten';
   return undefined;
 }
 

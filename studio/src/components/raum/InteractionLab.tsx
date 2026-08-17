@@ -41,6 +41,7 @@ import {
   type Raumkonfig,
 } from '../../lib/raum/konfig';
 import { useRaum } from '../../lib/raum/useRaum';
+import { fenster } from './Raumschicht';
 
 /** Steht die Adresse auf „Labor"? */
 export function laborAn(): boolean {
@@ -58,6 +59,8 @@ const REGLER: { gruppe: Gruppe; feld: string; von: number; bis: number; schritt:
   { gruppe: 'geste', feld: 'totzonePx', von: 0, bis: 24, schritt: 1, name: 'Totzone' },
   { gruppe: 'geste', feld: 'randEinzugPx', von: 0, bis: 40, schritt: 1, name: 'Randeinzug' },
   { gruppe: 'geste', feld: 'randBreitePx', von: 12, bis: 120, schritt: 2, name: 'Randstreifen' },
+  { gruppe: 'geste', feld: 'systemEinzugObenPx', von: 0, bis: 90, schritt: 2, name: 'Abstand oben (System)' },
+  { gruppe: 'geste', feld: 'systemEinzugUntenPx', von: 0, bis: 120, schritt: 2, name: 'Abstand unten (System)' },
   { gruppe: 'geste', feld: 'schnellMindestweg', von: 0.05, bis: 0.5, schritt: 0.01, name: 'Schnellwisch ab' },
   { gruppe: 'geste', feld: 'schnellTempoPxProMs', von: 0.2, bis: 2, schritt: 0.05, name: 'Schnellwisch-Tempo' },
   { gruppe: 'geste', feld: 'richtungssperrePx', von: 2, bis: 40, schritt: 1, name: 'Richtungssperre' },
@@ -231,6 +234,30 @@ function Sichtfenster() {
   const k = konfig();
 
   /*
+   * Die Balken zeigen dasselbe Feld, das die Geste benutzt.
+   *
+   * Zuerst rechneten sie mit `randEinzugPx` auf allen vier Seiten – und
+   * behaupteten damit, oben und unten lägen die Streifen am Bildschirmrand.
+   * Genau dort lagen sie eben *nicht*, seit sie den Systemzonen ausweichen.
+   * Ein Sichtfenster, das etwas anderes zeigt als das, was gilt, ist
+   * schlimmer als keins: Man stimmt dann an einer Zahl, die man gar nicht
+   * sieht.
+   */
+  const [feld, setFeld] = useState(() => fenster());
+  useEffect(() => {
+    const neu = () => setFeld(fenster());
+    neu();
+    window.addEventListener('resize', neu);
+    window.addEventListener('orientationchange', neu);
+    const ab = beiKonfig(neu);
+    return () => {
+      window.removeEventListener('resize', neu);
+      window.removeEventListener('orientationchange', neu);
+      ab();
+    };
+  }, []);
+
+  /*
    * Der Fortschritt kommt aus dem DOM, nicht aus dem Speicher.
    *
    * Das ist kein Trick, sondern die Folge der Bauart: Während einer Geste
@@ -243,11 +270,11 @@ function Sichtfenster() {
     let laeuft = 0;
     const tick = () => {
       const el = document.querySelector('.dc-schicht') as HTMLElement | null;
-      const feld = anzeige.current?.querySelector('[data-weg]') as HTMLElement | null;
-      if (el && feld) {
+      const wert = anzeige.current?.querySelector('[data-weg]') as HTMLElement | null;
+      if (el && wert) {
         const roh = Number(getComputedStyle(el).getPropertyValue('--dc-bogen')) || 0;
         /* Zurück auf den Gestenfortschritt – die Schicht rechnet den Einzug ein. */
-        feld.textContent = ((roh * 0.5) / konfig().bogen.maxEinzugAnteil).toFixed(3);
+        wert.textContent = ((roh * 0.5) / konfig().bogen.maxEinzugAnteil).toFixed(3);
       }
       laeuft = requestAnimationFrame(tick);
     };
@@ -272,12 +299,22 @@ function Sichtfenster() {
       />
       <div
         className={`${balken} border-b`}
-        style={{ top: k.geste.randEinzugPx, height: k.geste.randBreitePx, left: 0, right: 0 }}
+        style={{
+          top: k.geste.randEinzugPx + (feld.oben ?? 0),
+          height: k.geste.randBreitePx,
+          left: 0,
+          right: 0,
+        }}
         aria-hidden
       />
       <div
         className={`${balken} border-t`}
-        style={{ bottom: k.geste.randEinzugPx, height: k.geste.randBreitePx, left: 0, right: 0 }}
+        style={{
+          bottom: k.geste.randEinzugPx + (feld.unten ?? 0),
+          height: k.geste.randBreitePx,
+          left: 0,
+          right: 0,
+        }}
         aria-hidden
       />
       <pre
@@ -291,7 +328,8 @@ function Sichtfenster() {
         {`\nschwelle ${k.geste.verpflichtung}\n`}
         {`ort      ${s.ort}\n`}
         {`tiefe    ${s.tiefe}\n`}
-        {`anker    ${s.ankerId ?? '—'}`}
+        {`anker    ${s.ankerId ?? '—'}\n`}
+        {`sicher   oben ${Math.round(feld.oben ?? 0)} unten ${Math.round(feld.unten ?? 0)}`}
       </pre>
     </>
   );

@@ -73,8 +73,49 @@ interface Lauf {
 
 const mische = (a: number, b: number, t: number) => a + (b - a) * Math.max(0, Math.min(1, t));
 
-/** Das Feld, in dem gemessen wird: der Bildschirm. */
-const fenster = () => ({ breite: window.innerWidth, hoehe: window.innerHeight });
+/**
+ * Die sichere Fläche des Geräts – gemessen, nicht geraten.
+ *
+ * `env(safe-area-inset-*)` lässt sich nicht zuverlässig aus einer
+ * CSS-Variablen zurücklesen, und ein fest eingetragener Wert wäre auf dem
+ * nächsten Gerät falsch. Also ein Klotz, der genau so hoch ist wie der Einzug,
+ * einmal ausgemessen und dann weggeräumt. Zehn Zeilen, die nicht lügen können.
+ *
+ * Der Wert ändert sich beim Drehen des Geräts, deshalb wird er nicht
+ * zwischengespeichert, sondern bei jedem Aufsetzen neu geholt – das kostet
+ * einmal je Geste einen Layoutdurchgang und nie während des Ziehens.
+ */
+function sichereFlaeche(): { oben: number; unten: number } {
+  const klotz = document.createElement('div');
+  klotz.style.cssText =
+    'position:fixed;left:-9999px;top:0;visibility:hidden;pointer-events:none;' +
+    'padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)';
+  document.body.appendChild(klotz);
+  const s = getComputedStyle(klotz);
+  const oben = parseFloat(s.paddingTop) || 0;
+  const unten = parseFloat(s.paddingBottom) || 0;
+  klotz.remove();
+  return { oben, unten };
+}
+
+/**
+ * Das Feld, in dem gemessen wird: der Bildschirm – abzüglich dessen, was dem
+ * Gerät gehört.
+ *
+ * Siehe `geste.ts`, `Feld`: Oben liegt die Mitteilungszentrale, unten die
+ * Geste zum Startbildschirm. Beide Zonen gewinnt keine Anwendung, also fängt
+ * unser Streifen erst dahinter an.
+ */
+export const fenster = () => {
+  const k = konfig().geste;
+  const sicher = sichereFlaeche();
+  return {
+    breite: window.innerWidth,
+    hoehe: window.innerHeight,
+    oben: sicher.oben + k.systemEinzugObenPx,
+    unten: sicher.unten + k.systemEinzugUntenPx,
+  };
+};
 
 /**
  * Der nächste Behälter, in dem noch gescrollt werden kann.

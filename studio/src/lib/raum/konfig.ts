@@ -36,6 +36,18 @@ export interface Raumkonfig {
     randBreitePx: number;
 
     /**
+     * Wie weit die senkrechten Streifen zusätzlich nach innen rücken – über
+     * die sichere Fläche des Geräts hinaus.
+     *
+     * Die sichere Fläche selbst wird gemessen und automatisch abgezogen; diese
+     * beiden Werte sind der Sicherheitsabstand *darüber hinaus*. Unten ist er
+     * größer, weil die Geste zum Startbildschirm deutlich höher reicht als der
+     * Indikator, den man sieht.
+     */
+    systemEinzugObenPx: number;
+    systemEinzugUntenPx: number;
+
+    /**
      * Wie weit gezogen werden muss, damit `fortschritt` 1 erreicht – als
      * Anteil der Bildschirmkante entlang der Achse.
      *
@@ -114,6 +126,8 @@ export const VORGABE: Raumkonfig = {
     totzonePx: 6,
     randEinzugPx: 12,
     randBreitePx: 34,
+    systemEinzugObenPx: 8,
+    systemEinzugUntenPx: 28,
     wegAnteil: 0.45,
     andeutung: 0.15,
     verpflichtung: 0.5,
