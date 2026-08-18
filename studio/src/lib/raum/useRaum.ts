@@ -32,6 +32,7 @@
 import { create } from 'zustand';
 import { konfig } from './konfig';
 import { naechsterStand, type Ort, type Phase, type Richtung } from './geste';
+import { hoechsteTiefe, type Werkraum } from './werkraum';
 
 interface Raumzustand {
   /** Das Werk. Ändert sich nur auf ausdrückliche Handlung. */
@@ -39,6 +40,18 @@ interface Raumzustand {
   /** Wo der Blick steht. */
   ort: Ort;
   tiefe: number;
+  /**
+   * In welchem Arbeitsraum gearbeitet wird.
+   *
+   * Er steht hier und nicht in `useStudio`, weil er den **Blick** beschreibt
+   * und nicht die Welt: Derselbe Eintrag ist im Buchraum etwas anderes als im
+   * Charakterraum, ohne dass sich an ihm eine einzige Zeile ändert.
+   *
+   * Gesetzt wird er von der Hülle, die den Pfad kennt. Der Speicher selbst
+   * weiß nichts von Adressen – täte er es, hinge die Bedienung an der
+   * Wegführung, und ein umbenannter Pfad wäre eine kaputte Geste.
+   */
+  werkraum: Werkraum;
 
   /** Was der Finger gerade tut. Nur während einer Geste belegt. */
   gestenrichtung: Richtung | null;
@@ -62,6 +75,7 @@ interface Raumzustand {
   brichAb: () => void;
   heim: () => void;
   gehZu: (ort: Ort, tiefe: number) => void;
+  setzeWerkraum: (w: Werkraum) => void;
   /** Nach einer Bewegung: die Hülle kommt zur Ruhe. */
   ruhe: () => void;
 }
@@ -76,6 +90,7 @@ export const useRaum = create<Raumzustand>((set, get) => ({
   ankerId: null,
   ort: 'mitte',
   tiefe: 0,
+  werkraum: 'buch' as Werkraum,
   ...LEER,
   phase: 'ruhe' as Phase,
   imUebergang: false,
@@ -102,7 +117,20 @@ export const useRaum = create<Raumzustand>((set, get) => ({
   oeffne() {
     const s = get();
     if (!s.gestenrichtung) return;
-    const ziel = naechsterStand({ ort: s.ort, tiefe: s.tiefe }, s.gestenrichtung, konfig());
+    /*
+     * Wie weit dieser Weg reicht, entscheidet der Arbeitsraum.
+     *
+     * Rechts kommt man in einem Charakterraum bis ins ganze Geflecht, im
+     * Romanraum nur bis zu den Zusammenhängen – dieselbe Geste, dieselbe
+     * Regel, andere Reichweite. Der Regler im Stimmzimmer bleibt darüber die
+     * Obergrenze für alles.
+     */
+    const ziel = naechsterStand(
+      { ort: s.ort, tiefe: s.tiefe },
+      s.gestenrichtung,
+      konfig(),
+      hoechsteTiefe(s.werkraum, s.gestenrichtung),
+    );
     set({
       ort: ziel.ort,
       tiefe: ziel.tiefe,
@@ -128,6 +156,18 @@ export const useRaum = create<Raumzustand>((set, get) => ({
 
   gehZu(ort, tiefe) {
     set({ ort, tiefe, phase: 'verpflichtend', imUebergang: true, ...LEER });
+  },
+
+  setzeWerkraum(w) {
+    /*
+     * Ein Wechsel des Arbeitsraums lässt Ort und Tiefe unangetastet.
+     *
+     * Es ist kein Ereignis, sondern eine Feststellung: Der Benutzer *ist*
+     * woanders, er geht nicht dorthin. Wer hier den Blick in die Mitte
+     * zurückholte, risse jede Navigation aus der Tiefe heraus mitten im Weg
+     * ab – und zwar bei jedem Seitenwechsel.
+     */
+    if (get().werkraum !== w) set({ werkraum: w });
   },
 
   ruhe() {

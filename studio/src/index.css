@@ -483,6 +483,52 @@
 }
 
 /* =========================================================================
+ * DIE OBERFLÄCHE DARF ZURÜCKTRETEN
+ *
+ * Wenn niemand etwas tut, soll Dragoncore möglichst wenig nach Software
+ * aussehen. Welcher der fünf Zustände gilt, entscheidet `lib/raum/flaeche.ts`;
+ * hier steht nur, was man davon sieht.
+ *
+ * **Deckkraft und nicht `display`.** Ein Bedienelement, das verschwindet,
+ * verschiebt beim Wiederkommen das Layout – und der Daumen greift dann
+ * dorthin, wo eben noch etwas war. Ein Element, das blasser wird, bleibt an
+ * seinem Platz und bleibt treffbar: Wer weiß, dass oben rechts die Suche ist,
+ * trifft sie auch bei 34 Prozent.
+ *
+ * Der Ruhewert ist einstellbar, aber nie null. Eine Oberfläche, die man nicht
+ * mehr findet, ist nicht ruhig, sondern kaputt.
+ * ========================================================================= */
+
+.dc-chrome {
+  opacity: var(--dc-chrome, 1);
+  transition:
+    opacity var(--dc-chrome-ms, 200ms) ease-out,
+    color 300ms ease-out;
+}
+
+/*
+ * Beim Berühren kommt die Orientierung sofort zurück – auch bevor der
+ * Zustandswechsel durch React gelaufen ist. Das ist absichtlich doppelt
+ * abgesichert: Rückmeldung, auf die man warten muss, ist keine.
+ */
+.dc-chrome:hover,
+.dc-chrome:focus-visible,
+.dc-chrome:active {
+  opacity: 1;
+}
+
+/*
+ * Weniger Bewegung heißt hier: kein langsames Verblassen. Der Zustand gilt
+ * weiterhin – wer die Ruhe eingestellt hat, bekommt sie, nur ohne den
+ * Übergang, der sie sichtbar macht.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .dc-chrome {
+    transition: none;
+  }
+}
+
+/* =========================================================================
  * DER KÖRPER DES BUCHES
  *
  * Hier steht nur, wie die Zahlen aussehen, die `useBlaettern` schreibt. Die

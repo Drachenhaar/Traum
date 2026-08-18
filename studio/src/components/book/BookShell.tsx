@@ -28,6 +28,10 @@ import { useBlaettern } from './useBlaettern';
 import { spineThickness } from '../../lib/book';
 import { Tiefenmarke, Tiefenraum } from '../raum/Tiefenraum';
 import { useRaum } from '../../lib/raum/useRaum';
+import { konfig } from '../../lib/raum/konfig';
+import { werkraumVon } from '../../lib/raum/werkraum';
+import { useOberflaeche } from '../raum/useOberflaeche';
+import { deutlichkeit, uebergangMs } from '../../lib/raum/flaeche';
 
 /** Der gebaute Buchblock – einmal je Datenänderung, überall nutzbar. */
 export function useBook() {
@@ -155,16 +159,41 @@ export function BookShell() {
    * „geschlossen" oder „oeffnet", diese Huelle „offen" – und wer wissen will,
    * wo das Buch steht, liest eine Stelle statt zwei zu vergleichen.
    */
+  /*
+   * Welcher Arbeitsraum offen ist, weiß nur die Hülle.
+   *
+   * Sie kennt den Pfad *und* den Anker – und beides zusammen ergibt erst die
+   * Antwort: `/eintrag/:id` ist ein Charakterraum, wenn dort eine Figur
+   * steht, und der gewöhnliche Buchraum, wenn dort ein Ort steht. Der
+   * Raumspeicher bekommt nur das Ergebnis; er soll von Adressen nichts
+   * wissen, sonst wäre ein umbenannter Pfad eine kaputte Geste.
+   */
+  const ankerTyp = ankerId ? entries.find((e) => e.id === ankerId)?.type : undefined;
+  const werkraum = werkraumVon(pathname, ankerTyp);
+  const setzeWerkraum = useRaum((s) => s.setzeWerkraum);
+  useEffect(() => setzeWerkraum(werkraum), [werkraum, setzeWerkraum]);
+
   useEffect(() => {
     const w = document.documentElement;
     w.dataset.buch = 'offen';
+    w.dataset.werkraum = werkraum;
     w.dataset.seite = spread ? String(spread.page ?? index + 1) : '—';
     return () => {
       delete w.dataset.buch;
       delete w.dataset.seite;
+      delete w.dataset.werkraum;
     };
-  }, [spread, index]);
+  }, [spread, index, werkraum]);
 
+  /*
+   * Wie viel Oberfläche gerade dastehen darf.
+   *
+   * Der Zustand steht als Merkmal an der Hülle und die Deutlichkeit als
+   * Variable daneben – beides erbt nach unten, und jedes Bedienelement, das
+   * zurücktreten soll, braucht nur eine Zeile im Stylesheet statt einer
+   * eigenen Verbindung hierher.
+   */
+  const flaeche = useOberflaeche();
   const chapter = spread?.chapterId ? chapterById(spread.chapterId) : undefined;
   const living = useMemo(() => livingEntries(entries), [entries]);
 
@@ -185,8 +214,16 @@ export function BookShell() {
        * anders, keine Funktion faellt weg.
        */
       data-anmutung={profilVon(settings).anmutung}
+      data-flaeche={flaeche}
+      data-werkraum={werkraum}
       className="flex h-full w-full flex-col overflow-hidden"
-      style={deskStyle}
+      style={
+        {
+          ...deskStyle,
+          '--dc-chrome': String(deutlichkeit(flaeche, konfig())),
+          '--dc-chrome-ms': `${uebergangMs(flaeche, konfig())}ms`,
+        } as React.CSSProperties
+      }
     >
       {/*
         Der Tischmodus, sichtbar.
@@ -217,7 +254,7 @@ export function BookShell() {
             type="button"
             onClick={() => navigate('/inhalt')}
             /* Auf jeder Seite erreichbar, also auch auf jeder Seite treffbar. */
-            className="group -ml-1 flex h-11 shrink-0 items-center gap-2 px-1 no-tap-highlight"
+            className="dc-chrome group -ml-1 flex h-11 shrink-0 items-center gap-2 px-1 no-tap-highlight"
             aria-label="Inhaltsverzeichnis"
             title="Inhaltsverzeichnis"
             data-leitfaden="inhalt"
@@ -253,7 +290,7 @@ export function BookShell() {
         <button
           type="button"
           onClick={() => setFangOffen(true)}
-          className="grid h-11 w-11 shrink-0 place-items-center text-gild-500/50 transition-colors hover:text-gild-400 no-tap-highlight"
+          className="dc-chrome grid h-11 w-11 shrink-0 place-items-center text-gild-500/50 transition-colors hover:text-gild-400 no-tap-highlight"
           aria-label="Einen Gedanken festhalten"
           title="Einen Gedanken festhalten"
           data-leitfaden="gedanke"
@@ -264,7 +301,7 @@ export function BookShell() {
         <button
           type="button"
           onClick={() => setSearchOpen(true)}
-          className="grid h-11 w-11 shrink-0 place-items-center text-gild-500/50 transition-colors hover:text-gild-400 no-tap-highlight"
+          className="dc-chrome grid h-11 w-11 shrink-0 place-items-center text-gild-500/50 transition-colors hover:text-gild-400 no-tap-highlight"
           aria-label="Register durchsuchen"
           title="Register"
           data-leitfaden="suche"
@@ -398,7 +435,7 @@ function TurnEdge({
       disabled={!enabled}
       aria-label={side === 'left' ? 'Eine Seite zurück' : 'Eine Seite weiter'}
       className={cx(
-        'group hidden w-11 shrink-0 items-center justify-center transition-opacity duration-300 sm:flex lg:w-16',
+        'dc-chrome group hidden w-11 shrink-0 items-center justify-center sm:flex lg:w-16',
         enabled ? 'opacity-100' : 'pointer-events-none opacity-0',
       )}
     >

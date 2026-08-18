@@ -27,7 +27,8 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRightLeft, MapPin, Sparkles } from 'lucide-react';
 import { useStudio, livingEntries } from '../../store/useStudio';
 import { useRaum } from '../../lib/raum/useRaum';
-import { RICHTUNGEN, type Ort } from '../../lib/raum/geste';
+import { type Richtung } from '../../lib/raum/geste';
+import { ebene, weg as wegVon, type Raumkennung } from '../../lib/raum/werkraum';
 import { relationsOf } from '../../lib/relations';
 import { templateFor } from '../../lib/templates';
 import { chapterOfType } from '../../lib/book';
@@ -58,21 +59,20 @@ const KAPITEL: Record<'wesen' | 'welt', string[]> = {
 const gehoertZu = (e: Entry, wohin: 'wesen' | 'welt') =>
   KAPITEL[wohin].includes(chapterOfType(e.type).id);
 
-/** Die Überschrift eines Raums – Richtung und Tiefe, in Buchsprache. */
-const TITEL: Record<string, string> = {
-  'links:1': 'Die Welt umher',
-  'rechts:1': 'Wesen in der Nähe',
-  'rechts:2': 'Wie sie zusammenhängen',
-  'rechts:3': 'Das ganze Geflecht',
-  'oben:1': 'Was darüber bekannt ist',
-  'unten:1': 'Was sich angesammelt hat',
-};
+/*
+ * Die Überschriften standen hier einmal als feste Tabelle: `rechts:1` hieß
+ * überall „Wesen in der Nähe". Das war eine globale Navigation mit Gesten
+ * statt mit Knöpfen – im Romanraum bekam man dieselben vier Namen wie auf
+ * einer Karte. Jetzt kommen Name, Zeile und Tiefe aus `lib/raum/werkraum.ts`,
+ * und diese Datei zeigt nur noch an, was dort steht.
+ */
 
 export function Tiefenraum() {
   const ort = useRaum((s) => s.ort);
   const tiefe = useRaum((s) => s.tiefe);
   const phase = useRaum((s) => s.phase);
   const ankerId = useRaum((s) => s.ankerId);
+  const werkraum = useRaum((s) => s.werkraum);
   const entries = useStudio((s) => s.entries);
   const relIndex = useStudio((s) => s.relIndex);
 
@@ -81,7 +81,10 @@ export function Tiefenraum() {
   const anker = ankerId ? nach.get(ankerId) : undefined;
 
   if (ort === 'mitte' || tiefe === 0) return null;
-  const richtung = RICHTUNGEN.find((r) => r.id === ort);
+  /* Ab hier ist `ort` sicher eine Richtung – die Mitte ist oben ausgeschieden. */
+  const richtung = ort as Richtung;
+  const dieserWeg = wegVon(werkraum, richtung);
+  const dieseEbene = ebene(werkraum, richtung, tiefe);
 
   return (
     <div
@@ -99,14 +102,18 @@ export function Tiefenraum() {
     >
       <header className="mb-5 shrink-0">
         <p className="font-serif text-[11.5px] uppercase tracking-[0.24em] text-gild-500/60">
-          {richtung?.name}
+          {dieserWeg.name}
           {' · '}
           {'Tiefe '}
           {tiefe}
+          {/*
+            Wie weit dieser Weg noch reicht – aber nur, wenn es überhaupt
+            weitergeht. „1 von 1" ist keine Auskunft, sondern eine Zahl, die
+            sich wichtig macht.
+          */}
+          {dieserWeg.ebenen.length > 1 && ` von ${dieserWeg.ebenen.length}`}
         </p>
-        <h2 className="mt-1 font-serif text-[22px] text-paper-200">
-          {TITEL[`${ort}:${tiefe}`] ?? richtung?.name}
-        </h2>
+        <h2 className="mt-1 font-serif text-[22px] text-paper-200">{dieseEbene.titel}</h2>
         {anker && (
           /*
            * Der Anker steht sichtbar da.
@@ -122,7 +129,7 @@ export function Tiefenraum() {
         )}
       </header>
 
-      <Inhalt ort={ort} tiefe={tiefe} anker={anker} lebende={lebende} nach={nach} index={relIndex} />
+      <Inhalt raum={dieseEbene.raum} anker={anker} lebende={lebende} nach={nach} index={relIndex} />
 
       <p className="mt-8 shrink-0 text-center font-serif text-[12px] italic text-paper-400/35">
         Doppeltipp bringt dich zurück zu deinem Werk.
@@ -134,23 +141,36 @@ export function Tiefenraum() {
 /* --------------------------------------------------------------- Die Räume */
 
 interface RaumProps {
-  ort: Ort;
-  tiefe: number;
   anker: Entry | undefined;
   lebende: Entry[];
   nach: Map<string, Entry>;
   index: ReturnType<typeof useStudio.getState>['relIndex'];
 }
 
-function Inhalt({ ort, tiefe, anker, lebende, nach, index }: RaumProps) {
-  if (ort === 'rechts') {
-    if (tiefe === 1) return <WesenNah anker={anker} lebende={lebende} nach={nach} index={index} />;
-    if (tiefe === 2) return <Zusammenhang anker={anker} nach={nach} index={index} />;
-    return <Geflecht anker={anker} nach={nach} index={index} />;
+/**
+ * Welcher Inhalt gezeigt wird – benannt, nicht aus Ort und Tiefe gerechnet.
+ *
+ * Vorher stand hier „rechts, Tiefe 2 ist der Zusammenhang". Das band den
+ * Inhalt an eine Himmelsrichtung: Im Charakterraum liegt derselbe
+ * Zusammenhang ebenfalls rechts auf Ebene zwei, im Weltraum aber gehören
+ * links zwei verschiedene Räume übereinander. Jetzt sagt der Arbeitsraum,
+ * *was* dort liegt, und diese Datei weiß nur noch, wie man es zeigt.
+ */
+function Inhalt({ raum, anker, lebende, nach, index }: RaumProps & { raum: Raumkennung }) {
+  switch (raum) {
+    case 'wesen':
+      return <WesenNah anker={anker} lebende={lebende} nach={nach} index={index} />;
+    case 'zusammenhang':
+      return <Zusammenhang anker={anker} nach={nach} index={index} />;
+    case 'geflecht':
+      return <Geflecht anker={anker} nach={nach} index={index} />;
+    case 'welt':
+      return <Welt lebende={lebende} />;
+    case 'wissen':
+      return <Wissen anker={anker} nach={nach} index={index} />;
+    case 'notizen':
+      return <Notizen lebende={lebende} />;
   }
-  if (ort === 'links') return <Welt lebende={lebende} />;
-  if (ort === 'oben') return <Wissen anker={anker} nach={nach} index={index} />;
-  return <Notizen lebende={lebende} />;
 }
 
 /**
@@ -161,7 +181,7 @@ function Inhalt({ ort, tiefe, anker, lebende, nach, index }: RaumProps) {
  * leerer Raum mit einer Aufforderung: Ein Raum, der nur sagt „hier ist nichts",
  * ist eine Sackgasse mit Aussicht.
  */
-function WesenNah({ anker, lebende, nach, index }: Omit<RaumProps, 'ort' | 'tiefe'>) {
+function WesenNah({ anker, lebende, nach, index }: RaumProps) {
   const wesen = useMemo(() => {
     const alleWesen = lebende.filter((e) => gehoertZu(e, 'wesen'));
     if (!anker) return alleWesen.slice(0, 24);
@@ -191,7 +211,7 @@ function WesenNah({ anker, lebende, nach, index }: Omit<RaumProps, 'ort' | 'tief
 }
 
 /** Rechts, Tiefe 2: wie sie zusammenhängen – nach Art der Beziehung geordnet. */
-function Zusammenhang({ anker, nach, index }: Omit<RaumProps, 'ort' | 'tiefe' | 'lebende'>) {
+function Zusammenhang({ anker, nach, index }: Omit<RaumProps, 'lebende'>) {
   const gruppen = useMemo(() => {
     if (!anker) return [];
     const karte = new Map<string, { label: string; farbe: string; wer: Entry[] }>();
@@ -247,7 +267,7 @@ function Zusammenhang({ anker, nach, index }: Omit<RaumProps, 'ort' | 'tiefe' | 
  * zwei Schritte weit weg ist, gehört zum Bild, aber nicht zur Auskunft. Drei
  * Ringe wären auf einer Handbreite Nebel.
  */
-function Geflecht({ anker, nach, index }: Omit<RaumProps, 'ort' | 'tiefe' | 'lebende'>) {
+function Geflecht({ anker, nach, index }: Omit<RaumProps, 'lebende'>) {
   const rad = useMemo(() => {
     if (!anker) return null;
     /* Doppelte Kanten zum selben Nachbarn ergeben einen Speichenplatz, nicht zwei. */
@@ -404,7 +424,7 @@ function Welt({ lebende }: { lebende: Entry[] }) {
  * steht, was da ist, nicht, was fehlen könnte. Das Anerbieten hat seinen
  * eigenen Ort und seine eigenen Regeln.
  */
-function Wissen({ anker, nach, index }: Omit<RaumProps, 'ort' | 'tiefe' | 'lebende'>) {
+function Wissen({ anker, nach, index }: Omit<RaumProps, 'lebende'>) {
   if (!anker) return <Leer text="Kein Werk in der Mitte." />;
   const tpl = templateFor(anker.type);
   const kanten = relationsOf(index, anker.id);
@@ -579,8 +599,9 @@ function zeichenVon(titel: string): string {
 export function Tiefenmarke() {
   const tiefe = useRaum((s) => s.tiefe);
   const ort = useRaum((s) => s.ort);
+  const werkraum = useRaum((s) => s.werkraum);
   if (!tiefe) return null;
-  const name = RICHTUNGEN.find((r) => r.id === ort)?.name ?? '';
+  const name = ort === 'mitte' ? '' : wegVon(werkraum, ort).name;
   return (
     <span className="flex items-center gap-1.5 font-serif text-[11.5px] uppercase tracking-[0.18em] text-gild-500/60">
       <Sparkles size={11} aria-hidden />

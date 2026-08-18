@@ -124,7 +124,32 @@ const REGLER: { gruppe: Gruppe; feld: string; von: number; bis: number; schritt:
   { gruppe: 'seite', feld: 'legenMs', von: 150, bis: 900, schritt: 10, name: 'Umlegen (ms)' },
   { gruppe: 'seite', feld: 'federHaerte', von: 60, bis: 400, schritt: 10, name: 'Federhärte' },
   { gruppe: 'seite', feld: 'federDaempfung', von: 8, bis: 70, schritt: 1, name: 'Dämpfung' },
+
+  /* Wie weit die Oberfläche zurücktritt, wenn niemand etwas tut. */
+  { gruppe: 'flaeche', feld: 'ruheNachMs', von: 800, bis: 8000, schritt: 100, name: 'Ruhe nach (ms)' },
+  { gruppe: 'flaeche', feld: 'ruheDeckkraft', von: 0.12, bis: 1, schritt: 0.02, name: 'Deutlichkeit in Ruhe' },
+  { gruppe: 'flaeche', feld: 'beruhigenMs', von: 200, bis: 2000, schritt: 50, name: 'Beruhigen (ms)' },
+  { gruppe: 'flaeche', feld: 'erscheinenMs', von: 60, bis: 600, schritt: 10, name: 'Erscheinen (ms)' },
 ];
+
+/**
+ * Welche Gruppen das Zimmer zeigt – abgeleitet, nicht aufgezählt.
+ *
+ * Hier stand die Liste einmal wörtlich im Renderer. Das hieß: Jede neue
+ * Gruppe kostete zwei Änderungen an zwei Stellen, und wer die zweite vergaß,
+ * bekam Regler, die es gab und die niemand sah. Genau die Art Fehler, die man
+ * nicht sucht, weil nichts kaputt aussieht.
+ *
+ * Jetzt entsteht die Reihenfolge aus der Tabelle selbst: Eine Gruppe
+ * existiert, sobald sie einen Regler hat. Für KARTE, WERK und ÜBERGÄNGE sind
+ * noch keine Regler da – und deshalb sind sie hier auch nicht. Das ist die
+ * Vorbereitung, um die es geht: Die spätere Erweiterung braucht eine Zeile in
+ * der Tabelle und **keinen Umbau**.
+ */
+const GRUPPEN = REGLER.reduce<Gruppe[]>(
+  (aus, r) => (aus.includes(r.gruppe) ? aus : [...aus, r.gruppe]),
+  [],
+);
 
 const SCHALTER: { feld: keyof Raumkonfig['haptik']; name: string }[] = [
   { feld: 'andeutung', name: 'Haptik bei Andeutung' },
@@ -233,7 +258,7 @@ export function InteractionLab() {
           ))}
         </div>
 
-        {(['geste', 'bogen', 'bewegung', 'doppeltipp', 'langdruck', 'buch', 'seite'] as Gruppe[]).map((gruppe) => (
+        {GRUPPEN.map((gruppe) => (
           <section key={gruppe} className="mb-3">
             <p className="mb-1 uppercase tracking-widest text-paper-400/50">{gruppe}</p>
             {REGLER.filter((r) => r.gruppe === gruppe).map((r) => (
@@ -371,6 +396,20 @@ function Sichtfenster() {
       setze('blattweg', (Number(stil?.getPropertyValue('--dc-blatt')) || 0).toFixed(3));
       setze('blatttempo', (Number(stil?.getPropertyValue('--dc-blatt-tempo')) || 0).toFixed(3));
       setze('seite', wurzel.dataset.seite ?? '—');
+      /*
+       * Arbeitsraum und Oberflächenzustand – die beiden Angaben, ohne die
+       * §8 und §11 nicht prüfbar wären. Beide stehen als Merkmal im DOM und
+       * werden hier nur abgelesen; einen Zustandsspeicher dafür gibt es
+       * absichtlich nicht.
+       */
+      const huelle = document.querySelector('[data-flaeche]') as HTMLElement | null;
+      setze('werkraum', wurzel.dataset.werkraum ?? '—');
+      setze(
+        'flaechenwert',
+        `${huelle?.dataset.flaeche ?? '—'} ${
+          huelle ? Number(getComputedStyle(huelle).getPropertyValue('--dc-chrome') || 1).toFixed(2) : ''
+        }`,
+      );
 
       /*
        * Wem gehört der Finger – abgelesen, nicht behauptet.
@@ -454,7 +493,17 @@ function Sichtfenster() {
         <span data-seite>—</span>
         {'\nfinger   '}
         <span data-besitzer>niemand</span>
-        {`\nvorlage  ${buchvorlage()}`}
+        {`\nvorlage  ${buchvorlage()}\n`}
+        {'werkraum '}
+        <span data-werkraum>buch</span>
+        {'\nflaeche  '}
+        {/*
+          Nicht `data-flaeche`: Genau dieses Merkmal trägt die Hülle, deren
+          Wert hier abgelesen wird. Ein Anzeigefeld, das auf den eigenen
+          Suchausdruck passt, liest irgendwann sich selbst – und zeigt dann
+          zuverlässig den Wert an, den es gerade selbst hineingeschrieben hat.
+        */}
+        <span data-flaechenwert>arbeit</span>
       </pre>
     </>
   );

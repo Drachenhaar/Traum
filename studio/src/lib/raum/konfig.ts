@@ -171,6 +171,23 @@ export interface Raumkonfig {
     federDaempfung: number;
   };
 
+  /**
+   * Wie weit die Oberfläche zurücktritt, wenn niemand etwas tut.
+   *
+   * Vier Zahlen für einen Gedanken: Nach welcher Stille wird es still, wie
+   * still, wie langsam kommt die Stille und wie schnell geht sie wieder.
+   */
+  flaeche: {
+    /** Nach wie vielen Millisekunden ohne Eingabe Ruhe eintritt. */
+    ruheNachMs: number;
+    /** Wie deutlich die Bedienelemente in Ruhe noch dastehen. Nie unter 0.12. */
+    ruheDeckkraft: number;
+    /** Wie lange das Zurücktreten dauert – darf langsam sein. */
+    beruhigenMs: number;
+    /** Wie lange das Zurückkommen dauert – muss schnell sein. */
+    erscheinenMs: number;
+  };
+
   haptik: {
     andeutung: boolean;
     verpflichtung: boolean;
@@ -271,6 +288,13 @@ export const VORGABE: Raumkonfig = {
     legenMs: 420,
     federHaerte: 210,
     federDaempfung: 34,
+  },
+
+  flaeche: {
+    ruheNachMs: 2600,
+    ruheDeckkraft: 0.34,
+    beruhigenMs: 900,
+    erscheinenMs: 160,
   },
 
   haptik: {

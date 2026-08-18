@@ -27,14 +27,22 @@
  * Die schwierigste Frage dieser Datei, und sie wird in dieser Reihenfolge
  * beantwortet:
  *
- *   1. Steht unter dem Finger etwas, das ihn selbst braucht? (Karte, Regler,
- *      Eingabefeld, ein gezogenes Bild) → dann gehört er dorthin. Ende.
- *   2. Hat der Finger in einem Randstreifen aufgesetzt? → sonst keine Raumgeste.
- *   3. Könnte an dieser Stelle noch gescrollt werden? → dann scrollen.
- *   4. Zeigt die Bewegung wirklich nach innen? → sonst loslassen.
+ *   1. Hat der Finger in einem Randstreifen aufgesetzt? → sonst keine Raumgeste.
+ *   2. Steht dort ein *Bedienelement* – Eingabe, Regler? → dann gehört er dorthin.
+ *   3. Steht dort eine *Arbeitsfläche* – Karte, Zeichenfläche? → nur außerhalb
+ *      der Randstreifen. Am Rand gewinnt der Raum.
+ *   4. Könnte an dieser Stelle noch gescrollt werden? → dann scrollen.
+ *   5. Zeigt die Bewegung wirklich nach innen? → sonst loslassen.
  *
- * Erst wenn alle vier Fragen für die Raumgeste ausgehen, wird sie beansprucht.
- * Jede andere Reihenfolge ergäbe eine Bedienung, die einem den Finger wegnimmt.
+ * **Punkt 1 stand einmal an dritter Stelle**, und Punkt 2 und 3 waren eine
+ * einzige Frage. Beides zusammen ergab einen Fehler, den man erst am Gerät
+ * sieht: Auf der Weltkarte war *jeder* Weg nach außen zu, weil die Karte auf
+ * einem Telefon so breit ist wie der Bildschirm und damit auch die
+ * Randstreifen beansprucht. Ausgerechnet im Weltraum, wo das Erkunden
+ * hingehört.
+ *
+ * Die Regel dahinter ist es wert, sie sich zu merken: **Ein Bauteil darf
+ * seine Mitte beanspruchen. Der Rand gehört dem Raum.**
  */
 
 import { useCallback, useEffect, useRef, type ReactNode } from 'react';
@@ -140,13 +148,44 @@ function scrolltNoch(ziel: EventTarget | null, richtung: Richtung): boolean {
   return false;
 }
 
-/** Gehört der Finger einem Bedienelement oder einer eigenen Arbeitsfläche? */
-function lokalBesetzt(ziel: EventTarget | null): boolean {
+/**
+ * Bedienelemente – sie behalten den Finger **überall**, auch am Rand.
+ *
+ * Alles hier ist klein und liegt dort, wo jemand es hingelegt hat. Ein
+ * Schieberegler, der zufällig am Bildschirmrand endet, muss trotzdem
+ * schiebbar bleiben: Ein Regler, den man nicht bewegen kann, ist kaputt, und
+ * kein Erkunden der Welt wiegt das auf.
+ */
+const BEDIENELEMENTE = 'input, textarea, select, [contenteditable="true"], [role="slider"]';
+
+/**
+ * Arbeitsflächen – sie behalten den Finger nur **abseits der Randstreifen**.
+ *
+ * Der Unterschied zu den Bedienelementen ist die Größe, und er ist der ganze
+ * Punkt. Die Weltkarte beansprucht ihre Fläche zu Recht: Dort malt jemand
+ * eine Küste, und eine halb gezogene Küste, die stattdessen einen Raum
+ * öffnet, wäre unbrauchbar. Auf einem Telefon ist diese Fläche aber so breit
+ * wie der Bildschirm – sie verschluckt damit auch die vierunddreißig Punkte
+ * am Rand, und im Weltraum wäre jeder Weg nach außen zu. Ausgerechnet dort,
+ * wo das Erkunden der Welt hingehört.
+ *
+ * Die Regel lautet deshalb: **Die Mitte gehört der Arbeitsfläche, der Rand
+ * gehört dem Raum.** Das kostet die Karte einen schmalen Streifen an zwei
+ * Seiten und gibt ihr dafür überhaupt eine Tiefe.
+ */
+const ARBEITSFLAECHEN = 'canvas, [data-raum="aus"]';
+
+/**
+ * Gehört der Finger jemand anderem?
+ *
+ * `amRand` sagt, ob die Berührung in einem Randstreifen begonnen hat. Nur
+ * dann tritt eine Arbeitsfläche zurück – ein Bedienelement niemals.
+ */
+function lokalBesetzt(ziel: EventTarget | null, amRand = false): boolean {
   const el = ziel as HTMLElement | null;
   if (!el?.closest) return false;
-  return !!el.closest(
-    'input, textarea, select, [contenteditable="true"], canvas, [data-raum="aus"], [role="slider"]',
-  );
+  if (el.closest(BEDIENELEMENTE)) return true;
+  return amRand ? false : !!el.closest(ARBEITSFLAECHEN);
 }
 
 export function Raumschicht({ children }: { children: ReactNode }) {
@@ -274,7 +313,6 @@ export function Raumschicht({ children }: { children: ReactNode }) {
     /* Während einer laufenden Bewegung nimmt Dragoncore keine neue an. */
     if (useRaum.getState().imUebergang) return;
     if (lauf.current) return;
-    if (lokalBesetzt(e.target)) return;
 
     /*
      * Gemessen wird am **Bildschirm**, nicht am Buchkasten.
@@ -287,6 +325,25 @@ export function Raumschicht({ children }: { children: ReactNode }) {
      */
     const richtung = randRichtung(e.clientX, e.clientY, fenster(), konfig());
     if (!richtung) return;
+
+    /*
+     * Der Randstreifen kommt **vor** der Frage, wem der Finger sonst gehört.
+     *
+     * Diese Reihenfolge stand zuerst andersherum, und das war ein Fehler mit
+     * Ansage: Die Weltkarte beansprucht ihre Fläche mit `data-raum="aus"` –
+     * zu Recht, dort malt jemand eine Küste. Auf einem Telefon füllt diese
+     * Fläche aber die ganze Breite, also **auch den Randstreifen**. Damit war
+     * im Weltraum jeder Weg nach außen zu, und zwar genau dort, wo das
+     * Erkunden der Welt hingehört.
+     *
+     * Ein Bauteil darf seine *Mitte* beanspruchen. Die vierunddreißig Punkte
+     * am Bildschirmrand gehören ihm nicht – die gehören dem Raum, überall und
+     * ohne Ausnahme. Genau so hält es das Blättern schon: `randRichtung`
+     * zuerst, `lokalBesetzt` danach. Zwei Bauteile mit zwei Reihenfolgen für
+     * dieselbe Frage wären ein Widerspruch, der sich als „auf der Karte geht
+     * es nicht" zeigt und den niemand sucht, weil überall sonst alles geht.
+     */
+    if (lokalBesetzt(e.target, true)) return;
     if (scrolltNoch(e.target, richtung)) return;
 
     lauf.current = {
