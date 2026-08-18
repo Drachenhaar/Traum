@@ -395,7 +395,13 @@ export function BookShell() {
                   {blaettern.richtung === 'vor' && <Woelbung />}
                 </div>
 
-                {blaettern.richtung === 'zurueck' && <Blatt richtung="zurueck" />}
+                {/*
+                  In beide Richtungen dreht sich ein Blatt mit. Vorwaerts
+                  uebernimmt es dort, wo die lebende Seite ihre Rueckseite
+                  zeigen wuerde – sonst waere die zweite Haelfte jeder
+                  Drehung eine leere Flaeche.
+                */}
+                {blaettern.richtung && <Blatt richtung={blaettern.richtung} />}
               </Buchkoerper>
             </div>
 

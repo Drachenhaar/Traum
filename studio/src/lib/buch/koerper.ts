@@ -170,15 +170,56 @@ export function blattEntscheidung(
 }
 
 /**
- * Der Winkel des Blattes in Grad – 0 bis −180.
+ * Der Winkel des Blattes in Grad – 0 bis knapp über die Senkrechte.
  *
  * Anders als der Deckel folgt das Blatt dem Finger **fast linear**, und das
  * ist Absicht: Eine Seite hat kaum Masse. Nur ganz zum Schluss zieht sie ein
  * wenig nach, weil sie sich auf den Stapel legt.
+ *
+ * ---
+ *
+ * **Warum nicht hundertachtzig Grad.**
+ *
+ * Zuerst standen hier volle hundertachtzig – die Seite sollte sich ganz
+ * umlegen, wie in einem aufgeschlagenen Buch. In einem aufgeschlagenen Buch
+ * liegt der Falz aber in der *Mitte*, und die Seite fällt auf die andere
+ * Hälfte. Auf einem Telefon ist nur eine Seite zu sehen; der Falz liegt am
+ * linken Bildschirmrand. Jenseits der Senkrechten schwingt die Seite damit
+ * nach links aus dem Bild – und die zweite Hälfte jeder Bewegung fand
+ * außerhalb des Bildschirms statt. Man zog, und nach der Mitte war einfach
+ * nichts mehr da.
+ *
+ * In Zahlen war davon nichts zu sehen: Winkel, Weg, Schatten, alles stimmte.
+ * Sichtbar wurde es erst auf einem Streifen aus sechs Einzelbildern, auf dem
+ * zwei davon leer waren.
+ *
+ * Jetzt endet die Drehung *kurz vor* der Senkrechten. Auch das war eine
+ * Korrektur: Bei genau zweiundneunzig Grad stand die Seite hochkant und war
+ * ein Strich – am Ende jeder Bewegung wieder ein leeres Bild, nur kürzer.
+ * Bei zweiundachtzig bleibt ein handbreiter Streifen Papier stehen, bis die
+ * neue Seite ihn ablöst. Man sieht die ganze Bewegung hindurch etwas.
+ *
+ * Der Wert ist ein Regler, weil er vom Gerät abhängt: Auf einem iPad mit
+ * echter Doppelseite darf eine Seite wieder weiter fallen, weil sie dort auf
+ * die andere Buchhälfte trifft statt ins Leere.
  */
-export function blattwinkel(weg: number): number {
+export function blattwinkel(weg: number, k: Raumkonfig): number {
   const t = klemme(weg);
-  return -(t * 0.88 + t * t * 0.12) * 180;
+  return -(t * 0.88 + t * t * 0.12) * k.seite.maxWinkelGrad;
+}
+
+/**
+ * Der Winkel des Blattes, das beim Zurückblättern hereinfällt.
+ *
+ * Spiegelbildlich zum Vorwärtsblättern: Es kommt hochkant herein und legt
+ * sich flach hin. Deshalb derselbe Verlauf, nur rückwärts gelesen – und
+ * nicht, wie zuerst, „minus hundertachtzig minus der andere Winkel". Diese
+ * Rechnung stimmte nur, solange eine Seite volle hundertachtzig Grad drehte;
+ * mit dem Deckel bei zweiundneunzig hätte sie das Blatt hochkant stehen
+ * lassen, statt es hinzulegen.
+ */
+export function blattwinkelZurueck(weg: number, k: Raumkonfig): number {
+  return blattwinkel(1 - klemme(weg), k);
 }
 
 /**
@@ -223,8 +264,8 @@ export function blattschatten(weg: number, k: Raumkonfig): number {
  * vollständig unter dem Blatt selbst: gerechnet, gezeichnet, und trotzdem nie
  * zu sehen. Aufgefallen ist es erst im Bild.
  */
-export function blattkante(weg: number): number {
-  const rad = (blattwinkel(weg) * Math.PI) / 180;
+export function blattkante(weg: number, k: Raumkonfig): number {
+  const rad = (blattwinkel(weg, k) * Math.PI) / 180;
   return klemme(Math.cos(rad));
 }
 

@@ -207,8 +207,20 @@ p('  nach rechts heißt zurück', M.blattrichtung(40), 'zurueck');
   p('  eine hohe Schwelle hält denselben Zug zurück', M.blattEntscheidung(0.5, 0.05, streng), 'zurueck');
 }
 
-p('  in Ruhe steht die Seite gerade', M.blattwinkel(0), -0);
-p('  ganz umgelegt sind es 180 Grad', M.blattwinkel(1), -180);
+p('  in Ruhe steht die Seite gerade', M.blattwinkel(0, k), -0);
+/*
+ * Knapp über die Senkrechte – nicht hundertachtzig.
+ *
+ * Der Falz liegt auf dem Telefon am linken Bildschirmrand. Alles jenseits der
+ * Senkrechten schwingt aus dem Bild, und die zweite Hälfte der Bewegung wäre
+ * unsichtbar. Genau das war der Fehler, den erst ein Bildstreifen zeigte.
+ */
+p('  ganz gedreht steht sie knapp hinter der Senkrechten', M.blattwinkel(1, k), -k.seite.maxWinkelGrad);
+wahr('  und nie so weit, dass sie aus dem Bild schwingt', k.seite.maxWinkelGrad <= 110);
+
+/* Das hereinfallende Blatt ist das Spiegelbild: hochkant herein, flach hin. */
+p('  das Blatt kommt hochkant herein', M.blattwinkelZurueck(0, k), -k.seite.maxWinkelGrad);
+p('  und legt sich flach hin', M.blattwinkelZurueck(1, k), -0);
 
 /*
  * Die Wölbung ist am stärksten in der Mitte.
@@ -237,14 +249,29 @@ p('  ohne Zug kein Schatten', M.blattschatten(0, k), 0);
  * schrumpft die Bedeckung durchgehend – wäre sie irgendwo wieder größer,
  * spränge der Schatten beim Ziehen zurück.
  */
-p('  in Ruhe bedeckt das Blatt alles', Math.round(M.blattkante(0) * 1000) / 1000, 1);
-p('  ganz umgelegt bedeckt es nichts', M.blattkante(1), 0);
-wahr('  senkrecht bedeckt es fast nichts', M.blattkante(0.55) < 0.15);
+p('  in Ruhe bedeckt das Blatt alles', Math.round(M.blattkante(0, k) * 1000) / 1000, 1);
+
+/*
+ * **Diese Zusicherung stand einmal genau andersherum**, und sie war der
+ * Fehler in Testform: „ganz gedreht bedeckt es nichts". Das stimmte – und
+ * hieß, dass am Ende jeder Bewegung ein leeres Bild steht. Ein Blatt, das
+ * beim Umlegen unsichtbar wird, ist kein Blatt, sondern ein Schnitt.
+ *
+ * Jetzt gilt das Gegenteil: Über die ganze Bewegung hinweg bleibt Papier zu
+ * sehen. Wenig am Ende – ein handbreiter Streifen –, aber nie nichts.
+ */
+wahr('  ganz gedreht bleibt ein Streifen stehen', M.blattkante(1, k) > 0.05);
+wahr('  aber nur noch ein schmaler', M.blattkante(1, k) < 0.3);
+{
+  let immerSichtbar = true;
+  for (let t = 0; t <= 1.0001; t += 0.02) if (M.blattkante(t, k) <= 0.05) immerSichtbar = false;
+  wahr('  und auf dem ganzen Weg verschwindet es nie', immerSichtbar);
+}
 {
   let faellt = true;
   let vorher = 2;
   for (let t = 0; t <= 1.0001; t += 0.02) {
-    const v = M.blattkante(t);
+    const v = M.blattkante(t, k);
     if (v > vorher + 1e-9) faellt = false;
     vorher = v;
   }

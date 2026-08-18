@@ -42,6 +42,7 @@ import {
   blattschatten,
   blattweg,
   blattwinkel,
+  blattwinkelZurueck,
   kruemmung,
   type Blattrichtung,
 } from '../../lib/buch/koerper';
@@ -109,7 +110,7 @@ export function useBlaettern({
        * erzeugt; ohne diese Zahl rät man an einem Regler herum.
        */
       el.style.setProperty('--dc-blatt-tempo', tempo.toFixed(3));
-      const winkel = blattwinkel(weg);
+      const winkel = blattwinkel(weg, k);
       el.style.setProperty('--dc-blatt', String(weg));
       /*
        * Zwei Winkel, nicht einer.
@@ -120,10 +121,13 @@ export function useBlaettern({
        * eines von beiden spiegelverkehrt machen.
        */
       el.style.setProperty('--dc-seite-winkel', r === 'vor' ? `${winkel}deg` : '0deg');
-      el.style.setProperty('--dc-blatt-winkel', r === 'zurueck' ? `${-180 - winkel}deg` : '0deg');
+      el.style.setProperty(
+        '--dc-blatt-winkel',
+        r === 'zurueck' ? `${blattwinkelZurueck(weg, k)}deg` : '0deg',
+      );
       el.style.setProperty('--dc-blatt-woelb', String(kruemmung(weg, k)));
       el.style.setProperty('--dc-blatt-schatt', String(blattschatten(weg, k)));
-      el.style.setProperty('--dc-blatt-kante', String(blattkante(weg)));
+      el.style.setProperty('--dc-blatt-kante', String(blattkante(weg, k)));
     },
     [huelle],
   );
@@ -133,7 +137,7 @@ export function useBlaettern({
     if (!el) return;
     el.style.setProperty('--dc-blatt', '0');
     el.style.setProperty('--dc-seite-winkel', '0deg');
-    el.style.setProperty('--dc-blatt-winkel', '0deg');
+    el.style.setProperty('--dc-blatt-winkel', `${blattwinkelZurueck(0, konfig())}deg`);
     el.style.setProperty('--dc-blatt-woelb', '0');
     el.style.setProperty('--dc-blatt-schatt', '0');
     el.style.setProperty('--dc-blatt-kante', '1');

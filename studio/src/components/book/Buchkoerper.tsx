@@ -128,28 +128,60 @@ export function Buchkoerper({
  *   --dc-blatt-woelb  0…1, die Krümmungsillusion
  *   --dc-blatt-schatt 0…1, wie tief der Schatten fällt
  *
- * Das Blatt trägt **keinen Inhalt**. Beim Vorwärtsblättern dreht sich die
- * lebende Seite selbst weg und darunter liegt dieses leere Papier; beim
- * Zurückblättern fällt es von links auf die Seite. In beiden Fällen sieht man
- * mitten in der Bewegung Papier – so wie in einem echten Buch, wo eine
- * halbgedrehte Seite auch nichts Lesbares zeigt.
+ * Das Blatt trägt **keinen Inhalt**. Es ist die Rückseite: das, was man sieht,
+ * wenn eine Seite auf der Kante steht und sich weiterdreht.
  *
- * Der Preis der Illusion: Der *Inhalt* der Zielseite erscheint erst, wenn die
- * Bewegung durch ist. Ob man das merkt, entscheidet der Daumen; darum geht es
- * in dieser Runde.
+ * ---
+ *
+ * **Die Lücke in der Mitte jeder Drehung.**
+ *
+ * Zuerst gab es dieses Blatt nur beim Zurückblättern. Vorwärts drehte sich die
+ * lebende Seite weg – und war ab neunzig Grad schlicht verschwunden, weil ihre
+ * Rückseite ausgeblendet ist. Die zweite Hälfte jeder Bewegung sah man auf
+ * leeres Papier, ohne Kante, ohne Wölbung, ohne irgendetwas, das sich noch
+ * bewegt hätte. In Zahlen war das nicht zu sehen; im Bild bei Station vier von
+ * sechs war der Bildschirm einfach leer.
+ *
+ * Genau in dieser Hälfte soll man aber etwas *fühlen*. Ein Blatt, das
+ * unterwegs unsichtbar wird, ist kein Blatt, sondern ein Übergang mit einer
+ * Pause darin.
+ *
+ * Deshalb dreht sich jetzt in **beide** Richtungen ein Blatt mit: vorwärts
+ * liegt es dicht unter der lebenden Seite und trägt denselben Winkel, sodass
+ * es genau dann übernimmt, wenn die Seite ihre Rückseite zeigen würde.
+ * Rückwärts fällt es von links darauf. In beiden Fällen ist über die ganze
+ * Drehung hinweg ein Gegenstand in der Hand.
+ *
+ * Der Preis der Illusion bleibt: Der *Inhalt* der Zielseite erscheint erst,
+ * wenn die Bewegung durch ist. Aber Papier mit einer Kante und einer Wölbung
+ * ist etwas anderes als eine leere Fläche.
  */
 export function Blatt({ richtung }: { richtung: 'vor' | 'zurueck' }) {
   const vor = richtung === 'vor';
   return (
     <div
       aria-hidden
-      className="dc-blatt pointer-events-none absolute inset-0 z-30"
+      className="dc-blatt pointer-events-none absolute inset-0"
       data-richtung={richtung}
       style={{
-        transformOrigin: vor ? 'left center' : 'left center',
-        transform: 'rotateY(var(--dc-blatt-winkel, 0deg))',
+        transformOrigin: 'left center',
+        /*
+         * Vorwärts denselben Winkel wie die lebende Seite – nur ohne deren
+         * ausgeblendete Rückseite. Rückwärts der eigene Winkel des
+         * hereinfallenden Blattes.
+         */
+        transform: vor
+          ? 'rotateY(var(--dc-seite-winkel, 0deg))'
+          : 'rotateY(var(--dc-blatt-winkel, 0deg))',
         transformStyle: 'preserve-3d',
-        backfaceVisibility: 'hidden',
+        /*
+         * Vorwärts sichtbar von beiden Seiten: Sonst verschwände dieses Blatt
+         * an genau derselben Stelle wie die Seite, und die Lücke wäre wieder
+         * da. Es liegt knapp unter der Seite (z-[9] gegen z-10), also sieht
+         * man bis neunzig Grad die Seite und danach das Papier.
+         */
+        backfaceVisibility: vor ? 'visible' : 'hidden',
+        zIndex: vor ? 9 : 30,
       }}
     >
       <span className="paper-sheet absolute inset-0 block rounded-[3px]" />

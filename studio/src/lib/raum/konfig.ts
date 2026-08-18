@@ -160,6 +160,16 @@ export interface Raumkonfig {
     /** Wie weit der Finger ziehen muss, bevor ein Blattwechsel beginnt. */
     totzonePx: number;
     kruemmung: number;
+    /**
+     * Wie weit sich ein Blatt höchstens dreht, in Grad.
+     *
+     * Knapp über die Senkrechte und **nicht** hundertachtzig: Auf einem
+     * Telefon liegt der Falz am linken Bildschirmrand, nicht in der Mitte
+     * eines aufgeschlagenen Buches. Alles jenseits der Senkrechten schwingt
+     * aus dem Bild. Auf einem iPad mit echter Doppelseite darf der Wert
+     * wieder wachsen – deshalb ein Regler.
+     */
+    maxWinkelGrad: number;
     /** Wie deutlich der Falz in der Mitte steht. */
     falzstaerke: number;
     schatten: number;
@@ -282,6 +292,7 @@ export const VORGABE: Raumkonfig = {
     schnellTempoPxProMs: 0.6,
     totzonePx: 10,
     kruemmung: 0.6,
+    maxWinkelGrad: 82,
     falzstaerke: 0.55,
     schatten: 0.7,
     zurueckMs: 300,
