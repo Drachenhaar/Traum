@@ -89,6 +89,62 @@ p('  unten die Notizen', G.randRichtung(200, feld.hoehe - k.geste.randEinzugPx -
 p('  der äußerste Rand gehört iOS', G.randRichtung(2, 400, feld, k), undefined);
 p('  und die Mitte niemandem', G.randRichtung(195, 400, feld, k), undefined);
 
+/*
+ * Die Systemzonen oben und unten.
+ *
+ * **Das hier ist der Fehler, der auf dem Gerät auftrat und im Browser nicht.**
+ * Links und rechts ging alles, oben und unten nichts. Der Grund: Die Seite
+ * läuft mit `viewport-fit=cover` und reicht damit unter die Dynamic Island und
+ * unter den Home-Indikator. Der obere Streifen lag mitten in der Statusleiste,
+ * der untere in der Geste zum Startbildschirm – beide Zonen gehören iOS, und
+ * dagegen gewinnt keine Anwendung.
+ *
+ * Ein iPhone mit Aussparung: knapp sechzig Punkte oben, vierunddreißig unten.
+ * Dazu der Sicherheitsabstand aus der Konfiguration.
+ */
+const iphone = {
+  breite: 390,
+  hoehe: 844,
+  oben: 59 + k.geste.systemEinzugObenPx,
+  unten: 34 + k.geste.systemEinzugUntenPx,
+};
+
+p(
+  '  in der Statusleiste beginnt nichts',
+  G.randRichtung(200, 20, iphone, k),
+  undefined,
+);
+p(
+  '  am Home-Indikator auch nicht',
+  G.randRichtung(200, iphone.hoehe - 20, iphone, k),
+  undefined,
+);
+p(
+  '  aber unterhalb der sicheren Fläche schon',
+  G.randRichtung(200, iphone.oben + k.geste.randEinzugPx + 5, iphone, k),
+  'oben',
+);
+p(
+  '  und oberhalb des Indikators ebenso',
+  G.randRichtung(200, iphone.hoehe - iphone.unten - k.geste.randEinzugPx - 5, iphone, k),
+  'unten',
+);
+
+/*
+ * Waagerecht ändert sich dadurch nichts.
+ *
+ * Die Systemzonen liegen oben und unten; links und rechts gibt es nur Safaris
+ * Zurück-Wisch am äußersten Rand, und den umgeht `randEinzugPx` bereits. Wer
+ * den senkrechten Einzug auch waagerecht anwendete, verschöbe eine Bedienung,
+ * die funktioniert.
+ */
+p('  der rechte Rand bleibt, wo er war', G.randRichtung(rechtsX, 400, iphone, k), 'rechts');
+p('  der linke auch', G.randRichtung(k.geste.randEinzugPx + 5, 400, iphone, k), 'links');
+
+/* Ohne Angaben zur sicheren Fläche verhält sich alles wie zuvor – ein Gerät
+ * ohne Aussparung verliert nichts. */
+p('  ein Gerät ohne Aussparung behält den Rand', G.randRichtung(200, 20, feld, k), 'oben');
+
 /* --------------------------------------------------------- 2. Die Schwellen */
 
 p(
