@@ -31,11 +31,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Copy, X } from 'lucide-react';
 import {
+  BUCHVORLAGEN,
   VORGABE,
   VORLAGEN,
   alsQuelltext,
   beiKonfig,
+  buchvorlage,
   konfig,
+  setzeBuchvorlage,
   setzeKonfig,
   setzeVorlage,
   type Raumkonfig,
@@ -87,6 +90,40 @@ const REGLER: { gruppe: Gruppe; feld: string; von: number; bis: number; schritt:
 
   { gruppe: 'langdruck', feld: 'dauerMs', von: 200, bis: 1200, schritt: 25, name: 'Langdruck (ms)' },
   { gruppe: 'langdruck', feld: 'toleranzPx', von: 2, bis: 30, schritt: 1, name: 'Langdruck-Toleranz' },
+
+  /*
+   * Der Körper des Buches.
+   *
+   * `gewicht` steht absichtlich ganz oben: Es ist der einzige Regler hier,
+   * der mehrere Dinge zugleich dreht, und meistens der einzige, den man
+   * braucht. Die darunter sind zum Nachschärfen, wenn das Gewicht stimmt und
+   * trotzdem etwas nicht passt.
+   */
+  { gruppe: 'buch', feld: 'gewicht', von: 0, bis: 1, schritt: 0.02, name: 'Gewicht' },
+  { gruppe: 'buch', feld: 'hub', von: 0, bis: 20, schritt: 0.5, name: 'Hub bei Berührung' },
+  { gruppe: 'buch', feld: 'skala', von: 1, bis: 1.05, schritt: 0.002, name: 'Wachsen bei Berührung' },
+  { gruppe: 'buch', feld: 'deckelwiderstand', von: 0, bis: 1, schritt: 0.02, name: 'Deckelwiderstand' },
+  { gruppe: 'buch', feld: 'deckelWinkelGrad', von: 120, bis: 180, schritt: 1, name: 'Deckelwinkel' },
+  { gruppe: 'buch', feld: 'koerpertraegheit', von: 0, bis: 1, schritt: 0.02, name: 'Körperträgheit' },
+  { gruppe: 'buch', feld: 'oeffnenMs', von: 300, bis: 1600, schritt: 20, name: 'Öffnen (ms)' },
+  { gruppe: 'buch', feld: 'schliessenMs', von: 200, bis: 1200, schritt: 20, name: 'Schließen (ms)' },
+  { gruppe: 'buch', feld: 'einrastenMs', von: 100, bis: 700, schritt: 10, name: 'Aufrichten (ms)' },
+  { gruppe: 'buch', feld: 'einraststaerke', von: 0, bis: 1, schritt: 0.02, name: 'Einraststärke' },
+  { gruppe: 'buch', feld: 'schattenstaerke', von: 0, bis: 1.4, schritt: 0.02, name: 'Schattenstärke' },
+  { gruppe: 'buch', feld: 'schattenverzoegerungMs', von: 0, bis: 300, schritt: 5, name: 'Schatten läuft nach (ms)' },
+
+  { gruppe: 'seite', feld: 'wegAnteil', von: 0.2, bis: 1, schritt: 0.02, name: 'Ziehweg (Anteil)' },
+  { gruppe: 'seite', feld: 'schwelle', von: 0.15, bis: 0.8, schritt: 0.01, name: 'Umlegen ab' },
+  { gruppe: 'seite', feld: 'schnellMindestweg', von: 0.04, bis: 0.5, schritt: 0.01, name: 'Schnellblättern ab' },
+  { gruppe: 'seite', feld: 'schnellTempoPxProMs', von: 0.2, bis: 2, schritt: 0.05, name: 'Schnellblättern-Tempo' },
+  { gruppe: 'seite', feld: 'totzonePx', von: 0, bis: 40, schritt: 1, name: 'Totzone' },
+  { gruppe: 'seite', feld: 'kruemmung', von: 0, bis: 1.4, schritt: 0.02, name: 'Wölbung' },
+  { gruppe: 'seite', feld: 'falzstaerke', von: 0, bis: 1.5, schritt: 0.02, name: 'Falzstärke' },
+  { gruppe: 'seite', feld: 'schatten', von: 0, bis: 1.4, schritt: 0.02, name: 'Blattschatten' },
+  { gruppe: 'seite', feld: 'zurueckMs', von: 100, bis: 700, schritt: 10, name: 'Zurückfedern (ms)' },
+  { gruppe: 'seite', feld: 'legenMs', von: 150, bis: 900, schritt: 10, name: 'Umlegen (ms)' },
+  { gruppe: 'seite', feld: 'federHaerte', von: 60, bis: 400, schritt: 10, name: 'Federhärte' },
+  { gruppe: 'seite', feld: 'federDaempfung', von: 8, bis: 70, schritt: 1, name: 'Dämpfung' },
 ];
 
 const SCHALTER: { feld: keyof Raumkonfig['haptik']; name: string }[] = [
@@ -94,6 +131,10 @@ const SCHALTER: { feld: keyof Raumkonfig['haptik']; name: string }[] = [
   { feld: 'verpflichtung', name: 'Haptik bei Schwelle' },
   { feld: 'einrasten', name: 'Haptik beim Einrasten' },
   { feld: 'heimkehr', name: 'Haptik bei Heimkehr' },
+  { feld: 'beruehrung', name: 'Haptik bei Berührung' },
+  { feld: 'oeffnen', name: 'Haptik beim Aufschlagen' },
+  { feld: 'blattFest', name: 'Haptik beim Umlegen' },
+  { feld: 'blattRuht', name: 'Haptik beim Ankommen' },
 ];
 
 export function InteractionLab() {
@@ -146,7 +187,15 @@ export function InteractionLab() {
           </button>
         </div>
 
-        <div className="mb-3 flex flex-wrap gap-1.5">
+        {/*
+          Zwei Reihen, zwei Achsen.
+          Oben, wie die Bedienung antwortet; darunter, wie sich das Buch
+          anfühlt. Sie kreuzen sich frei – ein antwortfreudiger RAUM mit einem
+          SCHWEREN Buch ist eine gültige Einstellung und die interessanteste
+          Frage, die dieses Zimmer stellen kann.
+        */}
+        <div className="mb-2 flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-paper-400/40">RAUM</span>
           {Object.keys(VORLAGEN).map((name) => (
             <button
               key={name}
@@ -166,7 +215,25 @@ export function InteractionLab() {
           </button>
         </div>
 
-        {(['geste', 'bogen', 'bewegung', 'doppeltipp', 'langdruck'] as Gruppe[]).map((gruppe) => (
+        <div className="mb-3 flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-paper-400/40">BUCH</span>
+          {Object.keys(BUCHVORLAGEN).map((name) => (
+            <button
+              key={name}
+              type="button"
+              onClick={() => setzeBuchvorlage(name)}
+              className={
+                buchvorlage() === name
+                  ? 'rounded-full border border-gild-400 bg-gild-500/20 px-3 py-1 text-gild-200'
+                  : 'rounded-full border border-gild-500/40 px-3 py-1 text-gild-300'
+              }
+            >
+              {name}
+            </button>
+          ))}
+        </div>
+
+        {(['geste', 'bogen', 'bewegung', 'doppeltipp', 'langdruck', 'buch', 'seite'] as Gruppe[]).map((gruppe) => (
           <section key={gruppe} className="mb-3">
             <p className="mb-1 uppercase tracking-widest text-paper-400/50">{gruppe}</p>
             {REGLER.filter((r) => r.gruppe === gruppe).map((r) => (
@@ -190,7 +257,7 @@ export function InteractionLab() {
         ))}
 
         <section className="mb-4">
-          <p className="mb-1 uppercase tracking-widest text-paper-400/50">haptik</p>
+          <p className="mb-1 uppercase tracking-widest text-paper-400/50">feedback</p>
           {SCHALTER.map((s) => (
             <label key={s.feld} className="mb-1 flex items-center gap-2">
               <input
@@ -209,7 +276,9 @@ export function InteractionLab() {
 
         <p className="pb-4 leading-relaxed text-paper-400/40">
           Vorgabe zum Vergleich: Öffnen ab {VORGABE.geste.verpflichtung}, Andeutung ab{' '}
-          {VORGABE.geste.andeutung}, Heimkehr {VORGABE.bewegung.heimkehrMs} ms.
+          {VORGABE.geste.andeutung}, Heimkehr {VORGABE.bewegung.heimkehrMs} ms. Buch: Gewicht{' '}
+          {VORGABE.buch.gewicht}, Deckelwiderstand {VORGABE.buch.deckelwiderstand}, Umlegen ab{' '}
+          {VORGABE.seite.schwelle}.
         </p>
       </div>
     </>
@@ -268,14 +337,55 @@ function Sichtfenster() {
    */
   useEffect(() => {
     let laeuft = 0;
+    const setze = (name: string, text: string) => {
+      const el = anzeige.current?.querySelector(`[data-${name}]`) as HTMLElement | null;
+      if (el) el.textContent = text;
+    };
     const tick = () => {
       const el = document.querySelector('.dc-schicht') as HTMLElement | null;
-      const wert = anzeige.current?.querySelector('[data-weg]') as HTMLElement | null;
-      if (el && wert) {
+      if (el) {
         const roh = Number(getComputedStyle(el).getPropertyValue('--dc-bogen')) || 0;
         /* Zurück auf den Gestenfortschritt – die Schicht rechnet den Einzug ein. */
-        wert.textContent = ((roh * 0.5) / konfig().bogen.maxEinzugAnteil).toFixed(3);
+        setze('weg', ((roh * 0.5) / konfig().bogen.maxEinzugAnteil).toFixed(3));
       }
+
+      /*
+       * Das Buch wird genauso gelesen wie der Raum: aus dem DOM.
+       *
+       * Der laufende Blattwechsel steht absichtlich nirgends im React-Zustand,
+       * damit er den Finger nicht ausbremst. Also steht er hier auch nicht
+       * darin – die Anzeige holt sich dieselben Zahlen, die auch gezeichnet
+       * werden, und kann deshalb gar nicht etwas anderes behaupten.
+       */
+      const kasten = document.querySelector('.dc-buchkasten') as HTMLElement | null;
+      const wurzel = document.documentElement;
+      const zustand = wurzel.dataset.buch ?? (kasten ? 'offen' : 'geschlossen');
+      const blatt = kasten?.dataset.blatt ?? 'ruhe';
+      const stil = kasten ? getComputedStyle(kasten) : null;
+
+      setze('buchzustand', blatt !== 'ruhe' ? `blaettert (${blatt})` : zustand);
+      setze(
+        'deckel',
+        (Number(getComputedStyle(wurzel).getPropertyValue('--dc-buch-fortschritt')) || 0).toFixed(3),
+      );
+      setze('blattweg', (Number(stil?.getPropertyValue('--dc-blatt')) || 0).toFixed(3));
+      setze('blatttempo', (Number(stil?.getPropertyValue('--dc-blatt-tempo')) || 0).toFixed(3));
+      setze('seite', wurzel.dataset.seite ?? '—');
+
+      /*
+       * Wem gehört der Finger – abgelesen, nicht behauptet.
+       *
+       * Diese eine Zeile ist der Grund, warum die Reihenfolge in
+       * `useBlaettern` überhaupt prüfbar ist. Steht hier während eines Zugs am
+       * Rand „blatt", ist das Ankerprinzip beschädigt, und man sieht es sofort
+       * statt es später als „manchmal blättert es falsch" zu erraten.
+       */
+      const raumPhase = el?.dataset.phase ?? 'ruhe';
+      setze(
+        'besitzer',
+        raumPhase !== 'ruhe' ? 'raum' : blatt !== 'ruhe' ? 'blatt' : 'niemand',
+      );
+
       laeuft = requestAnimationFrame(tick);
     };
     laeuft = requestAnimationFrame(tick);
@@ -327,9 +437,24 @@ function Sichtfenster() {
         <span data-weg>0.000</span>
         {`\nschwelle ${k.geste.verpflichtung}\n`}
         {`ort      ${s.ort}\n`}
-        {`tiefe    ${s.tiefe}\n`}
+        {`tiefe    ${s.tiefe}${s.tiefe > 0 ? ' (depth)' : ''}\n`}
         {`anker    ${s.ankerId ?? '—'}\n`}
-        {`sicher   oben ${Math.round(feld.oben ?? 0)} unten ${Math.round(feld.unten ?? 0)}`}
+        {`sicher   oben ${Math.round(feld.oben ?? 0)} unten ${Math.round(feld.unten ?? 0)}\n`}
+        {'—— buch ——\n'}
+        {'zustand  '}
+        <span data-buchzustand>geschlossen</span>
+        {'\ndeckel   '}
+        <span data-deckel>0.000</span>
+        {'\nblatt    '}
+        <span data-blattweg>0.000</span>
+        {' @ '}
+        <span data-blatttempo>0.000</span>
+        {` px/ms\nkippt ab ${k.seite.schwelle}\n`}
+        {'seite    '}
+        <span data-seite>—</span>
+        {'\nfinger   '}
+        <span data-besitzer>niemand</span>
+        {`\nvorlage  ${buchvorlage()}`}
       </pre>
     </>
   );

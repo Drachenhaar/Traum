@@ -234,11 +234,23 @@ export function Raumschicht({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const setze = () => {
-      const k = konfig().bewegung;
+      const g = konfig();
+      const k = g.bewegung;
       const w = document.documentElement.style;
       w.setProperty('--dc-dauer-oeffnen', `${k.verpflichtenMs}ms`);
       w.setProperty('--dc-dauer-abbruch', `${k.abbrechenMs}ms`);
       w.setProperty('--dc-dauer-heim', `${k.heimkehrMs}ms`);
+      /*
+       * Die Dauern des Buches wohnen an derselben Stelle.
+       *
+       * Nicht, weil sie zur Raumschicht gehören – sondern weil es genau *eine*
+       * Stelle geben soll, an der aus einer Konfiguration eine CSS-Variable
+       * wird. Zwei solche Stellen hießen: zwei Gelegenheiten, das Nachziehen
+       * beim Ändern im Labor zu vergessen.
+       */
+      w.setProperty('--dc-seite-zurueck', `${g.seite.zurueckMs}ms`);
+      w.setProperty('--dc-seite-legen', `${g.seite.legenMs}ms`);
+      w.setProperty('--dc-falz', String(g.seite.falzstaerke));
     };
     setze();
     /* Das Labor darf die Dauern im Betrieb ändern. */

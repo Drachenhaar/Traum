@@ -122,7 +122,7 @@
    * geschlossenes. Ohne Verkleinerung liefe die Doppelseite aus dem Bild.
    */
   .book-stage {
-    transition: transform 300ms cubic-bezier(0.42, 0, 0.22, 1);
+    transition: transform var(--dc-buch-richten, 300ms) cubic-bezier(0.42, 0, 0.22, 1);
   }
   .book-zu {
     transform: rotateY(-13deg) rotateX(5deg);
@@ -132,7 +132,7 @@
   }
   .book-offen {
     transform: rotateY(0deg) rotateX(2deg) translateX(46%);
-    transition-duration: 900ms;
+    transition-duration: var(--dc-buch-oeffnen, 900ms);
   }
   @media (max-width: 767px) {
     /* Erst kleiner, dann schieben - so bleibt die ganze Doppelseite im Bild. */
@@ -270,6 +270,24 @@
   }
 
   /* Eigene, dezente Scrollbar (Desktop) */
+  /*
+   * Senkrecht scrollen ja, waagerecht nie.
+   *
+   * Diese zwei Wörter sind der Unterschied zwischen „das Blättern geht" und
+   * „das Blättern geht manchmal". `touch-action` am Buchkasten allein genügt
+   * nicht: Zwischen Finger und Kasten liegt dieser Scrollbehälter, und ein
+   * Scrollbehälter, der waagerechtes Ziehen erlaubt, beansprucht die Geste
+   * für sich – der Browser schickt dann mitten in der Bewegung ein
+   * `pointercancel`, und das Blatt fällt zurück, obwohl der Finger noch
+   * zieht.
+   *
+   * Am Schreibtisch sieht man das nie: Mit der Maus gibt es kein
+   * `pointercancel`. Gefunden wurde es mit echten Berührungsereignissen bei
+   * 390 × 844 – dieselbe Art Fehler wie die Systemzonen oben und unten.
+   */
+  .scroll-slim {
+    touch-action: pan-y;
+  }
   .scroll-slim::-webkit-scrollbar {
     width: 10px;
     height: 10px;
@@ -351,6 +369,20 @@
   --dc-dauer-oeffnen: 330ms;
   --dc-dauer-abbruch: 240ms;
   --dc-dauer-heim: 360ms;
+
+  /*
+   * Der Körper des Buches. Auch diese Werte werden zur Laufzeit
+   * überschrieben – hier stehen die Ruhelagen, damit ein Buch, an dem noch
+   * niemand gezogen hat, flach und geschlossen daliegt.
+   */
+  --dc-blatt: 0;
+  --dc-seite-winkel: 0deg;
+  --dc-blatt-winkel: 0deg;
+  --dc-blatt-woelb: 0;
+  --dc-blatt-schatt: 0;
+  --dc-falz: 0.55;
+  --dc-seite-zurueck: 300ms;
+  --dc-seite-legen: 420ms;
 }
 
 /*
@@ -450,6 +482,80 @@
   will-change: transform;
 }
 
+/* =========================================================================
+ * DER KÖRPER DES BUCHES
+ *
+ * Hier steht nur, wie die Zahlen aussehen, die `useBlaettern` schreibt. Die
+ * Zahlen selbst entstehen in `lib/buch/koerper.ts`, ohne DOM und ohne Zeit.
+ * Dieselbe Teilung wie überall in diesem Projekt: eine Wahrheit, mehrere
+ * Erscheinungen – und wenn das Blättern sich falsch anfühlt, weiß man vorher,
+ * ob man Mathematik oder Aussehen anzufassen hat.
+ * ========================================================================= */
+
+.dc-buchkasten {
+  transform-style: preserve-3d;
+  /*
+   * Waagerechtes Ziehen gehört dem Blatt, senkrechtes dem Text.
+   *
+   * `touch-action: pan-y` sagt das dem Browser *bevor* ein Ereignis bei uns
+   * ankommt. Ohne die Zeile nimmt Safari das waagerechte Ziehen für seine
+   * eigene Zurück-Geste, und das Blatt bekäme mitten in der Bewegung ein
+   * pointercancel – genau der Fehler, der sich als „manchmal blättert es
+   * nicht" zeigt und den man am Schreibtisch nie sieht.
+   */
+  touch-action: pan-y;
+}
+
+/*
+ * Die lebende Seite dreht sich um den Falz.
+ *
+ * Während des Ziehens hängt sie ohne Übergang am Finger. Erst wenn
+ * `data-blatt-federt` gesetzt ist – und das setzt der Haken ausschließlich
+ * beim Loslassen –, darf eine Dauer mitreden.
+ */
+.dc-seite {
+  transform: rotateY(var(--dc-seite-winkel, 0deg));
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
+.dc-blatt {
+  will-change: transform;
+}
+
+/*
+ * Zurückfedern und Umlegen sind zwei verschiedene Bewegungen.
+ *
+ * Zurück: kurz und mit einem Hauch Überschwingen, wie Papier, das sich
+ * aufrichtet. Umlegen: länger und am Ende ausklingend, weil ein Blatt nicht
+ * gegen den Stapel schlägt, sondern sich darauf legt.
+ */
+.dc-buchkasten[data-blatt-federt='ja'] .dc-seite,
+.dc-buchkasten[data-blatt-federt='ja'] .dc-blatt {
+  transition: transform var(--dc-seite-zurueck, 300ms) cubic-bezier(0.18, 0.9, 0.32, 1.12);
+}
+.dc-buchkasten[data-blatt-federt='ja'][data-blatt-legt='ja'] .dc-seite,
+.dc-buchkasten[data-blatt-federt='ja'][data-blatt-legt='ja'] .dc-blatt {
+  transition: transform var(--dc-seite-legen, 420ms) cubic-bezier(0.26, 0.64, 0.2, 1);
+}
+
+/*
+ * Der Schatten und die Wölbung hinken bewusst nicht hinterher.
+ *
+ * Sie hängen an Deckkraft und Breite, nicht an `transform`, und bekommen beim
+ * Federn dieselbe Dauer – ein Schatten, der stehen bleibt, während das Blatt
+ * schon liegt, verrät die Illusion sofort.
+ */
+.dc-buchkasten[data-blatt-federt='ja'] .dc-blatt > span,
+.dc-buchkasten[data-blatt-federt='ja'] .dc-blattschatten {
+  transition:
+    opacity var(--dc-seite-zurueck, 300ms) ease-out,
+    width var(--dc-seite-zurueck, 300ms) ease-out,
+    background-color var(--dc-seite-zurueck, 300ms) ease-out;
+}
+
 /*
  * Weniger Bewegung, wenn das Gerät darum bittet.
  *
@@ -471,5 +577,27 @@
   }
   .dc-fokus {
     animation-duration: 120ms;
+  }
+  /*
+   * Das Buch behält seine Bedienung und verliert nur die Schau.
+   *
+   * Das Blatt folgt weiter dem Finger – wer weniger Bewegung eingestellt hat,
+   * will nicht ohne Blättern dastehen. Was wegfällt, ist die Räumlichkeit:
+   * keine Drehung in die Tiefe, keine Wölbung, kein wandernder Schatten. Es
+   * bleibt ein Blatt, das zur Seite geht.
+   */
+  :root {
+    --dc-seite-zurueck: 140ms;
+    --dc-seite-legen: 180ms;
+  }
+  .dc-seite {
+    transform: translateX(calc(var(--dc-blatt, 0) * -16%)) !important;
+  }
+  .dc-blatt {
+    transform: translateX(calc((var(--dc-blatt, 0) - 1) * 100%)) !important;
+  }
+  .dc-blatt > span:not(.paper-sheet),
+  .dc-blattschatten {
+    opacity: 0 !important;
   }
 }
