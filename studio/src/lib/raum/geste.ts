@@ -27,11 +27,15 @@ export type Ort = Richtung | 'mitte';
  * globale Navigation, nur mit Gesten statt mit Knöpfen – im Romanraum bekam
  * man dieselben vier Beschriftungen wie auf einer Karte.
  *
- * Wie eine Richtung *hier* heißt und was dort liegt, steht jetzt in
- * `werkraum.ts`. Diese Datei kennt weiterhin die Grammatik – vier Richtungen,
- * Einwärtsvektoren, Gegenrichtungen – und die ist überall dieselbe. Das ist
- * die Teilung, um die es geht: **Der Wortschatz wechselt, die Grammatik
- * nicht.**
+ * Wie eine Richtung *hier* heißt und ob es sie überhaupt gibt, steht in der
+ * Tiefenkarte, die die sichtbare Seite anmeldet. Diese Datei kennt weiterhin
+ * die Grammatik – vier mögliche Richtungen, Einwärtsvektoren,
+ * Gegenrichtungen – und die ist überall dieselbe.
+ *
+ * Das ist die Teilung, um die es geht: **Der Wortschatz wechselt, die
+ * Grammatik nicht.** Und weil diese Liste nur noch die *möglichen* Richtungen
+ * aufzählt, ist sie kein Versprechen: Welche davon eine Seite tatsächlich
+ * anbietet, weiß nur die Seite.
  */
 export const RICHTUNGEN: { id: Richtung }[] = [
   { id: 'links' },

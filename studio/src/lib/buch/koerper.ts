@@ -146,6 +146,23 @@ export function blattweg(dx: number, breite: number, k: Raumkonfig): number {
   return klemme(Math.abs(dx) / voll);
 }
 
+/**
+ * Wie weit die Seite unter dem Finger zur Seite wandert – in Punkten.
+ *
+ * **Eins zu eins, und das ist der ganze Punkt.** `blattweg` ist eine
+ * Verhältniszahl für die *Entscheidung* beim Loslassen; sie darf empfindlich
+ * sein, damit man nicht über den halben Bildschirm ziehen muss. Was man
+ * *sieht*, darf aber nicht empfindlich sein: Ein Blatt, das sich doppelt so
+ * schnell bewegt wie der Daumen, klebt nicht am Daumen, sondern flieht vor
+ * ihm. Deshalb hier die rohe Strecke, nur begrenzt auf die Seitenbreite.
+ *
+ * Zwei Zahlen für zwei Fragen – „wie weit ist es" und „reicht das schon" –
+ * statt einer, die beides halb beantwortet.
+ */
+export function blattschub(dx: number, breite: number): number {
+  return klemme(Math.abs(dx), 0, Math.max(0, breite));
+}
+
 /** Zieht der Finger vorwärts oder zurück? */
 export function blattrichtung(dx: number): Blattrichtung {
   return dx < 0 ? 'vor' : 'zurueck';
@@ -193,15 +210,23 @@ export function blattEntscheidung(
  * Sichtbar wurde es erst auf einem Streifen aus sechs Einzelbildern, auf dem
  * zwei davon leer waren.
  *
- * Jetzt endet die Drehung *kurz vor* der Senkrechten. Auch das war eine
- * Korrektur: Bei genau zweiundneunzig Grad stand die Seite hochkant und war
- * ein Strich – am Ende jeder Bewegung wieder ein leeres Bild, nur kürzer.
- * Bei zweiundachtzig bleibt ein handbreiter Streifen Papier stehen, bis die
- * neue Seite ihn ablöst. Man sieht die ganze Bewegung hindurch etwas.
+ * **Und dann ging der Winkel fast ganz weg.** Erst zweiundneunzig Grad, dann
+ * zweiundachtzig – und am Gerät lautete das Urteil trotzdem: sieht
+ * unnatürlich aus. Zu Recht, und der Fehler saß eine Ebene tiefer als jede
+ * Zahl.
  *
- * Der Wert ist ein Regler, weil er vom Gerät abhängt: Auf einem iPad mit
- * echter Doppelseite darf eine Seite wieder weiter fallen, weil sie dort auf
- * die andere Buchhälfte trifft statt ins Leere.
+ * Eine Seite, die sich dreht, braucht etwas, worauf sie fällt. In einem
+ * aufgeschlagenen Buch ist das die andere Hälfte. Auf einem Telefon gibt es
+ * die nicht – dort dreht sich ein Rechteck ins Nichts, und das erkennt jedes
+ * Auge sofort als Effekt. Was eine einzelne Seite hergibt, ist die andere
+ * Bewegung: Sie wandert unter dem Finger zur Seite und gibt das Papier
+ * darunter frei. Wie ein Blatt, das man von einem Stapel schiebt.
+ *
+ * Vierzehn Grad sind deshalb keine Drehung mehr, sondern das, was von ihr
+ * übrig bleibt: eine Neigung, die dem Blatt Dicke gibt. Der Regler steht
+ * weiterhin bis 180 offen – auf einem iPad mit echter Doppelseite ist die
+ * Drehung wieder die richtige Bewegung, weil es dort etwas gibt, worauf die
+ * Seite fällt.
  */
 export function blattwinkel(weg: number, k: Raumkonfig): number {
   const t = klemme(weg);
@@ -250,24 +275,16 @@ export function blattschatten(weg: number, k: Raumkonfig): number {
   return Math.sin(t * Math.PI * 0.85) * k.seite.schatten;
 }
 
-/**
- * Wo die Kante des gedrehten Blattes steht – 0…1 der Breite.
+/*
+ * Hier stand `blattkante` – „wo die Kante des gedrehten Blattes steht",
+ * gerechnet als Kosinus des Winkels. Sie war die Antwort auf die Frage, wo
+ * der Schatten hingehört, solange sich die Seite drehte.
  *
- * Ein Blatt, das um den Falz gedreht ist, ist perspektivisch schmaler: Bei 60
- * Grad bedeckt es noch die Hälfte der Seite, bei 90 Grad steht es senkrecht
- * und bedeckt nichts. Genau `cos` des Winkels, und jenseits der Senkrechten
- * null, weil es dann auf der anderen Seite liegt.
- *
- * **Wozu die Zahl gebraucht wird.** Der Schatten des Blattes gehört nicht an
- * den Falz, sondern an *seine Kante* – dorthin, wo es sich vom Papier
- * darunter abhebt. Ohne diese Zahl lag der Schatten am linken Rand und damit
- * vollständig unter dem Blatt selbst: gerechnet, gezeichnet, und trotzdem nie
- * zu sehen. Aufgefallen ist es erst im Bild.
+ * Mit dem Schub gibt es die Frage nicht mehr: Die Kante der Seite steht dort,
+ * wohin der Finger sie geschoben hat, und das weiß das Stylesheet ohnehin –
+ * `--dc-seite-schub` ist dieselbe Zahl. Eine zweite Rechnung daneben wäre ein
+ * zweiter Ort für eine Wahrheit, die schon eindeutig ist.
  */
-export function blattkante(weg: number, k: Raumkonfig): number {
-  const rad = (blattwinkel(weg, k) * Math.PI) / 180;
-  return klemme(Math.cos(rad));
-}
 
 /* -------------------------------------------------------------- Die Feder -- */
 

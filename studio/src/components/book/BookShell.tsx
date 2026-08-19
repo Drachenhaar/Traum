@@ -29,7 +29,8 @@ import { spineThickness } from '../../lib/book';
 import { Tiefenmarke, Tiefenraum } from '../raum/Tiefenraum';
 import { useRaum } from '../../lib/raum/useRaum';
 import { konfig } from '../../lib/raum/konfig';
-import { werkraumVon } from '../../lib/raum/werkraum';
+import { standardkarte } from '../../lib/raum/tiefenvorlagen';
+import { useTiefe } from '../raum/useTiefe';
 import { useOberflaeche } from '../raum/useOberflaeche';
 import { deutlichkeit, uebergangMs } from '../../lib/raum/flaeche';
 
@@ -160,30 +161,26 @@ export function BookShell() {
    * wo das Buch steht, liest eine Stelle statt zwei zu vergleichen.
    */
   /*
-   * Welcher Arbeitsraum offen ist, weiß nur die Hülle.
+   * Die Rückfallkarte – ausdrücklich das Zweitbeste.
    *
-   * Sie kennt den Pfad *und* den Anker – und beides zusammen ergibt erst die
-   * Antwort: `/eintrag/:id` ist ein Charakterraum, wenn dort eine Figur
-   * steht, und der gewöhnliche Buchraum, wenn dort ein Ort steht. Der
-   * Raumspeicher bekommt nur das Ergebnis; er soll von Adressen nichts
-   * wissen, sonst wäre ein umbenannter Pfad eine kaputte Geste.
+   * Sie gilt nur für Seiten, die ihre Tiefe nicht selbst anmelden. Das
+   * zweite Argument ist kein Schalter für Feinheiten: Es legt diese Karte in
+   * ein eigenes Fach, damit sie die Karte einer Seite nicht überschreiben
+   * kann. Siehe `useTiefe` – React arbeitet Kind-Effekte vor Eltern-Effekten
+   * ab, und ohne das zweite Fach gewönne ausgerechnet der Rückfall.
    */
   const ankerTyp = ankerId ? entries.find((e) => e.id === ankerId)?.type : undefined;
-  const werkraum = werkraumVon(pathname, ankerTyp);
-  const setzeWerkraum = useRaum((s) => s.setzeWerkraum);
-  useEffect(() => setzeWerkraum(werkraum), [werkraum, setzeWerkraum]);
+  useTiefe(standardkarte(pathname, ankerTyp), true);
 
   useEffect(() => {
     const w = document.documentElement;
     w.dataset.buch = 'offen';
-    w.dataset.werkraum = werkraum;
     w.dataset.seite = spread ? String(spread.page ?? index + 1) : '—';
     return () => {
       delete w.dataset.buch;
       delete w.dataset.seite;
-      delete w.dataset.werkraum;
     };
-  }, [spread, index, werkraum]);
+  }, [spread, index]);
 
   /*
    * Wie viel Oberfläche gerade dastehen darf.
@@ -215,7 +212,6 @@ export function BookShell() {
        */
       data-anmutung={profilVon(settings).anmutung}
       data-flaeche={flaeche}
-      data-werkraum={werkraum}
       className="flex h-full w-full flex-col overflow-hidden"
       style={
         {

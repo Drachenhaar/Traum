@@ -163,11 +163,14 @@ export interface Raumkonfig {
     /**
      * Wie weit sich ein Blatt höchstens dreht, in Grad.
      *
-     * Knapp über die Senkrechte und **nicht** hundertachtzig: Auf einem
-     * Telefon liegt der Falz am linken Bildschirmrand, nicht in der Mitte
-     * eines aufgeschlagenen Buches. Alles jenseits der Senkrechten schwingt
-     * aus dem Bild. Auf einem iPad mit echter Doppelseite darf der Wert
-     * wieder wachsen – deshalb ein Regler.
+     * Auf dem Telefon sehr klein: Was man dort sieht, ist eine Seite, die
+     * unter dem Finger zur Seite wandert – die vierzehn Grad geben ihr nur
+     * Dicke. Eine echte Drehung braucht eine zweite Buchhälfte, auf die die
+     * Seite fällt; auf einer einzelnen Seite dreht sich ein Rechteck ins
+     * Nichts, und genau so sieht es dann auch aus.
+     *
+     * Auf einem iPad mit echter Doppelseite ist die Drehung wieder richtig –
+     * deshalb ein Regler und keine feste Zahl.
      */
     maxWinkelGrad: number;
     /** Wie deutlich der Falz in der Mitte steht. */
@@ -292,7 +295,7 @@ export const VORGABE: Raumkonfig = {
     schnellTempoPxProMs: 0.6,
     totzonePx: 10,
     kruemmung: 0.6,
-    maxWinkelGrad: 82,
+    maxWinkelGrad: 14,
     falzstaerke: 0.55,
     schatten: 0.7,
     zurueckMs: 300,
