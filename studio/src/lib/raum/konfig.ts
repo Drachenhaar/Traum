@@ -113,11 +113,104 @@ export interface Raumkonfig {
     toleranzPx: number;
   };
 
+  /**
+   * Der Buchkörper.
+   *
+   * Alles, was das geschlossene Buch zu einem Gegenstand macht und was beim
+   * Öffnen passiert. Die Mathematik dazu steht in `lib/buch/koerper.ts`.
+   */
+  buch: {
+    /** Wie weit das Buch bei Berührung anhebt, in Punkten. */
+    hub: number;
+    /** Wie stark es bei Berührung wächst. 1 = gar nicht. */
+    skala: number;
+    /**
+     * Das wahrgenommene Gewicht – 0 ist ein Heft, 1 ein Foliant.
+     *
+     * Der wichtigste Regler dieser Gruppe, weil er als einziger *mehrere*
+     * Dinge zugleich dreht: Hub, Wachstum, Schattenweg und alle Dauern. „Das
+     * Buch fühlt sich zu leicht an" ist ein Gedanke und soll ein Regler sein,
+     * nicht fünf.
+     */
+    gewicht: number;
+    oeffnenMs: number;
+    schliessenMs: number;
+    /** Wie lange der Deckel sich wehrt, bevor er kippt. Siehe `deckelverlauf`. */
+    deckelwiderstand: number;
+    /** Wie weit der Deckel am Ende offen steht. Nie ganz 180. */
+    deckelWinkelGrad: number;
+    /** Wie träge der Buchkörper dem Deckel folgt. */
+    koerpertraegheit: number;
+    /** Wie lange das Buch braucht, um zur Ruhe zu kommen. */
+    einrastenMs: number;
+    einraststaerke: number;
+    schattenstaerke: number;
+    /** Wie weit der Schatten der Bewegung hinterherläuft, in Millisekunden. */
+    schattenverzoegerungMs: number;
+  };
+
+  /** Das Blatt: was beim Blättern passiert. */
+  seite: {
+    /** Welcher Anteil der Seitenbreite ein volles Umblättern ist. */
+    wegAnteil: number;
+    /** Ab hier legt sich die Seite um, statt zurückzufallen. */
+    schwelle: number;
+    schnellMindestweg: number;
+    schnellTempoPxProMs: number;
+    /** Wie weit der Finger ziehen muss, bevor ein Blattwechsel beginnt. */
+    totzonePx: number;
+    kruemmung: number;
+    /**
+     * Wie weit sich ein Blatt höchstens dreht, in Grad.
+     *
+     * Knapp über die Senkrechte und **nicht** hundertachtzig: Auf einem
+     * Telefon liegt der Falz am linken Bildschirmrand, nicht in der Mitte
+     * eines aufgeschlagenen Buches. Alles jenseits der Senkrechten schwingt
+     * aus dem Bild. Auf einem iPad mit echter Doppelseite darf der Wert
+     * wieder wachsen – deshalb ein Regler.
+     */
+    maxWinkelGrad: number;
+    /** Wie deutlich der Falz in der Mitte steht. */
+    falzstaerke: number;
+    schatten: number;
+    /** Wie lange die Seite braucht, um zurückzufallen. */
+    zurueckMs: number;
+    /** Wie lange sie braucht, um sich umzulegen. */
+    legenMs: number;
+    federHaerte: number;
+    federDaempfung: number;
+  };
+
+  /**
+   * Wie weit die Oberfläche zurücktritt, wenn niemand etwas tut.
+   *
+   * Vier Zahlen für einen Gedanken: Nach welcher Stille wird es still, wie
+   * still, wie langsam kommt die Stille und wie schnell geht sie wieder.
+   */
+  flaeche: {
+    /** Nach wie vielen Millisekunden ohne Eingabe Ruhe eintritt. */
+    ruheNachMs: number;
+    /** Wie deutlich die Bedienelemente in Ruhe noch dastehen. Nie unter 0.12. */
+    ruheDeckkraft: number;
+    /** Wie lange das Zurücktreten dauert – darf langsam sein. */
+    beruhigenMs: number;
+    /** Wie lange das Zurückkommen dauert – muss schnell sein. */
+    erscheinenMs: number;
+  };
+
   haptik: {
     andeutung: boolean;
     verpflichtung: boolean;
     einrasten: boolean;
     heimkehr: boolean;
+    /** Das Buch antwortet auf die Berührung. */
+    beruehrung: boolean;
+    /** Der Deckel geht auf. */
+    oeffnen: boolean;
+    /** Die Seite legt sich um. */
+    blattFest: boolean;
+    /** Die Seite kommt zur Ruhe. */
+    blattRuht: boolean;
   };
 }
 
@@ -171,7 +264,130 @@ export const VORGABE: Raumkonfig = {
   },
   doppeltipp: { abstandMs: 280, maxWegPx: 24 },
   langdruck: { dauerMs: 450, toleranzPx: 8 },
-  haptik: { andeutung: true, verpflichtung: true, einrasten: true, heimkehr: true },
+
+  /*
+   * Alle Buch- und Seitenwerte sind **Startwerte zum Verwerfen.**
+   *
+   * Sie stammen aus dem Browser und nicht aus einem Daumen. Genau darum geht
+   * es in dieser Runde: Sie am Gerät zu ersetzen.
+   */
+  buch: {
+    hub: 6,
+    skala: 1.012,
+    gewicht: 0.6,
+    oeffnenMs: 900,
+    schliessenMs: 620,
+    deckelwiderstand: 0.55,
+    deckelWinkelGrad: 168,
+    koerpertraegheit: 0.35,
+    einrastenMs: 320,
+    einraststaerke: 0.7,
+    schattenstaerke: 0.75,
+    schattenverzoegerungMs: 90,
+  },
+  seite: {
+    wegAnteil: 0.55,
+    schwelle: 0.42,
+    schnellMindestweg: 0.16,
+    schnellTempoPxProMs: 0.6,
+    totzonePx: 10,
+    kruemmung: 0.6,
+    maxWinkelGrad: 82,
+    falzstaerke: 0.55,
+    schatten: 0.7,
+    zurueckMs: 300,
+    legenMs: 420,
+    federHaerte: 210,
+    federDaempfung: 34,
+  },
+
+  flaeche: {
+    ruheNachMs: 2600,
+    ruheDeckkraft: 0.34,
+    beruhigenMs: 900,
+    erscheinenMs: 160,
+  },
+
+  haptik: {
+    andeutung: true,
+    verpflichtung: true,
+    einrasten: true,
+    heimkehr: true,
+    beruehrung: true,
+    oeffnen: true,
+    blattFest: true,
+    blattRuht: true,
+  },
+};
+
+/**
+ * Vier Bücher, eine Engine.
+ *
+ * Kein zweites System – dieselben Regler, andere Zahlen. Das ist die Probe
+ * darauf, ob die Gruppe `buch` wirklich beschreibt, was ein Buch schwer macht:
+ * Wenn sich „ALT" von „LEICHT" nur durch Zahlen unterscheiden lässt, stimmen
+ * die Regler. Wenn nicht, fehlt einer.
+ */
+export const BUCHVORLAGEN: Record<string, Partial<Raumkonfig>> = {
+  LEICHT: {
+    buch: {
+      ...VORGABE.buch,
+      gewicht: 0.22,
+      oeffnenMs: 620,
+      schliessenMs: 430,
+      deckelwiderstand: 0.28,
+      koerpertraegheit: 0.15,
+      einrastenMs: 200,
+      schattenstaerke: 0.5,
+    },
+    seite: { ...VORGABE.seite, wegAnteil: 0.45, zurueckMs: 220, legenMs: 300, federDaempfung: 26 },
+  },
+  NATÜRLICH: {},
+  SCHWER: {
+    buch: {
+      ...VORGABE.buch,
+      gewicht: 0.88,
+      oeffnenMs: 1180,
+      schliessenMs: 820,
+      deckelwiderstand: 0.74,
+      koerpertraegheit: 0.6,
+      einrastenMs: 460,
+      einraststaerke: 0.9,
+      schattenstaerke: 0.9,
+      schattenverzoegerungMs: 140,
+    },
+    seite: { ...VORGABE.seite, wegAnteil: 0.62, legenMs: 540, federDaempfung: 46, kruemmung: 0.7 },
+  },
+  /*
+   * ALT ist nicht „zufällig".
+   *
+   * Ein altes Buch ist nicht unberechenbar, es ist *weich*: Der Einband hat
+   * seine Steifigkeit verloren, das Papier ist müde, nichts schnappt mehr.
+   * Also niedriger Widerstand, hohe Dämpfung, wenig Krümmung – und kein
+   * Zufallsgenerator, der die Bewegung bei jedem Öffnen anders macht. Das wäre
+   * nicht alt, das wäre kaputt.
+   */
+  ALT: {
+    buch: {
+      ...VORGABE.buch,
+      gewicht: 0.72,
+      oeffnenMs: 1050,
+      deckelwiderstand: 0.34,
+      koerpertraegheit: 0.5,
+      einrastenMs: 420,
+      einraststaerke: 0.35,
+      schattenstaerke: 0.6,
+    },
+    seite: {
+      ...VORGABE.seite,
+      kruemmung: 0.34,
+      falzstaerke: 0.4,
+      zurueckMs: 420,
+      legenMs: 520,
+      federHaerte: 130,
+      federDaempfung: 52,
+    },
+  },
 };
 
 /**
@@ -237,6 +453,8 @@ function verschmelze(basis: Raumkonfig, teil: Partial<Raumkonfig>): Raumkonfig {
  */
 export function setzeKonfig(teil: Partial<Raumkonfig>): void {
   aktuell = verschmelze(aktuell, teil);
+  /* Wer von Hand am Buch dreht, hat keinen Vorlagennamen mehr. */
+  if (teil.buch || teil.seite) letzteBuchvorlage = 'eigen';
   try {
     localStorage.setItem(SCHLUESSEL, JSON.stringify(aktuell));
   } catch {
@@ -247,12 +465,52 @@ export function setzeKonfig(teil: Partial<Raumkonfig>): void {
 
 export function setzeVorlage(name: string): void {
   aktuell = verschmelze(VORGABE, VORLAGEN[name] ?? {});
+  /* Eine Bedienungsvorlage setzt auf die Vorgabe zurück – das Buch also auch. */
+  letzteBuchvorlage = 'NATÜRLICH';
   try {
     localStorage.setItem(SCHLUESSEL, JSON.stringify(aktuell));
   } catch {
     /* still */
   }
   for (const ohr of ohren) ohr();
+}
+
+/**
+ * Welcher Buchcharakter zuletzt gewählt wurde.
+ *
+ * Nur zum Anzeigen im Stimmzimmer. Er wird bewusst *nicht* gespeichert: Was
+ * gilt, sind die Zahlen; der Name ist die Abkürzung, mit der man sie gesetzt
+ * hat. Wer danach an einem Regler dreht, hat kein „SCHWER" mehr, sondern
+ * etwas Eigenes – und genau das soll dann auch dastehen.
+ */
+let letzteBuchvorlage: string = 'NATÜRLICH';
+
+export function buchvorlage(): string {
+  return letzteBuchvorlage;
+}
+
+/**
+ * Der Buchcharakter – die zweite Achse.
+ *
+ * Anders als `setzeVorlage` setzt das hier **nicht** alles zurück. Wie sich
+ * ein Buch anfühlt und wie die Bedienung antwortet, sind zwei Fragen; wer den
+ * Einband schwerer machen will, will nicht nebenbei seine Schwellenwerte
+ * verlieren. Überlagert werden ausschließlich `buch` und `seite`.
+ */
+export function setzeBuchvorlage(name: string): void {
+  const v = BUCHVORLAGEN[name];
+  letzteBuchvorlage = name;
+  /*
+   * NATÜRLICH ist die leere Vorlage. Als reine Überlagerung wäre sie ein
+   * Nichtstun – gemeint ist aber „zurück auf die Vorgabe", also wird sie hier
+   * ausgeschrieben.
+   */
+  setzeKonfig({
+    buch: v?.buch ?? VORGABE.buch,
+    seite: v?.seite ?? VORGABE.seite,
+  });
+  /* Nach `setzeKonfig`, denn das setzt den Namen gerade auf „eigen". */
+  letzteBuchvorlage = name;
 }
 
 export function beiKonfig(ohr: () => void): () => void {

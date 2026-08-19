@@ -19,12 +19,25 @@ import type { Raumkonfig } from './konfig';
 export type Richtung = 'links' | 'rechts' | 'oben' | 'unten';
 export type Ort = Richtung | 'mitte';
 
-/** Die vier Bedeutungen des Raumkreuzes. Siehe das Gesetz „nach außen wächst die Definition". */
-export const RICHTUNGEN: { id: Richtung; name: string; was: string }[] = [
-  { id: 'links', name: 'Welt', was: 'Orte · Raum · Geografie' },
-  { id: 'rechts', name: 'Wesen', was: 'Charaktere · Beziehungen' },
-  { id: 'oben', name: 'Wissen', was: 'Zusammenhang · Tiefe' },
-  { id: 'unten', name: 'Notizen', was: 'Gedanken · Fundstücke' },
+/**
+ * Die vier Richtungen des Raumkreuzes.
+ *
+ * **Nur die Reihenfolge, nicht mehr die Bedeutung.** Hier standen einmal auch
+ * die Namen: links hieß überall „Welt", rechts überall „Wesen". Das war eine
+ * globale Navigation, nur mit Gesten statt mit Knöpfen – im Romanraum bekam
+ * man dieselben vier Beschriftungen wie auf einer Karte.
+ *
+ * Wie eine Richtung *hier* heißt und was dort liegt, steht jetzt in
+ * `werkraum.ts`. Diese Datei kennt weiterhin die Grammatik – vier Richtungen,
+ * Einwärtsvektoren, Gegenrichtungen – und die ist überall dieselbe. Das ist
+ * die Teilung, um die es geht: **Der Wortschatz wechselt, die Grammatik
+ * nicht.**
+ */
+export const RICHTUNGEN: { id: Richtung }[] = [
+  { id: 'links' },
+  { id: 'rechts' },
+  { id: 'oben' },
+  { id: 'unten' },
 ];
 
 /**
@@ -206,10 +219,29 @@ export interface Stand {
  * ist keine Tiefe mehr, das ist Verirren. Der Weg dorthin führt über die Mitte
  * – und die ist einen Doppeltipp entfernt.
  */
-export function naechsterStand(stand: Stand, geste: Richtung, k: Raumkonfig): Stand {
+export function naechsterStand(
+  stand: Stand,
+  geste: Richtung,
+  k: Raumkonfig,
+  /**
+   * Wie weit dieser Weg *hier* reicht.
+   *
+   * Ein zusätzliches Argument statt einer neuen Abhängigkeit: Diese Datei
+   * weiß nichts von Arbeitsräumen und soll es auch nicht. Sie kennt die
+   * Grammatik – „dieselbe Richtung nochmal geht tiefer" –, und wie weit das
+   * hier gilt, sagt ihr der Aufrufer.
+   *
+   * Fehlt der Wert, gilt die globale Obergrenze aus der Konfiguration. Damit
+   * bleibt jeder alte Aufruf gültig, und der Regler im Stimmzimmer bleibt die
+   * Notbremse über allem.
+   */
+  reichweite?: number,
+): Stand {
   if (stand.ort === 'mitte' || stand.tiefe === 0) return { ort: geste, tiefe: 1 };
-  if (geste === stand.ort)
-    return { ort: stand.ort, tiefe: Math.min(k.geste.hoechsteTiefe, stand.tiefe + 1) };
+  if (geste === stand.ort) {
+    const grenze = Math.min(k.geste.hoechsteTiefe, reichweite ?? k.geste.hoechsteTiefe);
+    return { ort: stand.ort, tiefe: Math.min(grenze, stand.tiefe + 1) };
+  }
   if (geste === GEGEN[stand.ort]) {
     const tiefer = stand.tiefe - 1;
     return tiefer <= 0 ? { ort: 'mitte', tiefe: 0 } : { ort: stand.ort, tiefe: tiefer };

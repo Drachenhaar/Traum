@@ -22,9 +22,16 @@ import { Gedankenfang } from '../entry/Gedankenfang';
 import { Leitfaden } from '../leitfaden/Leitfaden';
 import { Aufmerksamkeit } from '../anerbieten/Aufmerksamkeit';
 import { Spread } from './Spread';
-import { Raumschicht } from '../raum/Raumschicht';
+import { Raumschicht, fenster } from '../raum/Raumschicht';
+import { Blatt, Blattschatten, Buchkoerper, Woelbung } from './Buchkoerper';
+import { useBlaettern } from './useBlaettern';
+import { spineThickness } from '../../lib/book';
 import { Tiefenmarke, Tiefenraum } from '../raum/Tiefenraum';
-import { useRaum, gesteLaeuft } from '../../lib/raum/useRaum';
+import { useRaum } from '../../lib/raum/useRaum';
+import { konfig } from '../../lib/raum/konfig';
+import { werkraumVon } from '../../lib/raum/werkraum';
+import { useOberflaeche } from '../raum/useOberflaeche';
+import { deutlichkeit, uebergangMs } from '../../lib/raum/flaeche';
 
 /** Der gebaute Buchblock – einmal je Datenänderung, überall nutzbar. */
 export function useBook() {
@@ -127,32 +134,66 @@ export function BookShell() {
     return () => window.removeEventListener('keydown', onKey);
   }, [turn]);
 
-  /* Wischen auf dem Telefon. */
-  const touch = useRef<{ x: number; y: number } | null>(null);
-  const onTouchStart = (e: React.TouchEvent) => {
-    touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  };
-  const onTouchEnd = (e: React.TouchEvent) => {
-    if (!touch.current) return;
-    const dx = e.changedTouches[0].clientX - touch.current.x;
-    const dy = e.changedTouches[0].clientY - touch.current.y;
-    touch.current = null;
-    /*
-     * Blaettern und Raumtiefe sind zwei verschiedene Dinge.
-     *
-     * Blaettern bewegt sich *innerhalb* des Werkes, der Richtungsbogen fuehrt
-     * *aus* ihm hinaus. Beide sind waagerechte Wische, und ohne diese Frage
-     * taete ein Zug vom rechten Rand beides gleichzeitig: den Wesensraum
-     * andeuten und eine Seite umschlagen. Der Raum hat Vorrang, weil er zuerst
-     * entscheidet – er beansprucht den Finger nur aus einem Randstreifen und
-     * nur bei passender Richtung.
-     */
-    if (gesteLaeuft()) return;
-    // Nur eindeutig waagerechte Gesten blättern – sonst kämpft es mit dem Scrollen.
-    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.8) return;
-    turn(dx < 0 ? 'next' : 'prev');
-  };
+  /*
+   * Das Blaettern folgt jetzt dem Finger.
+   *
+   * Hier stand ein Wisch-Schalter: siebzig Punkte waagerecht, und die Seite
+   * war weg. Das war kein Blaettern, sondern ein Knopf mit Umweg – und es
+   * lieferte keinerlei Rueckmeldung darueber, ob die Geste ankommt. Der Hook
+   * daneben haengt die Seite an den Finger und entscheidet erst beim
+   * Loslassen; die Schwelle dafuer steht im Stimmzimmer.
+   */
+  const buchkasten = useRef<HTMLDivElement>(null);
+  const blaettern = useBlaettern({
+    huelle: buchkasten,
+    kannVor: !!next,
+    kannZurueck: !!prev,
+    onBlaettern: (r) => turn(r === 'vor' ? 'next' : 'prev'),
+    feld: fenster,
+  });
 
+  /*
+   * Das aufgeschlagene Buch meldet sich am Wurzelelement an.
+   *
+   * Zwei unsichtbare Merkmale, kein Zustandsspeicher: Der Einband schreibt
+   * „geschlossen" oder „oeffnet", diese Huelle „offen" – und wer wissen will,
+   * wo das Buch steht, liest eine Stelle statt zwei zu vergleichen.
+   */
+  /*
+   * Welcher Arbeitsraum offen ist, weiß nur die Hülle.
+   *
+   * Sie kennt den Pfad *und* den Anker – und beides zusammen ergibt erst die
+   * Antwort: `/eintrag/:id` ist ein Charakterraum, wenn dort eine Figur
+   * steht, und der gewöhnliche Buchraum, wenn dort ein Ort steht. Der
+   * Raumspeicher bekommt nur das Ergebnis; er soll von Adressen nichts
+   * wissen, sonst wäre ein umbenannter Pfad eine kaputte Geste.
+   */
+  const ankerTyp = ankerId ? entries.find((e) => e.id === ankerId)?.type : undefined;
+  const werkraum = werkraumVon(pathname, ankerTyp);
+  const setzeWerkraum = useRaum((s) => s.setzeWerkraum);
+  useEffect(() => setzeWerkraum(werkraum), [werkraum, setzeWerkraum]);
+
+  useEffect(() => {
+    const w = document.documentElement;
+    w.dataset.buch = 'offen';
+    w.dataset.werkraum = werkraum;
+    w.dataset.seite = spread ? String(spread.page ?? index + 1) : '—';
+    return () => {
+      delete w.dataset.buch;
+      delete w.dataset.seite;
+      delete w.dataset.werkraum;
+    };
+  }, [spread, index, werkraum]);
+
+  /*
+   * Wie viel Oberfläche gerade dastehen darf.
+   *
+   * Der Zustand steht als Merkmal an der Hülle und die Deutlichkeit als
+   * Variable daneben – beides erbt nach unten, und jedes Bedienelement, das
+   * zurücktreten soll, braucht nur eine Zeile im Stylesheet statt einer
+   * eigenen Verbindung hierher.
+   */
+  const flaeche = useOberflaeche();
   const chapter = spread?.chapterId ? chapterById(spread.chapterId) : undefined;
   const living = useMemo(() => livingEntries(entries), [entries]);
 
@@ -173,10 +214,16 @@ export function BookShell() {
        * anders, keine Funktion faellt weg.
        */
       data-anmutung={profilVon(settings).anmutung}
+      data-flaeche={flaeche}
+      data-werkraum={werkraum}
       className="flex h-full w-full flex-col overflow-hidden"
-      style={deskStyle}
-      onTouchStart={onTouchStart}
-      onTouchEnd={onTouchEnd}
+      style={
+        {
+          ...deskStyle,
+          '--dc-chrome': String(deutlichkeit(flaeche, konfig())),
+          '--dc-chrome-ms': `${uebergangMs(flaeche, konfig())}ms`,
+        } as React.CSSProperties
+      }
     >
       {/*
         Der Tischmodus, sichtbar.
@@ -207,7 +254,7 @@ export function BookShell() {
             type="button"
             onClick={() => navigate('/inhalt')}
             /* Auf jeder Seite erreichbar, also auch auf jeder Seite treffbar. */
-            className="group -ml-1 flex h-11 shrink-0 items-center gap-2 px-1 no-tap-highlight"
+            className="dc-chrome group -ml-1 flex h-11 shrink-0 items-center gap-2 px-1 no-tap-highlight"
             aria-label="Inhaltsverzeichnis"
             title="Inhaltsverzeichnis"
             data-leitfaden="inhalt"
@@ -243,7 +290,7 @@ export function BookShell() {
         <button
           type="button"
           onClick={() => setFangOffen(true)}
-          className="grid h-11 w-11 shrink-0 place-items-center text-gild-500/50 transition-colors hover:text-gild-400 no-tap-highlight"
+          className="dc-chrome grid h-11 w-11 shrink-0 place-items-center text-gild-500/50 transition-colors hover:text-gild-400 no-tap-highlight"
           aria-label="Einen Gedanken festhalten"
           title="Einen Gedanken festhalten"
           data-leitfaden="gedanke"
@@ -254,7 +301,7 @@ export function BookShell() {
         <button
           type="button"
           onClick={() => setSearchOpen(true)}
-          className="grid h-11 w-11 shrink-0 place-items-center text-gild-500/50 transition-colors hover:text-gild-400 no-tap-highlight"
+          className="dc-chrome grid h-11 w-11 shrink-0 place-items-center text-gild-500/50 transition-colors hover:text-gild-400 no-tap-highlight"
           aria-label="Register durchsuchen"
           title="Register"
           data-leitfaden="suche"
@@ -279,17 +326,83 @@ export function BookShell() {
           <div className="flex min-h-0 flex-1 items-stretch gap-0 px-0 pb-3 sm:px-3 sm:pb-6">
             <TurnEdge side="left" onClick={() => turn('prev')} enabled={!!prev} />
 
+            {/*
+              Der Buchkoerper.
+
+              Bis hierher lag hier ein Rechteck mit Schlagschatten – man las
+              darauf, aber man war nicht *darin*. Falz, Seitenkanten und Dicke
+              kosten ein paar Dutzend Zeilen und machen aus der Seite einen
+              Bogen. Die Perspektive muss am Elternteil stehen, sonst dreht
+              sich das Blatt flach statt in den Raum.
+            */}
             <div
-              key={spread?.key ?? pathname}
-              className={cx(
-                'flex min-w-0 flex-1',
-                direction === 'forward' ? 'animate-turnForward' : 'animate-turnBack',
-              )}
-              style={{
-                filter: 'drop-shadow(var(--dc-book-shadow))',
-              }}
+              ref={buchkasten}
+              className="dc-buchkasten relative flex min-w-0 flex-1"
+              data-blatt={blaettern.richtung ?? 'ruhe'}
+              style={{ perspective: '1600px' }}
+              {...blaettern.griffe}
             >
-              <Outlet context={{ book, spread, wear, living }} />
+              <Buchkoerper dicke={spineThickness(book.totalPages)}>
+                {/*
+                  Das Papier, das beim Vorwaertsblaettern darunter zum
+                  Vorschein kommt. Es liegt immer da und kostet nichts – sonst
+                  saehe man beim Drehen den dunklen Tisch statt der naechsten
+                  Seite.
+                */}
+                <span aria-hidden className="paper-sheet absolute inset-0 z-0 block rounded-[3px]" />
+
+                <Blattschatten richtung={blaettern.richtung} />
+
+                {/*
+                  Zwei Knoten statt einem – und das ist keine Kosmetik.
+
+                  Hier trafen zwei Mechanismen auf derselben Eigenschaft
+                  desselben Elements aufeinander: `animate-turnForward` (die
+                  alte Ankunftsbewegung, mit `both` als Füllung) und die neue
+                  Drehung am Finger. Eine Animation schlägt eine gewöhnliche
+                  Regel, und `both` hält ihren Endwert für immer – die Seite
+                  drehte sich also nie, obwohl jede Zahl stimmte. Am
+                  Schreibtisch war davon nichts zu sehen; gefunden wurde es
+                  daran, dass `--dc-seite-winkel` bei −139 Grad stand und die
+                  berechnete Matrix die Einheitsmatrix blieb.
+
+                  Aufgelöst wird das nicht durch Löschen: Die Ankunft *soll*
+                  weiter eingeblendet werden, wenn ein Bogen frisch erscheint.
+                  Sie zieht nur eine Ebene nach innen. Außen dreht sich das
+                  Blatt, innen kommt der Inhalt an – jede Eigenschaft hat
+                  wieder genau einen Besitzer.
+                */}
+                <div
+                  className="dc-seite relative z-10 flex min-w-0 flex-1"
+                  style={{ filter: 'drop-shadow(var(--dc-book-shadow))' }}
+                >
+                  <div
+                    key={spread?.key ?? pathname}
+                    className={cx(
+                      'relative flex min-w-0 flex-1',
+                      direction === 'forward' ? 'animate-turnForward' : 'animate-turnBack',
+                    )}
+                  >
+                    <Outlet context={{ book, spread, wear, living }} />
+                  </div>
+
+                  {/*
+                    Beim Vorwaertsblaettern dreht sich diese Seite selbst weg –
+                    also braucht sie dieselbe Woelbung wie das leere Blatt beim
+                    Zurueckblaettern. Nur dann, sonst laege staendig ein
+                    Verlauf ueber dem Text.
+                  */}
+                  {blaettern.richtung === 'vor' && <Woelbung />}
+                </div>
+
+                {/*
+                  In beide Richtungen dreht sich ein Blatt mit. Vorwaerts
+                  uebernimmt es dort, wo die lebende Seite ihre Rueckseite
+                  zeigen wuerde – sonst waere die zweite Haelfte jeder
+                  Drehung eine leere Flaeche.
+                */}
+                {blaettern.richtung && <Blatt richtung={blaettern.richtung} />}
+              </Buchkoerper>
             </div>
 
             <TurnEdge side="right" onClick={() => turn('next')} enabled={!!next} />
@@ -328,7 +441,7 @@ function TurnEdge({
       disabled={!enabled}
       aria-label={side === 'left' ? 'Eine Seite zurück' : 'Eine Seite weiter'}
       className={cx(
-        'group hidden w-11 shrink-0 items-center justify-center transition-opacity duration-300 sm:flex lg:w-16',
+        'dc-chrome group hidden w-11 shrink-0 items-center justify-center sm:flex lg:w-16',
         enabled ? 'opacity-100' : 'pointer-events-none opacity-0',
       )}
     >

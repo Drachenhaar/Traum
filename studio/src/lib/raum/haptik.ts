@@ -51,4 +51,23 @@ export const haptik = {
   heimkehr() {
     if (konfig().haptik.heimkehr) schlage([12, 26, 12]);
   },
+
+  /* -------------------------------------------------------- Das Buch ----- */
+
+  /** Der Finger trifft den Einband. Das leiseste Zeichen von allen. */
+  beruehrung() {
+    if (konfig().haptik.beruehrung) schlage(5);
+  },
+  /** Der Deckel geht auf – ein satter, einmaliger Impuls. */
+  oeffnen() {
+    if (konfig().haptik.oeffnen) schlage(20);
+  },
+  /** Die Seite kippt über die Schwelle und legt sich um. */
+  blattFest() {
+    if (konfig().haptik.blattFest) schlage(14);
+  },
+  /** Und kommt auf dem Stapel zur Ruhe. */
+  blattRuht() {
+    if (konfig().haptik.blattRuht) schlage(7);
+  },
 };
