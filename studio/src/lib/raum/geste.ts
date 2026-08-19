@@ -136,8 +136,17 @@ export function fortschritt(
 ): number {
   const [ex, ey] = EINWAERTS[richtung];
   const weg = (jetzt[0] - start[0]) * ex + (jetzt[1] - start[1]) * ey;
-  const achse = ex !== 0 ? feld.breite : feld.hoehe;
-  const voll = Math.max(1, achse * k.geste.wegAnteil);
+  /*
+   * Jede Achse hat ihren eigenen Anteil.
+   *
+   * Ein Telefon ist 390 Punkte breit und 844 hoch. Ein gemeinsamer Anteil
+   * hieße: senkrecht mehr als doppelt so weit ziehen wie waagerecht – nicht
+   * entschieden, sondern vom Seitenverhältnis geerbt.
+   */
+  const waagerecht = ex !== 0;
+  const achse = waagerecht ? feld.breite : feld.hoehe;
+  const anteil = waagerecht ? k.geste.wegAnteilWaagerecht : k.geste.wegAnteilSenkrecht;
+  const voll = Math.max(1, achse * anteil);
   return Math.max(0, Math.min(1, weg / voll));
 }
 
@@ -159,6 +168,61 @@ export function passtRichtung(
   const [ex, ey] = EINWAERTS[richtung];
   const kosinus = (dx * ex + dy * ey) / laenge;
   return kosinus >= Math.cos((k.geste.richtungstoleranzGrad * Math.PI) / 180);
+}
+
+/**
+ * Was von dieser Richtung zu halten ist – *jetzt*, nicht für immer.
+ *
+ * `passtRichtung` beantwortet eine Ja-Nein-Frage, und genau das war das
+ * Problem: Wer nur ja oder nein kennt, muss im ersten Augenblick urteilen und
+ * bleibt bei diesem Urteil. Ein Daumen ist im ersten Augenblick am
+ * schiefsten – er dreht sich um sein Gelenk, während die Hand das Gerät hält.
+ * Ein Zug mit 32 Grad Gesamtbogen zeigt nach zehn Punkten Weg 44 Grad.
+ *
+ * Es gibt aber eine dritte Antwort, und sie ist die richtige: **noch nicht.**
+ * Solange nichts sichtbar geworden ist, kostet Abwarten nichts.
+ *
+ * Daraus folgt: Es gibt hier **zwei Winkel und nicht einen.**
+ *
+ *   bis `richtungstoleranzGrad`   – von hier an gehört die Geste uns
+ *   ab  `aufgabewinkelGrad`       – von hier an gehört sie sichtbar jemand anderem
+ *   dazwischen                    – unentschieden, also abwarten
+ *
+ * Der Korridor dazwischen ist genau das, was einem Bogen fehlte. Ein Scrollen
+ * liegt bei neunzig Grad und ist damit sofort weg, schneller als vorher. Ein
+ * Daumenbogen liegt anfangs bei vierundvierzig, krümmt sich in den Korridor
+ * hinein und wird nach einem knappen Zentimeter angenommen. `fremdwegPx`
+ * begrenzt, wie lange dieses Abwarten dauern darf.
+ *
+ * Wichtig ist, was hier *nicht* passiert: „noch nicht" zeigt nichts an, hält
+ * nichts fest und nimmt niemandem den Finger weg. Das darunterliegende
+ * Scrollen läuft ungestört weiter, bis aus „noch nicht" ein „ja" wird.
+ */
+export type Richtungsurteil = 'ja' | 'nochNicht' | 'nein';
+
+export function richtungsurteil(
+  dx: number,
+  dy: number,
+  richtung: Richtung,
+  k: Raumkonfig,
+): Richtungsurteil {
+  const laenge = Math.hypot(dx, dy);
+  if (laenge < Math.max(k.geste.totzonePx, k.geste.richtungssperrePx)) return 'nochNicht';
+  if (passtRichtung(dx, dy, richtung, k)) return 'ja';
+
+  const [ex, ey] = EINWAERTS[richtung];
+  const einwaerts = dx * ex + dy * ey;
+  /* Der Betrag quer dazu – die Senkrechte auf der Einwärtsrichtung. */
+  const quer = Math.abs(dx * -ey + dy * ex);
+
+  /* Wer nach außen zieht, will heraus und nicht hinein. */
+  if (-einwaerts >= k.geste.totzonePx) return 'nein';
+  /* Deutlich quer: ein Scrollen steht hier bei neunzig Grad und ist sofort weg. */
+  if (einwaerts <= 0 || quer / einwaerts > Math.tan((k.geste.aufgabewinkelGrad * Math.PI) / 180))
+    return 'nein';
+  /* Und irgendwann ist auch der unentschiedene Korridor zu Ende. */
+  if (quer >= k.geste.fremdwegPx) return 'nein';
+  return 'nochNicht';
 }
 
 export type Phase =

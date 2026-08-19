@@ -49,15 +49,31 @@ export interface Raumkonfig {
 
     /**
      * Wie weit gezogen werden muss, damit `fortschritt` 1 erreicht – als
-     * Anteil der Bildschirmkante entlang der Achse.
+     * Anteil der Bildschirmkante entlang der jeweiligen Achse.
      *
      * Zusammen mit `verpflichtung` ergibt das die tatsächliche Strecke: bei
      * 0.45 und 0.5 sind das auf einem 390 Punkte breiten Telefon etwa 88
      * Punkte bis zur Schwelle. Zwei Regler statt einem, weil sie
      * Verschiedenes bedeuten – der eine, wie schnell der Bogen wächst, der
      * andere, wann er kippt.
+     *
+     * ---
+     *
+     * **Warum zwei Anteile und nicht einer.**
+     *
+     * Hier stand ein einziger Wert für beide Achsen, und das klang sparsam.
+     * Auf einem Telefon ist es das Gegenteil: 390 Punkte breit, 844 hoch.
+     * Derselbe Anteil ergab waagerecht 88 Punkte bis zur Schwelle und
+     * senkrecht 190 – ein senkrechter Zug kostete mehr als das Doppelte,
+     * ohne dass irgendjemand das entschieden hätte. Es war keine
+     * Designentscheidung, sondern ein Seitenverhältnis, das sich als eine
+     * durchgeschlichen hat.
+     *
+     * Gemessen als Fangquote: rechts wurden 12 von 25 Daumenzügen gefangen,
+     * unten 8 von 25.
      */
-    wegAnteil: number;
+    wegAnteilWaagerecht: number;
+    wegAnteilSenkrecht: number;
 
     /** Ab hier erkennt Dragoncore die Richtung. Erster Tick. */
     andeutung: number;
@@ -68,10 +84,65 @@ export interface Raumkonfig {
     schnellMindestweg: number;
     schnellTempoPxProMs: number;
 
-    /** Ab welcher Strecke die Richtung festgelegt wird. */
+    /**
+     * Ab welcher Strecke frühestens über die Richtung geurteilt wird.
+     *
+     * Bleibt bei zehn, und das ist eine gemessene Entscheidung. Der Gedanke
+     * lag nahe, hier auf sechzehn zu gehen: Ein Daumen zieht im Bogen, und
+     * ganz am Anfang ist dieser Bogen am schiefsten – wer dort urteilt,
+     * urteilt über das Zittern des Aufsetzens.
+     *
+     * Die Fangquote blieb bei sechzehn **exakt gleich** (16/25 und 11/25),
+     * während der Bogen sechs Punkte später erschienen wäre. Eine Änderung,
+     * die nichts verbessert und die Rückmeldung verzögert, ist keine
+     * Verbesserung. Der richtige Hebel lag nicht im *Wann*, sondern im
+     * *Wie oft* – siehe `fremdwegPx`.
+     */
     richtungssperrePx: number;
-    /** Wie schief die Bewegung dabei sein darf. */
+    /**
+     * Wie schief die Bewegung dabei sein darf.
+     *
+     * Stand auf 25 Grad, und das war die häufigste Ursache dafür, dass sich
+     * die Randgeste „nicht flüssig einfangen" ließ: Gemessen an Daumenzügen
+     * mit einem Bogen von 24 und 32 Grad scheiterte **jeder einzelne**. Ein
+     * Daumen zieht keine Gerade; er dreht sich um sein Gelenk.
+     */
     richtungstoleranzGrad: number;
+    /**
+     * Ab welchem Winkel die Geste sichtbar jemand anderem gehört.
+     *
+     * ---
+     *
+     * **Der eigentliche Fehler, und er war keiner der Zahlen.**
+     *
+     * Über die Richtung wurde genau einmal geurteilt – beim ersten Schritt
+     * über die Sperre – und dieses Urteil war endgültig. Ausgerechnet dort ist
+     * ein Daumenbogen am schiefsten: Nach zehn Punkten Weg hat ein Zug, der
+     * insgesamt 32 Grad Bogen schlägt, momentan 44 Grad. Keine Toleranz, die
+     * ein Scrollen noch abweisen kann, trägt diesen Augenblick. Man kann an
+     * `richtungstoleranzGrad` drehen, so lange man will; entweder verschluckt
+     * es das Scrollen oder es verwirft den Daumen.
+     *
+     * Weil es zwei verschiedene Fragen sind, braucht es **zwei Winkel**:
+     *
+     *   bis `richtungstoleranzGrad`  von hier an gehört die Geste uns
+     *   ab  `aufgabewinkelGrad`      von hier an gehört sie jemand anderem
+     *   dazwischen                   unentschieden – abwarten
+     *
+     * Ein Scrollen liegt bei neunzig Grad; es ist damit sofort abgegeben,
+     * schneller als vorher. Ein Bogen liegt im Korridor und bekommt seine
+     * Chance. Und Abwarten kostet nichts, weil bis dahin nichts angezeigt und
+     * niemandem der Finger genommen wurde.
+     */
+    aufgabewinkelGrad: number;
+    /**
+     * Wie weit der Finger im unentschiedenen Korridor **quer** laufen darf,
+     * bevor Dragoncore die Geste doch abgibt.
+     *
+     * Der Rückhalt gegen das Warten ohne Ende: Wer eine halbe Bildschirmbreite
+     * schräg zieht, wollte etwas anderes, auch wenn der Winkel es offenließe.
+     */
+    fremdwegPx: number;
 
     /** Mehr Ebenen als drei gibt es nicht. Siehe `useRaum.ts`. */
     hoechsteTiefe: number;
@@ -224,13 +295,16 @@ export const VORGABE: Raumkonfig = {
     randBreitePx: 34,
     systemEinzugObenPx: 8,
     systemEinzugUntenPx: 28,
-    wegAnteil: 0.45,
+    wegAnteilWaagerecht: 0.45,
+    wegAnteilSenkrecht: 0.26,
     andeutung: 0.15,
     verpflichtung: 0.5,
     schnellMindestweg: 0.26,
     schnellTempoPxProMs: 0.75,
     richtungssperrePx: 10,
-    richtungstoleranzGrad: 25,
+    richtungstoleranzGrad: 38,
+    aufgabewinkelGrad: 54,
+    fremdwegPx: 96,
     hoechsteTiefe: 3,
   },
   bogen: {
