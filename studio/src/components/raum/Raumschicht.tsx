@@ -27,6 +27,9 @@
  * Die schwierigste Frage dieser Datei, und sie wird in dieser Reihenfolge
  * beantwortet:
  *
+ *   0. Führt diese Richtung auf *dieser Seite* überhaupt irgendwohin? → sonst
+ *      passiert gar nichts. Siehe `tiefenkarte.ts`: Nicht jede Seite hat vier
+ *      Richtungen, und eine leere Richtung wird nicht mit Erfundenem gefüllt.
  *   1. Hat der Finger in einem Randstreifen aufgesetzt? → sonst keine Raumgeste.
  *   2. Steht dort ein *Bedienelement* – Eingabe, Regler? → dann gehört er dorthin.
  *   3. Steht dort eine *Arbeitsfläche* – Karte, Zeichenfläche? → nur außerhalb
@@ -59,7 +62,8 @@ import {
 } from '../../lib/raum/geste';
 import { beiKonfig, konfig } from '../../lib/raum/konfig';
 import { haptik } from '../../lib/raum/haptik';
-import { useRaum } from '../../lib/raum/useRaum';
+import { karteJetzt, useRaum } from '../../lib/raum/useRaum';
+import { gesteErlaubt } from '../../lib/raum/tiefenkarte';
 import { Fokuspunkt, Richtungsbogen, Richtungszeichen } from './Richtungsbogen';
 
 interface Lauf {
@@ -325,6 +329,27 @@ export function Raumschicht({ children }: { children: ReactNode }) {
      */
     const richtung = randRichtung(e.clientX, e.clientY, fenster(), konfig());
     if (!richtung) return;
+
+    /*
+     * Führt diese Richtung *hier* überhaupt irgendwohin?
+     *
+     * Wenn nicht, passiert gar nichts: kein Bogen, kein Zeichen, kein
+     * Impuls. Das ist die Regel „nichts erfinden" an der einzigen Stelle,
+     * an der sie zählt – am Anfang. Ein Bogen, der wächst und dann ins Leere
+     * führt, wäre ein Versprechen, das die Seite nicht halten kann; ein
+     * Raum, der nur existiert, damit die Geste nicht ins Leere geht, zeigt
+     * zwangsläufig irgendetwas Naheliegendes statt etwas Zugehörigem.
+     *
+     * Der Finger bleibt dabei frei: Was hier nicht beansprucht wird, kann
+     * scrollen oder blättern. Eine stille Richtung ist keine tote Fläche.
+     *
+     * Die Frage stellt die Karte, nicht diese Datei. Das Gestenwerk erkennt
+     * Bewegungen und darf über Bedeutung nichts wissen – sonst hat man die
+     * beiden Verantwortlichkeiten wieder vermischt, und die Bedeutung sitzt
+     * doch wieder im Programm.
+     */
+    const s = useRaum.getState();
+    if (!gesteErlaubt(karteJetzt(), { ort: s.ort, tiefe: s.tiefe }, richtung)) return;
 
     /*
      * Der Randstreifen kommt **vor** der Frage, wem der Finger sonst gehört.

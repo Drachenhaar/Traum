@@ -32,7 +32,13 @@
 import { create } from 'zustand';
 import { konfig } from './konfig';
 import { naechsterStand, type Ort, type Phase, type Richtung } from './geste';
-import { hoechsteTiefe, type Werkraum } from './werkraum';
+import {
+  gesteErlaubt,
+  reichweite,
+  richtungen,
+  OHNE_TIEFE,
+  type Tiefenkarte,
+} from './tiefenkarte';
 
 interface Raumzustand {
   /** Das Werk. Ändert sich nur auf ausdrückliche Handlung. */
@@ -41,17 +47,32 @@ interface Raumzustand {
   ort: Ort;
   tiefe: number;
   /**
-   * In welchem Arbeitsraum gearbeitet wird.
+   * Was die sichtbare Seite über ihre Umgebung sagt.
    *
-   * Er steht hier und nicht in `useStudio`, weil er den **Blick** beschreibt
-   * und nicht die Welt: Derselbe Eintrag ist im Buchraum etwas anderes als im
-   * Charakterraum, ohne dass sich an ihm eine einzige Zeile ändert.
+   * Hier stand eine `Werkraum`-Kennung – „Charakterraum", „Weltraum" –, und
+   * damit bestimmte die *Gattung* einer Seite, was rechts liegt. Jetzt steht
+   * hier die Karte selbst: Die Seite meldet sie an, der Speicher nimmt sie
+   * entgegen und weiß nichts darüber, wie sie zustande kam.
    *
-   * Gesetzt wird er von der Hülle, die den Pfad kennt. Der Speicher selbst
-   * weiß nichts von Adressen – täte er es, hinge die Bedienung an der
-   * Wegführung, und ein umbenannter Pfad wäre eine kaputte Geste.
+   * Sie gehört zum **Blick**, nicht zur Welt: Derselbe Eintrag hat in einem
+   * Kapitel eine andere Umgebung als in einer Begegnung, ohne dass sich an
+   * ihm eine Zeile ändert.
    */
-  werkraum: Werkraum;
+  tiefenkarte: Tiefenkarte;
+  /**
+   * Was die Hülle anbietet, wenn die Seite nichts sagt.
+   *
+   * Getrennt gehalten und **nicht** einfach überschrieben, weil React
+   * Kind-Effekte vor Eltern-Effekten abarbeitet: Meldete die Hülle in
+   * dieselbe Stelle, käme ihr Rückfall *nach* der Karte der Seite an und
+   * würde sie überschreiben. Man hätte einen Vorrang gebaut, der genau
+   * verkehrt herum wirkt – und es erst gemerkt, wenn eine Seite mit eigener
+   * Tiefe sich benimmt wie eine ohne.
+   *
+   * Zwei Fächer, eine Regel: Was die Seite sagt, gilt. Ist ihr Fach leer,
+   * gilt der Rückfall. Die Reihenfolge der Effekte spielt keine Rolle mehr.
+   */
+  rueckfallkarte: Tiefenkarte;
 
   /** Was der Finger gerade tut. Nur während einer Geste belegt. */
   gestenrichtung: Richtung | null;
@@ -75,7 +96,8 @@ interface Raumzustand {
   brichAb: () => void;
   heim: () => void;
   gehZu: (ort: Ort, tiefe: number) => void;
-  setzeWerkraum: (w: Werkraum) => void;
+  setzeTiefenkarte: (k: Tiefenkarte) => void;
+  setzeRueckfallkarte: (k: Tiefenkarte) => void;
   /** Nach einer Bewegung: die Hülle kommt zur Ruhe. */
   ruhe: () => void;
 }
@@ -90,7 +112,8 @@ export const useRaum = create<Raumzustand>((set, get) => ({
   ankerId: null,
   ort: 'mitte',
   tiefe: 0,
-  werkraum: 'buch' as Werkraum,
+  tiefenkarte: OHNE_TIEFE as Tiefenkarte,
+  rueckfallkarte: OHNE_TIEFE as Tiefenkarte,
   ...LEER,
   phase: 'ruhe' as Phase,
   imUebergang: false,
@@ -118,18 +141,27 @@ export const useRaum = create<Raumzustand>((set, get) => ({
     const s = get();
     if (!s.gestenrichtung) return;
     /*
-     * Wie weit dieser Weg reicht, entscheidet der Arbeitsraum.
+     * Zwei Fragen an die Karte, und beide gehören ihr allein.
      *
-     * Rechts kommt man in einem Charakterraum bis ins ganze Geflecht, im
-     * Romanraum nur bis zu den Zusammenhängen – dieselbe Geste, dieselbe
-     * Regel, andere Reichweite. Der Regler im Stimmzimmer bleibt darüber die
-     * Obergrenze für alles.
+     * Erstens: Darf diese Geste von hier aus überhaupt etwas öffnen? Eine
+     * Richtung, die diese Seite nicht anbietet, öffnet nichts – und zwar
+     * ohne Ersatz. Nichts zu erfinden ist eine ausdrückliche Regel und keine
+     * Sparmaßnahme.
+     *
+     * Zweitens: Wie weit reicht der Weg? Der Regler im Stimmzimmer bleibt
+     * darüber die Obergrenze für alles.
      */
+    const stand = { ort: s.ort, tiefe: s.tiefe };
+    const gilt = geltendeKarte(s);
+    if (!gesteErlaubt(gilt, stand, s.gestenrichtung)) {
+      set({ phase: 'ruhe', ...LEER });
+      return;
+    }
     const ziel = naechsterStand(
-      { ort: s.ort, tiefe: s.tiefe },
+      stand,
       s.gestenrichtung,
       konfig(),
-      hoechsteTiefe(s.werkraum, s.gestenrichtung),
+      reichweite(gilt, s.gestenrichtung),
     );
     set({
       ort: ziel.ort,
@@ -158,16 +190,26 @@ export const useRaum = create<Raumzustand>((set, get) => ({
     set({ ort, tiefe, phase: 'verpflichtend', imUebergang: true, ...LEER });
   },
 
-  setzeWerkraum(w) {
+  setzeTiefenkarte(k) {
     /*
-     * Ein Wechsel des Arbeitsraums lässt Ort und Tiefe unangetastet.
+     * Eine neue Karte lässt Ort und Tiefe unangetastet.
      *
-     * Es ist kein Ereignis, sondern eine Feststellung: Der Benutzer *ist*
-     * woanders, er geht nicht dorthin. Wer hier den Blick in die Mitte
-     * zurückholte, risse jede Navigation aus der Tiefe heraus mitten im Weg
-     * ab – und zwar bei jedem Seitenwechsel.
+     * Es ist kein Ereignis, sondern eine Feststellung: Die sichtbare Seite
+     * *ist* eine andere, sie geht nicht dorthin. Wer hier den Blick in die
+     * Mitte zurückholte, risse jede Navigation aus der Tiefe heraus mitten im
+     * Weg ab – und zwar bei jedem Seitenwechsel.
+     *
+     * Der Weg zurück bleibt trotzdem offen, auch wenn die neue Karte die
+     * Richtung gar nicht kennt, in der man gerade steht: Dafür sorgt
+     * `gesteErlaubt`, indem es die Gegenrichtung ausnahmslos durchlässt.
+     * Ohne diese Ausnahme könnte ein Seitenwechsel jemanden in einer Tiefe
+     * einsperren.
      */
-    if (get().werkraum !== w) set({ werkraum: w });
+    set({ tiefenkarte: k });
+  },
+
+  setzeRueckfallkarte(k) {
+    set({ rueckfallkarte: k });
   },
 
   ruhe() {
@@ -191,4 +233,24 @@ export function inDerMitte(): boolean {
 export function gesteLaeuft(): boolean {
   const s = useRaum.getState();
   return s.gestenrichtung !== null || s.imUebergang || s.tiefe > 0;
+}
+
+/**
+ * Welche Karte gerade gilt.
+ *
+ * Die eine Stelle, an der aus zwei Fächern eine Antwort wird – und deshalb
+ * die einzige, die irgendwo sonst aufgerufen werden darf. Wer selbst
+ * `tiefenkarte` liest, umgeht den Rückfall und bekommt auf jeder Seite ohne
+ * eigene Tiefe eine leere Karte.
+ */
+export function geltendeKarte(s: {
+  tiefenkarte: Tiefenkarte;
+  rueckfallkarte: Tiefenkarte;
+}): Tiefenkarte {
+  return richtungen(s.tiefenkarte).length ? s.tiefenkarte : s.rueckfallkarte;
+}
+
+/** Dieselbe Frage außerhalb von React. */
+export function karteJetzt(): Tiefenkarte {
+  return geltendeKarte(useRaum.getState());
 }

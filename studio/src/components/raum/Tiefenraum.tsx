@@ -26,9 +26,9 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRightLeft, MapPin, Sparkles } from 'lucide-react';
 import { useStudio, livingEntries } from '../../store/useStudio';
-import { useRaum } from '../../lib/raum/useRaum';
+import { geltendeKarte, useRaum } from '../../lib/raum/useRaum';
 import { type Richtung } from '../../lib/raum/geste';
-import { ebene, weg as wegVon, type Raumkennung } from '../../lib/raum/werkraum';
+import { stufe as stufeVon, type Raumkennung, type Tiefenweg } from '../../lib/raum/tiefenkarte';
 import { relationsOf } from '../../lib/relations';
 import { templateFor } from '../../lib/templates';
 import { chapterOfType } from '../../lib/book';
@@ -63,8 +63,14 @@ const gehoertZu = (e: Entry, wohin: 'wesen' | 'welt') =>
  * Die Überschriften standen hier einmal als feste Tabelle: `rechts:1` hieß
  * überall „Wesen in der Nähe". Das war eine globale Navigation mit Gesten
  * statt mit Knöpfen – im Romanraum bekam man dieselben vier Namen wie auf
- * einer Karte. Jetzt kommen Name, Zeile und Tiefe aus `lib/raum/werkraum.ts`,
- * und diese Datei zeigt nur noch an, was dort steht.
+ * einer Karte. Dann kamen sie aus einer Tabelle von Arbeitsraumklassen – und
+ * das war derselbe Fehler in fünffacher Ausfertigung: immer noch das
+ * Programm, das bestimmt, was rechts liegt.
+ *
+ * Jetzt kommen Name, Zeile und Tiefe aus der Karte, die die **sichtbare
+ * Seite** angemeldet hat. Diese Datei ist die vierte Verantwortlichkeit –
+ * Darstellung – und weiß nur, wie man eine Raumkennung zeigt. Was sie
+ * bedeutet, hat sie nie erfahren.
  */
 
 export function Tiefenraum() {
@@ -72,7 +78,14 @@ export function Tiefenraum() {
   const tiefe = useRaum((s) => s.tiefe);
   const phase = useRaum((s) => s.phase);
   const ankerId = useRaum((s) => s.ankerId);
-  const werkraum = useRaum((s) => s.werkraum);
+  /*
+   * `geltendeKarte` und nicht `tiefenkarte` – der Unterschied ist genau der
+   * Rückfall. Wer das Fach der Seite direkt liest, bekommt auf jeder Seite
+   * ohne eigene Tiefe eine leere Karte und zeigt gar nichts an. Genau das
+   * stand hier zuerst: Die Geste öffnete, weil der Speicher richtig fragte,
+   * und der Raum blieb leer, weil diese Zeile falsch fragte.
+   */
+  const tiefenkarte = useRaum(geltendeKarte);
   const entries = useStudio((s) => s.entries);
   const relIndex = useStudio((s) => s.relIndex);
 
@@ -83,8 +96,16 @@ export function Tiefenraum() {
   if (ort === 'mitte' || tiefe === 0) return null;
   /* Ab hier ist `ort` sicher eine Richtung – die Mitte ist oben ausgeschieden. */
   const richtung = ort as Richtung;
-  const dieserWeg = wegVon(werkraum, richtung);
-  const dieseEbene = ebene(werkraum, richtung, tiefe);
+  /*
+   * Was hier liegt, sagt die Karte der sichtbaren Seite – nicht diese Datei.
+   *
+   * Fehlt sie (etwa unmittelbar nach einem Seitenwechsel), wird nichts
+   * gezeigt statt etwas Erfundenem. Der Weg zurück bleibt trotzdem offen:
+   * Der Doppeltipp hängt an keiner Karte.
+   */
+  const dieserWeg: Tiefenweg | undefined = tiefenkarte[richtung];
+  const dieseStufe = stufeVon(tiefenkarte, richtung, tiefe);
+  if (!dieserWeg || !dieseStufe) return null;
 
   return (
     <div
@@ -111,9 +132,9 @@ export function Tiefenraum() {
             weitergeht. „1 von 1" ist keine Auskunft, sondern eine Zahl, die
             sich wichtig macht.
           */}
-          {dieserWeg.ebenen.length > 1 && ` von ${dieserWeg.ebenen.length}`}
+          {dieserWeg.stufen.length > 1 && ` von ${dieserWeg.stufen.length}`}
         </p>
-        <h2 className="mt-1 font-serif text-[22px] text-paper-200">{dieseEbene.titel}</h2>
+        <h2 className="mt-1 font-serif text-[22px] text-paper-200">{dieseStufe.titel}</h2>
         {anker && (
           /*
            * Der Anker steht sichtbar da.
@@ -129,7 +150,7 @@ export function Tiefenraum() {
         )}
       </header>
 
-      <Inhalt raum={dieseEbene.raum} anker={anker} lebende={lebende} nach={nach} index={relIndex} />
+      <Inhalt raum={dieseStufe.raum} anker={anker} lebende={lebende} nach={nach} index={relIndex} />
 
       <p className="mt-8 shrink-0 text-center font-serif text-[12px] italic text-paper-400/35">
         Doppeltipp bringt dich zurück zu deinem Werk.
@@ -599,9 +620,16 @@ function zeichenVon(titel: string): string {
 export function Tiefenmarke() {
   const tiefe = useRaum((s) => s.tiefe);
   const ort = useRaum((s) => s.ort);
-  const werkraum = useRaum((s) => s.werkraum);
+  /*
+   * `geltendeKarte` und nicht `tiefenkarte` – der Unterschied ist genau der
+   * Rückfall. Wer das Fach der Seite direkt liest, bekommt auf jeder Seite
+   * ohne eigene Tiefe eine leere Karte und zeigt gar nichts an. Genau das
+   * stand hier zuerst: Die Geste öffnete, weil der Speicher richtig fragte,
+   * und der Raum blieb leer, weil diese Zeile falsch fragte.
+   */
+  const tiefenkarte = useRaum(geltendeKarte);
   if (!tiefe) return null;
-  const name = ort === 'mitte' ? '' : wegVon(werkraum, ort).name;
+  const name = ort === 'mitte' ? '' : tiefenkarte[ort]?.name ?? '';
   return (
     <span className="flex items-center gap-1.5 font-serif text-[11.5px] uppercase tracking-[0.18em] text-gild-500/60">
       <Sparkles size={11} aria-hidden />

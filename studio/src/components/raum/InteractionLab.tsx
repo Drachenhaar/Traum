@@ -43,7 +43,7 @@ import {
   setzeVorlage,
   type Raumkonfig,
 } from '../../lib/raum/konfig';
-import { useRaum } from '../../lib/raum/useRaum';
+import { karteJetzt, useRaum } from '../../lib/raum/useRaum';
 import { fenster } from './Raumschicht';
 
 /** Steht die Adresse auf „Labor"? */
@@ -403,7 +403,18 @@ function Sichtfenster() {
        * absichtlich nicht.
        */
       const huelle = document.querySelector('[data-flaeche]') as HTMLElement | null;
-      setze('werkraum', wurzel.dataset.werkraum ?? '—');
+      /*
+       * Die Karte der sichtbaren Seite – der einzige Weg, §8 zu prüfen.
+       *
+       * Angezeigt wird, welche Richtungen diese Seite überhaupt anbietet und
+       * wie weit jede reicht. Eine fehlende Richtung ist eine Aussage: Dort
+       * gibt es nichts, und dort passiert deshalb auch nichts.
+       */
+      const k2 = karteJetzt();
+      const wege = (['links', 'rechts', 'oben', 'unten'] as const)
+        .map((r) => (k2[r] ? `${r[0]}${k2[r]!.stufen.length}` : `${r[0]}·`))
+        .join(' ');
+      setze('tiefenkarte', wege);
       setze(
         'flaechenwert',
         `${huelle?.dataset.flaeche ?? '—'} ${
@@ -494,8 +505,8 @@ function Sichtfenster() {
         {'\nfinger   '}
         <span data-besitzer>niemand</span>
         {`\nvorlage  ${buchvorlage()}\n`}
-        {'werkraum '}
-        <span data-werkraum>buch</span>
+        {'wege     '}
+        <span data-tiefenkarte>l· r· o· u·</span>
         {'\nflaeche  '}
         {/*
           Nicht `data-flaeche`: Genau dieses Merkmal trägt die Hülle, deren
