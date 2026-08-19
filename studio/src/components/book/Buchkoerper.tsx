@@ -170,9 +170,15 @@ export function Blatt({ richtung }: { richtung: 'vor' | 'zurueck' }) {
          * ausgeblendete Rückseite. Rückwärts der eigene Winkel des
          * hereinfallenden Blattes.
          */
+        /*
+         * Rückwärts kommt das Blatt von links hereingeschoben. Vorwärts
+         * bleibt es liegen: Dort wandert die lebende Seite selbst weg und
+         * gibt dieses Papier frei – es ist der Stapel darunter, nicht ein
+         * fliegendes Blatt.
+         */
         transform: vor
-          ? 'rotateY(var(--dc-seite-winkel, 0deg))'
-          : 'rotateY(var(--dc-blatt-winkel, 0deg))',
+          ? 'none'
+          : 'translateX(var(--dc-blatt-schub, 0px)) rotateY(var(--dc-blatt-winkel, 0deg))',
         transformStyle: 'preserve-3d',
         /*
          * Vorwärts sichtbar von beiden Seiten: Sonst verschwände dieses Blatt
@@ -260,7 +266,16 @@ export function Blattschatten({ richtung }: { richtung?: 'vor' | 'zurueck' | nul
         ueber ? 'z-20' : 'z-[5]',
       )}
       style={{
-        left: 'calc(var(--dc-blatt-kante, 1) * 100%)',
+        /*
+         * An der Kante der Seite – und die steht dort, wohin der Finger sie
+         * geschoben hat. Vorher stand hier `--dc-blatt-kante`, der Kosinus des
+         * Drehwinkels; mit dem Schub ist der Schub selbst die Antwort, und
+         * eine zweite Rechnung daneben wäre ein zweiter Ort für dieselbe
+         * Wahrheit.
+         */
+        left: ueber
+          ? 'calc(100% + var(--dc-blatt-schub, 0px))'
+          : 'calc(100% - var(--dc-seite-schub, 0px))',
         width: '26%',
         opacity: 'var(--dc-blatt-schatt, 0)',
         background:

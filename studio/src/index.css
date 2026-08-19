@@ -559,8 +559,22 @@
  * `data-blatt-federt` gesetzt ist – und das setzt der Haken ausschließlich
  * beim Loslassen –, darf eine Dauer mitreden.
  */
+/*
+ * Die lebende Seite wandert unter dem Finger zur Seite – und neigt sich dabei.
+ *
+ * **Die Reihenfolge ist nicht beliebig.** Erst schieben, dann neigen: So
+ * wandert die Seite und kippt dabei ein wenig. Andersherum kippt sie und
+ * wandert dann in ihrer eigenen, schon gedrehten Achse – das sieht aus, als
+ * würde sie weggeschleudert.
+ *
+ * Hier stand einmal nur die Drehung, mit hundertachtzig Grad und später
+ * zweiundachtzig. Am Gerät lautete das Urteil: sieht unnatürlich aus. Zu
+ * Recht – eine Seite, die sich dreht, braucht eine zweite Buchhälfte, auf
+ * die sie fällt, und die gibt es auf einem Telefon nicht. Geblieben sind
+ * vierzehn Grad, die dem Blatt Dicke geben.
+ */
 .dc-seite {
-  transform: rotateY(var(--dc-seite-winkel, 0deg));
+  transform: translateX(calc(-1 * var(--dc-seite-schub, 0px))) rotateY(var(--dc-seite-winkel, 0deg));
   transform-origin: left center;
   transform-style: preserve-3d;
   backface-visibility: hidden;
@@ -637,10 +651,10 @@
     --dc-seite-legen: 180ms;
   }
   .dc-seite {
-    transform: translateX(calc(var(--dc-blatt, 0) * -16%)) !important;
+    transform: translateX(calc(-1 * var(--dc-seite-schub, 0px))) !important;
   }
   .dc-blatt {
-    transform: translateX(calc((var(--dc-blatt, 0) - 1) * 100%)) !important;
+    transform: translateX(var(--dc-blatt-schub, 0px)) !important;
   }
   .dc-blatt > span:not(.paper-sheet),
   .dc-blattschatten {

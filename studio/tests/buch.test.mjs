@@ -242,41 +242,37 @@ wahr('  der Blattschatten wächst mit dem Weg', M.blattschatten(0.8, k) > M.blat
 p('  ohne Zug kein Schatten', M.blattschatten(0, k), 0);
 
 /*
- * Wo die Kante steht – die Zahl, ohne die der Schatten unsichtbar war.
+ * Der Schub – was man tatsächlich sieht.
  *
- * Ein Blatt in Ruhe bedeckt die ganze Seite, ein senkrecht stehendes gar
- * nichts, ein umgelegtes ebenfalls nichts (es liegt dann links). Dazwischen
- * schrumpft die Bedeckung durchgehend – wäre sie irgendwo wieder größer,
- * spränge der Schatten beim Ziehen zurück.
+ * Eins zu eins mit dem Finger, und das ist der ganze Unterschied zu
+ * `blattweg`: Der darf empfindlich sein, weil er nur *entscheidet*. Was sich
+ * bewegt, muss genau so weit gehen wie der Daumen, sonst klebt es nicht daran,
+ * sondern flieht davor.
+ *
+ * Hier stand vorher `blattkante` – „wo steht die Kante des gedrehten Blattes",
+ * als Kosinus des Winkels. Die Frage gehörte zum Drehmodell und ist mit ihm
+ * weggefallen: Die Kante steht dort, wohin der Finger die Seite geschoben hat.
  */
-p('  in Ruhe bedeckt das Blatt alles', Math.round(M.blattkante(0, k) * 1000) / 1000, 1);
+p('  ohne Zug kein Schub', M.blattschub(0, 390), 0);
+p('  vierzig Punkte Zug sind vierzig Punkte Schub', M.blattschub(-40, 390), 40);
+p('  und die Richtung ist ihm egal', M.blattschub(40, 390), M.blattschub(-40, 390));
+p('  weiter als die Seite breit ist geht es nicht', M.blattschub(-900, 390), 390);
+{
+  /* Streng eins zu eins über den ganzen Weg – keine Kurve, keine Beschleunigung. */
+  let eins = true;
+  for (let d = 0; d <= 390; d += 13) if (M.blattschub(-d, 390) !== d) eins = false;
+  wahr('  und dazwischen nirgends schneller oder langsamer', eins);
+}
 
 /*
- * **Diese Zusicherung stand einmal genau andersherum**, und sie war der
- * Fehler in Testform: „ganz gedreht bedeckt es nichts". Das stimmte – und
- * hieß, dass am Ende jeder Bewegung ein leeres Bild steht. Ein Blatt, das
- * beim Umlegen unsichtbar wird, ist kein Blatt, sondern ein Schnitt.
+ * Die Neigung ist nur noch eine Andeutung.
  *
- * Jetzt gilt das Gegenteil: Über die ganze Bewegung hinweg bleibt Papier zu
- * sehen. Wenig am Ende – ein handbreiter Streifen –, aber nie nichts.
+ * Sie darf dem Blatt Dicke geben und darf nicht mehr behaupten, hier drehe
+ * sich etwas um einen Falz. Auf einer einzelnen Seite gibt es nichts, worauf
+ * eine gedrehte Seite fallen könnte – und genau so sah es am Gerät auch aus.
  */
-wahr('  ganz gedreht bleibt ein Streifen stehen', M.blattkante(1, k) > 0.05);
-wahr('  aber nur noch ein schmaler', M.blattkante(1, k) < 0.3);
-{
-  let immerSichtbar = true;
-  for (let t = 0; t <= 1.0001; t += 0.02) if (M.blattkante(t, k) <= 0.05) immerSichtbar = false;
-  wahr('  und auf dem ganzen Weg verschwindet es nie', immerSichtbar);
-}
-{
-  let faellt = true;
-  let vorher = 2;
-  for (let t = 0; t <= 1.0001; t += 0.02) {
-    const v = M.blattkante(t, k);
-    if (v > vorher + 1e-9) faellt = false;
-    vorher = v;
-  }
-  wahr('  und die Kante wandert nur in eine Richtung', faellt);
-}
+wahr('  die Neigung bleibt eine Andeutung', Math.abs(M.blattwinkel(1, k)) <= 25);
+wahr('  aber sie ist da', Math.abs(M.blattwinkel(1, k)) > 2);
 
 /* ---------------------------------------------------------------- Dauern -- */
 

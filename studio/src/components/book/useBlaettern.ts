@@ -38,8 +38,8 @@ import { haptik } from '../../lib/raum/haptik';
 import {
   blattEntscheidung,
   blattrichtung,
-  blattkante,
   blattschatten,
+  blattschub,
   blattweg,
   blattwinkel,
   blattwinkelZurueck,
@@ -99,7 +99,7 @@ export function useBlaettern({
   const [richtung, setRichtung] = useState<Blattrichtung | null>(null);
 
   const schreibe = useCallback(
-    (weg: number, r: Blattrichtung, tempo = 0) => {
+    (weg: number, r: Blattrichtung, tempo = 0, schubPx = 0, breite = 390) => {
       const el = huelle.current;
       if (!el) return;
       const k = konfig();
@@ -121,13 +121,22 @@ export function useBlaettern({
        * eines von beiden spiegelverkehrt machen.
        */
       el.style.setProperty('--dc-seite-winkel', r === 'vor' ? `${winkel}deg` : '0deg');
+      /*
+       * Der Schub – in Punkten, nicht in Anteilen.
+       *
+       * Vorwärts wandert die lebende Seite unter dem Finger nach links;
+       * rückwärts steht sie still und das hereinfallende Blatt kommt von
+       * links auf sie zu. Beide Male dieselbe Strecke, an verschiedenen
+       * Knoten.
+       */
+      el.style.setProperty('--dc-seite-schub', r === 'vor' ? `${schubPx}px` : '0px');
+      el.style.setProperty('--dc-blatt-schub', r === 'zurueck' ? `${schubPx - breite}px` : '0px');
       el.style.setProperty(
         '--dc-blatt-winkel',
         r === 'zurueck' ? `${blattwinkelZurueck(weg, k)}deg` : '0deg',
       );
       el.style.setProperty('--dc-blatt-woelb', String(kruemmung(weg, k)));
       el.style.setProperty('--dc-blatt-schatt', String(blattschatten(weg, k)));
-      el.style.setProperty('--dc-blatt-kante', String(blattkante(weg, k)));
     },
     [huelle],
   );
@@ -137,10 +146,14 @@ export function useBlaettern({
     if (!el) return;
     el.style.setProperty('--dc-blatt', '0');
     el.style.setProperty('--dc-seite-winkel', '0deg');
+    el.style.setProperty('--dc-seite-schub', '0px');
+    el.style.setProperty(
+      '--dc-blatt-schub',
+      `${-(huelle.current?.clientWidth || 390)}px`,
+    );
     el.style.setProperty('--dc-blatt-winkel', `${blattwinkelZurueck(0, konfig())}deg`);
     el.style.setProperty('--dc-blatt-woelb', '0');
     el.style.setProperty('--dc-blatt-schatt', '0');
-    el.style.setProperty('--dc-blatt-kante', '1');
     el.style.setProperty('--dc-blatt-tempo', '0');
   }, [huelle]);
 
@@ -211,8 +224,9 @@ export function useBlaettern({
 
     /* Zieht der Finger wieder zurück, geht der Weg auf null – kein Negativ. */
     const gerichtet = g.richtung === 'vor' ? Math.min(0, dx) : Math.max(0, dx);
-    g.weg = blattweg(gerichtet, el.clientWidth || 390, k);
-    schreibe(g.weg, g.richtung, g.tempo);
+    const breite = el.clientWidth || 390;
+    g.weg = blattweg(gerichtet, breite, k);
+    schreibe(g.weg, g.richtung, g.tempo, blattschub(gerichtet, breite), breite);
   };
 
   /**
@@ -250,7 +264,9 @@ export function useBlaettern({
        * entscheidet, nicht diese Datei.
        */
       el?.setAttribute('data-blatt-legt', 'ja');
-      schreibe(1, g.richtung, g.tempo);
+      /* Beim Umlegen wandert die Seite ganz hinaus, nicht nur bis zum Finger. */
+      const voll = el?.clientWidth || 390;
+      schreibe(1, g.richtung, g.tempo, voll, voll);
       haptik.blattFest();
       if (uhr.current) clearTimeout(uhr.current);
       uhr.current = setTimeout(() => {
@@ -266,7 +282,7 @@ export function useBlaettern({
         haptik.blattRuht();
       }, k.seite.legenMs);
     } else {
-      schreibe(0, g.richtung, g.tempo);
+      schreibe(0, g.richtung, g.tempo, 0, el?.clientWidth || 390);
       if (uhr.current) clearTimeout(uhr.current);
       uhr.current = setTimeout(() => {
         el?.removeAttribute('data-blatt-federt');
