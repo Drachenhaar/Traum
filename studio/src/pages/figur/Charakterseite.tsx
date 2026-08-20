@@ -43,7 +43,7 @@
 
 import { useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, MoreHorizontal, Star } from 'lucide-react';
+import { BookmarkIcon, BookOpen, ChevronLeft, ListTree, Star } from 'lucide-react';
 import { useStudio, livingEntries } from '../../store/useStudio';
 import { relationsOf } from '../../lib/relations';
 import { useRaum } from '../../lib/raum/useRaum';
@@ -53,9 +53,11 @@ import { richtungen, type Tiefenkarte } from '../../lib/raum/tiefenkarte';
 import { type Richtung } from '../../lib/raum/geste';
 import { konfig } from '../../lib/raum/konfig';
 import { Bildnis } from '../../components/figur/Bildnis';
+import { Mehr } from '../../components/ui/Mehr';
 import { Goldteiler, Wegepunkt, zeichenFuer } from '../../lib/zeichen/zeichen';
 import { cx } from '../../lib/utils';
 import { ganzVerborgen, zeigtGeheimes } from '../../lib/geheim';
+import type { Entry } from '../../types';
 
 /**
  * Welches Zeichen und welches Wort an welcher Kante stehen.
@@ -130,6 +132,16 @@ export function Charakterseite() {
   const nach = useMemo(() => new Map(lebende.map((e) => [e.id, e])), [lebende]);
   const entry = id ? nach.get(id) : undefined;
 
+  /* Wen dieses Buch sonst kennt – nur für den Fall, dass die Kennung ins Leere zeigt. */
+  const figuren = useMemo(
+    () =>
+      lebende
+        .filter((e) => e.type === 'character')
+        .sort((a, b) => a.title.localeCompare(b.title, 'de'))
+        .slice(0, 24),
+    [lebende],
+  );
+
   const lage: Figurlage | undefined = useMemo(() => {
     if (!entry) return undefined;
     return {
@@ -168,15 +180,7 @@ export function Charakterseite() {
     if (entry) setzeAnker(entry.id);
   }, [entry?.id, setzeAnker]);
 
-  if (!entry) {
-    return (
-      <div className="grid min-h-full place-items-center bg-desk-900 px-8 text-center">
-        <p className="font-serif text-[15px] text-paper-300/70">
-          Diese Figur steht nicht in diesem Buch.
-        </p>
-      </div>
-    );
-  }
+  if (!entry) return <KeineFigur figuren={figuren} />;
 
   const k = konfig();
   const f = k.figur;
@@ -217,7 +221,22 @@ export function Charakterseite() {
       <div className="dc-korn pointer-events-none absolute inset-0" aria-hidden />
 
       {/* ---------------------------------------------------------- Kopf --- */}
-      <header className="relative z-10 flex items-center justify-between px-4 pt-2">
+      {/*
+        `z-30` und nicht `z-10` – sonst liegt das aufgeklappte Menü *hinter*
+        dem Namen.
+
+        Die Kopfzeile, der Namensblock und das Bildnis standen alle drei auf
+        `z-10`. Bei gleichem Wert entscheidet die Reihenfolge im Dokument, und
+        der Name kommt später – er malt also über die Kopfzeile. Dass der
+        Menüzettel selbst `z-30` trägt, half nichts: Diese Zahl gilt nur
+        *innerhalb* der Kopfzeile, und die Kopfzeile als Ganzes lag unten.
+
+        Gemessen war es eindeutig und wäre durch Hinsehen kaum zu finden
+        gewesen: Das Menü war offen, der Finger traf die richtigen
+        Koordinaten – und das Ereignis kam bei „VaelorianDrachenblut" an, dem
+        Namensblock darüber. Ein Menü, das man sieht und nicht treffen kann.
+      */}
+      <header className="relative z-30 flex items-center justify-between px-4 pt-2">
         <button
           type="button"
           onClick={() => navigate(-1)}
@@ -248,14 +267,47 @@ export function Charakterseite() {
               fill={entry.favorite ? 'currentColor' : 'none'}
             />
           </button>
-          <button
-            type="button"
-            onClick={() => navigate(`/eintrag/${entry.id}`)}
-            className="dc-chrome rounded-lg p-1.5 text-paper-300/60"
-            aria-label="Zur Buchseite"
-          >
-            <MoreHorizontal size={17} strokeWidth={1.5} />
-          </button>
+          {/*
+            Der Weg zurück ins Buch.
+
+            ---
+
+            **Hier stand ein Zeichen, das aussah wie „Mehr" und etwas anderes
+            tat.** Es sprang wortlos auf die Buchseite. Damit war die Frage
+            „wie komme ich von hier ins Buch?" nur zu beantworten, indem man
+            es ausprobierte – und das ist keine Antwort, das ist Raten.
+
+            Der Grund für die Frage ist meiner: Die Charakterseite blendet die
+            Buchleiste aus, weil zwei Kopfzeilen übereinander aus einem
+            Gesicht eine Programmansicht machen. Richtig – aber mit der Leiste
+            gingen auch Lesebändchen und Register verloren, und ersetzt hatte
+            ich sie nicht.
+
+            Jetzt liegt dort, was das Zeichen verspricht: aufgefächerte
+            seltene Handgriffe. Der Zettel ist bewusst aus Papier, auch auf
+            dieser dunklen Seite – er kommt aus dem Buch, und das darf man
+            sehen.
+          */}
+          <Mehr
+            klasse="text-paper-300/55 hover:text-gild-400"
+            eintraege={[
+              {
+                label: 'Zur Buchseite',
+                icon: <BookOpen size={14} />,
+                onClick: () => navigate(`/eintrag/${entry.id}`),
+              },
+              {
+                label: 'Inhaltsverzeichnis',
+                icon: <BookmarkIcon size={14} />,
+                onClick: () => navigate('/inhalt'),
+              },
+              {
+                label: 'Register',
+                icon: <ListTree size={14} />,
+                onClick: () => navigate('/register'),
+              },
+            ]}
+          />
         </div>
       </header>
 
@@ -382,6 +434,84 @@ export function Charakterseite() {
           </p>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Wenn die Kennung ins Leere zeigt.
+ *
+ * ---
+ *
+ * **Hier stand ein Satz und sonst nichts:** „Diese Figur steht nicht in
+ * diesem Buch." Richtig, unbrauchbar und – das ist der Punkt – der einzige
+ * Bildschirm im ganzen Programm, den man erreichen kann, ohne etwas falsch
+ * gemacht zu haben. Es genügt eine Adresse mit einer alten Kennung, ein
+ * Lesezeichen auf eine gelöschte Figur, ein weitergegebener Link. Ich habe
+ * diesen Zustand selbst ausgelöst, indem ich eine Adresse mit einem
+ * Platzhalter aufgeschrieben habe.
+ *
+ * Ein Raum, der nur sagt „hier ist nichts", ist eine Sackgasse mit Aussicht –
+ * derselbe Satz steht in `Tiefenraum.tsx`, und er galt hier genauso. Also
+ * steht jetzt da, wen dieses Buch stattdessen kennt. Das ist keine
+ * Fehlermeldung mehr, sondern eine Tür.
+ *
+ * Und wenn das Buch wirklich noch niemanden kennt, wird auch das gesagt –
+ * ohne die Behauptung, es sei etwas schiefgegangen.
+ */
+function KeineFigur({ figuren }: { figuren: Entry[] }) {
+  const navigate = useNavigate();
+  return (
+    <div className="flex min-h-full flex-col bg-desk-900 px-7 pb-10 pt-16">
+      <div className="text-center">
+        <p className="font-serif text-[15px] text-paper-300/70">
+          Diese Kennung führt zu keiner Figur.
+        </p>
+        <div className="mt-3 flex justify-center text-gild-500/40">
+          <Goldteiler breite={120} />
+        </div>
+      </div>
+
+      {figuren.length > 0 ? (
+        <div className="mt-8">
+          <h2 className="font-serif text-[10px] uppercase tracking-[0.26em] text-gild-500/55">
+            Wen dieses Buch kennt
+          </h2>
+          <div className="mt-2">
+            {figuren.map((f, i) => (
+              <div key={f.id}>
+                {i > 0 && <div className="h-px bg-gild-600/15" aria-hidden />}
+                <button
+                  type="button"
+                  onClick={() => navigate(`/figur/${f.id}`, { replace: true })}
+                  className="flex w-full items-center gap-3 py-2.5 text-left no-tap-highlight active:opacity-70"
+                >
+                  <Bildnis
+                    entry={f}
+                    schacht="beziehungsbildnis"
+                    ecken
+                    className="h-[46px] w-[40px] shrink-0 rounded-[2px]"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-serif text-[15px] text-paper-100">
+                      {f.title}
+                    </span>
+                    {(f.fields?.role || f.subtitle) && (
+                      <span className="mt-0.5 block truncate font-serif text-[11px] text-brass-400/70">
+                        {typeof f.fields?.role === 'string' && f.fields.role ? f.fields.role : f.subtitle}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <p className="mt-8 text-center font-serif text-[12.5px] italic text-paper-300/40">
+          In diesem Buch lebt noch niemand.
+        </p>
+      )}
     </div>
   );
 }

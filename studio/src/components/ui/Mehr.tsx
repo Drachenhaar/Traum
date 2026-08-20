@@ -32,10 +32,20 @@ export function Mehr({
   eintraege,
   label = 'Mehr',
   ausrichtung = 'rechts',
+  klasse,
 }: {
   eintraege: MehrEintrag[];
   label?: string;
   ausrichtung?: 'links' | 'rechts';
+  /**
+   * Die Farbe des Zeichens – fuer Seiten, die nicht aus Papier sind.
+   *
+   * Der Vorgabewert `text-ink-faint/35` ist auf hellem Buchpapier richtig und
+   * auf der fast schwarzen Charakterseite unsichtbar. Nur der *Ausloeser*
+   * wechselt; die aufgeklappte Liste bleibt ein Zettel aus Papier, und das
+   * ist auf einem dunklen Tisch genau richtig.
+   */
+  klasse?: string;
 }) {
   const [offen, setOffen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
@@ -71,7 +81,7 @@ export function Mehr({
         data-leitfaden="mehr"
         className={cx(
           'grid h-9 w-9 place-items-center transition-colors no-tap-highlight',
-          offen ? 'text-gild-500' : 'text-ink-faint/35 hover:text-gild-500',
+          offen ? 'text-gild-500' : (klasse ?? 'text-ink-faint/35 hover:text-gild-500'),
         )}
       >
         <MoreHorizontal size={16} />
