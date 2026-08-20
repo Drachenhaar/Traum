@@ -43,7 +43,7 @@
 
 import { useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, MoreHorizontal, Star } from 'lucide-react';
+import { BookmarkIcon, BookOpen, ChevronLeft, ListTree, Star } from 'lucide-react';
 import { useStudio, livingEntries } from '../../store/useStudio';
 import { relationsOf } from '../../lib/relations';
 import { useRaum } from '../../lib/raum/useRaum';
@@ -53,6 +53,7 @@ import { richtungen, type Tiefenkarte } from '../../lib/raum/tiefenkarte';
 import { type Richtung } from '../../lib/raum/geste';
 import { konfig } from '../../lib/raum/konfig';
 import { Bildnis } from '../../components/figur/Bildnis';
+import { Mehr } from '../../components/ui/Mehr';
 import { Goldteiler, Wegepunkt, zeichenFuer } from '../../lib/zeichen/zeichen';
 import { cx } from '../../lib/utils';
 import { ganzVerborgen, zeigtGeheimes } from '../../lib/geheim';
@@ -220,7 +221,22 @@ export function Charakterseite() {
       <div className="dc-korn pointer-events-none absolute inset-0" aria-hidden />
 
       {/* ---------------------------------------------------------- Kopf --- */}
-      <header className="relative z-10 flex items-center justify-between px-4 pt-2">
+      {/*
+        `z-30` und nicht `z-10` – sonst liegt das aufgeklappte Menü *hinter*
+        dem Namen.
+
+        Die Kopfzeile, der Namensblock und das Bildnis standen alle drei auf
+        `z-10`. Bei gleichem Wert entscheidet die Reihenfolge im Dokument, und
+        der Name kommt später – er malt also über die Kopfzeile. Dass der
+        Menüzettel selbst `z-30` trägt, half nichts: Diese Zahl gilt nur
+        *innerhalb* der Kopfzeile, und die Kopfzeile als Ganzes lag unten.
+
+        Gemessen war es eindeutig und wäre durch Hinsehen kaum zu finden
+        gewesen: Das Menü war offen, der Finger traf die richtigen
+        Koordinaten – und das Ereignis kam bei „VaelorianDrachenblut" an, dem
+        Namensblock darüber. Ein Menü, das man sieht und nicht treffen kann.
+      */}
+      <header className="relative z-30 flex items-center justify-between px-4 pt-2">
         <button
           type="button"
           onClick={() => navigate(-1)}
@@ -251,14 +267,47 @@ export function Charakterseite() {
               fill={entry.favorite ? 'currentColor' : 'none'}
             />
           </button>
-          <button
-            type="button"
-            onClick={() => navigate(`/eintrag/${entry.id}`)}
-            className="dc-chrome rounded-lg p-1.5 text-paper-300/60"
-            aria-label="Zur Buchseite"
-          >
-            <MoreHorizontal size={17} strokeWidth={1.5} />
-          </button>
+          {/*
+            Der Weg zurück ins Buch.
+
+            ---
+
+            **Hier stand ein Zeichen, das aussah wie „Mehr" und etwas anderes
+            tat.** Es sprang wortlos auf die Buchseite. Damit war die Frage
+            „wie komme ich von hier ins Buch?" nur zu beantworten, indem man
+            es ausprobierte – und das ist keine Antwort, das ist Raten.
+
+            Der Grund für die Frage ist meiner: Die Charakterseite blendet die
+            Buchleiste aus, weil zwei Kopfzeilen übereinander aus einem
+            Gesicht eine Programmansicht machen. Richtig – aber mit der Leiste
+            gingen auch Lesebändchen und Register verloren, und ersetzt hatte
+            ich sie nicht.
+
+            Jetzt liegt dort, was das Zeichen verspricht: aufgefächerte
+            seltene Handgriffe. Der Zettel ist bewusst aus Papier, auch auf
+            dieser dunklen Seite – er kommt aus dem Buch, und das darf man
+            sehen.
+          */}
+          <Mehr
+            klasse="text-paper-300/55 hover:text-gild-400"
+            eintraege={[
+              {
+                label: 'Zur Buchseite',
+                icon: <BookOpen size={14} />,
+                onClick: () => navigate(`/eintrag/${entry.id}`),
+              },
+              {
+                label: 'Inhaltsverzeichnis',
+                icon: <BookmarkIcon size={14} />,
+                onClick: () => navigate('/inhalt'),
+              },
+              {
+                label: 'Register',
+                icon: <ListTree size={14} />,
+                onClick: () => navigate('/register'),
+              },
+            ]}
+          />
         </div>
       </header>
 
