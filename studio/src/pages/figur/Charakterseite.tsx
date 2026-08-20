@@ -56,6 +56,7 @@ import { Bildnis } from '../../components/figur/Bildnis';
 import { Goldteiler, Wegepunkt, zeichenFuer } from '../../lib/zeichen/zeichen';
 import { cx } from '../../lib/utils';
 import { ganzVerborgen, zeigtGeheimes } from '../../lib/geheim';
+import type { Entry } from '../../types';
 
 /**
  * Welches Zeichen und welches Wort an welcher Kante stehen.
@@ -130,6 +131,16 @@ export function Charakterseite() {
   const nach = useMemo(() => new Map(lebende.map((e) => [e.id, e])), [lebende]);
   const entry = id ? nach.get(id) : undefined;
 
+  /* Wen dieses Buch sonst kennt – nur für den Fall, dass die Kennung ins Leere zeigt. */
+  const figuren = useMemo(
+    () =>
+      lebende
+        .filter((e) => e.type === 'character')
+        .sort((a, b) => a.title.localeCompare(b.title, 'de'))
+        .slice(0, 24),
+    [lebende],
+  );
+
   const lage: Figurlage | undefined = useMemo(() => {
     if (!entry) return undefined;
     return {
@@ -168,15 +179,7 @@ export function Charakterseite() {
     if (entry) setzeAnker(entry.id);
   }, [entry?.id, setzeAnker]);
 
-  if (!entry) {
-    return (
-      <div className="grid min-h-full place-items-center bg-desk-900 px-8 text-center">
-        <p className="font-serif text-[15px] text-paper-300/70">
-          Diese Figur steht nicht in diesem Buch.
-        </p>
-      </div>
-    );
-  }
+  if (!entry) return <KeineFigur figuren={figuren} />;
 
   const k = konfig();
   const f = k.figur;
@@ -382,6 +385,84 @@ export function Charakterseite() {
           </p>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Wenn die Kennung ins Leere zeigt.
+ *
+ * ---
+ *
+ * **Hier stand ein Satz und sonst nichts:** „Diese Figur steht nicht in
+ * diesem Buch." Richtig, unbrauchbar und – das ist der Punkt – der einzige
+ * Bildschirm im ganzen Programm, den man erreichen kann, ohne etwas falsch
+ * gemacht zu haben. Es genügt eine Adresse mit einer alten Kennung, ein
+ * Lesezeichen auf eine gelöschte Figur, ein weitergegebener Link. Ich habe
+ * diesen Zustand selbst ausgelöst, indem ich eine Adresse mit einem
+ * Platzhalter aufgeschrieben habe.
+ *
+ * Ein Raum, der nur sagt „hier ist nichts", ist eine Sackgasse mit Aussicht –
+ * derselbe Satz steht in `Tiefenraum.tsx`, und er galt hier genauso. Also
+ * steht jetzt da, wen dieses Buch stattdessen kennt. Das ist keine
+ * Fehlermeldung mehr, sondern eine Tür.
+ *
+ * Und wenn das Buch wirklich noch niemanden kennt, wird auch das gesagt –
+ * ohne die Behauptung, es sei etwas schiefgegangen.
+ */
+function KeineFigur({ figuren }: { figuren: Entry[] }) {
+  const navigate = useNavigate();
+  return (
+    <div className="flex min-h-full flex-col bg-desk-900 px-7 pb-10 pt-16">
+      <div className="text-center">
+        <p className="font-serif text-[15px] text-paper-300/70">
+          Diese Kennung führt zu keiner Figur.
+        </p>
+        <div className="mt-3 flex justify-center text-gild-500/40">
+          <Goldteiler breite={120} />
+        </div>
+      </div>
+
+      {figuren.length > 0 ? (
+        <div className="mt-8">
+          <h2 className="font-serif text-[10px] uppercase tracking-[0.26em] text-gild-500/55">
+            Wen dieses Buch kennt
+          </h2>
+          <div className="mt-2">
+            {figuren.map((f, i) => (
+              <div key={f.id}>
+                {i > 0 && <div className="h-px bg-gild-600/15" aria-hidden />}
+                <button
+                  type="button"
+                  onClick={() => navigate(`/figur/${f.id}`, { replace: true })}
+                  className="flex w-full items-center gap-3 py-2.5 text-left no-tap-highlight active:opacity-70"
+                >
+                  <Bildnis
+                    entry={f}
+                    schacht="beziehungsbildnis"
+                    ecken
+                    className="h-[46px] w-[40px] shrink-0 rounded-[2px]"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-serif text-[15px] text-paper-100">
+                      {f.title}
+                    </span>
+                    {(f.fields?.role || f.subtitle) && (
+                      <span className="mt-0.5 block truncate font-serif text-[11px] text-brass-400/70">
+                        {typeof f.fields?.role === 'string' && f.fields.role ? f.fields.role : f.subtitle}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <p className="mt-8 text-center font-serif text-[12.5px] italic text-paper-300/40">
+          In diesem Buch lebt noch niemand.
+        </p>
+      )}
     </div>
   );
 }
