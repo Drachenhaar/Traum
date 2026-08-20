@@ -29,6 +29,7 @@ for (const [aus, ein] of [
   ['w-geste', 'src/lib/raum/geste.ts'],
   ['w-konfig', 'src/lib/raum/konfig.ts'],
   ['w-flaeche', 'src/lib/raum/flaeche.ts'],
+  ['w-figur', 'src/lib/raum/figurkarte.ts'],
 ])
   execSync(`npx esbuild ${ein} --bundle --format=esm --outfile=${S}/t/${aus}.mjs`, { stdio: 'pipe' });
 const T = await import(S + '/t/w-karte.mjs');
@@ -36,6 +37,7 @@ const V = await import(S + '/t/w-vorlagen.mjs');
 const G = await import(S + '/t/w-geste.mjs');
 const K = await import(S + '/t/w-konfig.mjs');
 const F = await import(S + '/t/w-flaeche.mjs');
+const FK = await import(S + '/t/w-figur.mjs');
 
 let ok = 0,
   bad = 0;
@@ -281,6 +283,176 @@ p('  bei der Arbeit steht alles voll da', F.deutlichkeit('arbeit', k), 1);
 wahr('  in Ruhe weniger als bei Berührung', F.deutlichkeit('ruhe', k) < F.deutlichkeit('beruehrung', k));
 wahr('  bei Berührung weniger als bei Arbeit', F.deutlichkeit('beruehrung', k) < F.deutlichkeit('arbeit', k));
 wahr('  Beruhigen dauert länger als Erscheinen', F.uebergangMs('ruhe', k) > F.uebergangMs('arbeit', k));
+
+/* ======================================================================== */
+
+console.log('\n7 Die Wahl – wo eine Geste allein nicht weiterkommt');
+
+/*
+ * Der Weg aus dem Auftrag zur Charakterseite:
+ *
+ *     Vaelorian → Beziehungen → Miraelys → gemeinsame Geschichte
+ *
+ * Der dritte Schritt hat ein anderes Subjekt als der zweite, und welches,
+ * kann keine Karte im Voraus wissen. Eine Geste kennt eine Richtung, keine
+ * Person. Also verlangt die erste Stufe eine Wahl – und ohne sie führt der
+ * Weg nicht weiter. Das ist dieselbe Regel wie bei einer fehlenden Richtung:
+ * nichts erfinden.
+ */
+const dreiweg = T.karte({
+  rechts: T.tieferWeg('Beziehungen', 'Verbündete · Konflikte', [
+    { titel: 'Wer ihr nahesteht', raum: 'beziehungen', wahl: 'noetig' },
+    { titel: 'Diese Verbindung', raum: 'beziehung' },
+    { titel: 'Gemeinsame Geschichte', raum: 'gemeinsameGeschichte' },
+  ]),
+});
+
+p('7 gebaut ist der Weg drei Ebenen lang', T.reichweite(dreiweg, 'rechts'), 3);
+p('  begehbar ist er ohne Wahl nur eine', T.begehbar(dreiweg, 'rechts', []), 1);
+p('  mit einer Wahl bis zum Ende', T.begehbar(dreiweg, 'rechts', ['e_mir']), 3);
+
+/*
+ * Der Unterschied ist keine Feinheit: „Tiefe 1 von 3" ist eine Lüge, solange
+ * niemand gewählt hat. Wer die Zahl trotzdem zeigt, verspricht einen Weg, den
+ * die Geste gleich verweigert – und dann sieht es aus, als sei die Bedienung
+ * kaputt.
+ */
+wahr('  aus der Mitte führt rechts hinein', T.gesteErlaubt(dreiweg, { ort: 'mitte', tiefe: 0 }, 'rechts', []));
+wahr(
+  '  ohne Wahl führt sie nicht weiter',
+  !T.gesteErlaubt(dreiweg, { ort: 'rechts', tiefe: 1 }, 'rechts', []),
+);
+wahr(
+  '  mit Wahl schon',
+  T.gesteErlaubt(dreiweg, { ort: 'rechts', tiefe: 1 }, 'rechts', ['e_mir']),
+);
+wahr(
+  '  von Ebene zwei weiter, ohne neue Wahl',
+  T.gesteErlaubt(dreiweg, { ort: 'rechts', tiefe: 2 }, 'rechts', ['e_mir']),
+);
+wahr(
+  '  am Ende ist Schluss',
+  !T.gesteErlaubt(dreiweg, { ort: 'rechts', tiefe: 3 }, 'rechts', ['e_mir']),
+);
+
+/* Der Weg zurück hängt an keiner Wahl – sonst sperrte eine fehlende Wahl ein. */
+wahr(
+  '  heraus geht es immer',
+  T.gesteErlaubt(dreiweg, { ort: 'rechts', tiefe: 1 }, 'links', []),
+);
+wahr('  auch aus der Tiefe ohne Wahl', T.gesteErlaubt(dreiweg, { ort: 'rechts', tiefe: 2 }, 'links', []));
+
+/* Ohne Angabe eines Pfades wird gar nicht nach Wahlen gefragt – Altbestand. */
+wahr(
+  '  alte Aufrufe ohne Pfad bleiben gültig',
+  T.gesteErlaubt(dreiweg, { ort: 'rechts', tiefe: 1 }, 'rechts') === false,
+);
+
+p('  wahlOffen sagt, woran es liegt', T.wahlOffen(dreiweg, 'rechts', 1, []), true);
+p('  und schweigt, wenn gewählt ist', T.wahlOffen(dreiweg, 'rechts', 1, ['e_mir']), false);
+p('  eine Stufe ohne Wahl fragt nie', T.wahlOffen(dreiweg, 'rechts', 2, []), false);
+
+console.log('\n8 Keine feste Obergrenze in der Architektur');
+
+/*
+ * Der Auftrag ist hier ausdrücklich: „Nicht hart codieren: depth max = 3."
+ * Die Zusicherung dazu baut einen Weg mit sieben Stufen – die Kette aus dem
+ * Auftrag – und prüft, dass die Bedienung ihn ganz begeht. Vorher schnitt ein
+ * `Math.min(k.geste.hoechsteTiefe, …)` in `naechsterStand` bei drei ab.
+ */
+const lang = T.karte({
+  rechts: T.tieferWeg('Weit', 'sehr weit', [
+    { titel: 'Beziehung', raum: 'beziehungen' },
+    { titel: 'Person', raum: 'beziehung' },
+    { titel: 'Ereignis', raum: 'gemeinsameGeschichte' },
+    { titel: 'Ort', raum: 'herkunft' },
+    { titel: 'Epoche', raum: 'wissen' },
+    { titel: 'Fraktion', raum: 'zusammenhang' },
+    { titel: 'Geflecht', raum: 'geflecht' },
+  ]),
+});
+p('8 sieben Stufen sind sieben', T.reichweite(lang, 'rechts'), 7);
+wahr('  und die Geste kommt bis zur siebten', T.gesteErlaubt(lang, { ort: 'rechts', tiefe: 6 }, 'rechts', []));
+{
+  let stand = { ort: 'mitte', tiefe: 0 };
+  for (let i = 0; i < 9; i++) stand = G.naechsterStand(stand, 'rechts', K.VORGABE, 7);
+  p('  neunmal ziehen endet bei sieben, nicht bei drei', stand, { ort: 'rechts', tiefe: 7 });
+}
+
+console.log('\n9 Die Karte einer Figur – nichts erfinden');
+
+const figur = (felder = {}, extra = {}) => ({
+  id: 'f', bookId: 'b', title: 'Vaelorian', subtitle: '', type: 'character', category: '',
+  description: '', tags: [], status: 'Idee', favorite: false, createdAt: 0, updatedAt: 0,
+  linkedEntryIds: [], blocks: [], fields: felder, ...extra,
+});
+const figurlage = (entry, kanten = []) => ({ entry, kanten, kennt: () => true });
+
+p(
+  '9 eine leere Figur hat keine Umgebung',
+  T.richtungen(FK.figurkarte(figurlage(figur()))),
+  [],
+);
+p(
+  '  ein Satz Text öffnet oben',
+  T.richtungen(FK.figurkarte(figurlage(figur({}, { description: 'Er kam aus dem Norden.' })))),
+  ['oben'],
+);
+p(
+  '  eine Verwandte öffnet rechts',
+  T.richtungen(
+    FK.figurkarte(figurlage(figur(), [{ relation: { type: 'related' }, otherId: 'x' }])),
+  ),
+  ['rechts'],
+);
+p(
+  '  ein Schwert öffnet unten und nicht rechts',
+  T.richtungen(FK.figurkarte(figurlage(figur(), [{ relation: { type: 'owns' }, otherId: 'x' }]))),
+  ['unten'],
+);
+p(
+  '  ein Wohnort öffnet links',
+  T.richtungen(FK.figurkarte(figurlage(figur(), [{ relation: { type: 'lives_in' }, otherId: 'x' }]))),
+  ['links'],
+);
+
+/*
+ * Die Probe, die den Sinn der Trennung zeigt: Dieselbe Kantentabelle, drei
+ * verschiedene Fragen. Ein Ort ist keine Beziehung, ein Schwert ist keine
+ * Person – und trotzdem steht alles in derselben Tabelle.
+ */
+{
+  const kanten = [
+    { relation: { type: 'related' }, otherId: 'a' },
+    { relation: { type: 'lives_in' }, otherId: 'b' },
+    { relation: { type: 'owns' }, otherId: 'c' },
+  ];
+  const l = figurlage(figur(), kanten);
+  p('  Beziehungen zählen nur Wesen', FK.beziehungenVon(l).length, 1);
+  p('  Herkunft zählt nur Orte', FK.herkunftVon(l).length, 1);
+  p('  Fundstücke zählen nur Dinge', FK.fundstueckeVon(l).length, 1);
+}
+
+/* Eine Kante auf eine Seite, die es nicht gibt, zählt nicht. */
+p(
+  '  eine Kante ins Leere öffnet nichts',
+  T.richtungen(
+    FK.figurkarte({
+      entry: figur(),
+      kanten: [{ relation: { type: 'related' }, otherId: 'weg' }],
+      kennt: () => false,
+    }),
+  ),
+  [],
+);
+
+/* Und der Weg nach rechts ist der mit der Wahl – so wie der Auftrag ihn will. */
+{
+  const k9 = FK.figurkarte(figurlage(figur(), [{ relation: { type: 'related' }, otherId: 'x' }]));
+  p('  rechts geht drei Ebenen tief', T.reichweite(k9, 'rechts'), 3);
+  p('  und verlangt auf Ebene eins eine Wahl', T.wahlOffen(k9, 'rechts', 1, []), true);
+  p('  ohne Wahl ist er eine Ebene lang', T.begehbar(k9, 'rechts', []), 1);
+}
 
 console.log(`\n${ok} bestanden, ${bad} gescheitert`);
 process.exit(bad ? 1 : 0);

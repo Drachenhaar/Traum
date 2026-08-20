@@ -518,6 +518,61 @@
 }
 
 /*
+ * Das Korn über dem Grund der Charakterseite.
+ *
+ * Kein Bild, sondern erzeugtes Rauschen – ein `feTurbulence` als Datenadresse.
+ * Der Grund ist nicht Sparsamkeit, sondern Kachelbarkeit: Eine Korndatei
+ * müsste in einer Größe vorliegen, die auf jedem Gerät aufgeht, und sie wäre
+ * auf einem Bildschirm mit dreifacher Auflösung sichtbar weich. Rauschen aus
+ * dem Filter ist auf jeder Auflösung gleich fein.
+ *
+ * `baseFrequency 0.8` ist der Wert, bei dem es Korn bleibt und nicht Grieß
+ * wird. Sichtbar ist es kaum – es soll auch nur verhindern, dass eine große
+ * dunkle Fläche flach wirkt.
+ */
+.dc-korn {
+  opacity: calc(0.055 * var(--dc-figur-korn, 1));
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='k'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/></filter><rect width='140' height='140' filter='url(%23k)'/></svg>");
+  background-size: 140px 140px;
+}
+
+/*
+ * Die Charakterseite gehört ganz der Geste.
+ *
+ * `touch-action: pan-y` und nicht `none`: Ein langes Bildnis darf gescrollt
+ * werden, wenn die Seite höher ist als der Bildschirm. Waagerecht gibt es
+ * hier nichts zu scrollen, und der Browser soll das wissen, bevor der erste
+ * Finger aufsetzt – sonst nimmt er die Randgeste für ein Wischen und schickt
+ * `pointercancel`. Genau dieser Fehler hat das Blättern schon einmal gekostet.
+ */
+.dc-figur {
+  touch-action: pan-y;
+}
+
+/*
+ * Und derselbe Satz für den Tiefenraum – zum dritten Mal derselbe Fehler.
+ *
+ * Der Raum scrollt senkrecht und sagt dem Browser nichts darüber. Der nimmt
+ * daraufhin jeden waagerechten Zug für ein Wischen, nimmt den Finger weg und
+ * schickt `pointercancel`. Gemessen: Von Ebene 1 auf 2 kam man (durch
+ * Antippen), von Ebene 2 auf 3 nie – und im Ereignisprotokoll stand statt
+ * `pointerup` ein `pointercancel`.
+ *
+ * Es ist exakt der Fehler, der zuvor das Blättern gekostet hat und danach die
+ * Randgeste am unteren Bildschirmrand. Dass er dreimal auftrat, liegt an
+ * seiner Form: `touch-action` wird nicht vererbt, sondern die Kette
+ * hinaufgeschnitten. Jeder neue Scrollbehälter zwischen Finger und Ziel
+ * bringt ihn erneut mit, und keine Zusicherung im Testlauf sieht ihn – nur
+ * ein Zug auf einem echten Bildschirm.
+ *
+ * **Merksatz für den nächsten Behälter: Wer senkrecht scrollt, muss es sagen.**
+ */
+.dc-tiefenraum {
+  touch-action: pan-y;
+}
+
+/*
  * Weniger Bewegung heißt hier: kein langsames Verblassen. Der Zustand gilt
  * weiterhin – wer die Ruhe eingestellt hat, bekommt sie, nur ohne den
  * Übergang, der sie sichtbar macht.

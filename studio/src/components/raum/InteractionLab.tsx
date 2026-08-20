@@ -58,8 +58,12 @@ type Gruppe = keyof Raumkonfig;
 const REGLER: { gruppe: Gruppe; feld: string; von: number; bis: number; schritt: number; name: string }[] = [
   { gruppe: 'geste', feld: 'andeutung', von: 0.04, bis: 0.4, schritt: 0.01, name: 'Andeutung ab' },
   { gruppe: 'geste', feld: 'verpflichtung', von: 0.2, bis: 0.8, schritt: 0.01, name: 'Öffnen ab' },
-  { gruppe: 'geste', feld: 'wegAnteil', von: 0.2, bis: 0.9, schritt: 0.01, name: 'Ziehweg (Anteil)' },
+  { gruppe: 'geste', feld: 'wegAnteilWaagerecht', von: 0.15, bis: 0.9, schritt: 0.01, name: 'Ziehweg waagerecht' },
+  { gruppe: 'geste', feld: 'wegAnteilSenkrecht', von: 0.1, bis: 0.9, schritt: 0.01, name: 'Ziehweg senkrecht' },
   { gruppe: 'geste', feld: 'totzonePx', von: 0, bis: 24, schritt: 1, name: 'Totzone' },
+  { gruppe: 'geste', feld: 'richtungstoleranzGrad', von: 12, bis: 60, schritt: 1, name: 'Bogen erlaubt (°)' },
+  { gruppe: 'geste', feld: 'aufgabewinkelGrad', von: 40, bis: 90, schritt: 1, name: 'Aufgeben ab (°)' },
+  { gruppe: 'geste', feld: 'fremdwegPx', von: 24, bis: 200, schritt: 4, name: 'Querweg bis Aufgabe' },
   { gruppe: 'geste', feld: 'randEinzugPx', von: 0, bis: 40, schritt: 1, name: 'Randeinzug' },
   { gruppe: 'geste', feld: 'randBreitePx', von: 12, bis: 120, schritt: 2, name: 'Randstreifen' },
   { gruppe: 'geste', feld: 'systemEinzugObenPx', von: 0, bis: 90, schritt: 2, name: 'Abstand oben (System)' },
@@ -130,6 +134,23 @@ const REGLER: { gruppe: Gruppe; feld: string; von: number; bis: number; schritt:
   { gruppe: 'flaeche', feld: 'ruheDeckkraft', von: 0.12, bis: 1, schritt: 0.02, name: 'Deutlichkeit in Ruhe' },
   { gruppe: 'flaeche', feld: 'beruhigenMs', von: 200, bis: 2000, schritt: 50, name: 'Beruhigen (ms)' },
   { gruppe: 'flaeche', feld: 'erscheinenMs', von: 60, bis: 600, schritt: 10, name: 'Erscheinen (ms)' },
+
+  /*
+   * Die Charakterseite.
+   *
+   * Der Auftrag verlangt hier ausdrücklich Architektur und nicht Fülle:
+   * „Noch nicht hunderte Regler bauen." Also die sechs, die den Gesamteindruck
+   * tragen – wie laut das Gold ist, wie deutlich die Kanten sprechen, wie tief
+   * der Grund wirkt. Was zu *einem* Bildnis gehört, steht bewusst nicht hier,
+   * sondern am Eintrag: Der Zuschnitt eines Porträts ist keine Stimmung des
+   * Buches, sondern eine Eigenschaft dieses Bildes.
+   */
+  { gruppe: 'figur', feld: 'namensgroesse', von: 20, bis: 48, schritt: 1, name: 'Name (Punkte)' },
+  { gruppe: 'figur', feld: 'hinweisstaerke', von: 0, bis: 1, schritt: 0.05, name: 'Tiefenhinweise' },
+  { gruppe: 'figur', feld: 'goldstaerke', von: 0.2, bis: 1, schritt: 0.05, name: 'Goldstärke' },
+  { gruppe: 'figur', feld: 'linienstaerke', von: 0, bis: 1, schritt: 0.05, name: 'Linien' },
+  { gruppe: 'figur', feld: 'grundtiefe', von: 0, bis: 1, schritt: 0.05, name: 'Grundtiefe' },
+  { gruppe: 'figur', feld: 'kornstaerke', von: 0, bis: 1, schritt: 0.05, name: 'Korn' },
 ];
 
 /**

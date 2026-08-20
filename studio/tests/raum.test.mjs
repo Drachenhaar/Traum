@@ -55,8 +55,9 @@ function wische(x0, y0, dx, dy, { tempo = 0.2, konf = k } = {}) {
   const weite = Math.hypot(dx, dy);
   if (weite < Math.max(konf.geste.totzonePx, konf.geste.richtungssperrePx))
     return { ergebnis: 'unter der Totzone', richtung };
-  if (!G.passtRichtung(dx, dy, richtung, konf))
-    return { ergebnis: 'falsche Richtung', richtung };
+  const urteil = G.richtungsurteil(dx, dy, richtung, konf);
+  if (urteil === 'nein') return { ergebnis: 'falsche Richtung', richtung };
+  if (urteil === 'nochNicht') return { ergebnis: 'nicht ergriffen', richtung };
 
   const weg = G.fortschritt([x0, y0], [x0 + dx, y0 + dy], richtung, feld, konf);
   return {
@@ -68,7 +69,8 @@ function wische(x0, y0, dx, dy, { tempo = 0.2, konf = k } = {}) {
 }
 
 /** Wie weit muss man ziehen, um einen bestimmten Fortschritt zu erreichen? */
-const strecke = (anteil, achse = feld.breite) => achse * k.geste.wegAnteil * anteil;
+const strecke = (anteil, achse = feld.breite) =>
+  achse * (achse === feld.breite ? k.geste.wegAnteilWaagerecht : k.geste.wegAnteilSenkrecht) * anteil;
 
 /* Der Punkt im rechten Randstreifen. */
 const rechtsX = feld.breite - k.geste.randEinzugPx - k.geste.randBreitePx / 2;
@@ -209,6 +211,127 @@ p('4 nach außen zieht nichts auf', wische(rechtsX, 400, 90, 0).ergebnis, 'falsc
 p('  senkrecht am rechten Rand ist Scrollen', wische(rechtsX, 400, 0, -160).ergebnis, 'falsche Richtung');
 wahr('  leicht schräg ist noch erlaubt', G.passtRichtung(-100, -20, 'rechts', k));
 wahr('  deutlich schräg nicht mehr', !G.passtRichtung(-100, -90, 'rechts', k));
+
+/*
+ * Wie schief ein Daumen wirklich zieht.
+ *
+ * Diese vier Zusicherungen fehlten, und ihr Fehlen war teuer: Die Toleranz
+ * stand auf 25 Grad, und niemand hatte je nachgesehen, wie viel Grad ein
+ * Daumen tatsächlich abweicht. Ein Daumen zieht keine Gerade – er dreht sich
+ * um sein Gelenk, und die Hand hält das Gerät dabei fest. Bei einem
+ * Zug über 150 Punkte kommt ein Bogen von dreißig Grad ohne Weiteres zustande,
+ * und mit 25 Grad Toleranz scheiterte davon *jeder einzelne*.
+ *
+ * Deshalb wird hier in Grad geprüft und nicht in Punkten: Punkte sagen nichts
+ * darüber, ob ein Mensch das schafft. Die Bedingung an die Toleranz ist,
+ * einen menschlichen Bogen zu tragen und einen Scrollzug trotzdem
+ * abzuweisen – beides zugleich, sonst ist der Wert falsch.
+ */
+const schraeg = (grad, laenge = 150) => [
+  -laenge * Math.cos((grad * Math.PI) / 180),
+  -laenge * Math.sin((grad * Math.PI) / 180),
+];
+wahr('  ein Bogen von 24 Grad ist ein Daumen', G.passtRichtung(...schraeg(24), 'rechts', k));
+wahr('  ein Bogen von 32 Grad auch noch', G.passtRichtung(...schraeg(32), 'rechts', k));
+wahr('  bei 50 Grad ist es keine Richtung mehr', !G.passtRichtung(...schraeg(50), 'rechts', k));
+wahr('  und bei 70 Grad ist es Scrollen', !G.passtRichtung(...schraeg(70), 'rechts', k));
+
+/*
+ * Und jetzt die Prüfung, die den eigentlichen Fehler gefunden hätte.
+ *
+ * Die vier Zusicherungen oben prüfen den Zug an *einem* Punkt: dort, wo er
+ * endet. Genau das war der blinde Fleck. Die Bedienung urteilte über die
+ * Richtung, sobald der Finger zehn Punkte gelaufen war, und blieb bei diesem
+ * Urteil – und nach zehn Punkten sieht ein Bogen ganz anders aus als am Ende.
+ * Ein Zug mit 32 Grad Gesamtbogen zeigt dort momentan 44 Grad.
+ *
+ * Ein Bogen lässt sich deshalb nur Schritt für Schritt prüfen, so wie ihn der
+ * Browser sieht: aufsetzen, vierzehn Bewegungen, loslassen. `zieheBogen` spielt
+ * genau das nach – dieselbe Kurve, die die Messung im Gerät verwendet.
+ */
+function zieheBogen(x0, y0, laenge, grad, achse, konf = k) {
+  const rad = (grad * Math.PI) / 180;
+  const richtung = G.randRichtung(x0, y0, feld, konf);
+  if (!richtung) return 'kein Rand';
+
+  let gesperrt = false;
+  const n = 14;
+  for (let i = 1; i <= n; i++) {
+    const s = (laenge * i) / n;
+    /* Der Bogen wächst zur Mitte des Zuges hin und geht wieder zurück. */
+    const quer = Math.sin((Math.PI * i) / n) * laenge * Math.tan(rad) * 0.5;
+    const dx = (achse === 'x' ? s : quer);
+    const dy = (achse === 'x' ? quer : s);
+    if (!gesperrt) {
+      const u = G.richtungsurteil(dx, dy, richtung, konf);
+      if (u === 'nein') return 'aufgegeben';
+      if (u === 'nochNicht') continue;
+      gesperrt = true;
+    }
+  }
+  if (!gesperrt) return 'nie ergriffen';
+  const weg = G.fortschritt([x0, y0], [x0 + (achse === 'x' ? laenge : 0), y0 + (achse === 'x' ? 0 : laenge)], richtung, feld, k);
+  return G.entscheide(weg, 0.2, konf);
+}
+
+/* Waagerecht: ein Daumen am rechten Rand zieht nach links. */
+for (const grad of [0, 8, 16, 24, 32])
+  p(`  ein Bogen von ${grad}° am rechten Rand öffnet`, zieheBogen(rechtsX, 430, -150, grad, 'x'), 'oeffnen');
+
+/* Senkrecht: derselbe Daumen am unteren Rand zieht nach oben. */
+const untenY = feld.hoehe - k.geste.randEinzugPx - k.geste.randBreitePx / 2;
+for (const grad of [0, 8, 16, 24, 32])
+  p(`  ein Bogen von ${grad}° am unteren Rand öffnet`, zieheBogen(195, untenY, -230, grad, 'y'), 'oeffnen');
+
+/*
+ * Und die Gegenprobe, ohne die das Ganze wertlos wäre: Das Abwarten darf das
+ * Scrollen nicht verschlucken. Ein senkrechter Zug am rechten Rand ist ein
+ * Scrollen und muss aufgegeben werden – nicht irgendwann, sondern bevor
+ * irgendetwas sichtbar wird.
+ */
+p('  ein Scrollen am rechten Rand wird aufgegeben', zieheBogen(rechtsX, 500, -300, 0, 'y'), 'aufgegeben');
+p('  ein Zug nach außen ebenso', wische(rechtsX, 400, 60, 0).ergebnis, 'falsche Richtung');
+
+/*
+ * Der Korridor, an dem alles hängt – und seine beiden Ränder.
+ *
+ * Dass das Abwarten kein Nachteil ist, hängt genau daran: Ein Scrollen darf
+ * nicht mitwarten. Es liegt bei neunzig Grad und wird deshalb bei der
+ * allerersten Prüfung abgegeben – **schneller als vorher**, wo es erst über
+ * die Toleranz gerechnet wurde. Was wartet, ist nur der schmale Bereich
+ * zwischen „gehört uns" und „gehört sichtbar jemand anderem".
+ */
+p('  senkrecht ist sofort abgegeben', G.richtungsurteil(0, -60, 'rechts', k), 'nein');
+p('  im Korridor wird gewartet', G.richtungsurteil(-30, -28, 'rechts', k), 'nochNicht');
+p('  innerhalb der Toleranz sofort ja', G.richtungsurteil(-30, -18, 'rechts', k), 'ja');
+p('  jenseits des Aufgabewinkels nein', G.richtungsurteil(-30, -50, 'rechts', k), 'nein');
+
+/*
+ * Und der Rückhalt: Auch im Korridor wird nicht endlos gewartet. Wer eine
+ * halbe Bildschirmbreite schräg zieht, wollte etwas anderes.
+ */
+p(
+  '  aber nicht endlos',
+  G.richtungsurteil(-(k.geste.fremdwegPx + 10), -(k.geste.fremdwegPx + 4), 'rechts', k),
+  'nein',
+);
+
+/*
+ * Jede Achse hat ihren eigenen Ziehweg.
+ *
+ * Hier stand ein Wert für beide Achsen. Auf einem Telefon heißt das: senkrecht
+ * mehr als doppelt so weit ziehen wie waagerecht, geerbt vom Seitenverhältnis
+ * und von niemandem entschieden. Diese Zusicherung hält die beiden Strecken
+ * in einem Verhältnis, das ein Mensch als gleich empfinden kann.
+ */
+const bisSchwelle = (achse, anteil) => achse * anteil * k.geste.verpflichtung;
+const waagerechtPx = bisSchwelle(feld.breite, k.geste.wegAnteilWaagerecht);
+const senkrechtPx = bisSchwelle(feld.hoehe, k.geste.wegAnteilSenkrecht);
+wahr(
+  '  senkrecht kostet nicht mehr als ein Drittel mehr als waagerecht',
+  senkrechtPx <= waagerechtPx * 1.34,
+);
+wahr('  und auch nicht weniger', senkrechtPx >= waagerechtPx * 0.9);
 
 /*
  * Zurückziehen vor dem Loslassen.

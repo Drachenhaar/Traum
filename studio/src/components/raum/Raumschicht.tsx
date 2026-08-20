@@ -54,8 +54,8 @@ import {
   entscheide,
   fortschritt,
   istDoppeltipp,
-  passtRichtung,
   phaseVon,
+  richtungsurteil,
   randRichtung,
   EINWAERTS,
   type Richtung,
@@ -349,7 +349,15 @@ export function Raumschicht({ children }: { children: ReactNode }) {
      * doch wieder im Programm.
      */
     const s = useRaum.getState();
-    if (!gesteErlaubt(karteJetzt(), { ort: s.ort, tiefe: s.tiefe }, richtung)) return;
+    /*
+     * Der Wahlpfad gehört mit in die Frage.
+     *
+     * Ohne ihn führte die Geste aus der Beziehungsliste weiter, obwohl noch
+     * niemand ausgewählt ist – und der Raum dahinter müsste sich eine Person
+     * aussuchen. Das ist genau das Erfinden, das die Karte verhindern soll.
+     */
+    if (!gesteErlaubt(karteJetzt(), { ort: s.ort, tiefe: s.tiefe }, richtung, s.wahlPfad))
+      return;
 
     /*
      * Der Randstreifen kommt **vor** der Frage, wem der Finger sonst gehört.
@@ -398,11 +406,22 @@ export function Raumschicht({ children }: { children: ReactNode }) {
     const k = konfig();
 
     if (!g.gesperrt) {
-      if (Math.hypot(dx, dy) < Math.max(k.geste.totzonePx, k.geste.richtungssperrePx)) return;
-      if (!passtRichtung(dx, dy, g.richtung, k)) {
+      /*
+       * Drei Antworten, nicht zwei.
+       *
+       * Hier stand ein einziges, endgültiges Urteil beim ersten Schritt über
+       * die Sperre – und ausgerechnet dort ist ein Daumenbogen am schiefsten.
+       * „Noch nicht" heißt: nichts tun und weiter zusehen. Das kostet nichts,
+       * weil bis hierher nichts sichtbar geworden ist und der Finger
+       * niemandem weggenommen wurde. Siehe `richtungsurteil`.
+       */
+      const urteil = richtungsurteil(dx, dy, g.richtung, k);
+      if (urteil === 'nochNicht') return;
+      if (urteil === 'nein') {
         /*
-         * Die Bewegung zeigt woandershin. Der Finger gehört jemand anderem –
-         * und zwar ohne dass hier je etwas sichtbar geworden wäre.
+         * Die Bewegung hat sich sichtbar für etwas anderes entschieden. Der
+         * Finger gehört jemand anderem – und zwar ohne dass hier je etwas
+         * sichtbar geworden wäre.
          */
         g.verworfen = true;
         return;
@@ -561,18 +580,36 @@ export function Raumschicht({ children }: { children: ReactNode }) {
   }, []);
 
   /*
-   * Das Scrollen anhalten, sobald die Geste beansprucht ist.
+   * Das Scrollen anhalten, solange die Geste eine Anwärterin ist.
    *
    * `touch-action` fest zu setzen ginge nicht: Ein Streifen mit
    * `touch-action: none` würde auch alles verschlucken, was darunter liegt –
-   * jeden Knopf, jeden Text, jeden Wisch. Also wird erst dann eingegriffen,
-   * wenn die Richtung feststeht, und zwar mit einem nicht-passiven Zuhörer,
-   * der nur dann `preventDefault` ruft. Vorher gehört das Scrollen dem Browser.
+   * jeden Knopf, jeden Text, jeden Wisch. Also wird mit einem nicht-passiven
+   * Zuhörer eingegriffen, der `preventDefault` nur für Finger ruft, die in
+   * einem Randstreifen aufgesetzt haben.
+   *
+   * ---
+   *
+   * **Hier stand `g.gesperrt`, und das war die zweite Hälfte des Fehlers.**
+   *
+   * Der Gedanke beim Warten auf die Richtung (siehe `richtungsurteil`) war:
+   * Abwarten kostet nichts, weil bis dahin nichts sichtbar wird. Im Browser
+   * stimmt das nicht. Wer nicht eingreift, überlässt dem Browser die
+   * Entscheidung – und der entscheidet währenddessen, dass der Finger zum
+   * Scrollen gehört, nimmt ihn weg und schickt `pointercancel`. Gemessen am
+   * unteren Rand: Ein Daumenbogen von 32 Grad endete zuverlässig in
+   * `pointercancel@0,0`, während 0, 16 und 24 Grad durchkamen. Nicht die
+   * Entscheidung war falsch – sie kam nie zustande.
+   *
+   * Also wird schon während des Abwartens festgehalten, und losgelassen, sobald
+   * das Urteil „nein" lautet. Das kostet ein Scrollen, das in einem Streifen
+   * beginnt, die ersten rund zehn Punkte – weniger, als der Browser selbst
+   * braucht, bevor er zu rollen anfängt.
    */
   useEffect(() => {
     const halt = (e: TouchEvent) => {
       const g = lauf.current;
-      if (g?.gesperrt && !g.verworfen && e.cancelable) e.preventDefault();
+      if (g && !g.verworfen && e.cancelable) e.preventDefault();
     };
     window.addEventListener('touchmove', halt, { passive: false });
     return () => window.removeEventListener('touchmove', halt);

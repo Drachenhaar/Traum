@@ -69,12 +69,52 @@ import type { Richtung, Stand } from './geste';
  * Bedeutung hat. „Beteiligte an dieser Begegnung" und „wer dieser Figur
  * nahesteht" sind zwei Bedeutungen und derselbe Raum.
  */
-export type Raumkennung = 'wesen' | 'zusammenhang' | 'geflecht' | 'welt' | 'wissen' | 'notizen';
+export type Raumkennung =
+  | 'wesen'
+  | 'zusammenhang'
+  | 'geflecht'
+  | 'welt'
+  | 'wissen'
+  | 'notizen'
+  /* Die Räume der Charakterseite – siehe `figurkarte.ts`. */
+  | 'beziehungen'
+  | 'beziehung'
+  | 'gemeinsameGeschichte'
+  | 'herkunft';
 
 /** Eine Ebene eines Weges: wie sie heißt und was dort gezeigt wird. */
 export interface Tiefenstufe {
   titel: string;
   raum: Raumkennung;
+  /**
+   * Verlangt diese Stufe eine Wahl, bevor es weitergeht?
+   *
+   * ---
+   *
+   * **Der Punkt, an dem aus einer Kette ein Baum wird.**
+   *
+   * Bis hierher war ein Weg eine Reihe von Ebenen: rechts, tiefer, tiefer.
+   * Das genügt, solange jede Ebene dasselbe Subjekt anders beleuchtet – „ihre
+   * Beziehungen", „ihr Geflecht". Es genügt nicht mehr bei dem Weg, den der
+   * Auftrag ausdrücklich verlangt:
+   *
+   *     Vaelorian → Beziehungen → Miraelys → gemeinsame Geschichte
+   *
+   * Der dritte Schritt hat ein **anderes Subjekt** als der zweite. Welches,
+   * kann keine Karte im Voraus wissen – es hängt davon ab, wen der Benutzer
+   * ansieht. Eine Geste kann diese Frage nicht beantworten: Sie kennt eine
+   * Richtung, keine Person.
+   *
+   * Also sagt die Stufe, dass hier gewählt werden muss, und das Weitergehen
+   * hängt an dieser Wahl. Ohne Wahl führt die Geste nicht tiefer – nicht weil
+   * sie gesperrt wäre, sondern weil es dort ohne Wahl nichts gibt. Das ist
+   * dieselbe Regel wie bei einer fehlenden Richtung: **nichts erfinden.**
+   *
+   * Die Wahl selbst ist eine Berührung, und das ist kein Bruch mit der
+   * Gestensprache. Die Geste sagt „tiefer"; welches von sieben Gesichtern
+   * gemeint ist, sagt der Finger auf dem Gesicht. Alles andere wäre Raten.
+   */
+  wahl?: 'noetig';
 }
 
 /**
@@ -158,9 +198,33 @@ export function stufe(karte: Tiefenkarte, r: Richtung, tiefe: number): Tiefenstu
  * Alles andere – quer aus der Tiefe heraus – bleibt stehen, wie schon in
  * `naechsterStand`.
  */
-export function gesteErlaubt(karte: Tiefenkarte, stand: Stand, geste: Richtung): boolean {
+export function gesteErlaubt(
+  karte: Tiefenkarte,
+  stand: Stand,
+  geste: Richtung,
+  /**
+   * Was auf dem Weg hierher gewählt wurde – eine Kennung je Ebene.
+   *
+   * Fehlt die Angabe, wird nicht nach Wahlen gefragt. Damit bleiben alle
+   * Karten ohne Wahlstufen und alle älteren Aufrufe unverändert gültig.
+   */
+  wahlPfad?: readonly string[],
+): boolean {
   if (stand.ort === 'mitte' || stand.tiefe === 0) return hatRichtung(karte, geste);
-  if (geste === stand.ort) return stand.tiefe < reichweite(karte, geste);
+  if (geste === stand.ort) {
+    if (stand.tiefe >= reichweite(karte, geste)) return false;
+    /*
+     * Steht auf dieser Ebene eine Wahl aus, führt die Geste nicht weiter.
+     *
+     * Nicht als Sperre gedacht, sondern als Feststellung: Ohne gewählte
+     * Person gibt es keine „gemeinsame Geschichte", die man zeigen könnte.
+     * Wer hier trotzdem öffnete, müsste sich eine aussuchen – und das ist
+     * genau das Erfinden, das diese Datei verhindern soll.
+     */
+    const hier = stufe(karte, geste, stand.tiefe);
+    if (hier?.wahl === 'noetig' && !wahlPfad?.[stand.tiefe - 1]) return false;
+    return true;
+  }
   /* Die Gegenrichtung führt zurück – immer, ausnahmslos. */
   return true;
 }
@@ -192,4 +256,40 @@ export function weg(name: string, was: string, titel: string, raum: Raumkennung)
 /** Ein Weg über mehrere Stufen: „was gehört dazu", „wie hängt es zusammen", … */
 export function tieferWeg(name: string, was: string, stufen: Tiefenstufe[]): Tiefenweg {
   return { name, was, stufen };
+}
+
+/**
+ * Braucht dieser Weg auf dieser Ebene eine Wahl, die noch nicht getroffen ist?
+ *
+ * Die Frage stellt die Darstellung, um zu wissen, ob sie zum Wählen einladen
+ * muss – und die Prüfung, um zu wissen, warum eine Geste nichts tut.
+ */
+export function wahlOffen(
+  karte: Tiefenkarte,
+  r: Richtung,
+  tiefe: number,
+  wahlPfad?: readonly string[],
+): boolean {
+  return stufe(karte, r, tiefe)?.wahl === 'noetig' && !wahlPfad?.[tiefe - 1];
+}
+
+/**
+ * Wie weit man von hier aus *tatsächlich* noch kommt.
+ *
+ * Nicht dasselbe wie `reichweite`: Die sagt, wie lang der Weg gebaut ist.
+ * Diese sagt, wie weit er mit den bisher getroffenen Wahlen begehbar ist. Der
+ * Unterschied ist genau das, was in der Kopfzeile eines Raumes stehen darf –
+ * „Tiefe 1 von 3" ist eine Lüge, solange niemand gewählt hat.
+ */
+export function begehbar(
+  karte: Tiefenkarte,
+  r: Richtung,
+  wahlPfad?: readonly string[],
+): number {
+  const s = karte[r]?.stufen ?? [];
+  for (let i = 0; i < s.length; i++) {
+    /* Die Ebene i+1 ist erreichbar. Führt sie weiter? */
+    if (s[i].wahl === 'noetig' && !wahlPfad?.[i]) return i + 1;
+  }
+  return s.length;
 }

@@ -172,6 +172,16 @@ export function BookShell() {
   const ankerTyp = ankerId ? entries.find((e) => e.id === ankerId)?.type : undefined;
   useTiefe(standardkarte(pathname, ankerTyp), true);
 
+  /**
+   * Seiten, die den Buchkörper nicht wollen.
+   *
+   * Eine sehr kurze Liste, und sie soll kurz bleiben: Jede Seite, die hier
+   * steht, ist eine Seite, die *nicht* im Buch steht, und das ist im
+   * Zweifelsfall die falsche Antwort. Die Charakterseite steht hier, weil sie
+   * randlos und dunkel ist – nicht, weil ihr der Buchsatz im Weg wäre.
+   */
+  const vollbild = pathname.startsWith('/figur/');
+
   useEffect(() => {
     const w = document.documentElement;
     w.dataset.buch = 'offen';
@@ -244,6 +254,19 @@ export function BookShell() {
       )}
 
       {/* ------------------------------------------------------- Kopfzeile */}
+      {/*
+        Auf einer Vollbildseite gibt es keine Buchleiste.
+
+        Sonst stehen zwei Kopfzeilen uebereinander – die des Bandes und die
+        der Figur – und die Charakterseite sieht aus wie eine Ansicht *in*
+        einem Programm statt wie das Gesicht selbst. Genau der Eindruck, den
+        der Auftrag ausschliesst: nicht „ein Charakterformular", sondern „da
+        ist diese Person".
+
+        Verloren geht dabei nichts: Die Charakterseite hat ihr eigenes
+        „Zurueck", ihren eigenen Stern und ihren eigenen Weg zur Buchseite.
+      */}
+      {!vollbild && (
       <header className="flex shrink-0 items-center gap-3 px-4 pt-safe sm:px-7">
         <div className="flex h-12 min-w-0 flex-1 items-center gap-3">
           <button
@@ -305,6 +328,7 @@ export function BookShell() {
           <Search size={17} />
         </button>
       </header>
+      )}
 
       {/* --------------------------------------------------- Der Buchblock */}
       {/*
@@ -318,6 +342,23 @@ export function BookShell() {
       <Raumschicht>
         {tiefe > 0 ? (
           <Tiefenraum />
+        ) : vollbild ? (
+          /*
+            Eine Seite, die kein Buchsatz ist.
+
+            Die Charakterseite ist nach der Referenz randlos und fast schwarz.
+            Im Buchkörper wäre sie ein dunkles Rechteck auf einem hellen Bogen,
+            mit Falz daneben und Seitenkanten darum – und beim geringsten
+            waagerechten Zug würde geblättert, wo eigentlich die Herkunft
+            aufgehen soll.
+
+            Sie liegt deshalb direkt in der Raumschicht. Was sie dadurch
+            *behält*, ist das Wesentliche: Randgeste, Richtungsbogen,
+            Tiefenraum und Doppeltipp gehören der Schicht und nicht dem Buch.
+          */
+          <div className="flex min-h-0 flex-1 flex-col">
+            <Outlet context={{ book, spread, wear, living }} />
+          </div>
         ) : (
           <div className="flex min-h-0 flex-1 items-stretch gap-0 px-0 pb-3 sm:px-3 sm:pb-6">
             <TurnEdge side="left" onClick={() => turn('prev')} enabled={!!prev} />

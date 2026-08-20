@@ -133,6 +133,18 @@ export interface Entry {
   status: EntryStatus;
   favorite: boolean;
   coverImage?: string;
+  /**
+   * Wie das Bildnis dieses Eintrags in seinem Rahmen liegt.
+   *
+   * Drei Zahlen und ein Schleier – siehe `lib/bildnis.ts`. Sie stehen hier und
+   * nicht im Layout, damit ein neues Bild kein Umbauen bedeutet: Ein Porträt,
+   * auf dem das Gesicht tiefer sitzt, braucht einen anderen Fokus und keinen
+   * anderen Code.
+   *
+   * Fehlt das Feld, gilt eine Vorgabe, die für Porträts fast immer stimmt.
+   * Das ist der Normalfall und soll er bleiben.
+   */
+  bildnis?: { zoom?: number; x?: number; y?: number; schleier?: number };
   createdAt: number;
   updatedAt: number;
   /**
@@ -252,6 +264,26 @@ export interface Relation {
    * trotzdem dastehen dürfen.
    */
   zeitnotiz?: string;
+  /**
+   * Wie diese beiden zueinander stehen.
+   *
+   * Das Referenzbild zeigt es an jeder Beziehung: „Vertrauen: Hoch",
+   * „Vertrauen: Feindselig". Es ist ausdrücklich **keine Zahl** – ein
+   * Vertrauenswert von 73 % wäre eine Genauigkeit, die niemand hat, und
+   * lädt zum Rechnen mit etwas ein, das sich nicht rechnen lässt.
+   *
+   * Fehlt es, steht dort nichts. Kein „unbekannt", kein Mittelwert: Über das
+   * Verhältnis zweier Figuren schweigt das Buch lieber, als zu raten.
+   */
+  vertrauen?: 'hoch' | 'mittel' | 'gering' | 'feindselig';
+  /**
+   * Wann man zuletzt voneinander gehört hat – Weltzeit, roh wie geschrieben.
+   *
+   * „Vor 2 Monden", „Frühjahr 1044", „seit dem Bruch nicht mehr". Wie
+   * `beginn` und `ende` bewusst der Text des Verfassers und keine Zahl: Was
+   * sich nicht datieren lässt, soll trotzdem dastehen dürfen.
+   */
+  letzterKontakt?: string;
   createdAt: number;
 }
 

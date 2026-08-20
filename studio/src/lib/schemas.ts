@@ -67,6 +67,15 @@ const entrySchema = z.object({
   status: statusSchema.default('Idee'),
   favorite: z.boolean().default(false),
   coverImage: z.string().optional(),
+  /** Wie das Bildnis in seinem Rahmen liegt – siehe `lib/bildnis.ts`. */
+  bildnis: z
+    .object({
+      zoom: z.number().optional(),
+      x: z.number().optional(),
+      y: z.number().optional(),
+      schleier: z.number().optional(),
+    })
+    .optional(),
   createdAt: z.number(),
   updatedAt: z.number(),
   linkedEntryIds: z.array(z.string()).default([]),
@@ -103,6 +112,10 @@ const relationSchema = z
     /** Wann die Verbindung galt – nicht wann sie angelegt wurde. */
     beginn: z.string().optional(),
     ende: z.string().optional(),
+    /** Wie die beiden zueinander stehen – ausdrücklich keine Zahl. */
+    vertrauen: z.enum(['hoch', 'mittel', 'gering', 'feindselig']).optional(),
+    /** Wann man zuletzt voneinander gehört hat – Weltzeit, roh. */
+    letzterKontakt: z.string().optional(),
     createdAt: z.number(),
   })
   .passthrough();
