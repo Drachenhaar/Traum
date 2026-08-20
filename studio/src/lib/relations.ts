@@ -168,6 +168,39 @@ export const RELATION_TYPES: RelationTypeDef[] = [
     color: '#A4907A',
   },
   /*
+   * Zuneigung und Feindschaft.
+   *
+   * Es gab bisher „verwandt mit", „gehoert zu" und „herrschte ueber" – und
+   * damit liess sich sagen, wer wessen Bruder ist und wer wem untersteht,
+   * aber nicht, wer wen mag. Fuer eine Weltdatenbank ging das erstaunlich
+   * lange gut; fuer eine Figurenseite geht es nicht: Das Referenzbild
+   * gliedert die Beziehungen einer Figur nach Familie, Verbuendeten,
+   * Rivalen und Organisationen, und zwei dieser vier waren nicht sagbar.
+   *
+   * Beide sind bewusst **symmetrisch**. Eine einseitige Feindschaft ist
+   * dramatisch interessant und hier trotzdem falsch: Sie waere eine
+   * Behauptung ueber das Innenleben der anderen Seite, und die steht auf
+   * deren Seite, nicht auf dieser. Wer eine einseitige Feindschaft
+   * festhalten will, schreibt sie in die Notiz der Kante – dort gehoert
+   * eine Aussage hin, die nur von einer Seite gilt.
+   */
+  {
+    id: 'allied_with',
+    label: 'verbündet mit',
+    inverse: 'verbündet mit',
+    symmetric: true,
+    color: '#7A8467',
+    hint: 'Freundschaft, Bündnis, Gefolgschaft',
+  },
+  {
+    id: 'opposed_to',
+    label: 'verfeindet mit',
+    inverse: 'verfeindet mit',
+    symmetric: true,
+    color: '#8C4A31',
+    hint: 'Rivalität, Feindschaft, offene Rechnung',
+  },
+  /*
    * Roman und Welt.
    *
    * Eine Szene hat keine Felder „Ort" und „POV". Sie hat Kanten – dieselben

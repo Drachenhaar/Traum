@@ -36,6 +36,7 @@ import {
   gesteErlaubt,
   reichweite,
   richtungen,
+  stufe as stufeVon,
   OHNE_TIEFE,
   type Tiefenkarte,
 } from './tiefenkarte';
@@ -74,6 +75,28 @@ interface Raumzustand {
    */
   rueckfallkarte: Tiefenkarte;
 
+  /**
+   * Wen oder was man auf dem Weg nach innen gewählt hat – eine Kennung je Ebene.
+   *
+   * `wahlPfad[0]` gehört zur ersten Tiefe, `[1]` zur zweiten. Leere Stellen
+   * sind zulässig: Nicht jede Ebene verlangt eine Wahl, und eine Ebene ohne
+   * Wahl trägt hier nichts ein.
+   *
+   * ---
+   *
+   * **Warum das in den Blick gehört und nicht in die Welt.**
+   *
+   * Es sieht nach Daten aus – „welche Beziehung ist offen" –, und es wäre
+   * verlockend, das neben dem Anker zu führen. Es ist aber genau dasselbe wie
+   * Ort und Tiefe: eine Aussage darüber, wohin ich sehe, nicht darüber, was
+   * existiert. Wer Miraelys ansieht, hat an Miraelys nichts geändert.
+   *
+   * Der Anker bleibt davon unberührt. Man kann drei Ebenen tief in der
+   * Geschichte einer anderen Person stehen und arbeitet weiter an Vaelorian –
+   * das ist der ganze Sinn der Trennung, und der Doppeltipp lebt davon.
+   */
+  wahlPfad: string[];
+
   /** Was der Finger gerade tut. Nur während einer Geste belegt. */
   gestenrichtung: Richtung | null;
   /**
@@ -98,6 +121,14 @@ interface Raumzustand {
   gehZu: (ort: Ort, tiefe: number) => void;
   setzeTiefenkarte: (k: Tiefenkarte) => void;
   setzeRueckfallkarte: (k: Tiefenkarte) => void;
+  /**
+   * Auf dieser Ebene ist das gemeint – und damit eine Ebene tiefer.
+   *
+   * Zwei Dinge in einer Handlung, und das mit Absicht: Eine Wahl, die nicht
+   * hineinführt, wäre eine Auswahl in einer Liste. Man tippt ein Gesicht an,
+   * weil man zu diesem Gesicht will.
+   */
+  waehle: (kennung: string) => void;
   /** Nach einer Bewegung: die Hülle kommt zur Ruhe. */
   ruhe: () => void;
 }
@@ -114,6 +145,7 @@ export const useRaum = create<Raumzustand>((set, get) => ({
   tiefe: 0,
   tiefenkarte: OHNE_TIEFE as Tiefenkarte,
   rueckfallkarte: OHNE_TIEFE as Tiefenkarte,
+  wahlPfad: [],
   ...LEER,
   phase: 'ruhe' as Phase,
   imUebergang: false,
@@ -126,7 +158,7 @@ export const useRaum = create<Raumzustand>((set, get) => ({
      * und gleichzeitig „du stehst weiterhin drei Ebenen tief im
      * Beziehungsnetz eines anderen Werks".
      */
-    set({ ankerId: id, ort: 'mitte', tiefe: 0, phase: 'ruhe', ...LEER });
+    set({ ankerId: id, ort: 'mitte', tiefe: 0, wahlPfad: [], phase: 'ruhe', ...LEER });
   },
 
   beginneGeste(richtung) {
@@ -153,7 +185,7 @@ export const useRaum = create<Raumzustand>((set, get) => ({
      */
     const stand = { ort: s.ort, tiefe: s.tiefe };
     const gilt = geltendeKarte(s);
-    if (!gesteErlaubt(gilt, stand, s.gestenrichtung)) {
+    if (!gesteErlaubt(gilt, stand, s.gestenrichtung, s.wahlPfad)) {
       set({ phase: 'ruhe', ...LEER });
       return;
     }
@@ -166,10 +198,56 @@ export const useRaum = create<Raumzustand>((set, get) => ({
     set({
       ort: ziel.ort,
       tiefe: ziel.tiefe,
+      /*
+       * Beim Herausgehen fallen die Wahlen weg, die tiefer lagen.
+       *
+       * Sonst stünde man wieder in der Beziehungsliste und die App wüsste
+       * immer noch, dass „Miraelys" gemeint war – und die nächste Geste nach
+       * innen führte an der Liste vorbei zu einer Person, die man gar nicht
+       * mehr angesehen hat. Ein Zurück, das etwas behält, ist kein Zurück.
+       */
+      wahlPfad: s.wahlPfad.slice(0, Math.max(0, ziel.tiefe - 1)),
       phase: 'verpflichtend',
       imUebergang: true,
       ...LEER,
     });
+  },
+
+  waehle(kennung) {
+    const s = get();
+    if (s.ort === 'mitte' || s.tiefe === 0) return;
+    const gilt = geltendeKarte(s);
+    const richtung = s.ort as Richtung;
+    /*
+     * Nur wählen, wo eine Wahl vorgesehen ist – und nur, wenn es danach
+     * überhaupt weitergeht. Eine Wahl auf der letzten Ebene wäre ein Tipp
+     * ohne Wirkung, und ein Tipp ohne Wirkung ist schlimmer als kein Tipp.
+     */
+    if (stufeVon(gilt, richtung, s.tiefe)?.wahl !== 'noetig') return;
+    if (s.tiefe >= reichweite(gilt, richtung)) return;
+
+    const pfad = s.wahlPfad.slice(0, s.tiefe - 1);
+    pfad[s.tiefe - 1] = kennung;
+    /*
+     * **Kein `imUebergang` – und das ist kein Vergessen.**
+     *
+     * Hier stand es, weil die Zeile daneben in `oeffne` es auch setzt. Die
+     * Folge war eine Charakterseite, die nach dem ersten Antippen taub war:
+     * Die Raumschicht weist jede neue Geste ab, solange der Merker steht, und
+     * gelöscht wird er von einem Zeitgeber, der **in der Raumschicht** wohnt
+     * und nur nach einer *Geste* läuft. Ein Tipp aus einem Raum heraus hat
+     * diesen Zeitgeber nie angestoßen. Der Merker blieb also für immer stehen.
+     *
+     * Gemessen: Ebene 1 → 2 ging, Ebene 2 → 3 nie, und im Ereignisprotokoll
+     * stand ein sauberes `pointerup`. Die Geste kam vollständig an und wurde
+     * an der Tür abgewiesen.
+     *
+     * Richtig ist, ihn gar nicht zu setzen. Der Merker schützt eine laufende
+     * Bewegung vor einer zweiten – er gehört zum Finger, der noch zieht. Bei
+     * einem Tipp gibt es nichts zu schützen: Die Berührung ist vorbei, bevor
+     * der Raum sich öffnet.
+     */
+    set({ wahlPfad: pfad, tiefe: s.tiefe + 1, phase: 'verpflichtend', ...LEER });
   },
 
   brichAb() {
@@ -183,11 +261,26 @@ export const useRaum = create<Raumzustand>((set, get) => ({
   },
 
   heim() {
-    set({ ort: 'mitte', tiefe: 0, phase: 'heimkehrend', imUebergang: true, ...LEER });
+    set({
+      ort: 'mitte',
+      tiefe: 0,
+      /* Heimkehr heißt Heimkehr: Auch die Wahlen bleiben nicht liegen. */
+      wahlPfad: [],
+      phase: 'heimkehrend',
+      imUebergang: true,
+      ...LEER,
+    });
   },
 
   gehZu(ort, tiefe) {
-    set({ ort, tiefe, phase: 'verpflichtend', imUebergang: true, ...LEER });
+    set({
+      ort,
+      tiefe,
+      wahlPfad: get().wahlPfad.slice(0, Math.max(0, tiefe - 1)),
+      phase: 'verpflichtend',
+      imUebergang: true,
+      ...LEER,
+    });
   },
 
   setzeTiefenkarte(k) {

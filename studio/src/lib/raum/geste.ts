@@ -299,15 +299,30 @@ export function naechsterStand(
    * Grammatik – „dieselbe Richtung nochmal geht tiefer" –, und wie weit das
    * hier gilt, sagt ihr der Aufrufer.
    *
-   * Fehlt der Wert, gilt die globale Obergrenze aus der Konfiguration. Damit
-   * bleibt jeder alte Aufruf gültig, und der Regler im Stimmzimmer bleibt die
-   * Notbremse über allem.
+   * Fehlt der Wert, gilt die Vorgabe aus der Konfiguration. Damit bleibt jeder
+   * alte Aufruf gültig.
+   *
+   * ---
+   *
+   * **Hier stand `Math.min(k.geste.hoechsteTiefe, reichweite)`, und das war
+   * eine Obergrenze in der Architektur.**
+   *
+   * Der Gedanke war, den Regler im Stimmzimmer zur Notbremse über allem zu
+   * machen. Klingt vorsichtig, ist aber genau das, was der Auftrag verbietet:
+   * eine feste maximale Tiefe im Unterbau. Ein Weg, der sieben sinnvolle
+   * Stufen hat – Figur, Beziehung, Person, Ereignis, Ort, Epoche, Fraktion –
+   * wäre bei drei abgeschnitten worden, und zwar von einer Zahl, die von
+   * dieser Seite nichts weiß.
+   *
+   * Die Karte weiß, wie weit ihr Weg reicht. Sie ist die einzige Stelle, die
+   * es wissen kann. Der Regler ist jetzt, was er immer hätte sein sollen: die
+   * Vorgabe für Aufrufer ohne Karte.
    */
   reichweite?: number,
 ): Stand {
   if (stand.ort === 'mitte' || stand.tiefe === 0) return { ort: geste, tiefe: 1 };
   if (geste === stand.ort) {
-    const grenze = Math.min(k.geste.hoechsteTiefe, reichweite ?? k.geste.hoechsteTiefe);
+    const grenze = reichweite ?? k.geste.hoechsteTiefe;
     return { ort: stand.ort, tiefe: Math.min(grenze, stand.tiefe + 1) };
   }
   if (geste === GEGEN[stand.ort]) {

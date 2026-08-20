@@ -349,7 +349,15 @@ export function Raumschicht({ children }: { children: ReactNode }) {
      * doch wieder im Programm.
      */
     const s = useRaum.getState();
-    if (!gesteErlaubt(karteJetzt(), { ort: s.ort, tiefe: s.tiefe }, richtung)) return;
+    /*
+     * Der Wahlpfad gehört mit in die Frage.
+     *
+     * Ohne ihn führte die Geste aus der Beziehungsliste weiter, obwohl noch
+     * niemand ausgewählt ist – und der Raum dahinter müsste sich eine Person
+     * aussuchen. Das ist genau das Erfinden, das die Karte verhindern soll.
+     */
+    if (!gesteErlaubt(karteJetzt(), { ort: s.ort, tiefe: s.tiefe }, richtung, s.wahlPfad))
+      return;
 
     /*
      * Der Randstreifen kommt **vor** der Frage, wem der Finger sonst gehört.

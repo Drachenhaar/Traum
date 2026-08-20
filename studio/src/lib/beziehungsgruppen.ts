@@ -66,6 +66,10 @@ const TABELLE: Record<string, { hin: string; her: string }> = {
   parent_of: { hin: 'familie', her: 'familie' },
   married_to: { hin: 'familie', her: 'familie' },
   related: { hin: 'familie', her: 'familie' },
+  /* Zuneigung und Feindschaft stehen unter derselben Frage wie Verwandtschaft:
+   * Es geht um Menschen, nicht um Dinge oder Orte. */
+  allied_with: { hin: 'familie', her: 'familie' },
+  opposed_to: { hin: 'familie', her: 'familie' },
   ruled: { hin: 'was', her: 'wer' },
   member_of: { hin: 'wo', her: 'wer' },
   plays_at: { hin: 'wo', her: 'geschah' },

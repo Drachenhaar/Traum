@@ -134,6 +134,23 @@ const REGLER: { gruppe: Gruppe; feld: string; von: number; bis: number; schritt:
   { gruppe: 'flaeche', feld: 'ruheDeckkraft', von: 0.12, bis: 1, schritt: 0.02, name: 'Deutlichkeit in Ruhe' },
   { gruppe: 'flaeche', feld: 'beruhigenMs', von: 200, bis: 2000, schritt: 50, name: 'Beruhigen (ms)' },
   { gruppe: 'flaeche', feld: 'erscheinenMs', von: 60, bis: 600, schritt: 10, name: 'Erscheinen (ms)' },
+
+  /*
+   * Die Charakterseite.
+   *
+   * Der Auftrag verlangt hier ausdrücklich Architektur und nicht Fülle:
+   * „Noch nicht hunderte Regler bauen." Also die sechs, die den Gesamteindruck
+   * tragen – wie laut das Gold ist, wie deutlich die Kanten sprechen, wie tief
+   * der Grund wirkt. Was zu *einem* Bildnis gehört, steht bewusst nicht hier,
+   * sondern am Eintrag: Der Zuschnitt eines Porträts ist keine Stimmung des
+   * Buches, sondern eine Eigenschaft dieses Bildes.
+   */
+  { gruppe: 'figur', feld: 'namensgroesse', von: 20, bis: 48, schritt: 1, name: 'Name (Punkte)' },
+  { gruppe: 'figur', feld: 'hinweisstaerke', von: 0, bis: 1, schritt: 0.05, name: 'Tiefenhinweise' },
+  { gruppe: 'figur', feld: 'goldstaerke', von: 0.2, bis: 1, schritt: 0.05, name: 'Goldstärke' },
+  { gruppe: 'figur', feld: 'linienstaerke', von: 0, bis: 1, schritt: 0.05, name: 'Linien' },
+  { gruppe: 'figur', feld: 'grundtiefe', von: 0, bis: 1, schritt: 0.05, name: 'Grundtiefe' },
+  { gruppe: 'figur', feld: 'kornstaerke', von: 0, bis: 1, schritt: 0.05, name: 'Korn' },
 ];
 
 /**

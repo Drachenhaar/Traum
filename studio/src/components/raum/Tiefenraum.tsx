@@ -28,11 +28,24 @@ import { ArrowRightLeft, MapPin, Sparkles } from 'lucide-react';
 import { useStudio, livingEntries } from '../../store/useStudio';
 import { geltendeKarte, useRaum } from '../../lib/raum/useRaum';
 import { type Richtung } from '../../lib/raum/geste';
-import { stufe as stufeVon, type Raumkennung, type Tiefenweg } from '../../lib/raum/tiefenkarte';
+import {
+  begehbar,
+  stufe as stufeVon,
+  type Raumkennung,
+  type Tiefenweg,
+} from '../../lib/raum/tiefenkarte';
 import { relationsOf } from '../../lib/relations';
 import { templateFor } from '../../lib/templates';
 import { chapterOfType } from '../../lib/book';
 import { useImageUrl } from '../images/Thumb';
+import {
+  RaumBeziehung,
+  RaumBeziehungen,
+  RaumGemeinsameGeschichte,
+  RaumHerkunft,
+  RaumNotizen,
+  RaumWissen,
+} from '../figur/Figurraeume';
 import { cx } from '../../lib/utils';
 import type { Entry } from '../../types';
 
@@ -78,6 +91,7 @@ export function Tiefenraum() {
   const tiefe = useRaum((s) => s.tiefe);
   const phase = useRaum((s) => s.phase);
   const ankerId = useRaum((s) => s.ankerId);
+  const wahlPfad = useRaum((s) => s.wahlPfad);
   /*
    * `geltendeKarte` und nicht `tiefenkarte` – der Unterschied ist genau der
    * Rückfall. Wer das Fach der Seite direkt liest, bekommt auf jeder Seite
@@ -107,6 +121,26 @@ export function Tiefenraum() {
   const dieseStufe = stufeVon(tiefenkarte, richtung, tiefe);
   if (!dieserWeg || !dieseStufe) return null;
 
+  /*
+   * Wer auf dem Weg hierher gewählt wurde – die Wahl der Ebene *darüber*.
+   *
+   * `wahlPfad[0]` gehört zur ersten Tiefe. Wer auf Ebene 2 steht, sieht also,
+   * was auf Ebene 1 gewählt wurde, und das ist genau richtig: Auf Ebene 1
+   * wählt man ein Gesicht, auf Ebene 2 sieht man dieses Gesicht.
+   */
+  const gewaehlt = tiefe > 1 ? nach.get(wahlPfad[tiefe - 2] ?? '') : undefined;
+
+  /*
+   * Wie weit dieser Weg *begehbar* ist – nicht, wie lang er gebaut ist.
+   *
+   * Der Unterschied ist keine Feinheit. „Tiefe 1 von 3" ist eine Lüge,
+   * solange niemand gewählt hat: Es gibt keine zweite Ebene, die man von hier
+   * aus erreichen könnte. Wer die Zahl trotzdem zeigt, verspricht einen Weg,
+   * den die Geste gleich verweigern wird – und dann sieht es aus, als sei die
+   * Bedienung kaputt.
+   */
+  const weite = begehbar(tiefenkarte, richtung, wahlPfad);
+
   return (
     <div
       /*
@@ -115,9 +149,9 @@ export function Tiefenraum() {
        * wechselte nur der Text, und der Raum fühlte sich an wie eine
        * aktualisierte Liste.
        */
-      key={`${ort}:${tiefe}`}
+      key={`${ort}:${tiefe}:${gewaehlt?.id ?? ''}`}
       className={cx(
-        'flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pb-8 pt-4 sm:px-8',
+        'dc-tiefenraum flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pb-8 pt-4 sm:px-8',
         phase === 'heimkehrend' ? 'dc-heimkehr' : 'dc-entfalten',
       )}
     >
@@ -132,9 +166,24 @@ export function Tiefenraum() {
             weitergeht. „1 von 1" ist keine Auskunft, sondern eine Zahl, die
             sich wichtig macht.
           */}
-          {dieserWeg.stufen.length > 1 && ` von ${dieserWeg.stufen.length}`}
+          {weite > 1 && ` von ${weite}`}
         </p>
-        <h2 className="mt-1 font-serif text-[22px] text-paper-200">{dieseStufe.titel}</h2>
+        {/*
+          Die Überschrift ist der gewählte Name, wenn einer gewählt wurde.
+
+          Das Referenzbild zeigt es genau so: In der Beziehungsliste steht
+          „BEZIEHUNGEN", eine Ebene tiefer steht „MIRAELYS". Der Titel der
+          Stufe – „Diese Verbindung" – wäre dort die zweitbeste Auskunft.
+          Wessen Verbindung, ist die Frage, und der Name beantwortet sie.
+        */}
+        <h2 className="mt-1 font-serif text-[22px] text-paper-200">
+          {gewaehlt?.title ?? dieseStufe.titel}
+        </h2>
+        {gewaehlt && (
+          <p className="font-serif text-[11px] uppercase tracking-[0.22em] text-brass-400/60">
+            {dieseStufe.titel}
+          </p>
+        )}
         {anker && (
           /*
            * Der Anker steht sichtbar da.
@@ -150,7 +199,14 @@ export function Tiefenraum() {
         )}
       </header>
 
-      <Inhalt raum={dieseStufe.raum} anker={anker} lebende={lebende} nach={nach} index={relIndex} />
+      <Inhalt
+        raum={dieseStufe.raum}
+        anker={anker}
+        lebende={lebende}
+        nach={nach}
+        index={relIndex}
+        gewaehlt={gewaehlt}
+      />
 
       <p className="mt-8 shrink-0 text-center font-serif text-[12px] italic text-paper-400/35">
         Doppeltipp bringt dich zurück zu deinem Werk.
@@ -166,6 +222,13 @@ interface RaumProps {
   lebende: Entry[];
   nach: Map<string, Entry>;
   index: ReturnType<typeof useStudio.getState>['relIndex'];
+  /**
+   * Wer auf dem Weg hierher gewählt wurde.
+   *
+   * Nur belegt, wenn eine Stufe eine Wahl verlangt hat. Für alle Räume, die
+   * nur den Anker zeigen, bleibt es leer – und das ist der Normalfall.
+   */
+  gewaehlt?: Entry;
 }
 
 /**
@@ -177,7 +240,14 @@ interface RaumProps {
  * links zwei verschiedene Räume übereinander. Jetzt sagt der Arbeitsraum,
  * *was* dort liegt, und diese Datei weiß nur noch, wie man es zeigt.
  */
-function Inhalt({ raum, anker, lebende, nach, index }: RaumProps & { raum: Raumkennung }) {
+function Inhalt({
+  raum,
+  anker,
+  lebende,
+  nach,
+  index,
+  gewaehlt,
+}: RaumProps & { raum: Raumkennung }) {
   switch (raum) {
     case 'wesen':
       return <WesenNah anker={anker} lebende={lebende} nach={nach} index={index} />;
@@ -188,9 +258,29 @@ function Inhalt({ raum, anker, lebende, nach, index }: RaumProps & { raum: Raumk
     case 'welt':
       return <Welt lebende={lebende} />;
     case 'wissen':
-      return <Wissen anker={anker} nach={nach} index={index} />;
+      /*
+       * Zwei Räume unter einer Kennung, und das ist Absicht.
+       *
+       * `wissen` heißt „was hier bekannt ist". Bei einer Figur ist das ihre
+       * Biografie, ihre Ziele, ihre Geheimnisse – bei einer Buchseite ohne
+       * Anker sind es die offenen Fragen des Buches. Dieselbe Bedeutung,
+       * verschiedene Auskunft, und der Unterschied hängt daran, ob ein Anker
+       * da ist. Zwei Kennungen daraus zu machen hieße, dieselbe Bedeutung
+       * zweimal zu benennen.
+       */
+      return anker ? <RaumWissen anker={anker} /> : <Wissen anker={anker} nach={nach} index={index} />;
     case 'notizen':
-      return <Notizen lebende={lebende} />;
+      return anker ? <RaumNotizen anker={anker} /> : <Notizen lebende={lebende} />;
+
+    /* Die Räume der Charakterseite. */
+    case 'beziehungen':
+      return anker ? <RaumBeziehungen anker={anker} /> : null;
+    case 'beziehung':
+      return anker ? <RaumBeziehung anker={anker} gewaehlt={gewaehlt} /> : null;
+    case 'gemeinsameGeschichte':
+      return anker ? <RaumGemeinsameGeschichte anker={anker} gewaehlt={gewaehlt} /> : null;
+    case 'herkunft':
+      return anker ? <RaumHerkunft anker={anker} /> : null;
   }
 }
 

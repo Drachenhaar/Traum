@@ -11,7 +11,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { BookOpen, Copy, PenLine, Printer, Star, Trash2, Compass, Music } from 'lucide-react';
+import { BookOpen, Copy, PenLine, Printer, ScanFace, Star, Trash2, Compass, Music } from 'lucide-react';
 import type { Entry } from '../../types';
 import { Atmosphaerenwahl, Atmosphaerenzeichen } from '../../components/entry/Atmosphaere';
 import { useStudio, livingEntries } from '../../store/useStudio';
@@ -235,6 +235,27 @@ export function EntrySpread() {
                 fuer „hier ist nichts" waere ein Symbol zu viel.
               */}
               <Atmosphaerenzeichen entry={entry} />
+              {/*
+                Der Weg zur Charakterseite.
+
+                Er steht bei den Zeichen und nicht unter „Mehr", weil er kein
+                seltener Handgriff ist, sondern die zweite Art, dieselbe Figur
+                anzusehen: hier der Eintrag im Band, dort das Gesicht mit
+                seiner Umgebung. Und er erscheint nur bei Figuren – ein Ort hat
+                keine Charakterseite, und ein Zeichen, das ins Leere führte,
+                wäre schlimmer als keines.
+              */}
+              {entry.type === 'character' && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/figur/${entry.id}`)}
+                  aria-label="Diese Figur ansehen"
+                  title="Die Figur ansehen"
+                  className="grid h-9 w-9 place-items-center text-ink-faint/35 transition-colors hover:text-gild-500 no-tap-highlight"
+                >
+                  <ScanFace size={15} />
+                </button>
+              )}
               {/*
                 Alles Seltene liegt gefaltet daneben.
 

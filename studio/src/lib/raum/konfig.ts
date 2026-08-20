@@ -144,7 +144,20 @@ export interface Raumkonfig {
      */
     fremdwegPx: number;
 
-    /** Mehr Ebenen als drei gibt es nicht. Siehe `useRaum.ts`. */
+    /**
+     * Wie tief ein Weg reicht, **wenn ihn niemand gefragt hat**.
+     *
+     * Hier stand „Mehr Ebenen als drei gibt es nicht", und `naechsterStand`
+     * setzte das mit einem `Math.min` durch. Das war eine feste Obergrenze im
+     * Unterbau – genau das, was der Auftrag zur Charakterseite verbietet.
+     * Eine Kette wie Figur → Beziehung → Person → Ereignis → Ort → Epoche →
+     * Fraktion wäre bei drei abgeschnitten worden, von einer Zahl, die von
+     * dieser Seite nichts weiß.
+     *
+     * Wie weit ein Weg reicht, weiß seine Tiefenkarte, und nur sie. Dieser
+     * Wert gilt noch für Aufrufer ohne Karte – und das sind die, die ohnehin
+     * nichts anzuzeigen hätten.
+     */
     hoechsteTiefe: number;
   };
 
@@ -272,6 +285,34 @@ export interface Raumkonfig {
     erscheinenMs: number;
   };
 
+  /**
+   * Die Charakterseite.
+   *
+   * Der Auftrag nennt die Regler, die es später am Gerät zu drehen gilt:
+   * Informationsdichte, Hinweisstärke, Linien, Gold, Grundtiefe, Kontrast –
+   * und für das Bildnis Größe, Fokus, Zoom, Schleier. Der Zuschnitt eines
+   * *einzelnen* Bildnisses steht dagegen am Eintrag (`lib/bildnis.ts`), denn
+   * er gehört zu diesem Bild und nicht zur Stimmung des Buches.
+   *
+   * Hier stehen die Werte, die für **alle** Figurenseiten gelten. Der
+   * Unterschied ist der zwischen „Porträts sind mir zu dunkel" und „auf
+   * diesem einen Bild sitzt das Gesicht zu tief".
+   */
+  figur: {
+    /** Wie groß der Name über dem Bildnis steht, in Punkten. */
+    namensgroesse: number;
+    /** Wie deutlich die vier Kantenmarken sind. Die „Depth-Hint-Stärke". */
+    hinweisstaerke: number;
+    /** Wie kräftig die goldenen Linien und Zeichen sind. */
+    goldstaerke: number;
+    /** Wie deutlich feine Linien und Rahmenecken gezeichnet werden. */
+    linienstaerke: number;
+    /** Wie tief der Grund wirkt – verschiebt den Lichtkegel nach unten. */
+    grundtiefe: number;
+    /** Wie stark das Korn über dem Grund liegt. */
+    kornstaerke: number;
+  };
+
   haptik: {
     andeutung: boolean;
     verpflichtung: boolean;
@@ -383,6 +424,23 @@ export const VORGABE: Raumkonfig = {
     ruheDeckkraft: 0.34,
     beruhigenMs: 900,
     erscheinenMs: 160,
+  },
+
+  figur: {
+    namensgroesse: 30,
+    /*
+     * 0.55 und nicht 1.0.
+     *
+     * Bei voller Stärke lesen sich die vier Marken als Beschriftungen eines
+     * Rahmens, und damit sieht das Bildnis aus wie ein Feld in einem Formular
+     * – genau das, was diese Seite nicht sein soll. Bei 0.55 sieht man sie,
+     * wenn man hinsieht, und übersieht sie, wenn man das Gesicht ansieht.
+     */
+    hinweisstaerke: 0.55,
+    goldstaerke: 0.85,
+    linienstaerke: 0.7,
+    grundtiefe: 0.5,
+    kornstaerke: 0.5,
   },
 
   haptik: {

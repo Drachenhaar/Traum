@@ -14,6 +14,7 @@ import { ForewordSpread } from './pages/book/ForewordSpread';
 import { ContentsSpread } from './pages/book/ContentsSpread';
 import { ChapterSpread } from './pages/book/ChapterSpread';
 import { EntrySpread } from './pages/book/EntrySpread';
+import { Charakterseite } from './pages/figur/Charakterseite';
 import { AppendixSpread } from './pages/book/Appendix';
 import { FoldOutMap } from './pages/book/FoldOutMap';
 import { RegisterSheet, PlatesSpread, PlatesSheet } from './pages/book/RegisterSpread';
@@ -185,6 +186,20 @@ export default function App() {
           <Route path="/inhalt" element={<ContentsSpread />} />
           <Route path="/kapitel/:id" element={<ChapterSpread />} />
           <Route path="/eintrag/:id" element={<EntrySpread />} />
+          {/*
+            Die Charakterseite steht neben der Buchseite, nicht an ihrer Stelle.
+
+            Beide zeigen dieselbe Figur, und beide sind richtig: Die Buchseite
+            ist der Eintrag im Band – Rubrik, Fließtext, Tafel, Fußnoten, und
+            druckbar. Die Charakterseite ist die Figur, wie man sie ansieht:
+            Gesicht, Name, und ringsum die Ahnung von mehr.
+
+            Eine der beiden zur einzigen zu machen wäre in beide Richtungen ein
+            Verlust. Ein Buch, in dem Figuren keine Buchseite mehr haben, ist
+            kein Buch mehr; eine Figur, die nur als Buchseite existiert, ist
+            das Charakterformular, das der Auftrag ausdrücklich nicht will.
+          */}
+          <Route path="/figur/:id" element={<Charakterseite />} />
           <Route path="/tafeln" element={<PlatesSpread />} />
           <Route path="/anhang" element={<AppendixSpread />} />
 

@@ -46,6 +46,27 @@
  * Komponente abräumt – React arbeitet in dieser Reihenfolge. Ein Abräumen,
  * das blind leert, löschte also die frisch angemeldete Karte. Deshalb räumt
  * hier nur ab, wer noch dieselbe Karte vorfindet, die er hinterlassen hat.
+ *
+ * ---
+ *
+ * **Und niemandem wird die Karte weggezogen, auf der er gerade steht.**
+ *
+ * Das war der Fehler, der die ganze Charakterseite unbrauchbar machte, und er
+ * ist so einfach wie hässlich: Der Tiefenraum *ersetzt* die sichtbare Seite.
+ * Wer nach rechts zieht, baut damit genau die Komponente ab, die die Karte
+ * angemeldet hat – ihre Abmeldung läuft, die Karte wird gelöscht, und für
+ * den Raum, der sich gerade öffnet, gilt plötzlich der Rückfall.
+ *
+ * Gemessen sah das so aus: Auf der Seite stand `[l1 r3 o1 u1]`, und in dem
+ * Augenblick, in dem sich rechts etwas öffnete, stand da `[l1 r1 o· u1]`.
+ * Statt „Beziehungen, Tiefe 1 von 3" kam „Wesen, Tiefe 1" – der Raum aus dem
+ * Vorrat, nicht der Raum dieser Figur. Die Karte war richtig gebaut, richtig
+ * angemeldet und zum falschen Zeitpunkt wieder eingesammelt.
+ *
+ * Die Regel dagegen ist keine Notlösung, sondern der fehlende Satz: Eine
+ * Karte ist erst dann veraltet, wenn niemand mehr in ihr steht. Solange eine
+ * Tiefe offen ist, *ist* sie das Betretene und bleibt liegen. Beim Heimkehren
+ * wird die sichtbare Seite ohnehin neu gebaut und meldet neu an.
  */
 
 import { useEffect } from 'react';
@@ -70,9 +91,14 @@ export function useTiefe(karte: Tiefenkarte, alsRueckfall = false): void {
       : useRaum.getState().setzeTiefenkarte;
     setze(gelesen);
     return () => {
-      const jetzt = alsRueckfall
-        ? useRaum.getState().rueckfallkarte
-        : useRaum.getState().tiefenkarte;
+      const stand = useRaum.getState();
+      /*
+       * Steht jemand in der Tiefe, bleibt die Karte liegen – siehe oben.
+       * Der Rückfall darf trotzdem abräumen: Er gehört der Hülle, und die
+       * bleibt stehen, solange überhaupt etwas zu sehen ist.
+       */
+      if (!alsRueckfall && stand.tiefe > 0) return;
+      const jetzt = alsRueckfall ? stand.rueckfallkarte : stand.tiefenkarte;
       if (JSON.stringify(jetzt) === abdruck) setze(OHNE_TIEFE);
     };
   }, [abdruck, alsRueckfall]);
