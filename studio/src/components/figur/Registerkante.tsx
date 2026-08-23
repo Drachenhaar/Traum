@@ -1,5 +1,5 @@
 /**
- * Die Registerkante – das Daumenregister am linken Rand.
+ * Die Registerkante – das Daumenregister an der Aussenkante rechts.
  *
  * Warum es kein zweites Menü ist und wie es sich den Rand mit der Geste
  * teilt, steht in `Register.ts`. Hier steht nur, wie es aussieht.
@@ -51,9 +51,17 @@ export function Registerkante({
          * machen daraus eine Kante, die eine Dicke hat – dasselbe Mittel wie
          * beim Buchkörper.
          */
+        /*
+         * Der Verlauf laeuft von der Buchseite weg nach aussen, und die
+         * Goldnaht sitzt an der **Innenkante** – dort, wo das Leder an die
+         * Seite stoesst. Als das Register links lag, war das die rechte
+         * Kante; seit es rechts liegt, die linke. Eine Naht auf der falschen
+         * Seite laesst die Leiste vor der Seite schweben, statt neben ihr zu
+         * liegen.
+         */
         background:
-          'linear-gradient(to right, #0b0908 0%, #16120f 62%, #1d1814 100%)',
-        boxShadow: 'inset -1px 0 0 rgba(184,134,11,0.16)',
+          'linear-gradient(to left, #0b0908 0%, #16120f 62%, #1d1814 100%)',
+        boxShadow: 'inset 1px 0 0 rgba(184,134,11,0.16)',
       }}
       aria-label="Register"
     >
@@ -113,10 +121,10 @@ export function Registerkante({
             */}
             {aktiv && (
               <span
-                className="pointer-events-none absolute inset-y-[3px] left-[3px] right-0 rounded-l-[2px]"
+                className="pointer-events-none absolute inset-y-[3px] left-0 right-[3px] rounded-r-[2px]"
                 style={{
                   background:
-                    'linear-gradient(to right, rgba(212,175,55,0.10) 0%, rgba(212,175,55,0.05) 55%, rgba(212,175,55,0) 100%)',
+                    'linear-gradient(to left, rgba(212,175,55,0.10) 0%, rgba(212,175,55,0.05) 55%, rgba(212,175,55,0) 100%)',
                   boxShadow: 'inset 0 0 0 1px rgba(212,175,55,0.18)',
                 }}
                 aria-hidden

@@ -653,12 +653,32 @@
     margin-left: 4px;
     opacity: 0.85;
   }
+  /*
+   * Und wo genau ist „draussen"?
+   *
+   * Die erste Fassung schob die Randnotiz mit `translateX(100%)` aus dem
+   * Satzspiegel *hinaus*. Gemessen bei 1024 Punkten Breite stand sie dann von
+   * 1018 bis 1154 – hundertdreissig Punkte jenseits des Bildschirmrands, und
+   * zusaetzlich unter dem Daumenregister. Sie war schlicht nicht da.
+   *
+   * Der Denkfehler: Eine Marginalie steht nicht *neben* der Seite, sondern im
+   * **Aussensteg der Seite**. Also muss der Aussensteg breit genug dafuer
+   * sein – sonst ist es keine Marginalie, sondern ein Ueberhang. Auf breiten
+   * Geraeten waechst der Steg deshalb auf elf Zeichenbreiten, und die Notiz
+   * setzt sich hinein statt hinaus.
+   *
+   * Das Register liegt noch weiter aussen, als Nachbar des Satzspiegels und
+   * nicht darin – es kommt der Notiz damit nicht mehr in die Quere.
+   */
   @media (min-width: 900px) {
+    .satz-spiegel {
+      padding-right: 11rem;
+    }
     .satz-rand {
       position: absolute;
-      right: calc(var(--satz-steg-aussen) * -1.7 + 8px);
-      width: 8.5rem;
-      transform: translateX(100%);
+      right: 1.5rem;
+      width: 8rem;
+      transform: none;
       border-left: none;
       padding-left: 0;
       margin-left: 0;

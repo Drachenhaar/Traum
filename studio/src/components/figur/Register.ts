@@ -1,7 +1,7 @@
 /**
  * Das Daumenregister einer Figur.
  *
- * Sieben Reiter am linken Rand, wie im Referenzbild: Übersicht, Aussehen,
+ * Sieben Reiter an der Aussenkante rechts, wie im Referenzbild: Übersicht, Aussehen,
  * Wesen, Vergangenheit, Fähigkeiten, Beziehungen, Zitat.
  *
  * ---
@@ -45,14 +45,33 @@
  *
  * **Und der Platz, den beide brauchen.**
  *
- * Das Register liegt am linken Rand – und dort liegt auch der Randstreifen
+ * Das Register liegt an der Außenkante – und dort liegt auch der Randstreifen
  * der Geste. Vierunddreißig Punkte, die zweimal vergeben sind.
  *
  * Es löst sich, weil **Tippen nicht Ziehen ist**. Die Raumschicht beansprucht
  * nur Züge; ein Tipp auf einen Knopf hat sie noch nie abgefangen (siehe die
  * Prüfung auf `button` in `Raumschicht.tsx`). Ein Reiter ist ein Knopf. Also:
- * Tipp öffnet das Register, Zug vom selben Punkt öffnet die Herkunft, und
- * keiner der beiden muss dem anderen ausweichen.
+ * Tipp öffnet das Register, Zug vom selben Punkt öffnet die Tiefe, und keiner
+ * der beiden muss dem anderen ausweichen.
+ *
+ * ---
+ *
+ * **Nachgemessen, als das Register von links nach rechts zog.**
+ *
+ * Der Umzug war die Probe aufs Exempel: Rechts liegt der *tiefe* Weg – drei
+ * Stufen bis zur gemeinsamen Geschichte –, und wäre die Behauptung oben
+ * falsch gewesen, hätte das Register ihn zugemauert. Der Streifen reicht von
+ * 12 bis 46 Punkten vom Rand, das Register ist 56 breit und deckt ihn
+ * vollständig ab.
+ *
+ * Gemessen vorher (Register links) und nachher (Register rechts), je zwölf
+ * Züge je Kante:
+ *
+ *     links  12/12      rechts 12/12      – vorher
+ *     links  12/12      rechts 12/12      – nachher
+ *
+ * Die Geste geht durch die Reiter hindurch, und die Reiter reagieren weiter
+ * auf einen Tipp. Die Regel hält.
  */
 
 import type { Zeichenkennung } from '../../lib/zeichen/zeichen';

@@ -260,7 +260,20 @@ export function Charakterseite() {
   return (
     <div
       /*
-       * Waagerecht: Registerkante links, die Seite rechts daneben.
+       * Waagerecht: die Seite links, das Daumenregister an der Aussenkante
+       * rechts.
+       *
+       * Rechts, weil dort im Referenzbild die Reiter stehen – und weil ein
+       * Daumenregister an die **Schnittkante** gehoert, gegenueber dem Falz.
+       * Damit stimmt auch der Satzspiegel wieder: Sein breiterer Innensteg
+       * liegt jetzt tatsaechlich am Falz.
+       *
+       * Der Umzug wurde vorher gemessen, weil er den tiefen Weg haette
+       * verschuetten koennen: Der Streifen fuer die Raumgeste reicht von 12
+       * bis 46 Punkten vom Rand, das Register ist 56 breit und deckt ihn
+       * vollstaendig ab. Gemessen ging die Geste durch das Register hindurch
+       * – zwoelf von zwoelf auf beiden Kanten. Ein Tipp gehoert dem Reiter,
+       * ein Zug gehoert dem Raum; genau so steht es in `Register.ts`.
        *
        * Die Kante steht **außerhalb** der Seite und nicht darüber. Eine
        * Leiste, die über dem Inhalt schwebt, verdeckt beim Lesen die erste
@@ -293,13 +306,6 @@ export function Charakterseite() {
         aria-hidden
       />
       <div className="dc-korn pointer-events-none absolute inset-0" aria-hidden />
-
-      <Registerkante
-        offen={blatt}
-        waehle={schlageAuf}
-        fuellung={fuellung}
-        breite={f.registerbreite}
-      />
 
       {/*
         Die Seite neben der Kante.
@@ -639,6 +645,23 @@ export function Charakterseite() {
         )}
       </div>
       </div>
+
+      {/*
+        Das Daumenregister steht **nach** der Seite und damit rechts.
+
+        Im Flex-Fluss ist die Reihenfolge im Quelltext die Reihenfolge auf dem
+        Schirm – der Umzug von links nach rechts ist deshalb kein neues
+        Stueck Gestaltung, sondern eine verschobene Zeile. Was mit umziehen
+        musste, sind die Richtungen *innerhalb* der Kante: Lichtverlauf,
+        Goldnaht und der vorstehende Reiter zeigen jetzt zur Seite hin statt
+        von ihr weg (siehe `Registerkante.tsx`).
+      */}
+      <Registerkante
+        offen={blatt}
+        waehle={schlageAuf}
+        fuellung={fuellung}
+        breite={f.registerbreite}
+      />
     </div>
   );
 }
