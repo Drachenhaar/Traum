@@ -445,6 +445,255 @@
   }
 }
 
+/* ======================================================================
+ * DIE SETZEREI
+ *
+ * Der Satz einer Buchseite, nicht die Gestaltung einer Oberflaeche. Die
+ * Zahlen kommen aus `lib/setzerei/mass.ts` und werden dort begruendet; hier
+ * stehen nur die Regeln, die sie anwenden.
+ *
+ * Ein Grundsatz zieht sich durch alles hier unten: **Text lebt auf der
+ * Seite, nicht in einem Kasten.** Wo im Netz eine Karte mit Rahmen und
+ * Schatten stuende, steht im Buch Weissraum, eine Haarlinie oder eine
+ * andere Schriftgroesse.
+ * ====================================================================== */
+
+@layer components {
+  /* ------------------------------------------------------ Satzspiegel -- */
+
+  /*
+   * Der Satzspiegel.
+   *
+   * Innensteg breiter als Aussensteg, Fusssteg am groessten. Auf breiteren
+   * Geraeten wachsen alle Stege mit – eine Seite, die auf dem iPad
+   * dieselben 30 Punkte Rand haette wie auf dem Telefon, saehe aus wie eine
+   * Webseite, der man die Fenstergroesse veraendert hat.
+   */
+  .satz-spiegel {
+    padding-left: var(--satz-steg-innen);
+    padding-right: var(--satz-steg-aussen);
+    padding-top: var(--satz-steg-oben);
+    padding-bottom: var(--satz-steg-unten);
+  }
+  @media (min-width: 640px) {
+    .satz-spiegel {
+      padding-left: calc(var(--satz-steg-innen) * 1.7);
+      padding-right: calc(var(--satz-steg-aussen) * 1.7);
+      padding-top: calc(var(--satz-steg-oben) * 1.5);
+      padding-bottom: calc(var(--satz-steg-unten) * 1.4);
+    }
+  }
+
+  /*
+   * Die Spalte.
+   *
+   * `--satz-mass` ist eine **Obergrenze und keine Zielgroesse**: Auf dem
+   * Telefon ist die Spalte ohnehin schmaler, und die Regel tut nichts.
+   * Sobald Breite da ist, verhindert sie die sehr lange Zeile, aus der das
+   * Auge nicht mehr an den richtigen Anfang zurueckfindet.
+   */
+  .satz-spalte {
+    max-width: var(--satz-mass);
+  }
+
+  /* ------------------------------------------------- Die drei Rollen -- */
+
+  /*
+   * Erstens: die Auszeichnungsschrift. Nur fuer Namen und grosse Titel.
+   * Gross und ruhig, gesperrt, **nicht fett** – ein Name, der sich
+   * anschreit, wirkt kleiner, nicht groesser.
+   */
+  .satz-name {
+    font-family: 'Iowan Old Style', Georgia, 'Times New Roman', ui-serif, serif;
+    font-size: var(--satz-name);
+    line-height: var(--satz-name-zeile);
+    letter-spacing: var(--satz-name-sperre);
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+
+  /*
+   * Zweitens: die Leseschrift. Der Grundsatz des ganzen Buches.
+   *
+   * `text-wrap: pretty` verhindert das einzelne Wort in der letzten Zeile –
+   * im Buchsatz heisst das Hurenkind, und es ist das sicherste Zeichen
+   * dafuer, dass eine Seite nicht gesetzt, sondern gefuellt wurde.
+   */
+  .satz-fliess {
+    font-family: 'Iowan Old Style', Georgia, 'Times New Roman', ui-serif, serif;
+    font-size: var(--satz-fliess);
+    line-height: var(--satz-fliess-zeile);
+    text-wrap: pretty;
+    hyphens: auto;
+  }
+
+  /*
+   * Drittens: die Akzentschrift – echte Kapitaelchen, wo die Schrift sie
+   * hat, sonst gesperrte Versalien.
+   *
+   * `font-variant-caps` wirkt nur, wenn der Schriftschnitt Kapitaelchen
+   * mitbringt; Georgia auf einem Nicht-Apple-Geraet tut das nicht. Deshalb
+   * steht `text-transform: uppercase` daneben und nicht statt dessen: Wo
+   * echte Kapitaelchen da sind, gewinnen sie; wo nicht, stehen saubere
+   * gesperrte Versalien. Beides sieht nach Nachschlagewerk aus, und keins
+   * von beiden faellt aus.
+   */
+  .satz-kapitael {
+    font-family: 'Iowan Old Style', Georgia, 'Times New Roman', ui-serif, serif;
+    font-variant-caps: small-caps;
+    text-transform: uppercase;
+    font-size: var(--satz-rubrik);
+    line-height: var(--satz-rubrik-zeile);
+    letter-spacing: var(--satz-rubrik-sperre);
+    color: var(--dc-rubrik, #8c6510);
+  }
+
+  /* --------------------------------------------------- Der Fliesstext -- */
+
+  /*
+   * Absaetze folgen einander wie im Buch, nicht wie im Netz.
+   *
+   * Im Netz trennt man Absaetze durch einen grossen Abstand – auf einer
+   * Buchseite frisst das den Fusssteg auf und zerlegt den Text in Bloecke.
+   * Der Buchsatz benutzt statt dessen den Erstzeileneinzug: Der erste
+   * Absatz bleibt stumpf, jeder folgende rueckt eine Geviertbreite ein. Man
+   * sieht sofort, wo ein Gedanke anfaengt, und die Seite bleibt eine
+   * Flaeche.
+   */
+  .satz-absatz + .satz-absatz {
+    text-indent: 1.4em;
+    margin-top: 0;
+  }
+
+  /* Nach einer Initiale nie einruecken – die Initiale ist der Anfang. */
+  .satz-initial + .satz-absatz {
+    text-indent: 0;
+  }
+
+  /*
+   * Die Initiale.
+   *
+   * Zwei bis drei Zeilen hoch, sehr dezent, und **nicht bei jedem Absatz** –
+   * nur an Einstiegen: Biografie, Vergangenheit, erster Buchauftritt. Eine
+   * Initiale, die dreimal auf einer Seite steht, ist keine Initiale mehr,
+   * sondern ein Muster.
+   */
+  .satz-initial::first-letter {
+    float: left;
+    font-family: 'Iowan Old Style', Georgia, serif;
+    font-size: 3.15em;
+    line-height: 0.84;
+    padding: 0.04em 0.1em 0 0;
+    color: var(--dc-initiale, #6b5220);
+  }
+
+  /* ---------------------------------------------------------- Zitate -- */
+
+  /*
+   * Ein Zitat ist ein stiller Moment und kein Datenfeld.
+   *
+   * Deshalb: kein Kasten, kein Rahmen, kein Hintergrund – statt dessen viel
+   * Luft darum, groesserer Grad, kursiv. Der Raum macht die Bedeutung; ein
+   * Rahmen wuerde sie nur behaupten.
+   */
+  .satz-zitat {
+    font-family: 'Iowan Old Style', Georgia, 'Times New Roman', ui-serif, serif;
+    font-size: var(--satz-zitat);
+    line-height: var(--satz-zitat-zeile);
+    letter-spacing: var(--satz-zitat-sperre);
+    font-style: italic;
+    text-wrap: balance;
+  }
+
+  /* --------------------------------------- Kolumnentitel und Seitenzahl -- */
+
+  /*
+   * Der Kolumnentitel steht oben und traegt die Orientierung – sehr klein,
+   * weit gesperrt, ohne Rahmen. Er ist ausdruecklich **keine
+   * Navigationsleiste**: Er sagt, wo man ist, und nicht, wohin man kann.
+   */
+  .satz-kolumne {
+    font-family: 'Iowan Old Style', Georgia, ui-serif, serif;
+    font-size: 9.5px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    line-height: 14px;
+  }
+
+  /* Die Seitenzahl gehoert zum Buch, nicht zur Bedienung. */
+  .satz-seitenzahl {
+    font-family: 'Iowan Old Style', Georgia, ui-serif, serif;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    font-variant-numeric: oldstyle-nums;
+  }
+
+  /* ------------------------------------------------------ Randnotizen -- */
+
+  /*
+   * Marginalien – und der Grund, warum sie auf dem Telefon anders stehen.
+   *
+   * Im Buch stehen sie im Aussensteg neben dem Text. Auf 390 Punkten gibt
+   * es keinen Aussensteg, in den eine zweite Spalte passt: Der Haupttext
+   * hat dort selbst nur rund vierzig Zeichen. Eine Randspalte danebenb
+   * ergaebe zwei unlesbare Spalten statt einer lesbaren.
+   *
+   * Deshalb faltet sich die Randnotiz auf dem Telefon in den Satz ein –
+   * eingerueckt, kleiner, mit einer Haarlinie an der Seite, die zeigt: Das
+   * hier gehoert zum Rand und nicht zum Text. Ab dem iPad tritt sie an den
+   * Platz, an den sie gehoert.
+   */
+  .satz-rand {
+    font-family: 'Iowan Old Style', Georgia, ui-serif, serif;
+    font-size: var(--satz-rand);
+    line-height: var(--satz-rand-zeile);
+    font-style: italic;
+    border-left: 1px solid currentColor;
+    padding-left: 12px;
+    margin-left: 4px;
+    opacity: 0.85;
+  }
+  @media (min-width: 900px) {
+    .satz-rand {
+      position: absolute;
+      right: calc(var(--satz-steg-aussen) * -1.7 + 8px);
+      width: 8.5rem;
+      transform: translateX(100%);
+      border-left: none;
+      padding-left: 0;
+      margin-left: 0;
+      text-align: left;
+    }
+  }
+
+  /* ------------------------------------------------ Bildunterschriften -- */
+
+  /* Editorial und nah am Bild – „Abb. 03 — …“, keine Medienkarte. */
+  .satz-bildunter {
+    font-family: 'Iowan Old Style', Georgia, ui-serif, serif;
+    font-size: var(--satz-bildunter);
+    line-height: var(--satz-bildunter-zeile);
+    letter-spacing: var(--satz-bildunter-sperre);
+  }
+
+  /* ---------------------------------------------------- Handschrift -- */
+
+  /*
+   * Die zweite Ebene: was spaeter von Hand hineingeschrieben wurde.
+   *
+   * Leicht schraeg, nie ganz ausgerichtet, dunklere Tinte. Sparsam
+   * verwenden – eine Seite voller Handschrift ist kein lebendes Weltbuch,
+   * sondern ein Notizzettel.
+   */
+  .satz-hand {
+    font-family: 'Segoe Script', 'Bradley Hand', 'Apple Chancery', cursive;
+    font-size: 14.5px;
+    line-height: 20px;
+    transform: rotate(-0.7deg);
+    opacity: 0.9;
+  }
+}
+
 @layer utilities {
   .pt-safe {
     padding-top: var(--sat);

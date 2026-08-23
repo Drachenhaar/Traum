@@ -24,9 +24,24 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStudio } from '../../store/useStudio';
 import { relationsOf } from '../../lib/relations';
-import { Goldteiler, zeichenFuer } from '../../lib/zeichen/zeichen';
+import { zeichenFuer } from '../../lib/zeichen/zeichen';
 import { Bildnis } from './Bildnis';
 import { Buchmarke, Drachenschatten } from '../../lib/zeichen/embleme';
+import {
+  Absatz,
+  Abschnitt,
+  Angabe,
+  Angaben,
+  Bildunterschrift,
+  Fliesstext,
+  Haarlinie,
+  Handnotiz,
+  Randnotiz,
+  Rubrik as SatzRubrik,
+  Still as SatzStill,
+  Trenner,
+  Zitat,
+} from '../setzerei/Setzerei';
 import { cx } from '../../lib/utils';
 import type { Entry } from '../../types';
 
@@ -43,35 +58,46 @@ const liste = (v: unknown): string[] =>
           .filter(Boolean)
       : [];
 
+/*
+ * Die vier Grundbausteine ziehen ihr Mass aus der Setzerei.
+ *
+ * Vorher standen hier vier eigene Groessen – 10,5 Punkt fuer die Rubrik,
+ * 13,5 fuer den Satz, 12 fuer die Stille, 9,5 fuer die Bezeichnung einer
+ * Angabe. Vier Zahlen, die niemand mehr mit den Zahlen anderer Seiten
+ * vergleichen konnte, und genau daran erkennt man eine Seite, die
+ * zusammengeschoben und nicht gesetzt wurde.
+ *
+ * Sie bleiben als Namen stehen, weil die Blaetter darunter sie benutzen –
+ * aber sie entscheiden nichts mehr selbst. Wer die Groesse des Lesetextes
+ * aendern will, aendert sie in `lib/setzerei/mass.ts`, und sie aendert sich
+ * im ganzen Buch.
+ */
+
 /** Eine Abschnittsüberschrift in Gold, wie im Bild. */
 export function Rubrik({ children }: { children: React.ReactNode }) {
-  return (
-    <h3 className="font-serif text-[10.5px] uppercase tracking-[0.28em] text-gild-400/75">
-      {children}
-    </h3>
-  );
+  return <SatzRubrik className="text-gild-400/80">{children}</SatzRubrik>;
 }
 
-/** Ein Absatz Buchtext. */
-const Satz = ({ children, mittig }: { children: React.ReactNode; mittig?: boolean }) => (
-  <p
-    className={cx(
-      'font-serif text-[13.5px] leading-[1.68] text-paper-200/85',
-      mittig && 'text-center',
-    )}
-  >
-    {children}
-  </p>
-);
+/**
+ * Ein Absatz Buchtext.
+ *
+ * `mittig` schaltet zusaetzlich den Erstzeileneinzug ab: Ein zentrierter
+ * Absatz mit eingerueckter erster Zeile sieht aus, als waere die Zentrierung
+ * misslungen.
+ */
+const Satz = ({ children, mittig }: { children: React.ReactNode; mittig?: boolean }) =>
+  mittig ? (
+    <p className="satz-fliess text-center text-paper-200/85">{children}</p>
+  ) : (
+    <Absatz className="text-paper-200/85">{children}</Absatz>
+  );
 
 const Still = ({ was }: { was: string }) => (
-  <p className="py-8 text-center font-serif text-[12px] italic text-paper-300/35">{was}</p>
+  <SatzStill was={was} className="py-6 text-center text-paper-300/40" />
 );
 
 /** Die feine Goldlinie zwischen den Blöcken des Referenzbildes. */
-const Linie = () => (
-  <div className="my-5 h-px bg-gradient-to-r from-transparent via-gild-600/30 to-transparent" aria-hidden />
-);
+const Linie = () => <Haarlinie className="text-gild-500" />;
 
 /* ------------------------------------------------------- Die Kopfangaben -- */
 
@@ -121,29 +147,35 @@ function Kopfangaben({ entry }: { entry: Entry }) {
 
   if (!zeilen.length) return null;
 
+  /*
+   * Der Verweis wird erst beim Beruehren sichtbar (§21).
+   *
+   * Vorher stand unter jedem verknuepften Namen ein Unterstrich. Fuenf Zeilen
+   * mit drei Unterstrichen sehen aus wie ein Formular mit Links – und das
+   * Buch soll im Ruhezustand ein Buch sein. Der Name traegt jetzt nur eine
+   * sehr feine goldene Tonung; der Unterstrich kommt beim Antippen.
+   */
   return (
-    <dl className="space-y-1.5">
+    <Angaben>
       {zeilen.map((z) => (
-        <div key={z.name} className="flex gap-3">
-          <dt className="w-[104px] shrink-0 pt-[3px] font-serif text-[9.5px] uppercase tracking-[0.2em] text-gild-500/60">
-            {z.name}
-          </dt>
-          <dd className="min-w-0 flex-1 font-serif text-[14px] text-paper-100">
-            {z.ziel ? (
-              <button
-                type="button"
-                onClick={() => navigate(`/eintrag/${z.ziel!.id}`)}
-                className="text-left underline decoration-gild-600/35 underline-offset-4 no-tap-highlight active:opacity-70"
-              >
-                {z.wert}
-              </button>
-            ) : (
-              z.wert
-            )}
-          </dd>
-        </div>
+        <Angabe key={z.name} name={z.name}>
+          {z.ziel ? (
+            <button
+              type="button"
+              onClick={() => navigate(`/eintrag/${z.ziel!.id}`)}
+              className={cx(
+                'text-left text-gild-200 decoration-gild-500/50 underline-offset-[5px]',
+                'no-tap-highlight hover:underline active:underline active:opacity-70',
+              )}
+            >
+              {z.wert}
+            </button>
+          ) : (
+            <span className="text-paper-100">{z.wert}</span>
+          )}
+        </Angabe>
       ))}
-    </dl>
+    </Angaben>
   );
 }
 
@@ -158,15 +190,41 @@ function Kopfangaben({ entry }: { entry: Entry }) {
  * Also derselbe Umgang wie beim Bildnis: ein Schacht, und solange er leer
  * ist, etwas, das nicht nach Fehler aussieht.
  */
-function Szenenbild({ bildId, marke }: { bildId?: string; marke: 'buch' | 'drache' }) {
+function Szenenbild({
+  bildId,
+  marke,
+  nummer,
+  unterschrift,
+  zusatz,
+}: {
+  bildId?: string;
+  marke: 'buch' | 'drache';
+  nummer?: number;
+  unterschrift?: string;
+  zusatz?: string;
+}) {
+  /*
+   * Die Bildunterschrift steht nur unter einem **echten** Bild.
+   *
+   * Der leere Schacht traegt eine Praegung, damit die Seite nicht nach Fehler
+   * aussieht – aber „Abb. 01 — Dennisse" unter einer Praegung waere eine
+   * Bildunterschrift ohne Bild, und das ist schlimmer als keine.
+   */
   if (bildId)
     return (
-      <Bildnis
-        bildId={bildId}
-        schacht="beziehungsbildnis"
-        ecken
-        className="h-[104px] w-[124px] shrink-0 rounded-[2px]"
-      />
+      <figure className="shrink-0">
+        <Bildnis
+          bildId={bildId}
+          schacht="beziehungsbildnis"
+          ecken
+          className="h-[104px] w-[124px] rounded-[2px]"
+        />
+        {unterschrift && (
+          <Bildunterschrift nummer={nummer} zusatz={zusatz} className="max-w-[124px] text-paper-300/70">
+            {unterschrift}
+          </Bildunterschrift>
+        )}
+      </figure>
     );
   return (
     <div
@@ -186,34 +244,55 @@ const erstesBild = (v: unknown): string | undefined => liste(v)[0];
 
 export function BlattUebersicht({ entry }: { entry: Entry }) {
   const zitat = text(entry.fields?.zitat);
+  const beschreibung = text(entry.description);
+  const rand = text(entry.fields?.randbemerkung);
+
+  /*
+   * Die Reihenfolge folgt dem Referenzbild und nicht dem Datensatz.
+   *
+   * Dort steht unter dem Namen zuerst das Zitat – kursiv, zentriert, mit
+   * Luft –, dann die fuenf Angaben des Nachschlagewerks, dann erst der
+   * beschreibende Absatz. Ein Formular haette die umgekehrte Ordnung: erst
+   * die Felder, dann der Freitext. Ein Buch beginnt mit dem, was einen
+   * Menschen kenntlich macht.
+   */
+  if (!zitat && !beschreibung && !rand)
+    return <Still was="Über diese Figur steht noch nichts geschrieben." />;
+
   return (
     <div>
-      {/*
-        Das kleine Bildnis oben rechts, wie im Bild – aber nur, wenn es ein
-        eigenes gibt. Das große Bildnis derselben Figur hier ein zweites Mal
-        zu zeigen, wäre eine Wiederholung, kein Porträt.
-      */}
       {zitat && (
-        <>
-          <Satz mittig>
-            <span className="italic text-paper-100/80">„{zitat}“</span>
-          </Satz>
-          <Linie />
-        </>
+        <p className="satz-fliess mb-1 text-center italic text-paper-100/80">„{zitat}“</p>
       )}
 
       <Kopfangaben entry={entry} />
 
-      {entry.description?.trim() && (
+      {beschreibung && (
         <>
           <Linie />
-          <Satz mittig>{entry.description}</Satz>
+          {/*
+            Der beschreibende Absatz steht linksbuendig und nicht zentriert.
+
+            Zentrierter Fliesstext hat auf beiden Seiten eine ausgefranste
+            Kante; das Auge findet den Zeilenanfang nicht mehr blind und
+            muss ihn jedes Mal suchen. Fuer drei Worte unter einem Titel ist
+            das schoen, fuer fuenf Zeilen Text ist es anstrengend. Zentriert
+            bleiben deshalb nur Zitat und Titel.
+          */}
+          <div className="text-paper-200/85">
+            <Fliesstext text={beschreibung} />
+          </div>
         </>
       )}
 
-      {!zitat && !entry.description?.trim() && (
-        <Still was="Über diese Figur steht noch nichts geschrieben." />
-      )}
+      {/*
+        Die spaetere Eintragung von Hand (§18).
+
+        Sie steht am Ende der Uebersicht und nirgends sonst. Eine
+        handschriftliche Notiz auf jedem Registerblatt waere keine zweite
+        Ebene mehr, sondern die erste in anderer Schrift.
+      */}
+      {rand && <Handnotiz className="mt-7 text-gild-400/80">{rand}</Handnotiz>}
     </div>
   );
 }
@@ -318,6 +397,26 @@ export function BlattVergangenheit({ entry }: { entry: Entry }) {
   const erinnerung = text(entry.fields?.memories);
   const zeit = [entry.beginn, entry.ende].filter(Boolean).join(' – ');
 
+  /*
+   * Die Randnotiz ist **abgeleitet und nicht erfunden** (§8).
+   *
+   * „siehe Nebeltal" darf nur dastehen, wenn es das Nebeltal in diesem Buch
+   * wirklich gibt und diese Figur wirklich dorthin gehoert. Die Kante
+   * `lives_in` weiss das; ein getippter Ortsname wuesste es nicht. Gibt es
+   * keine Kante, steht keine Randnotiz da – ein Verweis ins Leere ist
+   * schlimmer als eine leere Spalte.
+   */
+  const entries = useStudio((s) => s.entries);
+  const relIndex = useStudio((s) => s.relIndex);
+  const navigate = useNavigate();
+  const ort = useMemo(() => {
+    const nach = new Map(entries.map((e) => [e.id, e]));
+    const k = relationsOf(relIndex, entry.id).find(
+      (r) => r.relation.type === 'lives_in' && nach.has(r.otherId),
+    );
+    return k ? nach.get(k.otherId) : undefined;
+  }, [entries, relIndex, entry.id]);
+
   if (!was && !erinnerung && !zeit)
     return <Still was="Was vor ihr liegt, ist noch nicht aufgeschrieben." />;
 
@@ -338,11 +437,27 @@ export function BlattVergangenheit({ entry }: { entry: Entry }) {
             dem Text zweihundert, und das sind vier Woerter je Zeile.
           */}
           <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-start">
-            <Szenenbild bildId={erstesBild(entry.fields?.bildVergangenheit)} marke="drache" />
+            <Szenenbild
+              bildId={erstesBild(entry.fields?.bildVergangenheit)}
+              marke="drache"
+              nummer={1}
+              unterschrift={`${entry.title}, aus früherer Zeit`}
+            />
             <div className="min-w-0 flex-1">
               <Satz>{was}</Satz>
             </div>
           </div>
+          {ort && (
+            <Randnotiz className="text-paper-300/70">
+              <button
+                type="button"
+                onClick={() => navigate(`/eintrag/${ort.id}`)}
+                className="text-left no-tap-highlight active:opacity-70"
+              >
+                siehe {ort.title}
+              </button>
+            </Randnotiz>
+          )}
         </section>
       )}
       {erinnerung && (
@@ -412,38 +527,92 @@ export function BlattFaehigkeiten({ entry }: { entry: Entry }) {
 export function BlattZitat({ entry }: { entry: Entry }) {
   const auftritt = text(entry.fields?.buchauftritt);
   const zitat = text(entry.fields?.zitat);
+  const entries = useStudio((s) => s.entries);
+  const relIndex = useStudio((s) => s.relIndex);
+  const navigate = useNavigate();
+
+  const ersteSzene = useMemo(() => {
+    const nach = new Map(entries.map((e) => [e.id, e]));
+    const treffer = relationsOf(relIndex, entry.id)
+      .map((k) => nach.get(k.otherId))
+      .filter((e): e is Entry => !!e && e.type === 'szene');
+    return treffer[0];
+  }, [entries, relIndex, entry.id]);
 
   if (!auftritt && !zitat)
     return <Still was="Wie sie zum ersten Mal erscheint, steht noch nicht geschrieben." />;
 
+  /*
+   * Woher der erste Auftritt stammt – falls es dazu eine Szene gibt.
+   *
+   * Die Zeile „Erster Auftritt · Kapitel III" aus dem Auftrag ist keine
+   * Erfindung fuer die Anzeige: Sie steht schon im Buch, als Kante zu einer
+   * Szene. Gibt es keine, bleibt die Zeile weg – eine erfundene Herkunft
+   * waere schlimmer als gar keine.
+   */
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       {auftritt && (
         <section>
-          <Rubrik>Charakteristischer Buchauftritt</Rubrik>
-          <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-start">
-            <Szenenbild bildId={erstesBild(entry.fields?.bildAuftritt)} marke="buch" />
-            <div className="min-w-0 flex-1">
-              <Satz>{auftritt}</Satz>
-            </div>
+          {/*
+            Abschnittstitel mit Haarlinien statt einer blossen Rubrik.
+
+            Das Referenzbild setzt genau hier den einzigen zentrierten Titel
+            der Seite – der Buchauftritt ist der literarische Teil, und er
+            bekommt seinen eigenen Eingang.
+          */}
+          <Abschnitt>Charakteristischer Buchauftritt</Abschnitt>
+
+          {/*
+            Das Bild steht im Text und nicht daneben (§13).
+
+            `float` laesst den Absatz um die Illustration fliessen, wie auf
+            einer gesetzten Seite. Auf dem Telefon ist dafuer kein Platz –
+            eine Spalte von hundertzwanzig Punkten neben einem Bild ergaebe
+            Zeilen aus drei Woertern. Dort steht das Bild deshalb ueber dem
+            Text, und das Fliessen beginnt erst, wenn Breite da ist.
+          */}
+          <div className="sm:float-right sm:ml-5 sm:mb-3">
+            <Szenenbild
+              bildId={erstesBild(entry.fields?.bildAuftritt)}
+              marke="buch"
+              nummer={2}
+              unterschrift={`${entry.title} bei ihrem ersten Auftritt`}
+            />
           </div>
+          <div className="text-paper-200/85">
+            <Fliesstext text={auftritt} initial />
+          </div>
+          {ersteSzene && (
+            <p className="clear-both pt-4">
+              <button
+                type="button"
+                onClick={() => navigate(`/eintrag/${ersteSzene.id}`)}
+                className="satz-bildunter uppercase text-gild-500/70 no-tap-highlight active:opacity-70"
+                style={{ letterSpacing: '0.16em' }}
+              >
+                Erster Auftritt · {ersteSzene.title}
+              </button>
+            </p>
+          )}
+          <div className="clear-both" />
         </section>
       )}
 
       {zitat && (
-        <section className="pt-2">
+        <section>
           {/*
             Viel leerer Raum ringsum – das ist im Bild die halbe Wirkung.
             Ein Zitat, das eng steht, ist eine Bildunterschrift.
+
+            Vorher stand es zwischen **zwei** Goldteilern. Zwei Linien um
+            einen Text herum sind ein Kasten, auch wenn die Seiten fehlen –
+            und ein Kasten ist genau das, was ein Zitat nicht sein soll. Jetzt
+            steht ein Teiler davor, und darunter traegt die Luft allein.
           */}
-          <div className="flex justify-center text-gild-500/40">
-            <Goldteiler breite={110} />
-          </div>
-          <p className="mt-6 text-center font-serif text-[19px] italic leading-[1.5] text-paper-100/85">
-            „{zitat}“
-          </p>
-          <div className="mt-6 flex justify-center text-gild-500/40">
-            <Goldteiler breite={110} />
+          <Trenner breite={110} />
+          <div className="text-paper-200">
+            <Zitat von={entry.title}>{zitat}</Zitat>
           </div>
         </section>
       )}
