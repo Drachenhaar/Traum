@@ -151,6 +151,7 @@ const REGLER: { gruppe: Gruppe; feld: string; von: number; bis: number; schritt:
   { gruppe: 'figur', feld: 'linienstaerke', von: 0, bis: 1, schritt: 0.05, name: 'Linien' },
   { gruppe: 'figur', feld: 'grundtiefe', von: 0, bis: 1, schritt: 0.05, name: 'Grundtiefe' },
   { gruppe: 'figur', feld: 'kornstaerke', von: 0, bis: 1, schritt: 0.05, name: 'Korn' },
+  { gruppe: 'figur', feld: 'registerbreite', von: 0, bis: 96, schritt: 2, name: 'Registerkante' },
 ];
 
 /**

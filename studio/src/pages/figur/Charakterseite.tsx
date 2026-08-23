@@ -41,9 +41,9 @@
  * etwas. Das ist die ganze Auskunft, und sie genügt.
  */
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, MoreHorizontal, Star } from 'lucide-react';
+import { BookmarkIcon, BookOpen, ChevronLeft, ListTree, Star } from 'lucide-react';
 import { useStudio, livingEntries } from '../../store/useStudio';
 import { relationsOf } from '../../lib/relations';
 import { useRaum } from '../../lib/raum/useRaum';
@@ -53,9 +53,14 @@ import { richtungen, type Tiefenkarte } from '../../lib/raum/tiefenkarte';
 import { type Richtung } from '../../lib/raum/geste';
 import { konfig } from '../../lib/raum/konfig';
 import { Bildnis } from '../../components/figur/Bildnis';
+import { Mehr } from '../../components/ui/Mehr';
+import { Registerkante } from '../../components/figur/Registerkante';
+import { ERSTES_BLATT, REGISTERBLAETTER } from '../../components/figur/Register';
+import { Blattinhalt, Kopfbildnis, blattfuellung } from '../../components/figur/Figurblaetter';
 import { Goldteiler, Wegepunkt, zeichenFuer } from '../../lib/zeichen/zeichen';
 import { cx } from '../../lib/utils';
 import { ganzVerborgen, zeigtGeheimes } from '../../lib/geheim';
+import type { Entry } from '../../types';
 
 /**
  * Welches Zeichen und welches Wort an welcher Kante stehen.
@@ -125,10 +130,29 @@ export function Charakterseite() {
   const settings = useStudio((s) => s.settings);
   const toggleFavorite = useStudio((s) => s.toggleFavorite);
   const setzeAnker = useRaum((s) => s.setzeAnker);
+  const gehZu = useRaum((s) => s.gehZu);
+
+  /*
+   * Welches Registerblatt aufgeschlagen ist.
+   *
+   * Im Blick und nicht in der Welt – wie Ort und Tiefe. Wer ein Register
+   * aufschlaegt, hat an der Figur nichts geaendert.
+   */
+  const [blatt, setzeBlatt] = useState(ERSTES_BLATT);
 
   const lebende = useMemo(() => livingEntries(entries), [entries]);
   const nach = useMemo(() => new Map(lebende.map((e) => [e.id, e])), [lebende]);
   const entry = id ? nach.get(id) : undefined;
+
+  /* Wen dieses Buch sonst kennt – nur für den Fall, dass die Kennung ins Leere zeigt. */
+  const figuren = useMemo(
+    () =>
+      lebende
+        .filter((e) => e.type === 'character')
+        .sort((a, b) => a.title.localeCompare(b.title, 'de'))
+        .slice(0, 24),
+    [lebende],
+  );
 
   const lage: Figurlage | undefined = useMemo(() => {
     if (!entry) return undefined;
@@ -168,19 +192,38 @@ export function Charakterseite() {
     if (entry) setzeAnker(entry.id);
   }, [entry?.id, setzeAnker]);
 
-  if (!entry) {
-    return (
-      <div className="grid min-h-full place-items-center bg-desk-900 px-8 text-center">
-        <p className="font-serif text-[15px] text-paper-300/70">
-          Diese Figur steht nicht in diesem Buch.
-        </p>
-      </div>
-    );
-  }
+  /*
+   * Eine andere Figur wird bei der Übersicht aufgeschlagen.
+   *
+   * Sonst landete man bei Miraelys mitten in „Fähigkeiten", nur weil man das
+   * bei Vaelorian zuletzt gelesen hatte. Ein Buch schlägt man nicht dort auf,
+   * wo das vorige Buch lag.
+   */
+  useEffect(() => setzeBlatt(ERSTES_BLATT), [entry?.id]);
+
+  if (!entry) return <KeineFigur figuren={figuren} />;
 
   const k = konfig();
   const f = k.figur;
   const offen = richtungen(karte);
+  const fuellung = blattfuellung(entry);
+
+  /*
+   * Ein Reiter, der hinausführt, öffnet den Tiefenraum – nicht eine zweite
+   * Ansicht davon. Dieselbe Wahrheit, zwei Türen: die Geste für den, der die
+   * Bedienung kennt, der Reiter für den, der die App zum ersten Mal öffnet.
+   *
+   * Führt die Richtung bei dieser Figur nirgendwohin, bleibt der Reiter beim
+   * Blatt und sagt das dort. Ins Leere schicken tut er niemanden.
+   */
+  const schlageAuf = (bid: string) => {
+    const b = REGISTERBLAETTER.find((x) => x.id === bid);
+    if (b?.hinaus && karte[b.hinaus]) {
+      gehZu(b.hinaus, 1);
+      return;
+    }
+    setzeBlatt(bid);
+  };
   const rolle = [entry.fields?.role, entry.category].filter(
     (x): x is string => typeof x === 'string' && !!x.trim(),
   );
@@ -189,7 +232,15 @@ export function Charakterseite() {
 
   return (
     <div
-      className="dc-figur relative flex min-h-full flex-col overflow-hidden bg-desk-900"
+      /*
+       * Waagerecht: Registerkante links, die Seite rechts daneben.
+       *
+       * Die Kante steht **außerhalb** der Seite und nicht darüber. Eine
+       * Leiste, die über dem Inhalt schwebt, verdeckt beim Lesen die erste
+       * Textspalte; eine Kante nimmt sich ihren Platz und gibt der Seite den
+       * Rest. So sitzt auch das Register in einem Buch.
+       */
+      className="dc-figur relative flex min-h-full overflow-hidden bg-desk-900"
       data-figur={entry.id}
       style={
         {
@@ -216,8 +267,39 @@ export function Charakterseite() {
       />
       <div className="dc-korn pointer-events-none absolute inset-0" aria-hidden />
 
+      <Registerkante
+        offen={blatt}
+        waehle={schlageAuf}
+        fuellung={fuellung}
+        breite={f.registerbreite}
+      />
+
+      {/*
+        Die Seite neben der Kante.
+
+        `min-w-0` ist hier keine Formalie: Ohne den Wert weigert sich ein
+        Flex-Kind zu schrumpfen, und die Seite schöbe die Registerkante aus
+        dem Bild – ausgerechnet auf dem schmalsten Gerät.
+      */}
+      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+
       {/* ---------------------------------------------------------- Kopf --- */}
-      <header className="relative z-10 flex items-center justify-between px-4 pt-2">
+      {/*
+        `z-30` und nicht `z-10` – sonst liegt das aufgeklappte Menü *hinter*
+        dem Namen.
+
+        Die Kopfzeile, der Namensblock und das Bildnis standen alle drei auf
+        `z-10`. Bei gleichem Wert entscheidet die Reihenfolge im Dokument, und
+        der Name kommt später – er malt also über die Kopfzeile. Dass der
+        Menüzettel selbst `z-30` trägt, half nichts: Diese Zahl gilt nur
+        *innerhalb* der Kopfzeile, und die Kopfzeile als Ganzes lag unten.
+
+        Gemessen war es eindeutig und wäre durch Hinsehen kaum zu finden
+        gewesen: Das Menü war offen, der Finger traf die richtigen
+        Koordinaten – und das Ereignis kam bei „VaelorianDrachenblut" an, dem
+        Namensblock darüber. Ein Menü, das man sieht und nicht treffen kann.
+      */}
+      <header className="relative z-30 flex items-center justify-between px-4 pt-2">
         <button
           type="button"
           onClick={() => navigate(-1)}
@@ -248,14 +330,47 @@ export function Charakterseite() {
               fill={entry.favorite ? 'currentColor' : 'none'}
             />
           </button>
-          <button
-            type="button"
-            onClick={() => navigate(`/eintrag/${entry.id}`)}
-            className="dc-chrome rounded-lg p-1.5 text-paper-300/60"
-            aria-label="Zur Buchseite"
-          >
-            <MoreHorizontal size={17} strokeWidth={1.5} />
-          </button>
+          {/*
+            Der Weg zurück ins Buch.
+
+            ---
+
+            **Hier stand ein Zeichen, das aussah wie „Mehr" und etwas anderes
+            tat.** Es sprang wortlos auf die Buchseite. Damit war die Frage
+            „wie komme ich von hier ins Buch?" nur zu beantworten, indem man
+            es ausprobierte – und das ist keine Antwort, das ist Raten.
+
+            Der Grund für die Frage ist meiner: Die Charakterseite blendet die
+            Buchleiste aus, weil zwei Kopfzeilen übereinander aus einem
+            Gesicht eine Programmansicht machen. Richtig – aber mit der Leiste
+            gingen auch Lesebändchen und Register verloren, und ersetzt hatte
+            ich sie nicht.
+
+            Jetzt liegt dort, was das Zeichen verspricht: aufgefächerte
+            seltene Handgriffe. Der Zettel ist bewusst aus Papier, auch auf
+            dieser dunklen Seite – er kommt aus dem Buch, und das darf man
+            sehen.
+          */}
+          <Mehr
+            klasse="text-paper-300/55 hover:text-gild-400"
+            eintraege={[
+              {
+                label: 'Zur Buchseite',
+                icon: <BookOpen size={14} />,
+                onClick: () => navigate(`/eintrag/${entry.id}`),
+              },
+              {
+                label: 'Inhaltsverzeichnis',
+                icon: <BookmarkIcon size={14} />,
+                onClick: () => navigate('/inhalt'),
+              },
+              {
+                label: 'Register',
+                icon: <ListTree size={14} />,
+                onClick: () => navigate('/register'),
+              },
+            ]}
+          />
         </div>
       </header>
 
@@ -285,6 +400,32 @@ export function Charakterseite() {
         </div>
       </div>
 
+      {/* ------------------------------------------------------- Das Blatt --- */}
+      {blatt !== 'uebersicht' ? (
+        /*
+         * Ein aufgeschlagenes Registerblatt.
+         *
+         * Das kleine Brustbild bleibt oben stehen, damit man beim Lesen nicht
+         * vergisst, über wen man liest – dasselbe, was das Referenzbild mit
+         * dem gerahmten Portrait oben rechts tut. Das große Bildnis gehört
+         * der Übersicht und käme hier nur in die Quere.
+         */
+        <div className="dc-tiefenraum relative z-10 min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-4">
+          <div className="mb-5 flex items-start gap-4">
+            <Kopfbildnis entry={entry} />
+            <div className="min-w-0 flex-1 pt-1">
+              <p className="font-serif text-[10px] uppercase tracking-[0.26em] text-gild-500/60">
+                {REGISTERBLAETTER.find((b) => b.id === blatt)?.name}
+              </p>
+              <div className="mt-2 text-gild-500/35">
+                <Goldteiler breite={92} />
+              </div>
+            </div>
+          </div>
+          <Blattinhalt blatt={blatt} entry={entry} />
+        </div>
+      ) : (
+      <>
       {/* -------------------------------------------------------- Bildnis --- */}
       {/*
         Die Höhe des Bildnisses.
@@ -363,6 +504,9 @@ export function Charakterseite() {
         </div>
       )}
 
+      </>
+      )}
+
       {/*
         Unten steht die Anleitung – und nur, solange sie gebraucht wird.
 
@@ -382,6 +526,85 @@ export function Charakterseite() {
           </p>
         )}
       </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Wenn die Kennung ins Leere zeigt.
+ *
+ * ---
+ *
+ * **Hier stand ein Satz und sonst nichts:** „Diese Figur steht nicht in
+ * diesem Buch." Richtig, unbrauchbar und – das ist der Punkt – der einzige
+ * Bildschirm im ganzen Programm, den man erreichen kann, ohne etwas falsch
+ * gemacht zu haben. Es genügt eine Adresse mit einer alten Kennung, ein
+ * Lesezeichen auf eine gelöschte Figur, ein weitergegebener Link. Ich habe
+ * diesen Zustand selbst ausgelöst, indem ich eine Adresse mit einem
+ * Platzhalter aufgeschrieben habe.
+ *
+ * Ein Raum, der nur sagt „hier ist nichts", ist eine Sackgasse mit Aussicht –
+ * derselbe Satz steht in `Tiefenraum.tsx`, und er galt hier genauso. Also
+ * steht jetzt da, wen dieses Buch stattdessen kennt. Das ist keine
+ * Fehlermeldung mehr, sondern eine Tür.
+ *
+ * Und wenn das Buch wirklich noch niemanden kennt, wird auch das gesagt –
+ * ohne die Behauptung, es sei etwas schiefgegangen.
+ */
+function KeineFigur({ figuren }: { figuren: Entry[] }) {
+  const navigate = useNavigate();
+  return (
+    <div className="flex min-h-full flex-col bg-desk-900 px-7 pb-10 pt-16">
+      <div className="text-center">
+        <p className="font-serif text-[15px] text-paper-300/70">
+          Diese Kennung führt zu keiner Figur.
+        </p>
+        <div className="mt-3 flex justify-center text-gild-500/40">
+          <Goldteiler breite={120} />
+        </div>
+      </div>
+
+      {figuren.length > 0 ? (
+        <div className="mt-8">
+          <h2 className="font-serif text-[10px] uppercase tracking-[0.26em] text-gild-500/55">
+            Wen dieses Buch kennt
+          </h2>
+          <div className="mt-2">
+            {figuren.map((f, i) => (
+              <div key={f.id}>
+                {i > 0 && <div className="h-px bg-gild-600/15" aria-hidden />}
+                <button
+                  type="button"
+                  onClick={() => navigate(`/figur/${f.id}`, { replace: true })}
+                  className="flex w-full items-center gap-3 py-2.5 text-left no-tap-highlight active:opacity-70"
+                >
+                  <Bildnis
+                    entry={f}
+                    schacht="beziehungsbildnis"
+                    ecken
+                    className="h-[46px] w-[40px] shrink-0 rounded-[2px]"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-serif text-[15px] text-paper-100">
+                      {f.title}
+                    </span>
+                    {(f.fields?.role || f.subtitle) && (
+                      <span className="mt-0.5 block truncate font-serif text-[11px] text-brass-400/70">
+                        {typeof f.fields?.role === 'string' && f.fields.role ? f.fields.role : f.subtitle}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <p className="mt-8 text-center font-serif text-[12.5px] italic text-paper-300/40">
+          In diesem Buch lebt noch niemand.
+        </p>
+      )}
     </div>
   );
 }

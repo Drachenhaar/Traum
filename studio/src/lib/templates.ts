@@ -120,6 +120,46 @@ const BUILTIN: TemplateDef[] = [
     fields: [
       { key: 'role', label: 'Rolle', kind: 'text', compact: true },
       { key: 'age', label: 'Alter / Altersgruppe', kind: 'text', compact: true },
+      /*
+       * Die Kopfangaben der Charakterseite.
+       *
+       * Sie stehen im Referenzbild als fünf Zeilen unter dem Namen – Alter,
+       * Herkunft, Volk, Rolle, Zugehörigkeit – und drei davon konnte dieses
+       * Buch bisher nicht sagen.
+       *
+       * `zugehoerigkeit` ist der interessante Fall: Wer einem Orden angehört,
+       * hat dafür eigentlich eine Kante (`member_of`), und die ist die bessere
+       * Wahrheit – sie verbindet zwei Seiten miteinander, statt einen Namen
+       * zweimal zu schreiben. Das Feld ist trotzdem da, weil nicht jede
+       * Zugehörigkeit eine eigene Seite verdient („keine feste", „eine alte
+       * Schuld"). Die Charakterseite fragt deshalb erst die Kante und erst
+       * dann das Feld – siehe `kopfangaben` in `Figurblaetter.tsx`.
+       */
+      { key: 'herkunft', label: 'Herkunft', kind: 'text', compact: true },
+      { key: 'volk', label: 'Volk', kind: 'text', compact: true },
+      { key: 'zugehoerigkeit', label: 'Zugehörigkeit', kind: 'text', compact: true },
+      /*
+       * Wesen und Fähigkeiten als Aufzählungen, nicht als Fließtext.
+       *
+       * `personality` gibt es schon und bleibt: Das ist der Absatz, in dem
+       * jemand *beschreibt*, wie diese Figur ist. Diese beiden sind das
+       * andere – die kurzen Merkposten, die im Bild als Listen stehen.
+       * Ausdrücklich **keine Werte und keine Balken**: „intuitiv" ist keine
+       * Zahl, und wer sie zu einer machte, hätte aus einer Figur ein
+       * Charakterblatt gemacht.
+       */
+      { key: 'wesen', label: 'Wesen', kind: 'tags', hint: 'Kurze Merkposten – intuitiv, loyal, eigensinnig …' },
+      { key: 'faehigkeiten', label: 'Besondere Fähigkeiten', kind: 'tags', hint: 'Was sie kann, das andere nicht können.' },
+      /*
+       * Der charakteristische Buchauftritt.
+       *
+       * Das Neue am Referenzbild, und die einzige Angabe darin, die nicht
+       * beschreibt, *wer* jemand ist, sondern **wie man ihn zum ersten Mal
+       * erlebt**. Für ein Weltbuch ist das eine Nebensächlichkeit; für ein
+       * Buch, aus dem ein Roman werden soll, ist es die halbe Figur.
+       */
+      { key: 'buchauftritt', label: 'Charakteristischer Buchauftritt', kind: 'textarea', hint: 'Wie tritt diese Figur zum ersten Mal in Erscheinung?' },
+      { key: 'zitat', label: 'Zitat', kind: 'textarea', hint: 'Ein Satz, den nur sie sagen würde.' },
       { key: 'personality', label: 'Persönlichkeit', kind: 'textarea' },
       /* Ein Bewohner ist kein NPC. Diese Felder machen den Unterschied. */
       { key: 'goals', label: 'Ziele', kind: 'textarea', hint: 'Was will diese Figur – heute, und was ihr ganzes Leben lang?' },

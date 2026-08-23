@@ -311,6 +311,15 @@ export interface Raumkonfig {
     grundtiefe: number;
     /** Wie stark das Korn über dem Grund liegt. */
     kornstaerke: number;
+    /**
+     * Wie breit die Registerkante ist, in Punkten.
+     *
+     * Der eine Wert, an dem auf dieser Seite wirklich etwas hängt: Die Kante
+     * nimmt der Seite Breite weg, und auf 390 Punkten ist jede Zeile Text
+     * knapp. Zweiundfünfzig traegt ein Zeichen und zwei Zeilen Beschriftung
+     * („Vergangen-heit") und laesst der Seite noch 338.
+     */
+    registerbreite: number;
   };
 
   haptik: {
@@ -441,6 +450,7 @@ export const VORGABE: Raumkonfig = {
     linienstaerke: 0.7,
     grundtiefe: 0.5,
     kornstaerke: 0.5,
+    registerbreite: 52,
   },
 
   haptik: {
