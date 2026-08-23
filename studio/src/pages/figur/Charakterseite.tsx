@@ -411,15 +411,23 @@ export function Charakterseite() {
          * der Übersicht und käme hier nur in die Quere.
          */
         <div className="dc-tiefenraum relative z-10 min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-4">
+          {/*
+            Kein Name des Blattes im Kopf.
+
+            Hier stand er, und dann stand „VERGANGENHEIT" zweimal untereinander
+            – einmal als Kopf, einmal als Rubrik über demselben Absatz, beide
+            in goldenen Kapitälchen fast derselben Größe. Ein Buch wiederholt
+            den Namen des Registerreiters nicht auf der Seite; der Reiter
+            steht ja daneben und ist aufgeschlagen.
+
+            Was bleibt, ist das Brustbild – damit man beim Lesen nicht
+            vergisst, über wen man liest. Genau das tut im Referenzbild das
+            gerahmte Portrait oben rechts.
+          */}
           <div className="mb-5 flex items-start gap-4">
             <Kopfbildnis entry={entry} />
-            <div className="min-w-0 flex-1 pt-1">
-              <p className="font-serif text-[10px] uppercase tracking-[0.26em] text-gild-500/60">
-                {REGISTERBLAETTER.find((b) => b.id === blatt)?.name}
-              </p>
-              <div className="mt-2 text-gild-500/35">
-                <Goldteiler breite={92} />
-              </div>
+            <div className="min-w-0 flex-1 pt-6 text-gild-500/30">
+              <Goldteiler breite={92} />
             </div>
           </div>
           <Blattinhalt blatt={blatt} entry={entry} />
