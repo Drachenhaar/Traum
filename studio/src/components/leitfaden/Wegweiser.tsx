@@ -144,7 +144,7 @@ export function Wegweiser({
           <button
             type="button"
             onClick={onVerstanden}
-            className="inline-flex min-h-[36px] items-center rounded-full border border-gild-500/40 px-4 font-serif text-[13.5px] text-gild-600 transition-colors hover:bg-gild-400/10 no-tap-highlight"
+            className="inline-flex min-h-[36px] items-center rounded-full border border-gild-500/40 px-4 font-serif text-[13.5px] text-gold transition-colors hover:bg-gild-400/10 no-tap-highlight"
           >
             Verstanden
           </button>

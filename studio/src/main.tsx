@@ -182,7 +182,7 @@ class Boundary extends Component<{ children: ReactNode }, { error: Error | null 
               window.location.hash = '#/';
               this.setState({ error: null });
             }}
-            className="mt-7 inline-flex min-h-[42px] items-center rounded-full border border-gild-500/40 px-5 font-serif text-[15px] text-gild-600 no-tap-highlight"
+            className="mt-7 inline-flex min-h-[42px] items-center rounded-full border border-gild-500/40 px-5 font-serif text-[15px] text-gold no-tap-highlight"
           >
             Zurück zum Anfang
           </button>

@@ -131,7 +131,7 @@ export function ImagePicker({
               >
                 <Thumb imageId={m.id} alt={m.title} className="h-full w-full" rounded="rounded-none" />
                 {active && (
-                  <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-brass-500 text-cream-50">
+                  <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-brass-500 text-paper-50">
                     <Check size={14} />
                   </span>
                 )}

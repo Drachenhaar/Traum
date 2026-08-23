@@ -246,14 +246,14 @@ export function AppendixSpread() {
             <button
               type="button"
               onClick={() => setOffen(true)}
-              className="group mb-1 flex min-h-[44px] w-full items-start gap-2.5 border-b border-paper-300/50 py-3 text-left no-tap-highlight"
+              className="group mb-1 flex min-h-[44px] w-full items-start gap-2.5 border-b border-line/70 py-3 text-left no-tap-highlight"
             >
               <ChevronDown
                 size={15}
-                className="mt-1 shrink-0 text-ink-faint/45 transition-colors group-hover:text-gild-600"
+                className="mt-1 shrink-0 text-ink-faint/45 transition-colors group-hover:text-gold"
               />
               <span>
-                <span className="block font-serif text-[17px] leading-snug text-ink transition-colors group-hover:text-gild-600">
+                <span className="block font-serif text-[17px] leading-snug text-ink transition-colors group-hover:text-gold">
                   {weiter.length} {weiter.length === 1 ? 'weiteres Werkzeug' : 'weitere Werkzeuge'}
                 </span>
                 <span className="mt-0.5 block font-serif text-[13.5px] italic leading-snug text-ink-muted">
@@ -295,19 +295,19 @@ export function AppendixSpread() {
             notiert, findet sie beim naechsten Blick in den Anhang.
           */}
           {verborgen && (
-            <section className="mt-12 border-t border-paper-300/70 pt-6">
+            <section className="mt-12 border-t border-line pt-6">
               <button
                 type="button"
                 onClick={() => updateSettings({ tischmodus: !settings.tischmodus })}
                 className="group flex min-h-[44px] w-full items-start gap-2.5 text-left no-tap-highlight"
               >
                 {settings.tischmodus ? (
-                  <EyeOff size={15} className="mt-1 shrink-0 text-gild-600" />
+                  <EyeOff size={15} className="mt-1 shrink-0 text-gold" />
                 ) : (
-                  <Eye size={15} className="mt-1 shrink-0 text-ink-faint/45 transition-colors group-hover:text-gild-600" />
+                  <Eye size={15} className="mt-1 shrink-0 text-ink-faint/45 transition-colors group-hover:text-gold" />
                 )}
                 <span>
-                  <span className="block font-serif text-[17px] leading-snug text-ink transition-colors group-hover:text-gild-600">
+                  <span className="block font-serif text-[17px] leading-snug text-ink transition-colors group-hover:text-gold">
                     {settings.tischmodus ? 'Den Tischmodus beenden' : 'Für den Tisch zuklappen'}
                   </span>
                   <span className="mt-0.5 block font-serif text-[13.5px] italic leading-snug text-ink-muted">
@@ -320,7 +320,7 @@ export function AppendixSpread() {
             </section>
           )}
 
-          <section className="mt-12 border-t border-paper-300/70 pt-6">
+          <section className="mt-12 border-t border-line pt-6">
             <button
               type="button"
               onClick={() => {
@@ -332,10 +332,10 @@ export function AppendixSpread() {
             >
               <Library
                 size={15}
-                className="shrink-0 text-ink-faint/45 transition-colors group-hover:text-gild-600"
+                className="shrink-0 text-ink-faint/45 transition-colors group-hover:text-gold"
               />
               <span>
-                <span className="block font-serif text-[17px] leading-snug text-ink transition-colors group-hover:text-gild-600">
+                <span className="block font-serif text-[17px] leading-snug text-ink transition-colors group-hover:text-gold">
                   Dieses Buch zuklappen
                 </span>
                 <span className="mt-0.5 block font-serif text-[13.5px] italic leading-snug text-ink-muted">
@@ -347,7 +347,7 @@ export function AppendixSpread() {
             </button>
           </section>
 
-          <section className="mt-12 border-t border-paper-300/70 pt-6">
+          <section className="mt-12 border-t border-line pt-6">
             <p className="rubric mb-2">Über diesen Band</p>
             <p className="font-serif text-[14.5px] leading-relaxed text-ink-muted">
               {settings.worldName || 'Dragoncore'} umfasst derzeit {book.totalPages} Seiten in{' '}
@@ -364,9 +364,9 @@ export function AppendixSpread() {
 
 function AppendixLine({ to, title, note }: AppendixEntry) {
   return (
-    <li className="group border-b border-paper-300/50 last:border-b-0">
+    <li className="group border-b border-line/70 last:border-b-0">
       <Link to={to} className="block py-3 no-tap-highlight" data-leitfaden={`anhang:${to}`}>
-        <p className="font-serif text-[17px] leading-snug text-ink transition-colors group-hover:text-gild-600">
+        <p className="font-serif text-[17px] leading-snug text-ink transition-colors group-hover:text-gold">
           {title}
         </p>
         <p className="mt-0.5 font-serif text-[13.5px] italic leading-snug text-ink-muted">{note}</p>
@@ -405,7 +405,7 @@ export function AppendixSheet({
               Buches – als vierzehn Pixel hohe Kursivzeile war er der
               schwierigste. Die Schrift bleibt, die Flaeche waechst.
             */
-            className="mb-4 -ml-1 inline-flex min-h-[40px] items-center gap-1.5 px-1 font-serif text-[13px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+            className="mb-4 -ml-1 inline-flex min-h-[40px] items-center gap-1.5 px-1 font-serif text-[13px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
           >
             <ArrowLeft size={14} /> Zurück zu den Anhängen
           </button>

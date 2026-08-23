@@ -90,7 +90,7 @@ export function SpiegelSheet() {
           <button
             type="button"
             onClick={() => updateSettings({ spiegelAus: false })}
-            className="mt-6 inline-flex min-h-[44px] items-center gap-2 font-serif text-[15px] text-gild-600 no-tap-highlight"
+            className="mt-6 inline-flex min-h-[44px] items-center gap-2 font-serif text-[15px] text-gold no-tap-highlight"
           >
             <Eye size={15} /> Wieder einschalten
           </button>
@@ -174,7 +174,7 @@ export function SpiegelSheet() {
 
             {/* --------------------------------------- Frühere Spiegelungen */}
             {(settings.spiegelVerlauf?.length ?? 0) > 1 && (
-              <section className="mt-12 border-t border-paper-300/50 pt-6">
+              <section className="mt-12 border-t border-line/70 pt-6">
                 <p className="rubric mb-3">Frühere Spiegelungen</p>
                 <ul className="space-y-1.5">
                   {[...(settings.spiegelVerlauf ?? [])]
@@ -201,7 +201,7 @@ export function SpiegelSheet() {
             )}
 
             {/* ------------------------------------------------ Abschalten */}
-            <div className="mt-12 border-t border-paper-300/50 pt-5">
+            <div className="mt-12 border-t border-line/70 pt-5">
               <button
                 type="button"
                 onClick={() => updateSettings({ spiegelAus: true })}
@@ -244,7 +244,7 @@ function Spiegelung({ b, tief }: { b: Beobachtung; tief: boolean }) {
     <li>
       {tief && (
         /* Die tiefe Spiegelung. Kein Abzeichen, keine Feier – eine Zeile. */
-        <p className="mb-1 font-serif text-[11px] tracking-[0.2em] text-gild-600/80">
+        <p className="mb-1 font-serif text-[11px] tracking-[0.2em] text-gold/80">
           TIEFE SPIEGELUNG
         </p>
       )}
@@ -256,7 +256,7 @@ function Spiegelung({ b, tief }: { b: Beobachtung; tief: boolean }) {
         type="button"
         onClick={() => setOffen((o) => !o)}
         aria-expanded={offen}
-        className="mt-2 inline-flex min-h-[38px] items-center gap-1 font-serif text-[13px] italic text-gild-600 transition-colors hover:text-gild-500 no-tap-highlight"
+        className="mt-2 inline-flex min-h-[38px] items-center gap-1 font-serif text-[13px] italic text-gold transition-colors hover:text-gold-hell no-tap-highlight"
       >
         Zeige Grundlage
         <ChevronDown
@@ -266,7 +266,7 @@ function Spiegelung({ b, tief }: { b: Beobachtung; tief: boolean }) {
       </button>
 
       {offen && (
-        <div className="mt-2 border-l border-paper-400/50 pl-4">
+        <div className="mt-2 border-l border-lineStrong pl-4">
           <p className="font-serif text-[13px] italic leading-relaxed text-ink-faint">
             {b.herkunft}
           </p>
@@ -275,7 +275,7 @@ function Spiegelung({ b, tief }: { b: Beobachtung; tief: boolean }) {
               <li key={e.id}>
                 <Link
                   to={`/eintrag/${e.id}`}
-                  className="font-serif text-[13.5px] text-ink-muted transition-colors hover:text-gild-600 no-tap-highlight"
+                  className="font-serif text-[13.5px] text-ink-muted transition-colors hover:text-gold no-tap-highlight"
                 >
                   {e.title}
                   <span className="ml-1 text-[11px] text-ink-faint/70">
@@ -292,7 +292,7 @@ function Spiegelung({ b, tief }: { b: Beobachtung; tief: boolean }) {
           </ul>
           <Link
             to="/karte"
-            className="mt-3 inline-flex min-h-[38px] items-center font-serif text-[13px] italic text-gild-600 no-tap-highlight"
+            className="mt-3 inline-flex min-h-[38px] items-center font-serif text-[13px] italic text-gold no-tap-highlight"
           >
             Verbindungen ansehen
           </Link>

@@ -30,7 +30,7 @@ export function ChapterSpread() {
         left={
           <div className="pt-20 text-center">
             <h1 className="font-serif text-[30px] text-ink">Dieses Kapitel gibt es nicht</h1>
-            <Link to="/inhalt" className="mt-5 inline-block font-serif text-[15px] text-gild-600 underline">
+            <Link to="/inhalt" className="mt-5 inline-block font-serif text-[15px] text-gold underline">
               Zum Inhaltsverzeichnis
             </Link>
           </div>
@@ -78,7 +78,7 @@ export function ChapterSpread() {
 
             <Link
               to={`/setzerei?typ=${chapter.types[0]}`}
-              className="mt-9 inline-flex min-h-[42px] items-center rounded-full border border-gild-500/40 px-5 font-serif text-[15px] text-gild-600 transition-colors hover:bg-gild-400/10 no-tap-highlight"
+              className="mt-9 inline-flex min-h-[42px] items-center rounded-full border border-gild-500/40 px-5 font-serif text-[15px] text-gold transition-colors hover:bg-gild-400/10 no-tap-highlight"
             >
               Die erste Seite schreiben
             </Link>
@@ -144,7 +144,7 @@ export function ChapterSpread() {
 
           <Link
             to={`/setzerei?typ=${chapter.types[0]}`}
-            className="mt-5 inline-flex items-center gap-1.5 font-serif text-[13.5px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+            className="mt-5 inline-flex items-center gap-1.5 font-serif text-[13.5px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
           >
             Eine Seite zu diesem Kapitel
           </Link>
@@ -175,12 +175,12 @@ export function ChapterSpread() {
                       className="h-[5px] w-[5px] shrink-0 translate-y-[-3px] rounded-full"
                       style={{ background: tpl.accent }}
                     />
-                    <span className="font-serif text-[15.5px] leading-snug text-ink transition-colors group-hover:text-gild-600">
+                    <span className="font-serif text-[15.5px] leading-snug text-ink transition-colors group-hover:text-gold">
                       {item.title}
                     </span>
                     <span
                       aria-hidden
-                      className="mx-1 min-w-[1rem] flex-1 translate-y-[-4px] border-b border-dotted border-paper-400/60"
+                      className="mx-1 min-w-[1rem] flex-1 translate-y-[-4px] border-b border-dotted border-lineStrong"
                     />
                     <span className="shrink-0 font-serif text-[13px] tabular-nums text-ink-faint">
                       {page}

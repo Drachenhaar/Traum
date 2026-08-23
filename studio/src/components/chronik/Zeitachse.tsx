@@ -409,7 +409,7 @@ export function Zeitachse({
               )}
               {beschriftet && (
                 <span
-                  className="absolute top-0 whitespace-nowrap font-serif text-[12px] leading-none text-ink-muted transition-colors group-hover:text-gild-600"
+                  className="absolute top-0 whitespace-nowrap font-serif text-[12px] leading-none text-ink-muted transition-colors group-hover:text-gold"
                   style={{
                     left: beschriftungX,
                     /* Ein Hauch Papier hinter der Schrift, damit sie über den

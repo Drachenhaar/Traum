@@ -62,7 +62,7 @@ export function RegisterSheet() {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Im Register suchen …"
-        className="mb-7 w-full border-0 border-b border-paper-400/60 bg-transparent px-0 py-2 font-serif text-[16px] text-ink outline-none placeholder:italic placeholder:text-ink-faint/70 focus:border-gild-500/60"
+        className="mb-7 w-full border-0 border-b border-lineStrong bg-transparent px-0 py-2 font-serif text-[16px] text-ink outline-none placeholder:italic placeholder:text-ink-faint/70 focus:border-gild-500/60"
       />
 
       {sorted.length === 0 ? (
@@ -92,12 +92,12 @@ export function RegisterSheet() {
                         className="h-[5px] w-[5px] shrink-0 translate-y-[-3px] rounded-full"
                         style={{ background: tpl.accent }}
                       />
-                      <span className="truncate font-serif text-[15px] text-ink transition-colors group-hover:text-gild-600">
+                      <span className="truncate font-serif text-[15px] text-ink transition-colors group-hover:text-gold">
                         {entry.title}
                       </span>
                       <span
                         aria-hidden
-                        className="mx-1 min-w-[0.75rem] flex-1 translate-y-[-4px] border-b border-dotted border-paper-400/60"
+                        className="mx-1 min-w-[0.75rem] flex-1 translate-y-[-4px] border-b border-dotted border-lineStrong"
                       />
                       <span className="shrink-0 font-serif text-[13px] tabular-nums text-ink-faint">
                         {page ?? '–'}
@@ -190,7 +190,7 @@ export function PlatesSpread() {
             {sorted.length > 10 && (
               <Link
                 to="/tafelteil"
-                className="mt-7 inline-block font-serif text-[14px] italic text-gild-600 underline decoration-gild-500/40"
+                className="mt-7 inline-block font-serif text-[14px] italic text-gold underline decoration-gild-500/40"
               >
                 Alle {sorted.length} Tafeln ansehen
               </Link>

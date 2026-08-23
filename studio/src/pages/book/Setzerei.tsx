@@ -181,7 +181,7 @@ export function Setzerei() {
             rows={8}
             /* 16px auf dem Telefon – sonst zoomt Safari beim Hineintippen,
                und das ausgerechnet in dem Feld, in das man am meisten tippt. */
-            className="w-full resize-y rounded-[2px] border border-paper-400/70 bg-paper-50/70 px-4 py-3 font-mono text-[16px] leading-relaxed text-ink outline-none transition-colors placeholder:text-ink-faint/60 focus:border-gild-500/60 sm:text-[13.5px] lg:min-h-[24rem]"
+            className="w-full resize-y rounded-[2px] border border-lineStrong bg-cream-100 px-4 py-3 font-mono text-[16px] leading-relaxed text-ink outline-none transition-colors placeholder:text-ink-faint/60 focus:border-gild-500/60 sm:text-[13.5px] lg:min-h-[24rem]"
           />
 
           {/*
@@ -191,13 +191,13 @@ export function Setzerei() {
            * Randspalte: Auf einem Telefon gibt es keine Randspalte, und
            * gebraucht wird sie genau dort, wo geschrieben wird.
            */}
-          <section className="mt-5 border-t border-paper-300/70 pt-4">
+          <section className="mt-5 border-t border-line pt-4">
             <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
               <p className="rubric">Was „{tpl.label}“ kennt</p>
               <button
                 type="button"
                 onClick={insertTemplate}
-                className="inline-flex min-h-[34px] items-center gap-1.5 font-serif text-[13.5px] italic text-gild-600 transition-colors hover:text-gild-500 no-tap-highlight"
+                className="inline-flex min-h-[34px] items-center gap-1.5 font-serif text-[13.5px] italic text-gold transition-colors hover:text-gold-hell no-tap-highlight"
               >
                 <Wand2 size={14} /> Gerüst einsetzen
               </button>
@@ -213,7 +213,7 @@ export function Setzerei() {
                       aria-hidden
                       className={cx(
                         'mt-[7px] h-[5px] w-[5px] shrink-0 rounded-full transition-colors',
-                        da ? 'bg-gild-500' : 'bg-paper-400/70',
+                        da ? 'bg-gild-500' : 'bg-ink-faint/45',
                       )}
                     />
                     <span
@@ -264,7 +264,7 @@ export function Setzerei() {
                 type="button"
                 onClick={() => setTypenOffen((o) => !o)}
                 aria-expanded={typenOffen}
-                className="inline-flex min-h-[38px] items-center gap-1 font-serif text-[13.5px] italic text-gild-600 transition-colors hover:text-gild-500 no-tap-highlight"
+                className="inline-flex min-h-[38px] items-center gap-1 font-serif text-[13.5px] italic text-gold transition-colors hover:text-gold-hell no-tap-highlight"
               >
                 {typenOffen ? 'Weniger' : 'Andere Art wählen'}
                 <ChevronDown
@@ -275,7 +275,7 @@ export function Setzerei() {
             </div>
 
             {typenOffen && (
-              <div className="mt-4 space-y-3.5 border-t border-paper-300/60 pt-4">
+              <div className="mt-4 space-y-3.5 border-t border-line pt-4">
                 {families.map((family) => (
                   <section key={family.family}>
                     <p className="mb-1.5 font-serif text-[12px] italic text-ink-faint">
@@ -300,11 +300,11 @@ export function Setzerei() {
             )}
           </div>
 
-          <div className="mt-6 border-t border-paper-300/70 pt-4">
+          <div className="mt-6 border-t border-line pt-4">
             <button
               type="button"
               onClick={() => void copyPrompt()}
-              className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-gild-500/35 px-4 font-serif text-[14px] text-gild-600 transition-colors hover:bg-gild-400/10 no-tap-highlight"
+              className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-gild-500/35 px-4 font-serif text-[14px] text-gold transition-colors hover:bg-gild-400/10 no-tap-highlight"
             >
               <ClipboardCopy size={15} /> Vorlage für ChatGPT kopieren
             </button>
@@ -320,7 +320,7 @@ export function Setzerei() {
           <p className="rubric mb-2">Der Andruck</p>
 
           {leseFehler ? (
-            <div className="rounded-[2px] border border-dashed border-paper-400/70 px-6 py-10">
+            <div className="rounded-[2px] border border-dashed border-lineStrong px-6 py-10">
               <p className="font-serif text-[15px] italic leading-relaxed text-ink-muted">
                 Dieses Manuskript liess sich nicht lesen. Der Text links bleibt unangetastet.
               </p>
@@ -329,7 +329,7 @@ export function Setzerei() {
               </pre>
             </div>
           ) : !result ? (
-            <div className="rounded-[2px] border border-dashed border-paper-400/70 px-6 py-14 text-center">
+            <div className="rounded-[2px] border border-dashed border-lineStrong px-6 py-14 text-center">
               <FileInput size={22} className="mx-auto mb-3 text-ink-faint/50" strokeWidth={1.5} />
               <p className="font-serif text-[15px] italic text-ink-muted">
                 Sobald links Text steht, erscheint hier die Seite.
@@ -398,7 +398,7 @@ export function Setzerei() {
 
               {/* Gefundene Verbindungen */}
               {result.mentions.length > 0 && (
-                <section className="mt-6 border-t border-paper-300/70 pt-4">
+                <section className="mt-6 border-t border-line pt-4">
                   <p className="rubric mb-1">Im Text erwähnt</p>
                   <p className="mb-3 font-serif text-[13px] italic text-ink-muted">
                     Diese Seiten gibt es bereits. Angehakte werden mit der neuen Seite verbunden.
@@ -425,8 +425,8 @@ export function Setzerei() {
                               className={cx(
                                 'mt-[3px] grid h-[15px] w-[15px] shrink-0 place-items-center rounded-[2px] border transition-colors',
                                 on
-                                  ? 'border-gild-500/70 bg-gild-400/25 text-gild-600'
-                                  : 'border-paper-400/80',
+                                  ? 'border-gild-500/70 bg-gild-400/25 text-gold'
+                                  : 'border-lineStrong',
                               )}
                             >
                               {on && <Check size={11} strokeWidth={3} />}
@@ -449,7 +449,7 @@ export function Setzerei() {
                 type="button"
                 onClick={() => void commit()}
                 disabled={busy || !result.title.trim()}
-                className="mt-7 inline-flex min-h-[46px] w-full items-center justify-center gap-2 rounded-full border border-gild-500/50 bg-gild-400/10 px-6 font-serif text-[16px] text-gild-600 transition-colors hover:bg-gild-400/20 disabled:opacity-40 no-tap-highlight"
+                className="mt-7 inline-flex min-h-[46px] w-full items-center justify-center gap-2 rounded-full border border-gild-500/50 bg-gild-400/10 px-6 font-serif text-[16px] text-gold transition-colors hover:bg-gild-400/20 disabled:opacity-40 no-tap-highlight"
               >
                 <Wand2 size={17} />
                 {busy ? 'Wird gesetzt …' : 'Ins Buch übernehmen'}
@@ -484,7 +484,7 @@ function TypeChip({
         'inline-flex min-h-[32px] items-center rounded-full border px-3 font-serif text-[13.5px] transition-colors no-tap-highlight',
         active
           ? 'border-gild-500/60 bg-gild-400/15 text-ink'
-          : 'border-paper-400/70 text-ink-muted hover:border-gild-500/40 hover:text-ink',
+          : 'border-lineStrong text-ink-muted hover:border-gild-500/40 hover:text-ink',
       )}
     >
       {label}

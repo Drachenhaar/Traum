@@ -46,7 +46,8 @@ import {
 import { flaecheAus } from '../../lib/karte/kontur';
 import { baeume } from '../../lib/karte/wald';
 import { neuerSeed } from '../../lib/karte/zufall';
-import { EBENEN, stilVon } from '../../lib/karte/stil';
+import { EBENEN, stilImBand } from '../../lib/karte/stil';
+import { useBand } from '../../lib/raum/band';
 import { zeichneBaum } from './baumzeichnung';
 import { cx } from '../../lib/utils';
 
@@ -95,7 +96,9 @@ export interface WeltkarteProps {
 }
 
 export function Weltkarte({ karte, onChange, werkzeug, gewaehlt, onWaehle, namen }: WeltkarteProps) {
-  const stil = stilVon(karte.styleId);
+  /* Die Karte traegt den Band, in dem das Buch gerade gebunden ist. */
+  const dunkel = useBand();
+  const stil = stilImBand(karte.styleId, dunkel);
   const huelle = useRef<HTMLDivElement>(null);
   const leinwand = useRef<HTMLCanvasElement>(null);
   const [sicht, setSicht] = useState<Sicht>(GANZ);
@@ -475,7 +478,7 @@ export function Werkzeugleiste({
       className={cx(
         'touch-target rounded-full border px-4 text-sm',
         werkzeug === id
-          ? 'border-brass-500 bg-brass-500 text-cream-50'
+          ? 'border-brass-500 bg-brass-500 text-paper-50'
           : 'border-line bg-cream-50 text-ink-muted',
       )}
     >

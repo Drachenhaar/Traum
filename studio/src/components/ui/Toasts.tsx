@@ -6,10 +6,16 @@ import { cx } from '../../lib/utils';
 
 const ICONS = { success: Check, error: AlertTriangle, info: Info } as const;
 
+/*
+ * Rückmeldungen liegen **über** dem Buch, nicht darin: Sie sind in beiden
+ * Bänden dieselbe dunkle Karte. Deshalb stehen hier feste Farben und keine
+ * Marken – `text-paper-50` heisst „helle Schrift auf dunklem Grund“ und
+ * bleibt hell, wenn das Buch dunkel wird.
+ */
 const TONES = {
-  success: 'border-olive-500/30 bg-olive-800 text-cream-100',
+  success: 'border-olive-500/30 bg-olive-800 text-paper-50',
   error: 'border-red-900/30 bg-red-800 text-red-50',
-  info: 'border-line bg-ink text-cream-100',
+  info: 'border-paper-400/20 bg-desk-700 text-paper-50',
 } as const;
 
 export function Toasts() {

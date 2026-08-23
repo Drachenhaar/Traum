@@ -72,14 +72,14 @@ export function ContentsSpread() {
            * Einladung, nicht als Mangel.
            */}
           {book.emptyChapters.length > 0 && (
-            <section className="mt-9 border-t border-paper-300/60 pt-5">
+            <section className="mt-9 border-t border-line pt-5">
               <p className="rubric mb-2.5">Noch ungeschrieben</p>
               <ul className="flex flex-wrap gap-x-4 gap-y-1.5">
                 {book.emptyChapters.map((chapter) => (
                   <li key={chapter.id}>
                     <Link
                       to={`/kapitel/${chapter.id}`}
-                      className="inline-flex min-h-[38px] items-center font-serif text-[15px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+                      className="inline-flex min-h-[38px] items-center font-serif text-[15px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
                     >
                       {chapter.title}
                     </Link>
@@ -151,7 +151,7 @@ function TocLine({
 
         <span
           className={cx(
-            'font-serif text-[16.5px] leading-snug text-ink transition-colors group-hover:text-gild-600',
+            'font-serif text-[16.5px] leading-snug text-ink transition-colors group-hover:text-gold',
           )}
         >
           {label}
@@ -164,7 +164,7 @@ function TocLine({
         {/* Punktlinie bis zur Seitenzahl – das Erkennungszeichen jedes Verzeichnisses */}
         <span
           aria-hidden
-          className="mx-1 min-w-[1.5rem] flex-1 translate-y-[-4px] border-b border-dotted border-paper-400/70"
+          className="mx-1 min-w-[1.5rem] flex-1 translate-y-[-4px] border-b border-dotted border-lineStrong"
         />
 
         <span className="shrink-0 font-serif text-[14px] tabular-nums text-ink-muted">{page}</span>

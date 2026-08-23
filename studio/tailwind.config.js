@@ -85,6 +85,26 @@ export default {
         /* Die Linien im Satz: Trenner, Rahmen, Tabellenstriche. */
         line: 'rgb(var(--dc-linie) / <alpha-value>)',
         lineStrong: 'rgb(var(--dc-linie-stark) / <alpha-value>)',
+        /* Der Widerspruch im Weltwissen – siehe die Anmerkung in index.css. */
+        mahnung: 'rgb(var(--dc-mahnung) / <alpha-value>)',
+        /*
+         * **Schriftgold** – und ausdruecklich nicht `gild`.
+         *
+         * `gild` bleibt eine Palette mit festen Werten, weil die dunklen
+         * Seiten (Charakterseite, Tiefenraum, Registerkante) ihre Linien und
+         * Zeichen daraus beziehen und dort schon richtig aussehen. Was den
+         * Band wechseln muss, ist nur das Gold, mit dem *geschrieben* wird:
+         * Auf hellem Papier ist das ein tiefes Ocker, auf dunklem Grund muss
+         * es heller werden, sonst steht dunkles Gold auf dunklem Grund.
+         *
+         * Die Trennung war messbar: `text-gild-600` kam 103-mal vor – und
+         * kein einziges Mal auf einer der dunklen Seiten. Genau deshalb liess
+         * sich diese Bedeutung sauber herausloesen.
+         */
+        gold: {
+          DEFAULT: 'rgb(var(--dc-schriftgold) / <alpha-value>)',
+          hell: 'rgb(var(--dc-schriftgold-hell) / <alpha-value>)',
+        },
       },
       fontFamily: {
         serif: ['"Iowan Old Style"', 'Georgia', '"Times New Roman"', 'ui-serif', 'serif'],

@@ -63,7 +63,7 @@ export function RomanRegal() {
             <button
               type="button"
               onClick={anlegen}
-              className="inline-flex min-h-[42px] items-center gap-1.5 rounded-full border border-gild-500/40 px-5 font-serif text-[15px] text-gild-600 transition-colors hover:bg-gild-400/10 no-tap-highlight"
+              className="inline-flex min-h-[42px] items-center gap-1.5 rounded-full border border-gild-500/40 px-5 font-serif text-[15px] text-gold transition-colors hover:bg-gild-400/10 no-tap-highlight"
             >
               <Plus size={15} /> Einen Roman beginnen
             </button>
@@ -83,7 +83,7 @@ export function RomanRegal() {
             <Link
               key={r.id}
               to={`/roman/${r.id}`}
-              className="block border-b border-paper-300/60 py-4 no-tap-highlight last:border-0"
+              className="block border-b border-line py-4 no-tap-highlight last:border-0"
             >
               <h2 className="font-serif text-[22px] leading-snug text-ink">{r.title}</h2>
               {asText(r.fields.logline).trim() && (
@@ -101,7 +101,7 @@ export function RomanRegal() {
       <button
         type="button"
         onClick={anlegen}
-        className="mt-8 inline-flex min-h-[40px] items-center gap-1.5 font-serif text-[14.5px] text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+        className="mt-8 inline-flex min-h-[40px] items-center gap-1.5 font-serif text-[14.5px] text-ink-faint transition-colors hover:text-gold no-tap-highlight"
       >
         <Plus size={14} /> Noch einen Roman
       </button>
@@ -131,7 +131,7 @@ export function RomanBlatt() {
         <p className="font-serif text-[16px] italic text-ink-faint">
           Dieser Roman steht nicht mehr im Buch.
         </p>
-        <Link to="/roman" className="mt-3 inline-block font-serif text-[14px] text-gild-600 hover:underline">
+        <Link to="/roman" className="mt-3 inline-block font-serif text-[14px] text-gold hover:underline">
           Zurück zu den Manuskripten
         </Link>
       </div>
@@ -209,7 +209,7 @@ export function RomanBlatt() {
             <button
               type="button"
               onClick={() => void createUnter(kapitel.id, 'szene').then((s) => navigate(`/schreiben/${s.id}`))}
-              className="mt-2 inline-flex min-h-[38px] items-center gap-1.5 font-serif text-[14px] text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+              className="mt-2 inline-flex min-h-[38px] items-center gap-1.5 font-serif text-[14px] text-ink-faint transition-colors hover:text-gold no-tap-highlight"
             >
               <Plus size={13} /> Szene
             </button>
@@ -239,7 +239,7 @@ export function RomanBlatt() {
             `Kapitel ${baum.kapitel.length + 1}`,
           )
         }
-        className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-gild-500/40 px-4 font-serif text-[14.5px] text-gild-600 transition-colors hover:bg-gild-400/10 no-tap-highlight"
+        className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-gild-500/40 px-4 font-serif text-[14.5px] text-gold transition-colors hover:bg-gild-400/10 no-tap-highlight"
       >
         <Plus size={14} /> Kapitel
       </button>
@@ -276,7 +276,7 @@ function Szenenliste({
         const zeichen = signatur(szeneKontext(relIndex, byId, szene.id), szene);
         const w = szeneWoerter(szene);
         return (
-          <li key={szene.id} className="flex items-start gap-2 border-b border-paper-300/40 last:border-0">
+          <li key={szene.id} className="flex items-start gap-2 border-b border-line/70 last:border-0">
             <Link to={`/schreiben/${szene.id}`} className="min-w-0 flex-1 py-2.5 no-tap-highlight">
               <span className="block truncate font-serif text-[16px] text-ink">{szene.title}</span>
               {zeichen && (
@@ -324,7 +324,7 @@ function Umordner({
         onClick={onHoch}
         disabled={!obenMoeglich}
         aria-label="Nach oben"
-        className="grid h-8 w-7 place-items-center text-ink-faint/35 transition-colors hover:text-gild-500 disabled:opacity-0 no-tap-highlight"
+        className="grid h-8 w-7 place-items-center text-ink-faint/35 transition-colors hover:text-gold-hell disabled:opacity-0 no-tap-highlight"
       >
         <ChevronUp size={14} />
       </button>
@@ -333,7 +333,7 @@ function Umordner({
         onClick={onRunter}
         disabled={!untenMoeglich}
         aria-label="Nach unten"
-        className="grid h-8 w-7 place-items-center text-ink-faint/35 transition-colors hover:text-gild-500 disabled:opacity-0 no-tap-highlight"
+        className="grid h-8 w-7 place-items-center text-ink-faint/35 transition-colors hover:text-gold-hell disabled:opacity-0 no-tap-highlight"
       >
         <ChevronDown size={14} />
       </button>
@@ -376,12 +376,12 @@ function Ausgabe({ baum }: { baum: RomanBaum }) {
   };
 
   return (
-    <section className="mt-14 border-t border-paper-300/60 pt-5">
+    <section className="mt-14 border-t border-line pt-5">
       {!offen ? (
         <button
           type="button"
           onClick={() => setOffen(true)}
-          className="inline-flex min-h-[38px] items-center gap-1.5 font-serif text-[14px] text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+          className="inline-flex min-h-[38px] items-center gap-1.5 font-serif text-[14px] text-ink-faint transition-colors hover:text-gold no-tap-highlight"
         >
           <Download size={13} /> Aus dem Haus lassen
         </button>
@@ -434,8 +434,8 @@ function Knopf({ onClick, children }: { onClick: () => void; children: React.Rea
       type="button"
       onClick={onClick}
       className={cx(
-        'inline-flex min-h-[38px] items-center gap-1.5 rounded-full border border-paper-400/50 px-4',
-        'font-serif text-[14px] text-ink-muted transition-colors hover:border-gild-500/40 hover:text-gild-600 no-tap-highlight',
+        'inline-flex min-h-[38px] items-center gap-1.5 rounded-full border border-lineStrong px-4',
+        'font-serif text-[14px] text-ink-muted transition-colors hover:border-gild-500/40 hover:text-gold no-tap-highlight',
       )}
     >
       {children}

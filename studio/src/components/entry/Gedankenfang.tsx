@@ -150,7 +150,7 @@ export function Gedankenfang({ open, onClose }: { open: boolean; onClose: () => 
         aria-modal="true"
         aria-label="Einen Gedanken festhalten"
         className={cx(
-          'relative w-full max-w-[34rem] rounded-[3px] border border-paper-300/80 bg-cream-50',
+          'relative w-full max-w-[34rem] rounded-[3px] border border-line bg-cream-50',
           'px-5 pb-4 pt-4 shadow-[0_28px_70px_-24px_rgba(60,44,26,0.6)] animate-fadeIn',
         )}
       >
@@ -193,7 +193,7 @@ export function Gedankenfang({ open, onClose }: { open: boolean; onClose: () => 
           aria-label="Gedanke"
           enterKeyHint="done"
           className={cx(
-            'mt-1 w-full border-0 border-b border-paper-300/70 bg-transparent px-0 pb-2.5 pt-1',
+            'mt-1 w-full border-0 border-b border-line bg-transparent px-0 pb-2.5 pt-1',
             'font-serif text-[19px] leading-snug text-ink outline-none',
             'placeholder:italic placeholder:text-ink-faint/40 focus:border-gild-500/50',
           )}
@@ -213,8 +213,8 @@ export function Gedankenfang({ open, onClose }: { open: boolean; onClose: () => 
               'inline-flex min-h-[38px] items-center rounded-full border px-5',
               'font-serif text-[14.5px] transition-colors no-tap-highlight',
               text.trim()
-                ? 'border-gild-500/45 text-gild-600 hover:bg-gild-400/10'
-                : 'border-paper-300/70 text-ink-faint/40',
+                ? 'border-gild-500/45 text-gold hover:bg-gild-400/10'
+                : 'border-line text-ink-faint/40',
             )}
           >
             Sichern
@@ -234,7 +234,7 @@ export function Gedankenfang({ open, onClose }: { open: boolean; onClose: () => 
           <Link
             to="/kapitel/notizen"
             onClick={onClose}
-            className="text-gild-600 underline decoration-gild-500/40 underline-offset-2"
+            className="text-gold underline decoration-gild-500/40 underline-offset-2"
           >
             Notizen &amp; Sammlungen
           </Link>
@@ -242,7 +242,7 @@ export function Gedankenfang({ open, onClose }: { open: boolean; onClose: () => 
         </p>
 
         {gefangen.length > 0 && (
-          <ul className="mt-4 border-t border-paper-300/60 pt-3">
+          <ul className="mt-4 border-t border-line pt-3">
             {gefangen.map((g) => (
               <li key={g.id} className="py-1">
                 <Link
@@ -251,7 +251,7 @@ export function Gedankenfang({ open, onClose }: { open: boolean; onClose: () => 
                   className="flex items-baseline gap-2 no-tap-highlight"
                 >
                   <span aria-hidden className="h-[3px] w-[3px] shrink-0 rounded-full bg-gild-500/70" />
-                  <span className="min-w-0 flex-1 truncate font-serif text-[14.5px] text-ink-muted transition-colors hover:text-gild-600">
+                  <span className="min-w-0 flex-1 truncate font-serif text-[14.5px] text-ink-muted transition-colors hover:text-gold">
                     {g.titel}
                   </span>
                 </Link>
@@ -277,9 +277,9 @@ export function Gedankenfang({ open, onClose }: { open: boolean; onClose: () => 
                         liste.map((x) => (x.id === g.id ? { ...x, vermutung: undefined } : x)),
                       );
                     }}
-                    className="ml-[11px] mt-0.5 inline-flex min-h-[30px] items-center gap-1.5 font-serif text-[12.5px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+                    className="ml-[11px] mt-0.5 inline-flex min-h-[30px] items-center gap-1.5 font-serif text-[12.5px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
                   >
-                    <span className="text-gild-600">
+                    <span className="text-gold">
                       Als {templateFor(g.vermutung.type).label} einordnen
                     </span>
                     <span className="text-ink-faint/60">wegen „{g.vermutung.grund}“</span>
@@ -290,11 +290,11 @@ export function Gedankenfang({ open, onClose }: { open: boolean; onClose: () => 
           </ul>
         )}
 
-        <div className="mt-4 flex items-center justify-between gap-3 border-t border-paper-300/60 pt-3">
+        <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-3">
           <Link
             to="/setzerei"
             onClick={onClose}
-            className="font-serif text-[13.5px] text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+            className="font-serif text-[13.5px] text-ink-faint transition-colors hover:text-gold no-tap-highlight"
           >
             Ausführlicher setzen
           </Link>

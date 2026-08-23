@@ -41,7 +41,7 @@ export function OwnershipSpread() {
             placeholder={T.namePlatzhalter}
             aria-label={T.gehoert}
             autoComplete="name"
-            className="mt-4 w-full max-w-[22ch] border-0 border-b border-paper-400/40 bg-transparent pb-1.5 text-center font-serif text-[19px] text-ink outline-none transition-colors placeholder:text-ink-faint/30 focus:border-gild-500/60"
+            className="mt-4 w-full max-w-[22ch] border-0 border-b border-line bg-transparent pb-1.5 text-center font-serif text-[19px] text-ink outline-none transition-colors placeholder:text-ink-faint/30 focus:border-gild-500/60"
           />
 
           <BookEmblem identity={book} size={92} color="#8C6510" className="mt-12" />
@@ -65,7 +65,7 @@ export function OwnershipSpread() {
 
           <Link
             to="/vorwort"
-            className="mt-10 inline-flex min-h-[44px] items-center font-serif text-[14px] italic text-gild-600 transition-colors hover:text-gild-500 no-tap-highlight"
+            className="mt-10 inline-flex min-h-[44px] items-center font-serif text-[14px] italic text-gold transition-colors hover:text-gold-hell no-tap-highlight"
           >
             {T.weiter}
           </Link>

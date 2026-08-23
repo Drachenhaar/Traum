@@ -75,7 +75,7 @@ function Reise() {
                 type="button"
                 onClick={() => setzeWeg(weg.slice(0, i + 1))}
                 title={`Zurück zu „${e.title}“`}
-                className="font-serif text-[13px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+                className="font-serif text-[13px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
               >
                 {e.title}
               </button>
@@ -104,7 +104,7 @@ function Reise() {
       <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1">
         <Link
           to={`/eintrag/${hier.id}`}
-          className="font-serif text-[13.5px] italic text-gild-600 no-tap-highlight"
+          className="font-serif text-[13.5px] italic text-gold no-tap-highlight"
         >
           Diese Seite aufschlagen
         </Link>
@@ -112,7 +112,7 @@ function Reise() {
           <button
             type="button"
             onClick={() => setzeWeg([hier.id])}
-            className="min-h-[32px] font-serif text-[13.5px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+            className="min-h-[32px] font-serif text-[13.5px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
           >
             Von hier aus neu beginnen
           </button>
@@ -120,7 +120,7 @@ function Reise() {
         <button
           type="button"
           onClick={() => setzeWeg([])}
-          className="min-h-[32px] font-serif text-[13.5px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+          className="min-h-[32px] font-serif text-[13.5px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
         >
           Andere Reise
         </button>
@@ -138,14 +138,14 @@ function Reise() {
             <p className="rubric">Von hier aus</p>
             <ul className="mt-3">
               {schritte.map((s) => (
-                <li key={s.relationId} className="border-b border-paper-300/50 last:border-b-0">
+                <li key={s.relationId} className="border-b border-line/70 last:border-b-0">
                   <button
                     type="button"
                     onClick={() => setzeWeg([...weg, s.ziel.id])}
                     className="group flex w-full items-baseline gap-2 py-3 text-left no-tap-highlight"
                   >
                     <span className="min-w-0 flex-1">
-                      <span className="block font-serif text-[16px] leading-snug text-ink transition-colors group-hover:text-gild-600">
+                      <span className="block font-serif text-[16px] leading-snug text-ink transition-colors group-hover:text-gold">
                         {s.einladung}
                       </span>
                       <span className="mt-0.5 block font-serif text-[12.5px] italic text-ink-faint">
@@ -154,7 +154,7 @@ function Reise() {
                     </span>
                     <ArrowRight
                       size={14}
-                      className="mt-1 shrink-0 text-ink-faint/30 transition-colors group-hover:text-gild-600"
+                      className="mt-1 shrink-0 text-ink-faint/30 transition-colors group-hover:text-gold"
                     />
                   </button>
                 </li>
@@ -166,7 +166,7 @@ function Reise() {
 
       {/* --------------------------------------------- Fertige Reisen */}
       {routen.length > 0 && (
-        <section className="mt-12 border-t border-paper-300/60 pt-6">
+        <section className="mt-12 border-t border-line pt-6">
           <p className="rubric">Das Buch schlägt vor</p>
           <p className="mt-1 max-w-[48ch] font-serif text-[13px] italic leading-snug text-ink-faint">
             Wege, die es beim Nachsehen gefunden hat. Antippen führt sie ganz.
@@ -179,7 +179,7 @@ function Reise() {
                   onClick={() => setzeWeg(r.stationen.map((e) => e.id))}
                   className="group block w-full text-left no-tap-highlight"
                 >
-                  <span className="block font-serif text-[15.5px] text-ink transition-colors group-hover:text-gild-600">
+                  <span className="block font-serif text-[15.5px] text-ink transition-colors group-hover:text-gold">
                     {r.art.name}
                   </span>
                   <span className="mt-0.5 block font-serif text-[12.5px] italic leading-snug text-ink-faint">
@@ -250,7 +250,7 @@ function Aufbruch({ entries, onStart }: { entries: Entry[]; onStart: (id: string
           <button
             type="button"
             onClick={() => navigate('/inhalt')}
-            className="inline-flex min-h-[42px] items-center rounded-full border border-gild-500/40 px-5 font-serif text-[15px] text-gild-600 transition-colors hover:bg-gild-400/10 no-tap-highlight"
+            className="inline-flex min-h-[42px] items-center rounded-full border border-gild-500/40 px-5 font-serif text-[15px] text-gold transition-colors hover:bg-gild-400/10 no-tap-highlight"
           >
             Zum Inhaltsverzeichnis
           </button>
@@ -266,7 +266,7 @@ function Aufbruch({ entries, onStart }: { entries: Entry[]; onStart: (id: string
         wohin es weitergeht.
       </p>
 
-      <label className="mt-7 flex items-center gap-2 border-b border-paper-300/70 pb-2">
+      <label className="mt-7 flex items-center gap-2 border-b border-line pb-2">
         <Footprints size={14} className="shrink-0 text-ink-faint/50" />
         <input
           value={frage}
@@ -279,14 +279,14 @@ function Aufbruch({ entries, onStart }: { entries: Entry[]; onStart: (id: string
 
       <ul className="mt-5">
         {(frage.trim() ? gefunden : vorschlaege).map((e) => (
-          <li key={e.id} className="border-b border-paper-300/50 last:border-b-0">
+          <li key={e.id} className="border-b border-line/70 last:border-b-0">
             <button
               type="button"
               onClick={() => onStart(e.id)}
               className="group flex w-full items-baseline gap-3 py-3 text-left no-tap-highlight"
             >
               <span className="min-w-0 flex-1">
-                <span className="block font-serif text-[16.5px] leading-snug text-ink transition-colors group-hover:text-gild-600">
+                <span className="block font-serif text-[16.5px] leading-snug text-ink transition-colors group-hover:text-gold">
                   {e.title}
                 </span>
                 <span className="mt-0.5 block font-serif text-[12.5px] italic text-ink-faint">
@@ -297,7 +297,7 @@ function Aufbruch({ entries, onStart }: { entries: Entry[]; onStart: (id: string
               <span
                 className={cx(
                   'mt-1 shrink-0 font-serif text-[12.5px] italic transition-colors',
-                  'text-ink-faint/40 group-hover:text-gild-600',
+                  'text-ink-faint/40 group-hover:text-gold',
                 )}
               >
                 aufbrechen

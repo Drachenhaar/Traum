@@ -81,7 +81,7 @@ export function WerKommtVor({ entry }: { entry: Entry }) {
 
   return (
     <>
-      <section className="mt-8 border-t border-paper-300/60 pt-5">
+      <section className="mt-8 border-t border-line pt-5">
         <p className="rubric mb-1">Wer und was hier vorkommt</p>
         <p className="mb-4 font-serif text-[12.5px] italic leading-relaxed text-ink-faint/85">
           Aus deinem Text gelesen – am Satzbau, nicht am Sinn. Nichts davon
@@ -95,7 +95,7 @@ export function WerKommtVor({ entry }: { entry: Entry }) {
                 {f.vorhandenId ? (
                   <Link
                     to={`/eintrag/${f.vorhandenId}`}
-                    className="font-serif text-[16px] text-ink transition-colors hover:text-gild-600"
+                    className="font-serif text-[16px] text-ink transition-colors hover:text-gold"
                   >
                     {f.name}
                   </Link>
@@ -160,7 +160,7 @@ function Knopf({ onClick, children }: { onClick: () => void; children: React.Rea
       onClick={onClick}
       className={cx(
         'inline-flex min-h-[32px] items-center gap-1.5 rounded-full border border-gild-500/40 px-3',
-        'font-serif text-[13px] text-gild-600 transition-colors hover:bg-gild-400/10 no-tap-highlight',
+        'font-serif text-[13px] text-gold transition-colors hover:bg-gild-400/10 no-tap-highlight',
       )}
     >
       {children}

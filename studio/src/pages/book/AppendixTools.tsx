@@ -50,7 +50,7 @@ export function ColophonSheet() {
        */}
       <Link
         to="/mein-buch"
-        className="mb-8 inline-flex min-h-[44px] items-center gap-2 font-serif text-[15px] text-gild-600 transition-colors hover:text-gild-500 no-tap-highlight"
+        className="mb-8 inline-flex min-h-[44px] items-center gap-2 font-serif text-[15px] text-gold transition-colors hover:text-gold-hell no-tap-highlight"
       >
         <BookMarked size={16} strokeWidth={1.6} /> Einband &amp; Zeichen
       </Link>

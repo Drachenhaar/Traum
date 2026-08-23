@@ -103,7 +103,7 @@ export function Atmosphaerenzeichen({ entry }: { entry: Entry }) {
       data-leitfaden="atmosphaere"
       className={cx(
         'grid h-9 w-9 place-items-center transition-colors no-tap-highlight',
-        klingt ? 'text-gild-500' : 'text-ink-faint/35 hover:text-gild-500',
+        klingt ? 'text-gild-500' : 'text-ink-faint/35 hover:text-gold-hell',
       )}
     >
       <Zeichen size={15} strokeWidth={1.6} />

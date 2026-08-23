@@ -94,7 +94,17 @@ export function Registerkante({
                */
               'group relative flex h-[62px] w-full flex-none flex-col items-center justify-center gap-1 px-0.5 no-tap-highlight',
               'transition-colors duration-200',
-              aktiv ? 'text-gild-300' : still ? 'text-paper-400/25' : 'text-paper-300/45',
+              /*
+               * Drei Helligkeiten, und alle drei muessen lesbar bleiben.
+               *
+               * Gemessen standen die ruhenden Reiter bei 2,6:1 und die stillen
+               * bei 1,6:1 – bei sechseinhalb Punkt Schriftgroesse. Ein Reiter,
+               * den man antippen soll, dessen Namen man aber raten muss, ist
+               * kein Register, sondern eine Zierleiste. Der Abstand zwischen
+               * den Stufen bleibt derselbe, sie liegen nur alle drei hoeher:
+               * **Still heisst leiser, nicht unsichtbar.**
+               */
+              aktiv ? 'text-gild-300' : still ? 'text-paper-400/45' : 'text-paper-300/75',
             )}
           >
             {/*

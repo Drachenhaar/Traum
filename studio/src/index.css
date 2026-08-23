@@ -30,6 +30,17 @@
 
     --dc-linie: 229 220 202;
     --dc-linie-stark: 216 204 180;
+
+    /*
+     * Die Mahnung – ein Widerspruch im Weltwissen, kein Fehler der App.
+     * Sie steht hier, weil ein festes Weinrot auf hellem Papier warnt und
+     * auf dunklem Grund verschwindet. Rot bleibt rot, aber es muss atmen.
+     */
+    --dc-mahnung: 140 58 50;
+
+    /* Das Gold, mit dem geschrieben wird – die alten `gild-600`/`gild-500`. */
+    --dc-schriftgold: 140 101 16;
+    --dc-schriftgold-hell: 184 134 11;
   }
 
   /*
@@ -57,6 +68,11 @@
 
     --dc-linie: 58 47 34;
     --dc-linie-stark: 87 70 47;
+
+    --dc-mahnung: 214 134 118;
+
+    --dc-schriftgold: 201 161 95;
+    --dc-schriftgold-hell: 227 200 120;
   }
 
   html,
@@ -239,16 +255,26 @@
     --dc-lichthof: rgba(120, 96, 58, 0.16);
   }
 
-  /* Der Falz: die Seite dunkelt zur Buchmitte hin ab. */
+  /*
+   * Der Falz: die Seite dunkelt zur Buchmitte hin ab.
+   *
+   * **`--dc-falzschatten` und nicht `--dc-falz`.** `--dc-falz` ist bereits
+   * vergeben: Die Raumschicht schreibt dort waehrend des Blaetterns eine
+   * *Zahl* (0…1) hinein, und der Buchkoerper rechnet mit ihr. Ein Name, zwei
+   * Arten von Wert – und die Regel hier faellt still aus, weil `rgba(…)`
+   * niemals `0.55` sein kann. Zum zweiten Mal dieselbe Falle; deshalb steht
+   * sie jetzt als Merksatz da: **Eine CSS-Variable ist ein globaler Name.
+   * Wer einen vergibt, vergibt ihn fuer das ganze Haus.**
+   */
   .gutter-left {
-    box-shadow: inset -22px 0 34px -26px var(--dc-falz, rgba(60, 44, 26, 0.55));
+    box-shadow: inset -22px 0 34px -26px var(--dc-falzschatten, rgba(60, 44, 26, 0.55));
   }
   .gutter-right {
-    box-shadow: inset 22px 0 34px -26px var(--dc-falz, rgba(60, 44, 26, 0.55));
+    box-shadow: inset 22px 0 34px -26px var(--dc-falzschatten, rgba(60, 44, 26, 0.55));
   }
   /* Im dunklen Band ist der Falz tiefes Schwarz statt Braun. */
   html[data-band='dunkel'] {
-    --dc-falz: rgba(0, 0, 0, 0.72);
+    --dc-falzschatten: rgba(0, 0, 0, 0.72);
     /*
      * Der Lesetext im dunklen Band ist **heller als die Marke `ink`**, und
      * das ist Absicht: Ein Absatz, den man minutenlang liest, braucht mehr

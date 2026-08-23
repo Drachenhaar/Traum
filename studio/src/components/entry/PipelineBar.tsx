@@ -51,7 +51,7 @@ export function PipelineBar({ entry }: { entry: Entry }) {
               onClick={() => updateEntry(entry.id, { pipelineStage: stage.id })}
               className={cx(
                 'group relative flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-xl border px-3 text-[13px] transition-all duration-200 ease-calm',
-                isCurrent ? 'text-cream-50' : reached ? 'text-ink' : 'border-line bg-cream-50 text-ink-faint hover:bg-cream-200',
+                isCurrent ? 'text-paper-50' : reached ? 'text-ink' : 'border-line bg-cream-50 text-ink-faint hover:bg-cream-200',
               )}
               style={
                 isCurrent

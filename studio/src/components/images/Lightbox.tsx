@@ -52,9 +52,9 @@ export function Lightbox({
     <div className="fixed inset-0 z-[70] flex flex-col bg-olive-900/95 animate-fadeIn">
       <header className="flex items-center gap-2 px-3 pt-safe">
         <div className="min-w-0 flex-1 py-3">
-          <p className="truncate text-[15px] text-cream-100">{meta?.title ?? 'Bild'}</p>
+          <p className="truncate text-[15px] text-paper-50">{meta?.title ?? 'Bild'}</p>
           {meta && (
-            <p className="truncate text-[13px] text-cream-100/55">
+            <p className="truncate text-[13px] text-paper-50/55">
               {meta.width} × {meta.height} · {index + 1} von {ids.length}
             </p>
           )}
@@ -63,7 +63,7 @@ export function Lightbox({
           <button
             type="button"
             onClick={() => onEdit(id)}
-            className="touch-target grid place-items-center rounded-xl text-cream-100/80 hover:bg-cream-100/10 hover:text-cream-100 no-tap-highlight"
+            className="touch-target grid place-items-center rounded-xl text-paper-50/80 hover:bg-paper-50/10 hover:text-paper-50 no-tap-highlight"
             aria-label="Bild bearbeiten"
           >
             <Pencil size={20} />
@@ -72,7 +72,7 @@ export function Lightbox({
         <button
           type="button"
           onClick={onClose}
-          className="touch-target grid place-items-center rounded-xl text-cream-100/80 hover:bg-cream-100/10 hover:text-cream-100 no-tap-highlight"
+          className="touch-target grid place-items-center rounded-xl text-paper-50/80 hover:bg-paper-50/10 hover:text-paper-50 no-tap-highlight"
           aria-label="Schließen"
         >
           <X size={22} />
@@ -83,7 +83,7 @@ export function Lightbox({
         {url ? (
           <img src={url} alt={meta?.title ?? ''} className="max-h-full max-w-full object-contain" />
         ) : (
-          <p className="text-cream-100/60">Bild wird geladen …</p>
+          <p className="text-paper-50/60">Bild wird geladen …</p>
         )}
       </div>
 
@@ -92,7 +92,7 @@ export function Lightbox({
           <button
             type="button"
             onClick={() => go(-1)}
-            className="touch-target grid flex-1 place-items-center rounded-xl bg-cream-100/10 text-cream-100 hover:bg-cream-100/20 no-tap-highlight"
+            className="touch-target grid flex-1 place-items-center rounded-xl bg-paper-50/10 text-paper-50 hover:bg-paper-50/20 no-tap-highlight"
             aria-label="Vorheriges Bild"
           >
             <ChevronLeft size={22} />
@@ -100,7 +100,7 @@ export function Lightbox({
           <button
             type="button"
             onClick={() => go(1)}
-            className="touch-target grid flex-1 place-items-center rounded-xl bg-cream-100/10 text-cream-100 hover:bg-cream-100/20 no-tap-highlight"
+            className="touch-target grid flex-1 place-items-center rounded-xl bg-paper-50/10 text-paper-50 hover:bg-paper-50/20 no-tap-highlight"
             aria-label="Nächstes Bild"
           >
             <ChevronRight size={22} />
