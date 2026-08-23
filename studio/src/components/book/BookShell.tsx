@@ -28,7 +28,7 @@ import { useBlaettern } from './useBlaettern';
 import { spineThickness } from '../../lib/book';
 import { Tiefenmarke, Tiefenraum } from '../raum/Tiefenraum';
 import { useRaum } from '../../lib/raum/useRaum';
-import { konfig } from '../../lib/raum/konfig';
+import { beiKonfig, konfig } from '../../lib/raum/konfig';
 import { standardkarte } from '../../lib/raum/tiefenvorlagen';
 import { useTiefe } from '../raum/useTiefe';
 import { useOberflaeche } from '../raum/useOberflaeche';
@@ -191,6 +191,28 @@ export function BookShell() {
       delete w.dataset.seite;
     };
   }, [spread, index]);
+
+  /*
+   * Welcher Band aufgeschlagen ist – am Wurzelelement, nicht an dieser Hülle.
+   *
+   * Es muss ganz oben stehen, weil die Farbmarken in `:root` liegen und alles
+   * darunter aus ihnen liest: der Buchkörper, die Seiten, jeder Knopf, jede
+   * Eingabe. Ein Merkmal an der Hülle erreichte den Einband nicht, und die
+   * Titelseite läge weiter im hellen Papier, während das Buch dahinter dunkel
+   * wäre.
+   *
+   * `beiKonfig` hängt daran, damit der Regler im Stimmzimmer sofort wirkt –
+   * sonst müsste man für einen Blick auf den anderen Band neu laden.
+   */
+  useEffect(() => {
+    const w = document.documentElement;
+    const setze = () => {
+      if (konfig().figur.dunklerBand >= 0.5) w.dataset.band = 'dunkel';
+      else delete w.dataset.band;
+    };
+    setze();
+    return beiKonfig(setze);
+  }, []);
 
   /*
    * Wie viel Oberfläche gerade dastehen darf.

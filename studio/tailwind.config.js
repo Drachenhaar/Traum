@@ -27,12 +27,38 @@ export default {
           600: '#2A231D',
           500: '#3A302733',
         },
-        // Warmes Creme – die Arbeitsfläche
+        /*
+         * Warmes Creme – die Arbeitsfläche.
+         *
+         * ---
+         *
+         * **Ab hier sind Farben Marken und keine Werte mehr.**
+         *
+         * Der Auftrag lautete: Das ganze Buch soll aussehen wie die
+         * Charakterseite. Gemessen hiess das 583 Vorkommen von `text-ink` in
+         * 65 Dateien. Diese 583 Stellen zu ersetzen waere ein unlesbarer
+         * Diff gewesen und haette jede spaetere Aenderung verdoppelt.
+         *
+         * Also wird nicht ersetzt, sondern **umgedeutet**: Diese vier
+         * Familien ziehen ihre Werte aus CSS-Variablen. Die Klassen im
+         * Quelltext bleiben stehen und bedeuten etwas anderes, je nachdem
+         * welchen Band man aufgeschlagen hat. Eine Wahrheit, zwei
+         * Erscheinungen – derselbe Satz wie bei der Tiefenkarte.
+         *
+         * `<alpha-value>` ist dabei nicht schmueckend: Ohne diese Form
+         * verloeren alle Deckkraft-Schreibweisen (`text-ink/60`) ihre
+         * Wirkung, und davon lebt der halbe Buchsatz.
+         *
+         * **`paper` steht mit Absicht nicht in dieser Liste.** Es bedeutet
+         * heute schon *helle Schrift auf dunklem Grund* – im Tiefenraum, auf
+         * dem Einband, auf der Charakterseite. Wer es mitdrehte, machte
+         * genau die Seiten unlesbar, die schon richtig aussehen.
+         */
         cream: {
-          50: '#FCFAF5',
-          100: '#F7F2E8',
-          200: '#F1EADC',
-          300: '#E8DECB',
+          50: 'rgb(var(--dc-grund-50) / <alpha-value>)',
+          100: 'rgb(var(--dc-grund-100) / <alpha-value>)',
+          200: 'rgb(var(--dc-grund-200) / <alpha-value>)',
+          300: 'rgb(var(--dc-grund-300) / <alpha-value>)',
         },
         // Sehr dunkles Olivgrün – Navigation
         olive: {
@@ -50,14 +76,15 @@ export default {
           500: '#A8853F',
           600: '#8C6D31',
         },
-        // Dunkles warmes Braun – Text
+        /* Die Schrift auf der Seite – siehe die Anmerkung bei `cream`. */
         ink: {
-          DEFAULT: '#3B2E23',
-          muted: '#7C6A57',
-          faint: '#A4907A',
+          DEFAULT: 'rgb(var(--dc-schrift) / <alpha-value>)',
+          muted: 'rgb(var(--dc-schrift-leise) / <alpha-value>)',
+          faint: 'rgb(var(--dc-schrift-fein) / <alpha-value>)',
         },
-        line: '#E5DCCA',
-        lineStrong: '#D8CCB4',
+        /* Die Linien im Satz: Trenner, Rahmen, Tabellenstriche. */
+        line: 'rgb(var(--dc-linie) / <alpha-value>)',
+        lineStrong: 'rgb(var(--dc-linie-stark) / <alpha-value>)',
       },
       fontFamily: {
         serif: ['"Iowan Old Style"', 'Georgia', '"Times New Roman"', 'ui-serif', 'serif'],

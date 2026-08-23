@@ -320,6 +320,21 @@ export interface Raumkonfig {
      * („Vergangen-heit") und laesst der Seite noch 338.
      */
     registerbreite: number;
+    /**
+     * Welchen Band man aufgeschlagen hat: 0 das helle Buch, 1 den dunklen.
+     *
+     * **Kein Nachtmodus.** Ein Nachtmodus dreht Helligkeit, damit Augen es
+     * abends leichter haben. Hier wechselt das *Material*: aus einem hellen
+     * Buch auf dunklem Tisch wird ein dunkler Band mit goldener Prägung.
+     * Ablesbar an einer Zahl – die Schrift wird nicht weiß, sondern
+     * Pergament. Weiß auf Schwarz ist ein Bildschirm.
+     *
+     * Steht vorerst im Stimmzimmer und nicht in den Einstellungen: Wir wissen
+     * noch nicht, ob der dunkle Band jede Seite trägt. Solange das offen ist,
+     * gehört der Schalter dorthin, wo man vergleicht, und nicht dorthin, wo
+     * man entscheidet.
+     */
+    dunklerBand: number;
   };
 
   haptik: {
@@ -451,6 +466,7 @@ export const VORGABE: Raumkonfig = {
     grundtiefe: 0.5,
     kornstaerke: 0.5,
     registerbreite: 56,
+    dunklerBand: 0,
   },
 
   haptik: {

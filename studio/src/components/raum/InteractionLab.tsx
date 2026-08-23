@@ -152,6 +152,10 @@ const REGLER: { gruppe: Gruppe; feld: string; von: number; bis: number; schritt:
   { gruppe: 'figur', feld: 'grundtiefe', von: 0, bis: 1, schritt: 0.05, name: 'Grundtiefe' },
   { gruppe: 'figur', feld: 'kornstaerke', von: 0, bis: 1, schritt: 0.05, name: 'Korn' },
   { gruppe: 'figur', feld: 'registerbreite', von: 0, bis: 96, schritt: 2, name: 'Registerkante' },
+  /* Null ist das helle Buch, eins der dunkle Band. Ein Regler, weil das
+   * Stimmzimmer keine Schalter fuer Zahlen kennt und ein zweiter Mechanismus
+   * fuer einen Wert nicht lohnt. */
+  { gruppe: 'figur', feld: 'dunklerBand', von: 0, bis: 1, schritt: 1, name: 'Dunkler Band' },
 ];
 
 /**

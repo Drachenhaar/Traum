@@ -9,6 +9,54 @@
     --sab: env(safe-area-inset-bottom, 0px);
     --sal: env(safe-area-inset-left, 0px);
     --sar: env(safe-area-inset-right, 0px);
+
+    /*
+     * Der Band, wie er immer war: helles Papier, brauner Text.
+     *
+     * Die Zahlen sind dieselben, die vorher in `tailwind.config.js` standen –
+     * nur getrennt in Kanäle, weil `rgb(… / <alpha-value>)` das so verlangt.
+     * Wer diesen Block liest und mit der alten Fassung vergleicht, findet
+     * keinen einzigen geänderten Farbwert. Das ist Absicht: Der Umbau auf
+     * Marken sollte für sich genommen **nichts** verändern.
+     */
+    --dc-grund-50: 252 250 245;
+    --dc-grund-100: 247 242 232;
+    --dc-grund-200: 241 234 220;
+    --dc-grund-300: 232 222 203;
+
+    --dc-schrift: 59 46 35;
+    --dc-schrift-leise: 124 106 87;
+    --dc-schrift-fein: 164 144 122;
+
+    --dc-linie: 229 220 202;
+    --dc-linie-stark: 216 204 180;
+  }
+
+  /*
+   * Der dunkle Band.
+   *
+   * Dieselbe Sprache wie die Charakterseite: fast schwarz und warm, Schrift
+   * aus Pergament, Linien aus mattem Gold. Es ist **kein Nachtmodus** – ein
+   * Nachtmodus dreht Helligkeit, damit Augen es abends leichter haben. Hier
+   * wechselt das Material: aus einem hellen Buch auf dunklem Tisch wird ein
+   * dunkler Band mit goldener Prägung.
+   *
+   * Der Unterschied ist an einer Zahl abzulesen: Die Schrift wird nicht
+   * einfach weiß (255), sondern Pergament (230 220 196). Weiß auf Schwarz ist
+   * ein Bildschirm; Pergament auf Braunschwarz ist ein Buch.
+   */
+  html[data-band='dunkel'] {
+    --dc-grund-50: 22 18 15;
+    --dc-grund-100: 27 22 19;
+    --dc-grund-200: 32 26 22;
+    --dc-grund-300: 42 34 28;
+
+    --dc-schrift: 230 220 196;
+    --dc-schrift-leise: 176 162 133;
+    --dc-schrift-fein: 130 118 97;
+
+    --dc-linie: 58 47 34;
+    --dc-linie-stark: 87 70 47;
   }
 
   html,
@@ -146,22 +194,69 @@
    * kein Bild, keine Datei, funktioniert in jeder Größe.
    */
   .paper-sheet {
-    background-color: #ebe1c9;
+    /*
+     * Das Papier selbst – die vier Angaben, aus denen es besteht, stehen als
+     * Variablen daneben. Der dunkle Band tauscht sie, nicht diese Regel: Die
+     * Stockflecken bleiben Stockflecken, die Randabdunkelung bleibt eine
+     * Randabdunkelung. Was sich aendert, ist der Stoff.
+     *
+     * ---
+     *
+     * **`--dc-blattgrund` und nicht `--dc-bogen`.**
+     *
+     * Der erste Name war `--dc-bogen`, und den gab es schon: Der
+     * Richtungsbogen schreibt ihn sechzigmal je Sekunde und legt eine **Zahl**
+     * hinein (0 bis 1, wie weit gezogen wurde). Das Ergebnis war eine Farbe,
+     * die als `0` gelesen wurde – ungueltig, also durchsichtig, also der
+     * dunkle Tisch mitten im hellen Buch.
+     *
+     * Was diesen Fehler so zaeh machte: Die Ersatzangabe in
+     * `var(--dc-blattgrund, #ebe1c9)` sieht aus wie eine Absicherung und ist
+     * keine. Sie greift nur, wenn die Variable **gar nicht gesetzt** ist –
+     * bei einem gesetzten Unsinn greift sie nicht. Eine Variable mit fremdem
+     * Inhalt ist schlimmer als eine fehlende.
+     */
+    background-color: var(--dc-blattgrund, #ebe1c9);
     background-image:
       /* Stockflecken – sehr schwach, aber sie nehmen dem Papier das Digitale */
-      radial-gradient(circle at 14% 18%, rgba(150, 118, 72, 0.07) 0%, transparent 26%),
-      radial-gradient(circle at 82% 68%, rgba(140, 108, 66, 0.06) 0%, transparent 30%),
-      radial-gradient(circle at 62% 88%, rgba(150, 118, 72, 0.05) 0%, transparent 24%),
+      radial-gradient(circle at 14% 18%, var(--dc-fleck, rgba(150, 118, 72, 0.07)) 0%, transparent 26%),
+      radial-gradient(circle at 82% 68%, var(--dc-fleck, rgba(140, 108, 66, 0.06)) 0%, transparent 30%),
+      radial-gradient(circle at 62% 88%, var(--dc-fleck, rgba(150, 118, 72, 0.05)) 0%, transparent 24%),
       /* Zum Rand hin dunkelt jedes alte Papier nach */
-      radial-gradient(120% 100% at 50% 45%, rgba(255, 252, 242, 0.42) 0%, transparent 62%);
+      radial-gradient(120% 100% at 50% 45%, var(--dc-lichthof, rgba(255, 252, 242, 0.42)) 0%, transparent 62%);
+  }
+
+  /*
+   * Der dunkle Bogen.
+   *
+   * Ein Lichthof statt einer Aufhellung: Wo das helle Papier zur Mitte hin
+   * *heller* wird, wird der dunkle Bogen dort waermer – als laege ein Licht
+   * darueber. Dieselbe Geste, anderes Material.
+   */
+  html[data-band='dunkel'] .paper-sheet {
+    --dc-blattgrund: #17130f;
+    --dc-fleck: rgba(184, 134, 11, 0.045);
+    --dc-lichthof: rgba(120, 96, 58, 0.16);
   }
 
   /* Der Falz: die Seite dunkelt zur Buchmitte hin ab. */
   .gutter-left {
-    box-shadow: inset -22px 0 34px -26px rgba(60, 44, 26, 0.55);
+    box-shadow: inset -22px 0 34px -26px var(--dc-falz, rgba(60, 44, 26, 0.55));
   }
   .gutter-right {
-    box-shadow: inset 22px 0 34px -26px rgba(60, 44, 26, 0.55);
+    box-shadow: inset 22px 0 34px -26px var(--dc-falz, rgba(60, 44, 26, 0.55));
+  }
+  /* Im dunklen Band ist der Falz tiefes Schwarz statt Braun. */
+  html[data-band='dunkel'] {
+    --dc-falz: rgba(0, 0, 0, 0.72);
+    /*
+     * Der Lesetext im dunklen Band ist **heller als die Marke `ink`**, und
+     * das ist Absicht: Ein Absatz, den man minutenlang liest, braucht mehr
+     * Ruhe als eine Ueberschrift, die man ueberfliegt. Auf hellem Papier
+     * heisst das dunkler, auf dunklem Grund heller.
+     */
+    --dc-lesetext: #ded2b4;
+    --dc-initiale: #c9a15f;
   }
 
   /* Goldlinie unter Kapitelzeilen – dünn, nie plakativ. */
@@ -182,7 +277,14 @@
     @apply font-serif uppercase;
     font-size: 11px;
     letter-spacing: 0.22em;
-    color: #8c6510;
+    /*
+     * Die Rubrik ist gold, und Gold bleibt Gold – nur heller im dunklen
+     * Band, weil ein tiefes Messing auf fast Schwarz verschwindet.
+     */
+    color: var(--dc-rubrik, #8c6510);
+  }
+  html[data-band='dunkel'] {
+    --dc-rubrik: #c9a15f;
   }
 
   /* Initiale am Textanfang, wie im gesetzten Buch. */
@@ -192,7 +294,7 @@
     font-size: 3.4em;
     line-height: 0.82;
     padding: 0.06em 0.09em 0 0;
-    color: #6b5220;
+    color: var(--dc-initiale, #6b5220);
   }
 
   /* Lesetext: großzügig, ruhig, nie über 62 Zeichen breit. */
@@ -200,7 +302,21 @@
     font-family: 'Iowan Old Style', Georgia, 'Times New Roman', serif;
     font-size: var(--satz-grad, 17px);
     line-height: var(--satz-zeile, 1.78);
-    color: #3a2e20;
+    /*
+     * Der Lesetext zieht seine Farbe aus der Marke – und hier stand eine
+     * feste Zahl.
+     *
+     * Das war der eine Fehler, der den ganzen dunklen Band unbrauchbar
+     * machte, und er war auf dem Bildschirmfoto sofort zu sehen: Rubriken
+     * gold, Feldwerte hell, **und der Fliesstext fast unsichtbar** – dunkles
+     * Braun auf braunem Schwarz. Alle 583 Klassen im Quelltext hatten
+     * gewechselt; die eine Zeile, die keine Klasse war, nicht.
+     *
+     * Die Lehre gilt ueber diese Datei hinaus: Eine Markenschicht ist genau
+     * so viel wert, wie sie *keine* Ausnahmen hat. Fest eingetragene Farben
+     * in einem Stylesheet sind unsichtbar, solange es nur einen Band gibt.
+     */
+    color: var(--dc-lesetext, #3a2e20);
     hyphens: auto;
   }
   .prose-book p + p {
