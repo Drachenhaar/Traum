@@ -41,7 +41,7 @@
  * etwas. Das ist die ganze Auskunft, und sie genügt.
  */
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { BookmarkIcon, BookOpen, ChevronLeft, ListTree, Star } from 'lucide-react';
 import { useStudio, livingEntries } from '../../store/useStudio';
@@ -54,6 +54,9 @@ import { type Richtung } from '../../lib/raum/geste';
 import { konfig } from '../../lib/raum/konfig';
 import { Bildnis } from '../../components/figur/Bildnis';
 import { Mehr } from '../../components/ui/Mehr';
+import { Registerkante } from '../../components/figur/Registerkante';
+import { ERSTES_BLATT, REGISTERBLAETTER } from '../../components/figur/Register';
+import { Blattinhalt, Kopfbildnis, blattfuellung } from '../../components/figur/Figurblaetter';
 import { Goldteiler, Wegepunkt, zeichenFuer } from '../../lib/zeichen/zeichen';
 import { cx } from '../../lib/utils';
 import { ganzVerborgen, zeigtGeheimes } from '../../lib/geheim';
@@ -127,6 +130,15 @@ export function Charakterseite() {
   const settings = useStudio((s) => s.settings);
   const toggleFavorite = useStudio((s) => s.toggleFavorite);
   const setzeAnker = useRaum((s) => s.setzeAnker);
+  const gehZu = useRaum((s) => s.gehZu);
+
+  /*
+   * Welches Registerblatt aufgeschlagen ist.
+   *
+   * Im Blick und nicht in der Welt – wie Ort und Tiefe. Wer ein Register
+   * aufschlaegt, hat an der Figur nichts geaendert.
+   */
+  const [blatt, setzeBlatt] = useState(ERSTES_BLATT);
 
   const lebende = useMemo(() => livingEntries(entries), [entries]);
   const nach = useMemo(() => new Map(lebende.map((e) => [e.id, e])), [lebende]);
@@ -180,11 +192,38 @@ export function Charakterseite() {
     if (entry) setzeAnker(entry.id);
   }, [entry?.id, setzeAnker]);
 
+  /*
+   * Eine andere Figur wird bei der Übersicht aufgeschlagen.
+   *
+   * Sonst landete man bei Miraelys mitten in „Fähigkeiten", nur weil man das
+   * bei Vaelorian zuletzt gelesen hatte. Ein Buch schlägt man nicht dort auf,
+   * wo das vorige Buch lag.
+   */
+  useEffect(() => setzeBlatt(ERSTES_BLATT), [entry?.id]);
+
   if (!entry) return <KeineFigur figuren={figuren} />;
 
   const k = konfig();
   const f = k.figur;
   const offen = richtungen(karte);
+  const fuellung = blattfuellung(entry);
+
+  /*
+   * Ein Reiter, der hinausführt, öffnet den Tiefenraum – nicht eine zweite
+   * Ansicht davon. Dieselbe Wahrheit, zwei Türen: die Geste für den, der die
+   * Bedienung kennt, der Reiter für den, der die App zum ersten Mal öffnet.
+   *
+   * Führt die Richtung bei dieser Figur nirgendwohin, bleibt der Reiter beim
+   * Blatt und sagt das dort. Ins Leere schicken tut er niemanden.
+   */
+  const schlageAuf = (bid: string) => {
+    const b = REGISTERBLAETTER.find((x) => x.id === bid);
+    if (b?.hinaus && karte[b.hinaus]) {
+      gehZu(b.hinaus, 1);
+      return;
+    }
+    setzeBlatt(bid);
+  };
   const rolle = [entry.fields?.role, entry.category].filter(
     (x): x is string => typeof x === 'string' && !!x.trim(),
   );
@@ -193,7 +232,15 @@ export function Charakterseite() {
 
   return (
     <div
-      className="dc-figur relative flex min-h-full flex-col overflow-hidden bg-desk-900"
+      /*
+       * Waagerecht: Registerkante links, die Seite rechts daneben.
+       *
+       * Die Kante steht **außerhalb** der Seite und nicht darüber. Eine
+       * Leiste, die über dem Inhalt schwebt, verdeckt beim Lesen die erste
+       * Textspalte; eine Kante nimmt sich ihren Platz und gibt der Seite den
+       * Rest. So sitzt auch das Register in einem Buch.
+       */
+      className="dc-figur relative flex min-h-full overflow-hidden bg-desk-900"
       data-figur={entry.id}
       style={
         {
@@ -219,6 +266,22 @@ export function Charakterseite() {
         aria-hidden
       />
       <div className="dc-korn pointer-events-none absolute inset-0" aria-hidden />
+
+      <Registerkante
+        offen={blatt}
+        waehle={schlageAuf}
+        fuellung={fuellung}
+        breite={f.registerbreite}
+      />
+
+      {/*
+        Die Seite neben der Kante.
+
+        `min-w-0` ist hier keine Formalie: Ohne den Wert weigert sich ein
+        Flex-Kind zu schrumpfen, und die Seite schöbe die Registerkante aus
+        dem Bild – ausgerechnet auf dem schmalsten Gerät.
+      */}
+      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
 
       {/* ---------------------------------------------------------- Kopf --- */}
       {/*
@@ -337,6 +400,32 @@ export function Charakterseite() {
         </div>
       </div>
 
+      {/* ------------------------------------------------------- Das Blatt --- */}
+      {blatt !== 'uebersicht' ? (
+        /*
+         * Ein aufgeschlagenes Registerblatt.
+         *
+         * Das kleine Brustbild bleibt oben stehen, damit man beim Lesen nicht
+         * vergisst, über wen man liest – dasselbe, was das Referenzbild mit
+         * dem gerahmten Portrait oben rechts tut. Das große Bildnis gehört
+         * der Übersicht und käme hier nur in die Quere.
+         */
+        <div className="dc-tiefenraum relative z-10 min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-4">
+          <div className="mb-5 flex items-start gap-4">
+            <Kopfbildnis entry={entry} />
+            <div className="min-w-0 flex-1 pt-1">
+              <p className="font-serif text-[10px] uppercase tracking-[0.26em] text-gild-500/60">
+                {REGISTERBLAETTER.find((b) => b.id === blatt)?.name}
+              </p>
+              <div className="mt-2 text-gild-500/35">
+                <Goldteiler breite={92} />
+              </div>
+            </div>
+          </div>
+          <Blattinhalt blatt={blatt} entry={entry} />
+        </div>
+      ) : (
+      <>
       {/* -------------------------------------------------------- Bildnis --- */}
       {/*
         Die Höhe des Bildnisses.
@@ -415,6 +504,9 @@ export function Charakterseite() {
         </div>
       )}
 
+      </>
+      )}
+
       {/*
         Unten steht die Anleitung – und nur, solange sie gebraucht wird.
 
@@ -433,6 +525,7 @@ export function Charakterseite() {
             Um diese Figur herum ist es noch still.
           </p>
         )}
+      </div>
       </div>
     </div>
   );

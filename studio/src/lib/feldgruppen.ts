@@ -110,6 +110,15 @@ zuordnen('inneres', [
    * gehoert zu dem, was unter der Oberflaeche liegt.
    */
   'background',
+  /*
+   * Der Buchauftritt und das Zitat gehoeren hierher und nicht ans Ende.
+   *
+   * Beide sagen nichts ueber das Umfeld einer Figur, sondern darueber, wie
+   * sie sich zeigt – der eine, wie man sie zum ersten Mal erlebt, das andere,
+   * wie sie klingt. Ohne diese Zeile fielen sie unter „Weiteres", und das ist
+   * genau die Schublade fuer Dinge, an die niemand gedacht hat.
+   */
+  'buchauftritt', 'zitat',
 ]);
 
 zuordnen('handwerk', [
