@@ -159,6 +159,20 @@ const BUILTIN: TemplateDef[] = [
        * Buch, aus dem ein Roman werden soll, ist es die halbe Figur.
        */
       { key: 'buchauftritt', label: 'Charakteristischer Buchauftritt', kind: 'textarea', hint: 'Wie tritt diese Figur zum ersten Mal in Erscheinung?' },
+      /*
+       * Die zwei gemalten Szenen aus dem Referenzbild.
+       *
+       * Sie stehen dort neben der Vergangenheit und neben dem Buchauftritt –
+       * das Maedchen an der Schnauze des Drachen, der aufgeschlagene Band.
+       * Es sind Bilder und keine Zeichen: Was gemalt ist, kann kein Pfad
+       * ersetzen, und der Versuch endete beim Drachen in drei verworfenen
+       * Anlaeufen (siehe `lib/zeichen/embleme.tsx`).
+       *
+       * Also Schaechte, keine Behauptungen. Genommen wird das erste Bild der
+       * Liste; solange keines da ist, steht dort eine Praegung.
+       */
+      { key: 'bildVergangenheit', label: 'Bild zur Vergangenheit', kind: 'images', hint: 'Eine Szene aus ihrer Vorgeschichte.' },
+      { key: 'bildAuftritt', label: 'Bild zum Buchauftritt', kind: 'images', hint: 'Der Moment, in dem sie zum ersten Mal erscheint.' },
       { key: 'zitat', label: 'Zitat', kind: 'textarea', hint: 'Ein Satz, den nur sie sagen würde.' },
       { key: 'personality', label: 'Persönlichkeit', kind: 'textarea' },
       /* Ein Bewohner ist kein NPC. Diese Felder machen den Unterschied. */

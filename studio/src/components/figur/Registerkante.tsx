@@ -16,6 +16,7 @@
  */
 
 import { zeichenFuer } from '../../lib/zeichen/zeichen';
+import { DRACHE_MINDESTGROESSE, Drachenmarke } from '../../lib/zeichen/embleme';
 import { REGISTERBLAETTER, type Blattfuellung } from './Register';
 import { cx } from '../../lib/utils';
 
@@ -31,6 +32,12 @@ export function Registerkante({
   /** Wie breit die Kante ist – aus dem Stimmzimmer. */
   breite: number;
 }) {
+  /*
+   * Wie groß die Marke sein darf: so breit wie die Kante minus etwas Luft –
+   * und gar nicht, wenn das unter die Mindestgröße fällt.
+   */
+  const marke = breite - 12 >= DRACHE_MINDESTGROESSE ? Math.min(breite - 12, 38) : 0;
+
   return (
     <nav
       className="dc-registerkante relative z-20 flex shrink-0 flex-col justify-center gap-1 overflow-hidden py-3"
@@ -50,6 +57,20 @@ export function Registerkante({
       }}
       aria-label="Register"
     >
+      {/*
+        Die Marke oben.
+
+        Sie ist so groß, wie sie sein muss, und nicht so groß, wie Platz ist –
+        unter `DRACHE_MINDESTGROESSE` wird aus der Windung ein Fleck. Passt sie
+        nicht in die eingestellte Kantenbreite, bleibt sie lieber ganz weg: Ein
+        Wappen, das man nicht erkennt, sieht nach Druckfehler aus.
+      */}
+      {marke > 0 && (
+        <div className="mb-1 flex shrink-0 justify-center text-gild-500/45" aria-hidden>
+          <Drachenmarke groesse={marke} />
+        </div>
+      )}
+
       {REGISTERBLAETTER.map((b) => {
         const Z = zeichenFuer(b.zeichen);
         const aktiv = b.id === offen;
@@ -115,6 +136,13 @@ export function Registerkante({
           </button>
         );
       })}
+
+      {/* Und dieselbe Marke unten, gespiegelt – wie zwei Prägungen an einem Band. */}
+      {marke > 0 && (
+        <div className="mt-1 flex shrink-0 justify-center text-gild-500/45" aria-hidden>
+          <Drachenmarke groesse={marke} className="-scale-y-100" />
+        </div>
+      )}
     </nav>
   );
 }

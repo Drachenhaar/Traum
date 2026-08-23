@@ -26,6 +26,7 @@ import { useStudio } from '../../store/useStudio';
 import { relationsOf } from '../../lib/relations';
 import { Goldteiler, zeichenFuer } from '../../lib/zeichen/zeichen';
 import { Bildnis } from './Bildnis';
+import { Buchmarke, Drachenschatten } from '../../lib/zeichen/embleme';
 import { cx } from '../../lib/utils';
 import type { Entry } from '../../types';
 
@@ -146,6 +147,41 @@ function Kopfangaben({ entry }: { entry: Entry }) {
   );
 }
 
+/**
+ * Eine gemalte Szene neben einem Abschnitt – oder eine Prägung, wo keine ist.
+ *
+ * Das Referenzbild hat hier zwei Bilder: das Mädchen an der Schnauze des
+ * Drachen, den aufgeschlagenen Band. Beide sind gemalt, und was gemalt ist,
+ * kann kein Pfad ersetzen – der Versuch, wenigstens den Drachen zu zeichnen,
+ * hat drei Anläufe gekostet und ist gescheitert (siehe `embleme.tsx`).
+ *
+ * Also derselbe Umgang wie beim Bildnis: ein Schacht, und solange er leer
+ * ist, etwas, das nicht nach Fehler aussieht.
+ */
+function Szenenbild({ bildId, marke }: { bildId?: string; marke: 'buch' | 'drache' }) {
+  if (bildId)
+    return (
+      <Bildnis
+        bildId={bildId}
+        schacht="beziehungsbildnis"
+        ecken
+        className="h-[104px] w-[124px] shrink-0 rounded-[2px]"
+      />
+    );
+  return (
+    <div
+      className="grid h-[104px] w-[124px] shrink-0 place-items-center rounded-[2px] text-gild-500/20"
+      style={{ boxShadow: 'inset 0 0 0 1px rgba(184,134,11,0.10)' }}
+      data-szene="leer"
+      aria-hidden
+    >
+      {marke === 'buch' ? <Buchmarke groesse={52} /> : <Drachenschatten groesse={64} />}
+    </div>
+  );
+}
+
+const erstesBild = (v: unknown): string | undefined => liste(v)[0];
+
 /* ------------------------------------------------------------- Die Blätter */
 
 export function BlattUebersicht({ entry }: { entry: Entry }) {
@@ -160,7 +196,7 @@ export function BlattUebersicht({ entry }: { entry: Entry }) {
       {zitat && (
         <>
           <Satz mittig>
-            <span className="italic text-paper-100/80">„{zitat}"</span>
+            <span className="italic text-paper-100/80">„{zitat}“</span>
           </Satz>
           <Linie />
         </>
@@ -225,10 +261,24 @@ export function BlattWesen({ entry }: { entry: Entry }) {
     return <Still was="Wer sie ist, steht noch nicht geschrieben." />;
 
   return (
-    <div className="space-y-6">
+    <div className="relative space-y-6">
+      {/*
+        Das Wasserzeichen hinter den Listen – wie im Referenzbild.
+
+        Sehr schwach und ohne eigene Aussage: Es soll verhindern, dass eine
+        große dunkle Fläche neben zwei kurzen Listen leer wirkt. Dieselbe
+        Aufgabe, die auf dem Grund der Seite das Korn übernimmt.
+      */}
+      <div
+        className="pointer-events-none absolute -right-4 top-8 text-gild-500/[0.06]"
+        aria-hidden
+      >
+        <Drachenschatten groesse={168} />
+      </div>
+
       {persoenlich && <Satz>{persoenlich}</Satz>}
 
-      <div className="grid gap-6 sm:grid-cols-2">
+      <div className="relative grid gap-6 sm:grid-cols-2">
         {wesen.length > 0 && (
           <section>
             <Rubrik>Wesen</Rubrik>
@@ -282,8 +332,16 @@ export function BlattVergangenheit({ entry }: { entry: Entry }) {
       {was && (
         <section>
           <Rubrik>Vergangenheit</Rubrik>
-          <div className="mt-1.5">
-            <Satz>{was}</Satz>
+          {/*
+            Bild und Text nebeneinander wie im Bild – aber erst, wenn Platz
+            ist. Auf 334 Punkten neben einem 124 Punkte breiten Bild blieben
+            dem Text zweihundert, und das sind vier Woerter je Zeile.
+          */}
+          <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-start">
+            <Szenenbild bildId={erstesBild(entry.fields?.bildVergangenheit)} marke="drache" />
+            <div className="min-w-0 flex-1">
+              <Satz>{was}</Satz>
+            </div>
           </div>
         </section>
       )}
@@ -363,8 +421,11 @@ export function BlattZitat({ entry }: { entry: Entry }) {
       {auftritt && (
         <section>
           <Rubrik>Charakteristischer Buchauftritt</Rubrik>
-          <div className="mt-2">
-            <Satz>{auftritt}</Satz>
+          <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-start">
+            <Szenenbild bildId={erstesBild(entry.fields?.bildAuftritt)} marke="buch" />
+            <div className="min-w-0 flex-1">
+              <Satz>{auftritt}</Satz>
+            </div>
           </div>
         </section>
       )}
@@ -379,7 +440,7 @@ export function BlattZitat({ entry }: { entry: Entry }) {
             <Goldteiler breite={110} />
           </div>
           <p className="mt-6 text-center font-serif text-[19px] italic leading-[1.5] text-paper-100/85">
-            „{zitat}"
+            „{zitat}“
           </p>
           <div className="mt-6 flex justify-center text-gild-500/40">
             <Goldteiler breite={110} />

@@ -450,7 +450,7 @@ export const VORGABE: Raumkonfig = {
     linienstaerke: 0.7,
     grundtiefe: 0.5,
     kornstaerke: 0.5,
-    registerbreite: 52,
+    registerbreite: 56,
   },
 
   haptik: {
