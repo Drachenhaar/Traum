@@ -119,5 +119,33 @@ for (const noetig of ['--satz-raster', '--satz-mass', '--satz-steg-unten']) {
 pruefe('Jeder Grad gibt auch Zeilenabstand und Sperrung aus',
   /--satz-\$\{name\}-zeile/.test(quelle) && /--satz-\$\{name\}-sperre/.test(quelle));
 
+/*
+ * 6 Kommt die Setzerei bei den Buchseiten an?
+ *
+ * Die Frage klingt trivial und war es nicht. Nach dem ganzen Umbau sah das
+ * Buch beim Aufschlagen aus wie vorher – und der Grund stand in einer
+ * einzigen Zeile Suchergebnis: `grep -rln "satz-" src/pages/book/` fand
+ * **nichts**. Das Mass war gebaut, gepruft und dokumentiert, und keine
+ * Buchseite benutzte es.
+ *
+ * Deshalb pruefen die folgenden Zusicherungen nicht das Mass selbst, sondern
+ * seine *Ankunft*: Der gemeinsame Rahmen aller Buchseiten muss die Zeile
+ * begrenzen, den Falz beruecksichtigen und einen Fusssteg aus dem Raster
+ * haben. Eine Setzerei, die niemand benutzt, ist keine.
+ */
+console.log('6 Ankunft auf den Buchseiten');
+const rahmen = readFileSync(new URL('../src/components/book/Spread.tsx', import.meta.url), 'utf8');
+pruefe('Der Seitenrahmen begrenzt die Zeilenlänge', /const SPALTE = \d+/.test(rahmen));
+const spalte = Number((rahmen.match(/const SPALTE = (\d+)/) ?? [])[1]);
+/* Der Kasten traegt die Stege mit; 112 Punkte davon sind Rand am Schreibtisch. */
+pruefe(
+  'Die Spalte darin bleibt unter 75 Zeichen',
+  (spalte - 112) / (0.408 * 17) < 75,
+  `${Math.round((spalte - 112) / (0.408 * 17))} Zeichen`,
+);
+pruefe('Der Innensteg unterscheidet sich vom Außensteg', /side === 'left' \? 'pl-\d+ pr-\d+/.test(rahmen));
+pruefe('Der Fußsteg kommt aus dem Raster', /--satz-raster/.test(rahmen));
+pruefe('Die Seitenzahl ist eine Buchseitenzahl', /satz-seitenzahl/.test(rahmen));
+
 console.log(`\n  ${bestanden} bestanden, ${gescheitert} gescheitert\n`);
 process.exit(gescheitert ? 1 : 0);

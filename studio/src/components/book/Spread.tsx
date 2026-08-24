@@ -50,6 +50,28 @@ export function Spread({
  * Seiten. Man bemerkt sie nicht bewusst – man merkt nur, dass das Buch benutzt
  * aussieht.
  */
+/**
+ * Wie breit eine Buchspalte sein darf.
+ *
+ * Gemessen wurden in Chromium mit der Schriftkaskade des Buches **0,408 em je
+ * Zeichen**. Der Lesetext steht auf 17 Punkten (die Anmutung darf ihn
+ * verschieben, das ist die Wahl des Verfassers). Damit gilt:
+ *
+ *     620 px  →  89 Zeichen     zu viel
+ *     480 px  →  69 Zeichen     die Obergrenze aus dem Auftrag
+ *
+ * Deshalb 480 und nicht 620. Auf einem Telefon ist die Seite ohnehin
+ * schmaler, und die Zahl tut dort nichts – sie greift am Schreibtisch, wo
+ * sonst die sehr lange Zeile entsteht, aus der das Auge nicht mehr an den
+ * richtigen Anfang zurueckfindet.
+ *
+ * **Die Zahl ist der Kasten, nicht die Spalte.** Die Stege liegen innerhalb
+ * der Hoechstbreite – wer hier 480 einsetzt, bekommt eine Spalte von 412 und
+ * damit 59 Zeichen. Am Schreibtisch sind die Stege zusammen 112 Punkte breit
+ * (16 + 12 mal vier), also traegt der Kasten 480 + 112.
+ */
+const SPALTE = 592;
+
 function Leaf({
   children,
   side,
@@ -84,16 +106,53 @@ function Leaf({
         />
       )}
 
+      {/*
+        Der Satzspiegel – und warum er hier steht und nicht auf jeder Seite.
+
+        Hier stand eine Web-Mitte: gleiche Raender links und rechts, ein
+        schmaler Fusssteg, und eine Spalte von 620 Punkten. Gemessen sind das
+        neunundachtzig Zeichen je Zeile – zwanzig mehr, als ein Buch je
+        zulaesst. Genau das war der Grund, warum das Buch nach der ganzen
+        Setzerei „aussah wie vorher": Die Setzerei kam nie auf den Buchseiten
+        an, es gab dort keine einzige `satz-`Klasse.
+
+        Sie kommt jetzt an genau einer Stelle an, und zwar an der richtigen:
+        `Leaf` ist der Rahmen **jeder** Buchseite. Eintrag, Kapitel, Inhalt,
+        Vorwort, Register, Anhang – alle liegen darin.
+
+        Drei Dinge aendern sich:
+
+        1. **Der Innensteg ist breiter als der Aussensteg.** `Leaf` weiss als
+           einziges Bauteil, ob es eine linke oder rechte Seite ist – und nur
+           wer das weiss, kann den Falz beruecksichtigen. Auf dem Telefon gibt
+           es nur eine Seite; dort liegt der Falz links.
+        2. **Der Fusssteg ist der groesste.** Ohne Stand kippt der Text aus
+           dem Blatt.
+        3. **Die Zeile wird begrenzt** – siehe `SPALTE` unten.
+      */}
       <div className="scroll-slim relative flex-1 overflow-y-auto overscroll-y-contain">
-        <div className="mx-auto w-full max-w-[620px] px-7 pb-4 pt-9 sm:px-12 sm:pt-14 lg:px-14">
+        <div
+          className={cx(
+            'mx-auto w-full pt-9 sm:pt-14',
+            /* Innen breiter als aussen – der Falz frisst Papier. */
+            side === 'left' ? 'pl-7 pr-10 sm:pl-12 sm:pr-16' : 'pl-10 pr-7 sm:pl-16 sm:pr-12',
+          )}
+          style={{ maxWidth: SPALTE, paddingBottom: 'calc(var(--satz-raster) * 2)' }}
+        >
           {children}
         </div>
       </div>
 
-      <div className="relative shrink-0 px-7 pb-4 pt-1 sm:px-12 lg:px-14">
+      {/*
+        Die Seitenzahl steht **aussen**, nicht in der Mitte.
+
+        Im aufgeschlagenen Buch liegen die Zahlen an den Schnittkanten, weil
+        man dort blaettert. `side` weiss, welche Kante das ist.
+      */}
+      <div className="relative shrink-0 px-7 pt-1 sm:px-12 lg:px-14" style={{ paddingBottom: 'calc(var(--satz-raster) * 0.75)' }}>
         <span
           className={cx(
-            'block font-serif text-[12px] tracking-[0.18em] text-ink-faint/70',
+            'satz-seitenzahl block text-ink-faint/70',
             side === 'left' ? 'text-left' : 'text-right',
           )}
         >
