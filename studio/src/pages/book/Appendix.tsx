@@ -15,8 +15,9 @@ import { ArrowLeft, ChevronDown, Eye, EyeOff, Library } from 'lucide-react';
 import { useStudio } from '../../store/useStudio';
 import { ordne, profilVon, type Werkzeug } from '../../lib/profil';
 import { geheimZeile } from '../../lib/geheim';
+import { cx } from '../../lib/utils';
 import { useCurrentSpread } from '../../components/book/BookShell';
-import { Spread } from '../../components/book/Spread';
+import { Spread, stege } from '../../components/book/Spread';
 
 /**
  * Ein Anhang – und zugleich ein Werkzeug im Sinne von `lib/profil.ts`.
@@ -395,7 +396,27 @@ export function AppendixSheet({
   return (
     <div className="mx-auto flex w-full max-w-[1200px] flex-1 justify-center">
       <div className="paper-sheet scroll-slim relative flex min-h-0 w-full flex-col overflow-y-auto overscroll-y-contain">
-        <div className="mx-auto w-full max-w-[980px] px-6 pb-12 pt-8 sm:px-12 sm:pt-12">
+        {/*
+          Ein Anhangsblatt ist eine **Werkbank**, keine Leseseite.
+
+          Hier stand kurzzeitig dieselbe Spalte wie im Buchblock – 480 Punkte.
+          Das war falsch, und man sah es sofort: Die Setzerei hat zwei Spalten,
+          Manuskript und Andruck. In 480 Punkte gezwaengt blieb dem Andruck
+          kein Platz, das Textfeld zeigte drei Woerter je Zeile, und die halbe
+          Seite lag leer daneben.
+
+          Das Mass schuetzt **Fliesstext** vor zu langen Zeilen. Ein Werkzeug
+          ist kein Fliesstext. Und der Fliesstext, den es hier gibt, ist längst
+          begrenzt: Zehn dieser Blaetter tragen ihr eigenes `max-w-[44ch]` bis
+          `[52ch]` – am Inhalt, wo es hingehoert, und nicht am Blatt.
+
+          Was vom Satzspiegel bleibt und richtig ist: der Innensteg am Falz und
+          ein Fusssteg aus dem Raster.
+        */}
+        <div
+          className={cx('mx-auto w-full max-w-[980px] pt-8 sm:pt-12', stege('single'))}
+          style={{ paddingBottom: 'calc(var(--satz-raster) * 2.5)' }}
+        >
           <button
             type="button"
             onClick={() => navigate('/anhang')}

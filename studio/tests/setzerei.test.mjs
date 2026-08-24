@@ -143,9 +143,37 @@ pruefe(
   (spalte - 112) / (0.408 * 17) < 75,
   `${Math.round((spalte - 112) / (0.408 * 17))} Zeichen`,
 );
-pruefe('Der Innensteg unterscheidet sich vom Außensteg', /side === 'left' \? 'pl-\d+ pr-\d+/.test(rahmen));
+pruefe(
+  'Der Innensteg unterscheidet sich vom Außensteg',
+  /export function stege/.test(rahmen) && /pl-7 pr-10/.test(rahmen) && /pl-10 pr-7/.test(rahmen),
+);
 pruefe('Der Fußsteg kommt aus dem Raster', /--satz-raster/.test(rahmen));
 pruefe('Die Seitenzahl ist eine Buchseitenzahl', /satz-seitenzahl/.test(rahmen));
+
+/*
+ * Und die Seiten, die ihr Blatt **selbst** bauen?
+ *
+ * Die Anhangsblätter gehen nicht durch `Leaf`: eigenes Papier, eigener
+ * Scrollbereich. Der erste Reflex war, ihnen dieselbe Spalte zu geben – und
+ * das war falsch. Ein Anhangsblatt ist eine Werkbank: Die Setzerei hat zwei
+ * Spalten, Manuskript und Andruck. In 480 Punkte gezwängt zeigte das
+ * Textfeld drei Wörter je Zeile.
+ *
+ * Das Maß schützt Fließtext, nicht Werkzeuge. Der Fließtext dort ist längst
+ * am Inhalt begrenzt – zehn Blätter tragen ihr eigenes `max-w-[Nch]`.
+ * Geprüft wird deshalb, was wirklich gelten muss: dass sie den Falz kennen,
+ * einen Fußsteg aus dem Raster haben, und dass die Begrenzung am Inhalt
+ * nicht verschwindet.
+ */
+const anhang = readFileSync(new URL('../src/pages/book/Appendix.tsx', import.meta.url), 'utf8');
+pruefe('Die Anhangsblätter kennen den Falz', /stege\('single'\)/.test(anhang));
+pruefe('Ihr Fußsteg kommt aus dem Raster', /--satz-raster/.test(anhang));
+
+const buchseiten = readFileSync(new URL('../src/pages/book/MeinBuch.tsx', import.meta.url), 'utf8');
+pruefe(
+  'Der Fließtext der Anhangsblätter bleibt am Inhalt begrenzt',
+  /max-w-\[\d+ch\]/.test(anhang) && /max-w-\[\d+ch\]/.test(buchseiten),
+);
 
 console.log(`\n  ${bestanden} bestanden, ${gescheitert} gescheitert\n`);
 process.exit(gescheitert ? 1 : 0);
