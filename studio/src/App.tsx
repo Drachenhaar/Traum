@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { HashRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { BookShell } from './components/book/BookShell';
+import { schlageBandAuf } from './lib/baende';
 import { Cover } from './components/book/Cover';
 import { ForewordSpread } from './pages/book/ForewordSpread';
 import { ContentsSpread } from './pages/book/ContentsSpread';
@@ -65,6 +66,22 @@ export default function App() {
    * dem Augenblick weg, in dem er entsteht. Er ist aber der Grund, warum das
    * hier keine Einrichtung ist.
    */
+  /*
+   * Den Band aufschlagen – hier und nicht in der Buchhülle.
+   *
+   * Zuerst stand das in `BookShell`, und gemessen hatte die Titelseite gar
+   * keinen Band: `/`, `/bibliothek` und `/neues-buch` liegen **ausserhalb**
+   * der Hülle. Ausgerechnet die Titelseite – die Seite, auf der man den Tisch,
+   * den Einband und die Prägung am deutlichsten sieht – wäre die einzige
+   * geblieben, die immer nach Pergament aussieht.
+   *
+   * Der Band gehört zum ganzen Programm und nicht zu einem Teil davon. Also
+   * an die Wurzel.
+   */
+  useEffect(() => {
+    schlageBandAuf(identity?.band);
+  }, [identity?.band]);
+
   const [imWerden, setImWerden] = useState<boolean | null>(null);
 
   useEffect(() => {

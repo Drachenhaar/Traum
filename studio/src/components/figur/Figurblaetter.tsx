@@ -229,7 +229,7 @@ function Szenenbild({
   return (
     <div
       className="grid h-[104px] w-[124px] shrink-0 place-items-center rounded-[2px] text-gild-500/20"
-      style={{ boxShadow: 'inset 0 0 0 1px rgba(184,134,11,0.10)' }}
+      style={{ boxShadow: 'inset 0 0 0 1px rgb(var(--dc-metall-500) / 0.10)' }}
       data-szene="leer"
       aria-hidden
     >

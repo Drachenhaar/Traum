@@ -41,39 +41,48 @@
     /* Das Gold, mit dem geschrieben wird – die alten `gild-600`/`gild-500`. */
     --dc-schriftgold: 140 101 16;
     --dc-schriftgold-hell: 184 134 11;
+
+    /*
+     * Das Metall der Prägung – die alte feste `gild`-Palette.
+     *
+     * Sie muss hier stehen und nicht nur in `lib/baende.ts`: Zwischen dem
+     * ersten Anstrich der Seite und dem Augenblick, in dem das Skript den Band
+     * aufschlägt, liegen ein paar Bilder. Ohne Ruhelage wäre `gild` in dieser
+     * Zeit gar keine Farbe – und eine ungültige Farbe ist nicht blass, sondern
+     * lässt die ganze Regel ausfallen.
+     */
+    --dc-metall-300: 227 200 120;
+    --dc-metall-400: 212 175 55;
+    --dc-metall-500: 184 134 11;
+    --dc-metall-600: 140 101 16;
+
+    /* Das Akzentmetall – die alten `brass`-Werte als Ruhelage. */
+    --dc-akzent-300: 211 188 140;
+    --dc-akzent-400: 192 164 104;
+    --dc-akzent-500: 168 133 63;
+    --dc-akzent-600: 140 109 49;
+
+    /* Der Tisch, auf dem das Buch liegt. */
+    --dc-tisch-1: #1a1512;
+    --dc-tisch-2: #100d0b;
+    --dc-tisch-3: #0b0908;
   }
 
   /*
-   * Der dunkle Band.
+   * Die Bände stehen nicht mehr hier.
    *
-   * Dieselbe Sprache wie die Charakterseite: fast schwarz und warm, Schrift
-   * aus Pergament, Linien aus mattem Gold. Es ist **kein Nachtmodus** – ein
-   * Nachtmodus dreht Helligkeit, damit Augen es abends leichter haben. Hier
-   * wechselt das Material: aus einem hellen Buch auf dunklem Tisch wird ein
-   * dunkler Band mit goldener Prägung.
+   * An dieser Stelle stand einmal ein zweiter Block `html[data-band='dunkel']`
+   * mit den dunklen Werten. Bei zwei Bänden war das richtig; bei sechs wären
+   * es sechs handgeschriebene Blöcke, und der erste, der einen neuen Ton
+   * hinzufügt, vergisst ihn in dreien davon – ohne dass etwas kaputt aussieht.
+   * Die Variable bliebe einfach auf dem Wert des zuletzt gesetzten Bandes
+   * stehen.
    *
-   * Der Unterschied ist an einer Zahl abzulesen: Die Schrift wird nicht
-   * einfach weiß (255), sondern Pergament (230 220 196). Weiß auf Schwarz ist
-   * ein Bildschirm; Pergament auf Braunschwarz ist ein Buch.
+   * Die Bände sind deshalb **Daten** (`lib/baende.ts`) und werden beim
+   * Aufschlagen an die Wurzel geschrieben. Was oben steht, ist nur noch die
+   * Ruhelage: Pergament, damit ein Buch auch dann richtig aussieht, wenn das
+   * Skript noch nicht gelaufen ist.
    */
-  html[data-band='dunkel'] {
-    --dc-grund-50: 22 18 15;
-    --dc-grund-100: 27 22 19;
-    --dc-grund-200: 32 26 22;
-    --dc-grund-300: 42 34 28;
-
-    --dc-schrift: 230 220 196;
-    --dc-schrift-leise: 176 162 133;
-    --dc-schrift-fein: 130 118 97;
-
-    --dc-linie: 58 47 34;
-    --dc-linie-stark: 87 70 47;
-
-    --dc-mahnung: 214 134 118;
-
-    --dc-schriftgold: 201 161 95;
-    --dc-schriftgold-hell: 227 200 120;
-  }
 
   html,
   body,
@@ -173,9 +182,14 @@
   /* Der Tisch, auf dem das Buch liegt. Warmes Streiflicht von oben links. */
   .desk-surface {
     background:
-      radial-gradient(120% 90% at 22% 0%, rgba(212, 175, 55, 0.09) 0%, transparent 55%),
+      radial-gradient(120% 90% at 22% 0%, rgb(var(--dc-metall-400) / 0.09) 0%, transparent 55%),
       radial-gradient(90% 70% at 80% 100%, rgba(120, 90, 50, 0.08) 0%, transparent 60%),
-      linear-gradient(160deg, #1a1512 0%, #100d0b 55%, #0b0908 100%);
+      linear-gradient(
+        160deg,
+        var(--dc-tisch-1, #1a1512) 0%,
+        var(--dc-tisch-2, #100d0b) 55%,
+        var(--dc-tisch-3, #0b0908) 100%
+      );
   }
 
   /*
@@ -243,19 +257,6 @@
   }
 
   /*
-   * Der dunkle Bogen.
-   *
-   * Ein Lichthof statt einer Aufhellung: Wo das helle Papier zur Mitte hin
-   * *heller* wird, wird der dunkle Bogen dort waermer – als laege ein Licht
-   * darueber. Dieselbe Geste, anderes Material.
-   */
-  html[data-band='dunkel'] .paper-sheet {
-    --dc-blattgrund: #17130f;
-    --dc-fleck: rgba(184, 134, 11, 0.045);
-    --dc-lichthof: rgba(120, 96, 58, 0.16);
-  }
-
-  /*
    * Der Falz: die Seite dunkelt zur Buchmitte hin ab.
    *
    * **`--dc-falzschatten` und nicht `--dc-falz`.** `--dc-falz` ist bereits
@@ -272,18 +273,7 @@
   .gutter-right {
     box-shadow: inset 22px 0 34px -26px var(--dc-falzschatten, rgba(60, 44, 26, 0.55));
   }
-  /* Im dunklen Band ist der Falz tiefes Schwarz statt Braun. */
-  html[data-band='dunkel'] {
-    --dc-falzschatten: rgba(0, 0, 0, 0.72);
-    /*
-     * Der Lesetext im dunklen Band ist **heller als die Marke `ink`**, und
-     * das ist Absicht: Ein Absatz, den man minutenlang liest, braucht mehr
-     * Ruhe als eine Ueberschrift, die man ueberfliegt. Auf hellem Papier
-     * heisst das dunkler, auf dunklem Grund heller.
-     */
-    --dc-lesetext: #ded2b4;
-    --dc-initiale: #c9a15f;
-  }
+
 
   /* Goldlinie unter Kapitelzeilen – dünn, nie plakativ. */
   .rule-gild {
@@ -309,9 +299,7 @@
      */
     color: var(--dc-rubrik, #8c6510);
   }
-  html[data-band='dunkel'] {
-    --dc-rubrik: #c9a15f;
-  }
+
 
   /* Initiale am Textanfang, wie im gesetzten Buch. */
   .dropcap::first-letter {

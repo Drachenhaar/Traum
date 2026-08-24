@@ -60,8 +60,9 @@ export function Registerkante({
          * liegen.
          */
         background:
-          'linear-gradient(to left, #0b0908 0%, #16120f 62%, #1d1814 100%)',
-        boxShadow: 'inset 1px 0 0 rgba(184,134,11,0.16)',
+          'linear-gradient(to left, var(--dc-tisch-3) 0%, var(--dc-tisch-2) 62%, var(--dc-tisch-1) 100%)',
+        /* Die Naht ist aus dem Metall des Bandes und nicht aus festem Gold. */
+        boxShadow: 'inset 1px 0 0 rgb(var(--dc-metall-500) / 0.16)',
       }}
       aria-label="Register"
     >
@@ -124,8 +125,9 @@ export function Registerkante({
                 className="pointer-events-none absolute inset-y-[3px] left-0 right-[3px] rounded-r-[2px]"
                 style={{
                   background:
-                    'linear-gradient(to left, rgba(212,175,55,0.10) 0%, rgba(212,175,55,0.05) 55%, rgba(212,175,55,0) 100%)',
-                  boxShadow: 'inset 0 0 0 1px rgba(212,175,55,0.18)',
+                    'linear-gradient(to left, rgb(var(--dc-metall-400) / 0.10) 0%,' +
+                    ' rgb(var(--dc-metall-400) / 0.05) 55%, transparent 100%)',
+                  boxShadow: 'inset 0 0 0 1px rgb(var(--dc-metall-400) / 0.18)',
                 }}
                 aria-hidden
               />

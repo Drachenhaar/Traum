@@ -31,6 +31,7 @@ import {
   type Profil,
 } from '../../lib/profil';
 import type { BookIdentity } from '../../types';
+import { BAENDE, BAND_VORGABE, bandVon } from '../../lib/baende';
 import { cx } from '../../lib/utils';
 
 const T = BUCH_TEXTE.meinBuch;
@@ -108,6 +109,38 @@ export function MeinBuchSheet() {
               gewaehlt={book.coverColor}
               onWaehlen={(id) => aendern({ coverColor: id })}
             />
+          </Abschnitt>
+
+          {/* ------------------------------------------------------- Band */}
+          {/*
+            Aus welchem Stoff dieses Buch gebunden ist.
+            
+            Die Probe zeigt, was der Band wirklich tut: den Grund, auf dem
+            gelesen wird, und das Metall, mit dem geprägt ist. Ein Farbfeld
+            allein sagte nichts – der Unterschied zwischen Moos und Rotholz
+            ist nicht der Grundton, sondern Messing gegen Kupfer.
+            
+            Und es steht hier und nicht im Stimmzimmer: Der Band gehört zu
+            diesem Buch. Zwei Bücher in derselben Bibliothek dürfen aus
+            verschiedenem Material sein.
+          */}
+          <Abschnitt titel="Der Band">
+            <Proben
+              werte={BAENDE.map((b) => ({
+                id: b.id,
+                label: b.name,
+                style: {
+                  background:
+                    `linear-gradient(150deg, rgb(${b.toene.grund100}) 0%, rgb(${b.toene.grund300}) 100%)`,
+                  boxShadow: `inset 0 0 0 2px rgb(${b.toene.metall400})`,
+                },
+              }))}
+              gewaehlt={book.band ?? BAND_VORGABE}
+              onWaehlen={(id) => aendern({ band: id })}
+            />
+            <p className="mt-3 max-w-[46ch] font-serif text-[13.5px] italic leading-relaxed text-ink-muted">
+              {bandVon(book.band).wesen}
+            </p>
           </Abschnitt>
 
           {/* ---------------------------------------------------- Zeichen */}

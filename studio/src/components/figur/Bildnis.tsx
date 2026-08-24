@@ -82,8 +82,17 @@ function Bildnisplatte({ titel, gross }: { titel: string; gross: boolean }) {
        * genau das, was nicht sein soll: ein grauer Kasten in Braun.
        */
       style={{
+        /*
+         * Auch die Platte hinter einem fehlenden Bildnis folgt dem Band.
+         *
+         * Drei feste Braunwerte standen hier – und im Band Tinte blieb genau
+         * an dieser Stelle ein warmer Fleck mitten auf einer kuehlen Seite.
+         * Die Stufen des Grundes tun dasselbe, nur je Band: 300 ist immer der
+         * Ton, der einen Schritt vom Blatt weg liegt.
+         */
         background:
-          'radial-gradient(120% 90% at 50% 22%, #241d17 0%, #171310 48%, #0d0b09 100%)',
+          'radial-gradient(120% 90% at 50% 22%, rgb(var(--dc-grund-300)) 0%,' +
+          ' rgb(var(--dc-grund-200)) 48%, rgb(var(--dc-grund-50)) 100%)',
       }}
       data-bildnis="platte"
     >
@@ -92,7 +101,7 @@ function Bildnisplatte({ titel, gross }: { titel: string; gross: boolean }) {
         className="pointer-events-none absolute inset-x-0 top-0 h-2/3"
         style={{
           background:
-            'radial-gradient(70% 100% at 50% 0%, rgba(212,175,55,0.10) 0%, rgba(212,175,55,0) 70%)',
+            'radial-gradient(70% 100% at 50% 0%, rgb(var(--dc-metall-400) / 0.10) 0%, transparent 70%)',
         }}
         aria-hidden
       />
@@ -188,7 +197,7 @@ export function Bildnis({
           <div
             className="pointer-events-none absolute inset-0"
             style={{
-              background: `linear-gradient(to top, rgba(10,8,7,${z.schleier * 1.5}) 0%, rgba(10,8,7,${
+              background: `linear-gradient(to top, rgb(var(--dc-grund-50) / ${z.schleier * 1.5}) 0%, rgb(var(--dc-grund-50) / ${
                 z.schleier * 0.55
               }) 34%, rgba(10,8,7,0) 62%)`,
             }}

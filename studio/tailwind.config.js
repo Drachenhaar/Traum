@@ -12,12 +12,24 @@ export default {
           300: '#D9CCAE',
           400: '#C4B48F',
         },
-        // Blattgold – Kapitelzeichen, Linien, Lesezeichen
+        /*
+         * Das Metall des Bandes – Kapitelzeichen, Linien, Lesezeichen.
+         *
+         * Hieß früher „Blattgold" und war fest. Seit es mehrere Bände gibt,
+         * ist Gold nur einer von mehreren Stoffen: Elfenbein trägt Silber,
+         * Moos trägt Messing, Rotholz trägt Kupfer. Ein Band, der nur den
+         * Grund tauscht und das Gold stehen lässt, ist kein anderes Material,
+         * sondern dasselbe Buch bei anderem Licht.
+         *
+         * Der Name `gild` bleibt, weil er an 200 Stellen steht und dort
+         * weiterhin dasselbe *bedeutet*: die Prägung. Was sich ändert, ist
+         * woraus sie ist – siehe `lib/baende.ts`.
+         */
         gild: {
-          300: '#E3C878',
-          400: '#D4AF37',
-          500: '#B8860B',
-          600: '#8C6510',
+          300: 'rgb(var(--dc-metall-300) / <alpha-value>)',
+          400: 'rgb(var(--dc-metall-400) / <alpha-value>)',
+          500: 'rgb(var(--dc-metall-500) / <alpha-value>)',
+          600: 'rgb(var(--dc-metall-600) / <alpha-value>)',
         },
         // Der dunkle Tisch, auf dem das Buch liegt
         desk: {
@@ -69,12 +81,21 @@ export default {
           500: '#525B44',
           400: '#7A8467',
         },
-        // Gedecktes Messing – Akzent
+        /*
+         * Das Akzentmetall – der Ring um eine Wahl, der Schalter, der Punkt.
+         *
+         * Folgt dem Band wie `gild`, ist aber nicht dasselbe: `gild` schmueckt,
+         * `brass` zeigt an. Deshalb ist es in jedem Band etwas matter – ein
+         * Bedienelement, das so glaenzt wie die Praegung, wird zur Verzierung.
+         *
+         * Im Band Pergament stehen exakt die alten Werte. Der helle Band darf
+         * sich durch diesen Umbau nicht veraendern.
+         */
         brass: {
-          300: '#D3BC8C',
-          400: '#C0A468',
-          500: '#A8853F',
-          600: '#8C6D31',
+          300: 'rgb(var(--dc-akzent-300) / <alpha-value>)',
+          400: 'rgb(var(--dc-akzent-400) / <alpha-value>)',
+          500: 'rgb(var(--dc-akzent-500) / <alpha-value>)',
+          600: 'rgb(var(--dc-akzent-600) / <alpha-value>)',
         },
         /* Die Schrift auf der Seite – siehe die Anmerkung bei `cream`. */
         ink: {
@@ -88,14 +109,13 @@ export default {
         /* Der Widerspruch im Weltwissen – siehe die Anmerkung in index.css. */
         mahnung: 'rgb(var(--dc-mahnung) / <alpha-value>)',
         /*
-         * **Schriftgold** – und ausdruecklich nicht `gild`.
+         * **Schriftgold** – das Metall, mit dem *geschrieben* wird.
          *
-         * `gild` bleibt eine Palette mit festen Werten, weil die dunklen
-         * Seiten (Charakterseite, Tiefenraum, Registerkante) ihre Linien und
-         * Zeichen daraus beziehen und dort schon richtig aussehen. Was den
-         * Band wechseln muss, ist nur das Gold, mit dem *geschrieben* wird:
-         * Auf hellem Papier ist das ein tiefes Ocker, auf dunklem Grund muss
-         * es heller werden, sonst steht dunkles Gold auf dunklem Grund.
+         * Nicht dasselbe wie `gild`, obwohl beide inzwischen dem Band folgen:
+         * `gild` ist die Praegung – Linien, Zeichen, Rahmenecken, Reiter.
+         * `gold` ist Schrift: Rubriken, Verweise, die Zeile unter einem Bild.
+         * Schrift braucht mehr Kontrast als eine Linie, und auf hellem Papier
+         * muss sie dunkler sein als die Praegung, auf dunklem Grund heller.
          *
          * Die Trennung war messbar: `text-gild-600` kam 103-mal vor – und
          * kein einziges Mal auf einer der dunklen Seiten. Genau deshalb liess

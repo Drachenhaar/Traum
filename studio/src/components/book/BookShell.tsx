@@ -28,7 +28,7 @@ import { useBlaettern } from './useBlaettern';
 import { spineThickness } from '../../lib/book';
 import { Tiefenmarke, Tiefenraum } from '../raum/Tiefenraum';
 import { useRaum } from '../../lib/raum/useRaum';
-import { beiKonfig, konfig } from '../../lib/raum/konfig';
+import { konfig } from '../../lib/raum/konfig';
 import { standardkarte } from '../../lib/raum/tiefenvorlagen';
 import { useTiefe } from '../raum/useTiefe';
 import { useOberflaeche } from '../raum/useOberflaeche';
@@ -201,18 +201,17 @@ export function BookShell() {
    * Titelseite läge weiter im hellen Papier, während das Buch dahinter dunkel
    * wäre.
    *
-   * `beiKonfig` hängt daran, damit der Regler im Stimmzimmer sofort wirkt –
-   * sonst müsste man für einen Blick auf den anderen Band neu laden.
+   * Die Kennung kommt vom **Buch** und nicht aus dem Stimmzimmer: Aus welchem
+   * Stoff ein Band gebunden ist, gehört zu diesem Buch, und zwei Bücher in
+   * derselben Bibliothek dürfen verschieden aussehen. Der Regler im
+   * Stimmzimmer wäre eine zweite Wahrheit über dieselbe Frage gewesen.
+   *
+   * Die Abhängigkeit ist die Kennung selbst, nicht das ganze Buch: Wer nur
+   * den Titel ändert, soll nicht dreiundzwanzig CSS-Variablen neu schreiben.
    */
-  useEffect(() => {
-    const w = document.documentElement;
-    const setze = () => {
-      if (konfig().figur.dunklerBand >= 0.5) w.dataset.band = 'dunkel';
-      else delete w.dataset.band;
-    };
-    setze();
-    return beiKonfig(setze);
-  }, []);
+  /* Der Band wird an der Wurzel aufgeschlagen (siehe `App.tsx`) – hier nicht
+     noch einmal: Zwei Stellen, die dieselben Variablen schreiben, sind eine
+     Stelle zu viel. */
 
   /*
    * Wie viel Oberfläche gerade dastehen darf.

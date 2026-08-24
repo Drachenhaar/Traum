@@ -301,7 +301,21 @@ export function Charakterseite() {
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          background: `radial-gradient(120% 78% at 50% ${18 + f.grundtiefe * 26}%, #1c1712 0%, #120f0c 46%, #0a0806 100%)`,
+          /*
+           * Der Grund folgt dem Band – mit demselben Mittel wie das Papier.
+           *
+           * Hier standen drei feste Braunwerte. Im Band Tinte hiess das:
+           * silberne Praegung, silberne Reiter, silberne Schrift – in einem
+           * braunen Zimmer. Der Fund kam aus dem Bildschirmfoto, nicht aus
+           * einer Messung; alle Zahlen stimmten.
+           *
+           * Statt sechs Tripel zu erfinden, benutzt die Seite jetzt die zwei
+           * Angaben, mit denen `.paper-sheet` schon arbeitet: einen Grundton
+           * und einen Lichthof darueber. Ein Mittel, an zwei Stellen – und
+           * ein siebter Band muss nichts Zusaetzliches mitbringen.
+           */
+          backgroundColor: 'var(--dc-blattgrund)',
+          backgroundImage: `radial-gradient(120% 78% at 50% ${18 + f.grundtiefe * 26}%, var(--dc-lichthof) 0%, transparent 62%)`,
         }}
         aria-hidden
       />

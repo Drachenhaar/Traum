@@ -506,6 +506,17 @@ export interface BookIdentity {
   coverMaterial: string;
   /** Schlüssel aus COVER_COLORS */
   coverColor: string;
+  /*
+   * Aus welchem Stoff dieser Band gebunden ist – siehe `lib/baende.ts`.
+   *
+   * Gehört zum Buch und nicht in die Einstellungen: Zwei Bücher in derselben
+   * Bibliothek dürfen verschieden aussehen. Ein Weltbuch über einen Nebelwald
+   * ist nicht dasselbe Material wie eine Chronik aus einer Kupferstadt.
+   *
+   * Fehlt der Wert, gilt Pergament – das ist der Band, den jedes Buch bisher
+   * hatte, und ein Buch ohne Angabe darf sich nicht verändern.
+   */
+  band?: string;
   emblemType: EmblemType;
   /** Schlüssel aus EMBLEM_PRESETS – wenn das Zeichen aus der Bibliothek kommt */
   emblemId?: string;
