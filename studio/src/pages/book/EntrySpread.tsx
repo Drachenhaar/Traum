@@ -99,7 +99,7 @@ export function EntrySpread() {
             <p className="prose-book mt-4">
               Vielleicht liegt der Eintrag im Papierkorb. Die Chronik im Anhang holt ihn zurück.
             </p>
-            <Link to="/inhalt" className="mt-6 inline-block font-serif text-[15px] text-gild-600 underline">
+            <Link to="/inhalt" className="mt-6 inline-block font-serif text-[15px] text-gold underline">
               Zum Inhaltsverzeichnis
             </Link>
           </div>
@@ -134,7 +134,7 @@ export function EntrySpread() {
               Das Buch zeigt gerade nur, was alle sehen dürfen. Wer den Tischmodus beendet, sieht
               wieder alles.
             </p>
-            <Link to="/inhalt" className="mt-6 inline-block font-serif text-[15px] text-gild-600 underline">
+            <Link to="/inhalt" className="mt-6 inline-block font-serif text-[15px] text-gold underline">
               Zum Inhaltsverzeichnis
             </Link>
           </div>
@@ -210,7 +210,7 @@ export function EntrySpread() {
                 aria-label={entry.favorite ? 'Lesezeichen entfernen' : 'Lesezeichen setzen'}
                 className={cx(
                   'grid h-9 w-9 place-items-center transition-colors no-tap-highlight',
-                  entry.favorite ? 'text-gild-400' : 'text-ink-faint/35 hover:text-gild-500',
+                  entry.favorite ? 'text-gild-400' : 'text-ink-faint/35 hover:text-gold-hell',
                 )}
               >
                 <Star size={15} className={entry.favorite ? 'fill-current' : ''} />
@@ -221,7 +221,7 @@ export function EntrySpread() {
                 aria-label="Diese Seite bearbeiten"
                 title="Bearbeiten"
                 data-leitfaden="bearbeiten"
-                className="grid h-9 w-9 place-items-center text-ink-faint/35 transition-colors hover:text-gild-500 no-tap-highlight"
+                className="grid h-9 w-9 place-items-center text-ink-faint/35 transition-colors hover:text-gold-hell no-tap-highlight"
               >
                 <PenLine size={15} />
               </button>
@@ -251,7 +251,7 @@ export function EntrySpread() {
                   onClick={() => navigate(`/figur/${entry.id}`)}
                   aria-label="Diese Figur ansehen"
                   title="Die Figur ansehen"
-                  className="grid h-9 w-9 place-items-center text-ink-faint/35 transition-colors hover:text-gild-500 no-tap-highlight"
+                  className="grid h-9 w-9 place-items-center text-ink-faint/35 transition-colors hover:text-gold-hell no-tap-highlight"
                 >
                   <ScanFace size={15} />
                 </button>
@@ -343,7 +343,7 @@ export function EntrySpread() {
           {lebenszeit && (
             <Link
               to="/zeitstrahl"
-              className="mt-2.5 inline-block font-serif text-[13.5px] tracking-[0.06em] text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+              className="mt-2.5 inline-block font-serif text-[13.5px] tracking-[0.06em] text-ink-faint transition-colors hover:text-gold no-tap-highlight"
             >
               {lebenszeit}
             </Link>
@@ -412,7 +412,7 @@ export function EntrySpread() {
           {entry.type === 'szene' && (
             <Link
               to={`/schreiben/${entry.id}`}
-              className="mt-8 inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-gild-500/40 px-4 font-serif text-[14.5px] text-gild-600 transition-colors hover:bg-gild-400/10 no-tap-highlight"
+              className="mt-8 inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-gild-500/40 px-4 font-serif text-[14.5px] text-gold transition-colors hover:bg-gild-400/10 no-tap-highlight"
             >
               Im Schreibraum öffnen
             </Link>
@@ -548,7 +548,7 @@ function OpenQuestion({ entry }: { entry: Entry }) {
   const frage = offen[sum % offen.length];
 
   return (
-    <aside className="mt-10 border-t border-paper-300/60 pt-5">
+    <aside className="mt-10 border-t border-line pt-5">
       <p className="flex gap-3">
         <span aria-hidden className="mt-[11px] h-[3px] w-[3px] shrink-0 rotate-45 bg-gild-500/70" />
         <span className="font-serif text-[16px] italic leading-[1.6] text-ink-muted">{frage}</span>
@@ -595,7 +595,7 @@ function Zeitgenossen({ entry }: { entry: Entry }) {
   if (waehrend.length === 0 && daneben.length === 0) return null;
 
   return (
-    <section className="mt-8 border-t border-paper-300/60 pt-5">
+    <section className="mt-8 border-t border-line pt-5">
       <p className="rubric mb-2.5">Zu dieser Zeit</p>
 
       {waehrend.length > 0 && (
@@ -607,7 +607,7 @@ function Zeitgenossen({ entry }: { entry: Entry }) {
               </span>
               <Link
                 to={`/eintrag/${d.entry.id}`}
-                className="font-serif text-[14.5px] text-ink-muted transition-colors hover:text-gild-600 no-tap-highlight"
+                className="font-serif text-[14.5px] text-ink-muted transition-colors hover:text-gold no-tap-highlight"
               >
                 {d.entry.title}
               </Link>
@@ -624,7 +624,7 @@ function Zeitgenossen({ entry }: { entry: Entry }) {
               {i > 0 && ', '}
               <Link
                 to={`/eintrag/${d.entry.id}`}
-                className="text-ink-muted transition-colors hover:text-gild-600 no-tap-highlight"
+                className="text-ink-muted transition-colors hover:text-gold no-tap-highlight"
               >
                 {d.entry.title}
               </Link>
@@ -665,12 +665,12 @@ function Neighbours({ entryId, onGo }: { entryId: string; onGo: (path: string) =
   if (!prev && !next) return null;
 
   return (
-    <nav className="mt-10 flex items-baseline justify-between gap-4 border-t border-paper-300/60 pt-3">
+    <nav className="mt-10 flex items-baseline justify-between gap-4 border-t border-line pt-3">
       {prev ? (
         <button
           type="button"
           onClick={() => onGo(prev.path)}
-          className="min-w-0 text-left font-serif text-[12.5px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+          className="min-w-0 text-left font-serif text-[12.5px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
         >
           ← {prev.label}
         </button>
@@ -681,7 +681,7 @@ function Neighbours({ entryId, onGo }: { entryId: string; onGo: (path: string) =
         <button
           type="button"
           onClick={() => onGo(next.path)}
-          className="min-w-0 text-right font-serif text-[12.5px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+          className="min-w-0 text-right font-serif text-[12.5px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
         >
           {next.label} →
         </button>

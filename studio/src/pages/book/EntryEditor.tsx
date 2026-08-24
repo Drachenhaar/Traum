@@ -125,12 +125,12 @@ export function EntryEditor({
         left={
           <>
             {/* Kopfzeile der Werkbank */}
-            <div className="mb-6 flex items-center justify-between gap-3 border-b border-paper-300/70 pb-3">
+            <div className="mb-6 flex items-center justify-between gap-3 border-b border-line pb-3">
               <p className="rubric">{tpl.label} bearbeiten</p>
               <button
                 type="button"
                 onClick={finish}
-                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full border border-gild-500/40 px-4 font-serif text-[14px] text-gild-600 transition-colors hover:bg-gild-400/10 no-tap-highlight"
+                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full border border-gild-500/40 px-4 font-serif text-[14px] text-gold transition-colors hover:bg-gild-400/10 no-tap-highlight"
               >
                 <Check size={15} /> Fertig
               </button>
@@ -172,7 +172,7 @@ export function EntryEditor({
               <button
                 type="button"
                 onClick={() => setEndeOffen(true)}
-                className="mt-1.5 font-serif text-[13px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+                className="mt-1.5 font-serif text-[13px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
               >
                 Und ein Ende?
               </button>
@@ -241,7 +241,7 @@ export function EntryEditor({
               Aufgeklappt wird nur, wenn schon etwas drinsteht – sonst traegt
               jede Seite jeder Welt eine Frage, die nur ein Spieltisch stellt.
             */}
-            <section className="mt-8 border-t border-paper-300/70 pt-6">
+            <section className="mt-8 border-t border-line pt-6">
               {geheimOffen ? (
                 <>
                   <p className="rubric mb-4">Nur für dich</p>
@@ -292,7 +292,7 @@ export function EntryEditor({
                 <button
                   type="button"
                   onClick={() => setGeheimOffen(true)}
-                  className="min-h-[40px] font-serif text-[14px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+                  className="min-h-[40px] font-serif text-[14px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
                 >
                   Etwas notieren, das am Tisch nicht steht
                 </button>
@@ -300,13 +300,13 @@ export function EntryEditor({
             </section>
 
             {tpl.fields.length > 0 && (
-              <section className="mt-8 border-t border-paper-300/70 pt-6">
+              <section className="mt-8 border-t border-line pt-6">
                 <p className="rubric mb-4">{tpl.label}-Angaben</p>
                 <EntryFields entry={entry} />
               </section>
             )}
 
-            <section className="mt-8 border-t border-paper-300/70 pt-6">
+            <section className="mt-8 border-t border-line pt-6">
               <p className="rubric mb-4">Seiteninhalt</p>
               <BlockEditor entry={entry} />
             </section>
@@ -346,7 +346,7 @@ export function EntryEditor({
                 <button
                   type="button"
                   onClick={() => setCoverPickerOpen(true)}
-                  className="flex w-full items-center justify-center gap-2 rounded-[2px] border border-dashed border-paper-400/70 py-10 font-serif text-[15px] text-ink-muted transition-colors hover:border-gild-500/50 hover:text-ink"
+                  className="flex w-full items-center justify-center gap-2 rounded-[2px] border border-dashed border-lineStrong py-10 font-serif text-[15px] text-ink-muted transition-colors hover:border-gild-500/50 hover:text-ink"
                 >
                   <ImagePlus size={18} /> Tafel wählen
                 </button>
@@ -375,7 +375,7 @@ export function EntryEditor({
               man an einer Seite tut statt in ihr. Hier bleibt der einzige
               Weg, der wirklich zum Bearbeiten gehoert: fertig sein.
             */}
-            <section className="mt-10 border-t border-paper-300/70 pt-5">
+            <section className="mt-10 border-t border-line pt-5">
               <button
                 type="button"
                 className="btn-ghost h-10 min-h-0 px-3 text-[14px]"

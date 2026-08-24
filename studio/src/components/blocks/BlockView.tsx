@@ -11,8 +11,8 @@ import { cx } from '../../lib/utils';
 
 export function BlockView({ block, tone = 'light' }: { block: Block; tone?: 'light' | 'dark' }) {
   const d = block.data;
-  const muted = tone === 'dark' ? 'text-cream-100/60' : 'text-ink-muted';
-  const body = tone === 'dark' ? 'text-cream-100/90' : 'text-ink';
+  const muted = tone === 'dark' ? 'text-paper-50/60' : 'text-ink-muted';
+  const body = tone === 'dark' ? 'text-paper-50/90' : 'text-ink';
 
   switch (block.type) {
     case 'heading': {
@@ -43,7 +43,7 @@ export function BlockView({ block, tone = 'light' }: { block: Block; tone?: 'lig
         <aside
           className={cx(
             'mt-6 rounded-xl border-l-2 border-brass-500 px-4 py-3 text-[16px] leading-relaxed',
-            tone === 'dark' ? 'bg-cream-100/10 text-cream-100/85' : 'bg-cream-200/60 text-ink',
+            tone === 'dark' ? 'bg-paper-50/10 text-paper-50/85' : 'bg-cream-200/60 text-ink',
           )}
         >
           {d.text}
@@ -173,7 +173,7 @@ export function BlockView({ block, tone = 'light' }: { block: Block; tone?: 'lig
         <div
           className={cx(
             'mt-7 rounded-xl border px-4 py-3',
-            tone === 'dark' ? 'border-cream-100/15 bg-cream-100/5' : 'border-line bg-cream-200/50',
+            tone === 'dark' ? 'border-paper-50/15 bg-paper-50/5' : 'border-line bg-cream-200/50',
           )}
         >
           <p className={cx('mb-1 text-[12px] uppercase tracking-wide', muted)}>
@@ -192,7 +192,7 @@ export function BlockView({ block, tone = 'light' }: { block: Block; tone?: 'lig
       );
 
     case 'divider':
-      return <hr className={cx('mt-8', tone === 'dark' ? 'border-cream-100/15' : 'border-line')} />;
+      return <hr className={cx('mt-8', tone === 'dark' ? 'border-paper-50/15' : 'border-line')} />;
 
     case 'spacer':
       return <div style={{ height: d.size === 'lg' ? 80 : d.size === 'sm' ? 20 : 44 }} />;

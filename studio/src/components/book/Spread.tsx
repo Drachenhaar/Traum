@@ -119,7 +119,7 @@ export function Plate({
 }) {
   return (
     <figure className="flex h-full flex-col">
-      <div className="relative flex-1 overflow-hidden rounded-[3px] bg-paper-300/50 shadow-[0_2px_18px_-8px_rgba(60,44,26,0.5)]">
+      <div className="relative flex-1 overflow-hidden rounded-[3px] bg-cream-300 shadow-[0_2px_18px_-8px_rgba(60,44,26,0.5)]">
         {children}
       </div>
       {(caption || rubric) && (

@@ -95,7 +95,7 @@ export function CharakterspiegelSheet() {
           </p>
           <Link
             to={`/eintrag/${entry.id}`}
-            className="mt-6 inline-block font-serif text-[15px] text-gild-600 underline"
+            className="mt-6 inline-block font-serif text-[15px] text-gold underline"
           >
             Zurück zu {entry.title}
           </Link>
@@ -125,9 +125,9 @@ export function CharakterspiegelSheet() {
             ein Satz mehr Arbeit und der ganze Unterschied zwischen einer Welt,
             die jemandem gehoert, und einer, die mit ihm ausgehandelt wurde.
           */}
-          <p className="mt-12 border-t border-paper-300/60 pt-5 font-serif text-[13.5px] italic leading-relaxed text-ink-faint">
+          <p className="mt-12 border-t border-line pt-5 font-serif text-[13.5px] italic leading-relaxed text-ink-faint">
             Nichts davon steht in deiner Welt. Wenn etwas davon stimmt, schreib es auf{' '}
-            <Link to={`/eintrag/${entry.id}`} className="text-gild-600 underline">
+            <Link to={`/eintrag/${entry.id}`} className="text-gold underline">
               {entry.title}s Seite
             </Link>{' '}
             – in deinen Worten. Dann gehört es dazu.
@@ -151,7 +151,7 @@ function AbschnittBlock({ abschnitt }: { abschnitt: Abschnitt }) {
         className={cx(
           'mt-4 space-y-2.5',
           /* Deutungen stehen eingerueckt hinter einem Strich – sichtbar anders. */
-          gedeutet && 'border-l-2 border-paper-400/40 pl-4',
+          gedeutet && 'border-l-2 border-line pl-4',
         )}
       >
         {abschnitt.punkte.map((p, i) => (
@@ -178,7 +178,7 @@ function AbschnittBlock({ abschnitt }: { abschnitt: Abschnitt }) {
                   <Link
                     key={b.entryId + b.warum}
                     to={`/eintrag/${b.entryId}`}
-                    className="font-serif text-[12.5px] text-ink-faint underline decoration-paper-400/50 underline-offset-2 transition-colors hover:text-gild-600 no-tap-highlight"
+                    className="font-serif text-[12.5px] text-ink-faint underline decoration-paper-400/50 underline-offset-2 transition-colors hover:text-gold no-tap-highlight"
                   >
                     {b.warum}
                   </Link>

@@ -332,7 +332,7 @@ export function Zeitachse({
           <div className="pointer-events-none absolute top-[18px]" style={{ left: markeX }}>
             <div
               className="absolute w-px"
-              style={{ height: spuren * SPUR_HOEHE + 14, background: 'rgba(184,134,11,0.75)' }}
+              style={{ height: spuren * SPUR_HOEHE + 14, background: 'rgb(var(--dc-metall-500) / 0.75)' }}
             />
             <span
               aria-hidden
@@ -409,7 +409,7 @@ export function Zeitachse({
               )}
               {beschriftet && (
                 <span
-                  className="absolute top-0 whitespace-nowrap font-serif text-[12px] leading-none text-ink-muted transition-colors group-hover:text-gild-600"
+                  className="absolute top-0 whitespace-nowrap font-serif text-[12px] leading-none text-ink-muted transition-colors group-hover:text-gold"
                   style={{
                     left: beschriftungX,
                     /* Ein Hauch Papier hinter der Schrift, damit sie über den

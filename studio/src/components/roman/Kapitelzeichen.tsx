@@ -64,7 +64,7 @@ export function Kapitelzeichen({
         data-leitfaden="kapitelzeichen"
         className={cx(
           'grid h-10 w-10 place-items-center transition-colors no-tap-highlight',
-          offen ? 'text-gild-500' : 'text-ink-faint/45 hover:text-gild-500',
+          offen ? 'text-gild-500' : 'text-ink-faint/45 hover:text-gold-hell',
         )}
       >
         <Bookmark size={17} className={offen ? 'fill-current' : ''} />
@@ -75,7 +75,7 @@ export function Kapitelzeichen({
           className={cx(
             'absolute left-1/2 top-full z-30 mt-1 w-[min(21rem,calc(100vw-2rem))] -translate-x-1/2',
             'max-h-[min(70vh,32rem)] overflow-y-auto scroll-slim rounded-[3px]',
-            'border border-paper-300/80 bg-cream-50 px-1 py-2 shadow-[0_18px_44px_-18px_rgba(60,44,26,0.5)]',
+            'border border-line bg-cream-50 px-1 py-2 shadow-[0_18px_44px_-18px_rgba(60,44,26,0.5)]',
             'animate-fadeIn',
           )}
         >
@@ -137,7 +137,7 @@ function Abteilung({
             type="button"
             onClick={onNeueSzene}
             aria-label={`Szene in ${titel} anlegen`}
-            className="grid h-7 w-7 shrink-0 place-items-center text-ink-faint/40 transition-colors hover:text-gild-500 no-tap-highlight"
+            className="grid h-7 w-7 shrink-0 place-items-center text-ink-faint/40 transition-colors hover:text-gold-hell no-tap-highlight"
           >
             <Plus size={13} />
           </button>
@@ -160,7 +160,7 @@ function Abteilung({
               className={cx(
                 'flex min-h-[38px] w-full items-baseline gap-2 rounded-[2px] px-3 py-1.5 text-left',
                 'transition-colors no-tap-highlight',
-                aktiv ? 'bg-gild-400/15' : 'hover:bg-paper-200/60',
+                aktiv ? 'bg-gild-400/15' : 'hover:bg-cream-200',
               )}
             >
               <span

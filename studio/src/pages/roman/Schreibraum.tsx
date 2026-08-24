@@ -221,7 +221,7 @@ export function Schreibraum() {
 
   return (
     <div
-      className="relative flex h-full flex-col overflow-hidden bg-paper-100"
+      className="relative flex h-full flex-col overflow-hidden bg-cream-100"
       onPointerMove={wecke}
       onPointerDown={wecke}
     >
@@ -268,7 +268,7 @@ export function Schreibraum() {
           data-leitfaden="szenenblatt"
           className={cx(
             'relative grid h-10 w-10 place-items-center transition-colors no-tap-highlight',
-            blattOffen ? 'text-gild-500' : 'text-ink-faint/45 hover:text-gild-500',
+            blattOffen ? 'text-gild-500' : 'text-ink-faint/45 hover:text-gold-hell',
           )}
         >
           <NotebookPen size={17} />
@@ -383,7 +383,7 @@ function Blaetterknopf({
       to={`/schreiben/${ziel.id}`}
       title={ziel.title}
       aria-label={richtung === 'vor' ? `Weiter: ${ziel.title}` : `Zurück: ${ziel.title}`}
-      className="pointer-events-auto grid h-10 w-10 place-items-center text-ink-faint/35 transition-colors hover:text-gild-500 no-tap-highlight"
+      className="pointer-events-auto grid h-10 w-10 place-items-center text-ink-faint/35 transition-colors hover:text-gold-hell no-tap-highlight"
     >
       <Pfeil size={18} />
     </Link>

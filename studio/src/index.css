@@ -9,7 +9,80 @@
     --sab: env(safe-area-inset-bottom, 0px);
     --sal: env(safe-area-inset-left, 0px);
     --sar: env(safe-area-inset-right, 0px);
+
+    /*
+     * Der Band, wie er immer war: helles Papier, brauner Text.
+     *
+     * Die Zahlen sind dieselben, die vorher in `tailwind.config.js` standen –
+     * nur getrennt in Kanäle, weil `rgb(… / <alpha-value>)` das so verlangt.
+     * Wer diesen Block liest und mit der alten Fassung vergleicht, findet
+     * keinen einzigen geänderten Farbwert. Das ist Absicht: Der Umbau auf
+     * Marken sollte für sich genommen **nichts** verändern.
+     */
+    --dc-grund-50: 252 250 245;
+    --dc-grund-100: 247 242 232;
+    --dc-grund-200: 241 234 220;
+    --dc-grund-300: 232 222 203;
+
+    --dc-schrift: 59 46 35;
+    --dc-schrift-leise: 124 106 87;
+    --dc-schrift-fein: 164 144 122;
+
+    --dc-linie: 229 220 202;
+    --dc-linie-stark: 216 204 180;
+
+    /*
+     * Die Mahnung – ein Widerspruch im Weltwissen, kein Fehler der App.
+     * Sie steht hier, weil ein festes Weinrot auf hellem Papier warnt und
+     * auf dunklem Grund verschwindet. Rot bleibt rot, aber es muss atmen.
+     */
+    --dc-mahnung: 140 58 50;
+
+    /* Das Gold, mit dem geschrieben wird – die alten `gild-600`/`gild-500`. */
+    --dc-schriftgold: 140 101 16;
+    --dc-schriftgold-hell: 184 134 11;
+
+    /*
+     * Das Metall der Prägung – die alte feste `gild`-Palette.
+     *
+     * Sie muss hier stehen und nicht nur in `lib/baende.ts`: Zwischen dem
+     * ersten Anstrich der Seite und dem Augenblick, in dem das Skript den Band
+     * aufschlägt, liegen ein paar Bilder. Ohne Ruhelage wäre `gild` in dieser
+     * Zeit gar keine Farbe – und eine ungültige Farbe ist nicht blass, sondern
+     * lässt die ganze Regel ausfallen.
+     */
+    --dc-metall-300: 227 200 120;
+    --dc-metall-400: 212 175 55;
+    --dc-metall-500: 184 134 11;
+    --dc-metall-600: 140 101 16;
+
+    /* Das Akzentmetall – die alten `brass`-Werte als Ruhelage. */
+    --dc-akzent-300: 211 188 140;
+    --dc-akzent-400: 192 164 104;
+    --dc-akzent-500: 168 133 63;
+    --dc-akzent-600: 140 109 49;
+
+    /* Der Tisch, auf dem das Buch liegt. */
+    --dc-tisch-1: #1a1512;
+    --dc-tisch-2: #100d0b;
+    --dc-tisch-3: #0b0908;
   }
+
+  /*
+   * Die Bände stehen nicht mehr hier.
+   *
+   * An dieser Stelle stand einmal ein zweiter Block `html[data-band='dunkel']`
+   * mit den dunklen Werten. Bei zwei Bänden war das richtig; bei sechs wären
+   * es sechs handgeschriebene Blöcke, und der erste, der einen neuen Ton
+   * hinzufügt, vergisst ihn in dreien davon – ohne dass etwas kaputt aussieht.
+   * Die Variable bliebe einfach auf dem Wert des zuletzt gesetzten Bandes
+   * stehen.
+   *
+   * Die Bände sind deshalb **Daten** (`lib/baende.ts`) und werden beim
+   * Aufschlagen an die Wurzel geschrieben. Was oben steht, ist nur noch die
+   * Ruhelage: Pergament, damit ein Buch auch dann richtig aussieht, wenn das
+   * Skript noch nicht gelaufen ist.
+   */
 
   html,
   body,
@@ -109,9 +182,14 @@
   /* Der Tisch, auf dem das Buch liegt. Warmes Streiflicht von oben links. */
   .desk-surface {
     background:
-      radial-gradient(120% 90% at 22% 0%, rgba(212, 175, 55, 0.09) 0%, transparent 55%),
+      radial-gradient(120% 90% at 22% 0%, rgb(var(--dc-metall-400) / 0.09) 0%, transparent 55%),
       radial-gradient(90% 70% at 80% 100%, rgba(120, 90, 50, 0.08) 0%, transparent 60%),
-      linear-gradient(160deg, #1a1512 0%, #100d0b 55%, #0b0908 100%);
+      linear-gradient(
+        160deg,
+        var(--dc-tisch-1, #1a1512) 0%,
+        var(--dc-tisch-2, #100d0b) 55%,
+        var(--dc-tisch-3, #0b0908) 100%
+      );
   }
 
   /*
@@ -146,23 +224,56 @@
    * kein Bild, keine Datei, funktioniert in jeder Größe.
    */
   .paper-sheet {
-    background-color: #ebe1c9;
+    /*
+     * Das Papier selbst – die vier Angaben, aus denen es besteht, stehen als
+     * Variablen daneben. Der dunkle Band tauscht sie, nicht diese Regel: Die
+     * Stockflecken bleiben Stockflecken, die Randabdunkelung bleibt eine
+     * Randabdunkelung. Was sich aendert, ist der Stoff.
+     *
+     * ---
+     *
+     * **`--dc-blattgrund` und nicht `--dc-bogen`.**
+     *
+     * Der erste Name war `--dc-bogen`, und den gab es schon: Der
+     * Richtungsbogen schreibt ihn sechzigmal je Sekunde und legt eine **Zahl**
+     * hinein (0 bis 1, wie weit gezogen wurde). Das Ergebnis war eine Farbe,
+     * die als `0` gelesen wurde – ungueltig, also durchsichtig, also der
+     * dunkle Tisch mitten im hellen Buch.
+     *
+     * Was diesen Fehler so zaeh machte: Die Ersatzangabe in
+     * `var(--dc-blattgrund, #ebe1c9)` sieht aus wie eine Absicherung und ist
+     * keine. Sie greift nur, wenn die Variable **gar nicht gesetzt** ist –
+     * bei einem gesetzten Unsinn greift sie nicht. Eine Variable mit fremdem
+     * Inhalt ist schlimmer als eine fehlende.
+     */
+    background-color: var(--dc-blattgrund, #ebe1c9);
     background-image:
       /* Stockflecken – sehr schwach, aber sie nehmen dem Papier das Digitale */
-      radial-gradient(circle at 14% 18%, rgba(150, 118, 72, 0.07) 0%, transparent 26%),
-      radial-gradient(circle at 82% 68%, rgba(140, 108, 66, 0.06) 0%, transparent 30%),
-      radial-gradient(circle at 62% 88%, rgba(150, 118, 72, 0.05) 0%, transparent 24%),
+      radial-gradient(circle at 14% 18%, var(--dc-fleck, rgba(150, 118, 72, 0.07)) 0%, transparent 26%),
+      radial-gradient(circle at 82% 68%, var(--dc-fleck, rgba(140, 108, 66, 0.06)) 0%, transparent 30%),
+      radial-gradient(circle at 62% 88%, var(--dc-fleck, rgba(150, 118, 72, 0.05)) 0%, transparent 24%),
       /* Zum Rand hin dunkelt jedes alte Papier nach */
-      radial-gradient(120% 100% at 50% 45%, rgba(255, 252, 242, 0.42) 0%, transparent 62%);
+      radial-gradient(120% 100% at 50% 45%, var(--dc-lichthof, rgba(255, 252, 242, 0.42)) 0%, transparent 62%);
   }
 
-  /* Der Falz: die Seite dunkelt zur Buchmitte hin ab. */
+  /*
+   * Der Falz: die Seite dunkelt zur Buchmitte hin ab.
+   *
+   * **`--dc-falzschatten` und nicht `--dc-falz`.** `--dc-falz` ist bereits
+   * vergeben: Die Raumschicht schreibt dort waehrend des Blaetterns eine
+   * *Zahl* (0…1) hinein, und der Buchkoerper rechnet mit ihr. Ein Name, zwei
+   * Arten von Wert – und die Regel hier faellt still aus, weil `rgba(…)`
+   * niemals `0.55` sein kann. Zum zweiten Mal dieselbe Falle; deshalb steht
+   * sie jetzt als Merksatz da: **Eine CSS-Variable ist ein globaler Name.
+   * Wer einen vergibt, vergibt ihn fuer das ganze Haus.**
+   */
   .gutter-left {
-    box-shadow: inset -22px 0 34px -26px rgba(60, 44, 26, 0.55);
+    box-shadow: inset -22px 0 34px -26px var(--dc-falzschatten, rgba(60, 44, 26, 0.55));
   }
   .gutter-right {
-    box-shadow: inset 22px 0 34px -26px rgba(60, 44, 26, 0.55);
+    box-shadow: inset 22px 0 34px -26px var(--dc-falzschatten, rgba(60, 44, 26, 0.55));
   }
+
 
   /* Goldlinie unter Kapitelzeilen – dünn, nie plakativ. */
   .rule-gild {
@@ -182,8 +293,13 @@
     @apply font-serif uppercase;
     font-size: 11px;
     letter-spacing: 0.22em;
-    color: #8c6510;
+    /*
+     * Die Rubrik ist gold, und Gold bleibt Gold – nur heller im dunklen
+     * Band, weil ein tiefes Messing auf fast Schwarz verschwindet.
+     */
+    color: var(--dc-rubrik, #8c6510);
   }
+
 
   /* Initiale am Textanfang, wie im gesetzten Buch. */
   .dropcap::first-letter {
@@ -192,7 +308,7 @@
     font-size: 3.4em;
     line-height: 0.82;
     padding: 0.06em 0.09em 0 0;
-    color: #6b5220;
+    color: var(--dc-initiale, #6b5220);
   }
 
   /* Lesetext: großzügig, ruhig, nie über 62 Zeichen breit. */
@@ -200,7 +316,21 @@
     font-family: 'Iowan Old Style', Georgia, 'Times New Roman', serif;
     font-size: var(--satz-grad, 17px);
     line-height: var(--satz-zeile, 1.78);
-    color: #3a2e20;
+    /*
+     * Der Lesetext zieht seine Farbe aus der Marke – und hier stand eine
+     * feste Zahl.
+     *
+     * Das war der eine Fehler, der den ganzen dunklen Band unbrauchbar
+     * machte, und er war auf dem Bildschirmfoto sofort zu sehen: Rubriken
+     * gold, Feldwerte hell, **und der Fliesstext fast unsichtbar** – dunkles
+     * Braun auf braunem Schwarz. Alle 583 Klassen im Quelltext hatten
+     * gewechselt; die eine Zeile, die keine Klasse war, nicht.
+     *
+     * Die Lehre gilt ueber diese Datei hinaus: Eine Markenschicht ist genau
+     * so viel wert, wie sie *keine* Ausnahmen hat. Fest eingetragene Farben
+     * in einem Stylesheet sind unsichtbar, solange es nur einen Band gibt.
+     */
+    color: var(--dc-lesetext, #3a2e20);
     hyphens: auto;
   }
   .prose-book p + p {
@@ -300,6 +430,275 @@
   }
   .scroll-slim::-webkit-scrollbar-track {
     background: transparent;
+  }
+}
+
+/* ======================================================================
+ * DIE SETZEREI
+ *
+ * Der Satz einer Buchseite, nicht die Gestaltung einer Oberflaeche. Die
+ * Zahlen kommen aus `lib/setzerei/mass.ts` und werden dort begruendet; hier
+ * stehen nur die Regeln, die sie anwenden.
+ *
+ * Ein Grundsatz zieht sich durch alles hier unten: **Text lebt auf der
+ * Seite, nicht in einem Kasten.** Wo im Netz eine Karte mit Rahmen und
+ * Schatten stuende, steht im Buch Weissraum, eine Haarlinie oder eine
+ * andere Schriftgroesse.
+ * ====================================================================== */
+
+@layer components {
+  /* ------------------------------------------------------ Satzspiegel -- */
+
+  /*
+   * Der Satzspiegel.
+   *
+   * Innensteg breiter als Aussensteg, Fusssteg am groessten. Auf breiteren
+   * Geraeten wachsen alle Stege mit – eine Seite, die auf dem iPad
+   * dieselben 30 Punkte Rand haette wie auf dem Telefon, saehe aus wie eine
+   * Webseite, der man die Fenstergroesse veraendert hat.
+   */
+  .satz-spiegel {
+    padding-left: var(--satz-steg-innen);
+    padding-right: var(--satz-steg-aussen);
+    padding-top: var(--satz-steg-oben);
+    padding-bottom: var(--satz-steg-unten);
+  }
+  @media (min-width: 640px) {
+    .satz-spiegel {
+      padding-left: calc(var(--satz-steg-innen) * 1.7);
+      padding-right: calc(var(--satz-steg-aussen) * 1.7);
+      padding-top: calc(var(--satz-steg-oben) * 1.5);
+      padding-bottom: calc(var(--satz-steg-unten) * 1.4);
+    }
+  }
+
+  /*
+   * Die Spalte.
+   *
+   * `--satz-mass` ist eine **Obergrenze und keine Zielgroesse**: Auf dem
+   * Telefon ist die Spalte ohnehin schmaler, und die Regel tut nichts.
+   * Sobald Breite da ist, verhindert sie die sehr lange Zeile, aus der das
+   * Auge nicht mehr an den richtigen Anfang zurueckfindet.
+   */
+  .satz-spalte {
+    max-width: var(--satz-mass);
+  }
+
+  /* ------------------------------------------------- Die drei Rollen -- */
+
+  /*
+   * Erstens: die Auszeichnungsschrift. Nur fuer Namen und grosse Titel.
+   * Gross und ruhig, gesperrt, **nicht fett** – ein Name, der sich
+   * anschreit, wirkt kleiner, nicht groesser.
+   */
+  .satz-name {
+    font-family: 'Iowan Old Style', Georgia, 'Times New Roman', ui-serif, serif;
+    font-size: var(--satz-name);
+    line-height: var(--satz-name-zeile);
+    letter-spacing: var(--satz-name-sperre);
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+
+  /*
+   * Zweitens: die Leseschrift. Der Grundsatz des ganzen Buches.
+   *
+   * `text-wrap: pretty` verhindert das einzelne Wort in der letzten Zeile –
+   * im Buchsatz heisst das Hurenkind, und es ist das sicherste Zeichen
+   * dafuer, dass eine Seite nicht gesetzt, sondern gefuellt wurde.
+   */
+  .satz-fliess {
+    font-family: 'Iowan Old Style', Georgia, 'Times New Roman', ui-serif, serif;
+    font-size: var(--satz-fliess);
+    line-height: var(--satz-fliess-zeile);
+    text-wrap: pretty;
+    hyphens: auto;
+  }
+
+  /*
+   * Drittens: die Akzentschrift – echte Kapitaelchen, wo die Schrift sie
+   * hat, sonst gesperrte Versalien.
+   *
+   * `font-variant-caps` wirkt nur, wenn der Schriftschnitt Kapitaelchen
+   * mitbringt; Georgia auf einem Nicht-Apple-Geraet tut das nicht. Deshalb
+   * steht `text-transform: uppercase` daneben und nicht statt dessen: Wo
+   * echte Kapitaelchen da sind, gewinnen sie; wo nicht, stehen saubere
+   * gesperrte Versalien. Beides sieht nach Nachschlagewerk aus, und keins
+   * von beiden faellt aus.
+   */
+  .satz-kapitael {
+    font-family: 'Iowan Old Style', Georgia, 'Times New Roman', ui-serif, serif;
+    font-variant-caps: small-caps;
+    text-transform: uppercase;
+    font-size: var(--satz-rubrik);
+    line-height: var(--satz-rubrik-zeile);
+    letter-spacing: var(--satz-rubrik-sperre);
+    color: var(--dc-rubrik, #8c6510);
+  }
+
+  /* --------------------------------------------------- Der Fliesstext -- */
+
+  /*
+   * Absaetze folgen einander wie im Buch, nicht wie im Netz.
+   *
+   * Im Netz trennt man Absaetze durch einen grossen Abstand – auf einer
+   * Buchseite frisst das den Fusssteg auf und zerlegt den Text in Bloecke.
+   * Der Buchsatz benutzt statt dessen den Erstzeileneinzug: Der erste
+   * Absatz bleibt stumpf, jeder folgende rueckt eine Geviertbreite ein. Man
+   * sieht sofort, wo ein Gedanke anfaengt, und die Seite bleibt eine
+   * Flaeche.
+   */
+  .satz-absatz + .satz-absatz {
+    text-indent: 1.4em;
+    margin-top: 0;
+  }
+
+  /* Nach einer Initiale nie einruecken – die Initiale ist der Anfang. */
+  .satz-initial + .satz-absatz {
+    text-indent: 0;
+  }
+
+  /*
+   * Die Initiale.
+   *
+   * Zwei bis drei Zeilen hoch, sehr dezent, und **nicht bei jedem Absatz** –
+   * nur an Einstiegen: Biografie, Vergangenheit, erster Buchauftritt. Eine
+   * Initiale, die dreimal auf einer Seite steht, ist keine Initiale mehr,
+   * sondern ein Muster.
+   */
+  .satz-initial::first-letter {
+    float: left;
+    font-family: 'Iowan Old Style', Georgia, serif;
+    font-size: 3.15em;
+    line-height: 0.84;
+    padding: 0.04em 0.1em 0 0;
+    color: var(--dc-initiale, #6b5220);
+  }
+
+  /* ---------------------------------------------------------- Zitate -- */
+
+  /*
+   * Ein Zitat ist ein stiller Moment und kein Datenfeld.
+   *
+   * Deshalb: kein Kasten, kein Rahmen, kein Hintergrund – statt dessen viel
+   * Luft darum, groesserer Grad, kursiv. Der Raum macht die Bedeutung; ein
+   * Rahmen wuerde sie nur behaupten.
+   */
+  .satz-zitat {
+    font-family: 'Iowan Old Style', Georgia, 'Times New Roman', ui-serif, serif;
+    font-size: var(--satz-zitat);
+    line-height: var(--satz-zitat-zeile);
+    letter-spacing: var(--satz-zitat-sperre);
+    font-style: italic;
+    text-wrap: balance;
+  }
+
+  /* --------------------------------------- Kolumnentitel und Seitenzahl -- */
+
+  /*
+   * Der Kolumnentitel steht oben und traegt die Orientierung – sehr klein,
+   * weit gesperrt, ohne Rahmen. Er ist ausdruecklich **keine
+   * Navigationsleiste**: Er sagt, wo man ist, und nicht, wohin man kann.
+   */
+  .satz-kolumne {
+    font-family: 'Iowan Old Style', Georgia, ui-serif, serif;
+    font-size: 9.5px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    line-height: 14px;
+  }
+
+  /* Die Seitenzahl gehoert zum Buch, nicht zur Bedienung. */
+  .satz-seitenzahl {
+    font-family: 'Iowan Old Style', Georgia, ui-serif, serif;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    font-variant-numeric: oldstyle-nums;
+  }
+
+  /* ------------------------------------------------------ Randnotizen -- */
+
+  /*
+   * Marginalien – und der Grund, warum sie auf dem Telefon anders stehen.
+   *
+   * Im Buch stehen sie im Aussensteg neben dem Text. Auf 390 Punkten gibt
+   * es keinen Aussensteg, in den eine zweite Spalte passt: Der Haupttext
+   * hat dort selbst nur rund vierzig Zeichen. Eine Randspalte danebenb
+   * ergaebe zwei unlesbare Spalten statt einer lesbaren.
+   *
+   * Deshalb faltet sich die Randnotiz auf dem Telefon in den Satz ein –
+   * eingerueckt, kleiner, mit einer Haarlinie an der Seite, die zeigt: Das
+   * hier gehoert zum Rand und nicht zum Text. Ab dem iPad tritt sie an den
+   * Platz, an den sie gehoert.
+   */
+  .satz-rand {
+    font-family: 'Iowan Old Style', Georgia, ui-serif, serif;
+    font-size: var(--satz-rand);
+    line-height: var(--satz-rand-zeile);
+    font-style: italic;
+    border-left: 1px solid currentColor;
+    padding-left: 12px;
+    margin-left: 4px;
+    opacity: 0.85;
+  }
+  /*
+   * Und wo genau ist „draussen"?
+   *
+   * Die erste Fassung schob die Randnotiz mit `translateX(100%)` aus dem
+   * Satzspiegel *hinaus*. Gemessen bei 1024 Punkten Breite stand sie dann von
+   * 1018 bis 1154 – hundertdreissig Punkte jenseits des Bildschirmrands, und
+   * zusaetzlich unter dem Daumenregister. Sie war schlicht nicht da.
+   *
+   * Der Denkfehler: Eine Marginalie steht nicht *neben* der Seite, sondern im
+   * **Aussensteg der Seite**. Also muss der Aussensteg breit genug dafuer
+   * sein – sonst ist es keine Marginalie, sondern ein Ueberhang. Auf breiten
+   * Geraeten waechst der Steg deshalb auf elf Zeichenbreiten, und die Notiz
+   * setzt sich hinein statt hinaus.
+   *
+   * Das Register liegt noch weiter aussen, als Nachbar des Satzspiegels und
+   * nicht darin – es kommt der Notiz damit nicht mehr in die Quere.
+   */
+  @media (min-width: 900px) {
+    .satz-spiegel {
+      padding-right: 11rem;
+    }
+    .satz-rand {
+      position: absolute;
+      right: 1.5rem;
+      width: 8rem;
+      transform: none;
+      border-left: none;
+      padding-left: 0;
+      margin-left: 0;
+      text-align: left;
+    }
+  }
+
+  /* ------------------------------------------------ Bildunterschriften -- */
+
+  /* Editorial und nah am Bild – „Abb. 03 — …“, keine Medienkarte. */
+  .satz-bildunter {
+    font-family: 'Iowan Old Style', Georgia, ui-serif, serif;
+    font-size: var(--satz-bildunter);
+    line-height: var(--satz-bildunter-zeile);
+    letter-spacing: var(--satz-bildunter-sperre);
+  }
+
+  /* ---------------------------------------------------- Handschrift -- */
+
+  /*
+   * Die zweite Ebene: was spaeter von Hand hineingeschrieben wurde.
+   *
+   * Leicht schraeg, nie ganz ausgerichtet, dunklere Tinte. Sparsam
+   * verwenden – eine Seite voller Handschrift ist kein lebendes Weltbuch,
+   * sondern ein Notizzettel.
+   */
+  .satz-hand {
+    font-family: 'Segoe Script', 'Bradley Hand', 'Apple Chancery', cursive;
+    font-size: 14.5px;
+    line-height: 20px;
+    transform: rotate(-0.7deg);
+    opacity: 0.9;
   }
 }
 

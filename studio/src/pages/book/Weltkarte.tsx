@@ -168,7 +168,7 @@ function Karte() {
                 className={cx(
                   'touch-target rounded-full border px-4 text-sm',
                   flaeche.art === b.id
-                    ? 'border-brass-500 bg-brass-500 text-cream-50'
+                    ? 'border-brass-500 bg-brass-500 text-paper-50'
                     : 'border-line bg-cream-50 text-ink-muted',
                 )}
               >

@@ -193,6 +193,27 @@ export function BookShell() {
   }, [spread, index]);
 
   /*
+   * Welcher Band aufgeschlagen ist – am Wurzelelement, nicht an dieser Hülle.
+   *
+   * Es muss ganz oben stehen, weil die Farbmarken in `:root` liegen und alles
+   * darunter aus ihnen liest: der Buchkörper, die Seiten, jeder Knopf, jede
+   * Eingabe. Ein Merkmal an der Hülle erreichte den Einband nicht, und die
+   * Titelseite läge weiter im hellen Papier, während das Buch dahinter dunkel
+   * wäre.
+   *
+   * Die Kennung kommt vom **Buch** und nicht aus dem Stimmzimmer: Aus welchem
+   * Stoff ein Band gebunden ist, gehört zu diesem Buch, und zwei Bücher in
+   * derselben Bibliothek dürfen verschieden aussehen. Der Regler im
+   * Stimmzimmer wäre eine zweite Wahrheit über dieselbe Frage gewesen.
+   *
+   * Die Abhängigkeit ist die Kennung selbst, nicht das ganze Buch: Wer nur
+   * den Titel ändert, soll nicht dreiundzwanzig CSS-Variablen neu schreiben.
+   */
+  /* Der Band wird an der Wurzel aufgeschlagen (siehe `App.tsx`) – hier nicht
+     noch einmal: Zwei Stellen, die dieselben Variablen schreiben, sind eine
+     Stelle zu viel. */
+
+  /*
    * Wie viel Oberfläche gerade dastehen darf.
    *
    * Der Zustand steht als Merkmal an der Hülle und die Deutlichkeit als

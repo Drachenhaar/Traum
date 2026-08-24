@@ -130,7 +130,7 @@ export function Marginalia({
                   <li key={item.relation.id}>
                     <Link
                       to={`/eintrag/${other.id}`}
-                      className="group inline-flex items-baseline gap-2 font-serif text-[15px] leading-snug text-ink transition-colors hover:text-gild-600"
+                      className="group inline-flex items-baseline gap-2 font-serif text-[15px] leading-snug text-ink transition-colors hover:text-gold"
                     >
                       <span
                         aria-hidden

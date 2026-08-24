@@ -288,7 +288,7 @@ export function Richtungszeichen({ richtung }: { richtung: Richtung }) {
           className="absolute inset-[-70%] rounded-full"
           style={{
             background:
-              'radial-gradient(circle, rgba(212,175,55,0.28), rgba(212,175,55,0.06) 45%, transparent 70%)',
+              'radial-gradient(circle, rgb(var(--dc-metall-400) / 0.28), rgb(var(--dc-metall-400) / 0.06) 45%, transparent 70%)',
           }}
         />
         <span className="relative block h-full w-full">

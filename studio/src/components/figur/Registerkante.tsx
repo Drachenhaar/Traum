@@ -1,5 +1,5 @@
 /**
- * Die Registerkante – das Daumenregister am linken Rand.
+ * Die Registerkante – das Daumenregister an der Aussenkante rechts.
  *
  * Warum es kein zweites Menü ist und wie es sich den Rand mit der Geste
  * teilt, steht in `Register.ts`. Hier steht nur, wie es aussieht.
@@ -51,9 +51,18 @@ export function Registerkante({
          * machen daraus eine Kante, die eine Dicke hat – dasselbe Mittel wie
          * beim Buchkörper.
          */
+        /*
+         * Der Verlauf laeuft von der Buchseite weg nach aussen, und die
+         * Goldnaht sitzt an der **Innenkante** – dort, wo das Leder an die
+         * Seite stoesst. Als das Register links lag, war das die rechte
+         * Kante; seit es rechts liegt, die linke. Eine Naht auf der falschen
+         * Seite laesst die Leiste vor der Seite schweben, statt neben ihr zu
+         * liegen.
+         */
         background:
-          'linear-gradient(to right, #0b0908 0%, #16120f 62%, #1d1814 100%)',
-        boxShadow: 'inset -1px 0 0 rgba(184,134,11,0.16)',
+          'linear-gradient(to left, var(--dc-tisch-3) 0%, var(--dc-tisch-2) 62%, var(--dc-tisch-1) 100%)',
+        /* Die Naht ist aus dem Metall des Bandes und nicht aus festem Gold. */
+        boxShadow: 'inset 1px 0 0 rgb(var(--dc-metall-500) / 0.16)',
       }}
       aria-label="Register"
     >
@@ -94,7 +103,17 @@ export function Registerkante({
                */
               'group relative flex h-[62px] w-full flex-none flex-col items-center justify-center gap-1 px-0.5 no-tap-highlight',
               'transition-colors duration-200',
-              aktiv ? 'text-gild-300' : still ? 'text-paper-400/25' : 'text-paper-300/45',
+              /*
+               * Drei Helligkeiten, und alle drei muessen lesbar bleiben.
+               *
+               * Gemessen standen die ruhenden Reiter bei 2,6:1 und die stillen
+               * bei 1,6:1 – bei sechseinhalb Punkt Schriftgroesse. Ein Reiter,
+               * den man antippen soll, dessen Namen man aber raten muss, ist
+               * kein Register, sondern eine Zierleiste. Der Abstand zwischen
+               * den Stufen bleibt derselbe, sie liegen nur alle drei hoeher:
+               * **Still heisst leiser, nicht unsichtbar.**
+               */
+              aktiv ? 'text-gild-300' : still ? 'text-paper-400/45' : 'text-paper-300/75',
             )}
           >
             {/*
@@ -103,11 +122,12 @@ export function Registerkante({
             */}
             {aktiv && (
               <span
-                className="pointer-events-none absolute inset-y-[3px] left-[3px] right-0 rounded-l-[2px]"
+                className="pointer-events-none absolute inset-y-[3px] left-0 right-[3px] rounded-r-[2px]"
                 style={{
                   background:
-                    'linear-gradient(to right, rgba(212,175,55,0.10) 0%, rgba(212,175,55,0.05) 55%, rgba(212,175,55,0) 100%)',
-                  boxShadow: 'inset 0 0 0 1px rgba(212,175,55,0.18)',
+                    'linear-gradient(to left, rgb(var(--dc-metall-400) / 0.10) 0%,' +
+                    ' rgb(var(--dc-metall-400) / 0.05) 55%, transparent 100%)',
+                  boxShadow: 'inset 0 0 0 1px rgb(var(--dc-metall-400) / 0.18)',
                 }}
                 aria-hidden
               />

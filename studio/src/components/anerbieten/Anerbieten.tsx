@@ -69,7 +69,7 @@ export function AnerbietenZettel({
       <div
         className={[
           'pointer-events-auto w-full max-w-[34rem] rounded-[3px] border bg-cream-50/95 px-5 py-4 shadow-[0_8px_40px_-12px_rgba(30,22,15,0.6)] backdrop-blur-sm transition-all duration-700',
-          stufe === 'warnung' ? 'border-gild-600/50' : 'border-paper-400/40',
+          stufe === 'warnung' ? 'border-gild-600/50' : 'border-line',
           da ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0',
         ].join(' ')}
       >
@@ -88,7 +88,7 @@ export function AnerbietenZettel({
         <button
           type="button"
           onClick={() => setBelegeOffen((v) => !v)}
-          className="mt-2 min-h-[36px] font-serif text-[12.5px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+          className="mt-2 min-h-[36px] font-serif text-[12.5px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
         >
           {belegeOffen ? 'Weniger' : 'Woran liegt das?'}
         </button>
@@ -102,8 +102,8 @@ export function AnerbietenZettel({
                   onClick={() => navigate(`/eintrag/${b.entryId}`)}
                   className="group flex min-h-[32px] w-full items-baseline gap-2 text-left no-tap-highlight"
                 >
-                  <span className="text-gild-600/70">·</span>
-                  <span className="font-serif text-[13px] leading-snug text-ink-muted transition-colors group-hover:text-gild-600">
+                  <span className="text-gold/70">·</span>
+                  <span className="font-serif text-[13px] leading-snug text-ink-muted transition-colors group-hover:text-gold">
                     {b.warum}
                   </span>
                 </button>
@@ -120,7 +120,7 @@ export function AnerbietenZettel({
                 onAntwort('geoeffnet');
                 navigate(ziel);
               }}
-              className="inline-flex min-h-[40px] items-center gap-1 font-serif text-[14.5px] text-gild-600 transition-colors hover:text-gild-500 no-tap-highlight"
+              className="inline-flex min-h-[40px] items-center gap-1 font-serif text-[14.5px] text-gold transition-colors hover:text-gold-hell no-tap-highlight"
             >
               {zielLabel} <ChevronRight size={14} />
             </button>

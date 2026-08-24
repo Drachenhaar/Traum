@@ -60,10 +60,54 @@ export const ARTBOOK: Kartenstil = {
   strich: 1.6,
 };
 
+/**
+ * Dieselbe Karte im dunklen Band.
+ *
+ * Sie ist **kein zweiter Stil zur Auswahl** – sie ist derselbe Stil in dem
+ * Material, in dem das Buch gerade gebunden ist. Deshalb steht sie nicht in
+ * `STILE`: Niemand soll „Clean Artbook dunkel" waehlen koennen, waehrend das
+ * Buch hell ist. Die Karte folgt dem Band, so wie die Seite daneben.
+ *
+ * Der Anlass war zu sehen und nicht zu rechnen: Im dunklen Band stand eine
+ * weisse Tafel mitten auf der Seite, und der Hinweis darauf war unsichtbar
+ * geworden – seine Schrift folgte dem Band, sein Grund nicht. Genau der Satz
+ * aus dem Kopf dieser Datei, nur andersherum gelesen: **Eine Karte, die
+ * heller ist als das Buch, gehoert zu einem anderen Buch.**
+ *
+ * Die Toene sind dieselben Entscheidungen wie oben, gespiegelt: Land ist
+ * wieder fast das Papier selbst, Wasser bleibt entsaettigt, und Gold wird
+ * heller statt dunkler, weil es jetzt auf Schwarz liegt.
+ */
+export const ARTBOOK_DUNKEL: Kartenstil = {
+  id: 'artbook-dunkel',
+  name: 'Clean Artbook (dunkler Band)',
+  papier: '#17130F',
+  koernung: '#241C15',
+  land: { flaeche: '#221B15', linie: '#3A2F22' },
+  wasser: { flaeche: '#182226', linie: '#33474C', saum: '#101A1D' },
+  wald: { flaeche: '#1A2118', linie: '#33422C', laub: '#7A8467', stamm: '#6B6047' },
+  entwurf: '#C9A15F',
+  wahl: '#E3C878',
+  marke: '#C0A468',
+  strich: 1.6,
+};
+
 export const STILE: Kartenstil[] = [ARTBOOK];
 
 export function stilVon(id: string | undefined): Kartenstil {
   return STILE.find((s) => s.id === id) ?? ARTBOOK;
+}
+
+/**
+ * Der Stil, den dieses Buch gerade traegt.
+ *
+ * Das Band steht am Wurzelelement – dieselbe Quelle, aus der auch die
+ * Farbmarken des Buchsatzes lesen. Eine zweite Wahrheit ueber „welcher Band
+ * ist offen" waere die naechste Stelle, die vergessen wird.
+ */
+export function stilImBand(id: string | undefined, dunkel: boolean): Kartenstil {
+  const hell = stilVon(id);
+  return dunkel && hell.id === ARTBOOK.id ? ARTBOOK_DUNKEL : hell;
 }
 
 /**

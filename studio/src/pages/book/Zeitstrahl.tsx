@@ -142,7 +142,7 @@ export function ZeitstrahlSheet() {
                 aria-pressed={ebeneId === e.id}
                 className={cx(
                   'min-h-[38px] font-serif text-[14.5px] transition-colors no-tap-highlight',
-                  ebeneId === e.id ? 'text-gild-600' : 'text-ink-faint hover:text-ink-muted',
+                  ebeneId === e.id ? 'text-gold' : 'text-ink-faint hover:text-ink-muted',
                 )}
               >
                 {e.label}
@@ -179,7 +179,7 @@ export function ZeitstrahlSheet() {
           </p>
 
           {/* ------------------------------------------------- Weltzustand */}
-          <section className="mt-9 border-t border-paper-300/60 pt-6">
+          <section className="mt-9 border-t border-line pt-6">
             <p className="rubric mb-1">
               {/*
                 Steht ein Zeitalter dahinter, gehoert sein Name hierher – „Die
@@ -214,7 +214,7 @@ export function ZeitstrahlSheet() {
                   <li key={d.entry.id}>
                     <Link
                       to={`/eintrag/${d.entry.id}`}
-                      className="font-serif text-[14px] text-ink transition-colors hover:text-gild-600 no-tap-highlight"
+                      className="font-serif text-[14px] text-ink transition-colors hover:text-gold no-tap-highlight"
                     >
                       {d.entry.title}
                       <span className="ml-1 text-[11.5px] text-ink-faint/70">
@@ -234,7 +234,7 @@ export function ZeitstrahlSheet() {
 
           {/* ----------------------------------------------------- Befunde */}
           {befunde.length > 0 && (
-            <section className="mt-9 border-t border-paper-300/60 pt-6">
+            <section className="mt-9 border-t border-line pt-6">
               <p className="rubric mb-1">Was der Chronik auffällt</p>
               <p className="mb-4 max-w-[54ch] font-serif text-[13.5px] italic leading-relaxed text-ink-faint">
                 Nichts davon wird geändert. Es sind Fragen an dich – das Buch weiß nicht, was
@@ -280,7 +280,7 @@ function BefundZeile({ befund }: { befund: Befund }) {
         strokeWidth={1.7}
         className={cx(
           'mt-[3px] shrink-0',
-          befund.art === 'widerspruch' ? 'text-[#8C3A32]' : 'text-ink-faint/60',
+          befund.art === 'widerspruch' ? 'text-mahnung' : 'text-ink-faint/60',
         )}
       />
       <p className="font-serif text-[14px] leading-relaxed text-ink-muted">
@@ -288,7 +288,7 @@ function BefundZeile({ befund }: { befund: Befund }) {
         {gibtEs && (
           <Link
             to={`/eintrag/${ziel}`}
-            className="whitespace-nowrap text-[13px] italic text-gild-600 no-tap-highlight"
+            className="whitespace-nowrap text-[13px] italic text-gold no-tap-highlight"
           >
             ansehen
           </Link>
@@ -317,7 +317,7 @@ function Leer({ unlesbar }: { unlesbar: Entry[] }) {
           {unlesbar.slice(0, 3).map((e, i) => (
             <span key={e.id}>
               {i > 0 && ', '}
-              <Link to={`/eintrag/${e.id}`} className="text-gild-600 underline decoration-gild-500/40">
+              <Link to={`/eintrag/${e.id}`} className="text-gold underline decoration-gild-500/40">
                 {e.title}
               </Link>
             </span>

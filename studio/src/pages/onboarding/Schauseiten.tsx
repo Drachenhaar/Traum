@@ -55,13 +55,13 @@ export function Schauseiten({
           müssen, wessen Welt er da gerade liest.
         */}
         <div className="flex items-center justify-between gap-3 border-b border-gild-500/25 pb-2.5">
-          <p className="rubric text-gild-600">
+          <p className="rubric text-gold">
             Führung · ein Beispiel, nicht deine Welt
           </p>
           <button
             type="button"
             onClick={onFertig}
-            className="shrink-0 font-serif text-[13px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+            className="shrink-0 font-serif text-[13px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
           >
             Überspringen
           </button>
@@ -80,7 +80,7 @@ export function Schauseiten({
          * viele wie das Heft dick ist, und zwei stille Pfeile.
          */}
         {!letzte && (
-          <div className="flex items-center justify-between gap-4 border-t border-paper-300/60 pt-4">
+          <div className="flex items-center justify-between gap-4 border-t border-line pt-4">
             <button
               type="button"
               /*
@@ -105,7 +105,7 @@ export function Schauseiten({
                   key={i}
                   className={cx(
                     'block h-[5px] w-[5px] rounded-full transition-colors',
-                    i === seite ? 'bg-gild-500' : 'bg-paper-400/60',
+                    i === seite ? 'bg-gild-500' : 'bg-ink-faint/45',
                   )}
                 />
               ))}
@@ -114,7 +114,7 @@ export function Schauseiten({
             <button
               type="button"
               onClick={() => setSeite((s) => s + 1)}
-              className="inline-flex min-h-[44px] items-center gap-1 font-serif text-[15px] text-gild-600 transition-colors hover:text-gild-500 no-tap-highlight"
+              className="inline-flex min-h-[44px] items-center gap-1 font-serif text-[15px] text-gold transition-colors hover:text-gold-hell no-tap-highlight"
             >
               Weiter <ChevronRight size={15} />
             </button>
@@ -190,7 +190,7 @@ function Zusammenhaenge() {
               </span>
               <span
                 aria-hidden
-                className="h-px min-w-[1rem] flex-1 translate-y-[-4px] border-b border-dotted border-paper-400/70"
+                className="h-px min-w-[1rem] flex-1 translate-y-[-4px] border-b border-dotted border-lineStrong"
               />
               <span className="font-serif text-[15.5px] text-ink">{nameVon(anderer)}</span>
             </li>
@@ -234,7 +234,7 @@ function Zeit() {
             <span
               className={cx(
                 'shrink-0 font-serif text-[14px] tabular-nums transition-colors',
-                z.jahr <= jahr ? 'text-gild-600' : 'text-ink-faint/45',
+                z.jahr <= jahr ? 'text-gold' : 'text-ink-faint/45',
               )}
             >
               {z.jahr}
@@ -404,7 +404,7 @@ function WegSeite({ absicht }: SeitenProps) {
       </ul>
 
       {w.ausblick && (
-        <div className="mt-9 border-t border-paper-300/60 pt-5">
+        <div className="mt-9 border-t border-line pt-5">
           <p className="rubric mb-1.5">Noch nicht, aber bald</p>
           <p className="max-w-[46ch] font-serif text-[14px] italic leading-relaxed text-ink-faint">
             {w.ausblick}
@@ -431,7 +431,7 @@ function Uebergabe({ onFertig }: SeitenProps) {
       <button
         type="button"
         onClick={onFertig}
-        className="mt-7 inline-flex min-h-[48px] items-center rounded-full border border-gild-500/45 px-8 font-serif text-[16px] text-gild-600 transition-colors hover:bg-gild-400/10 no-tap-highlight"
+        className="mt-7 inline-flex min-h-[48px] items-center rounded-full border border-gild-500/45 px-8 font-serif text-[16px] text-gold transition-colors hover:bg-gild-400/10 no-tap-highlight"
       >
         Meine Welt beginnen
       </button>

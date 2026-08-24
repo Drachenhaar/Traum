@@ -152,12 +152,12 @@ function Entdeckungen() {
 
       {/* ------------------------------------------------ Was Absicht ist */}
       {beiseite.length > 0 && (
-        <section className="mt-14 border-t border-paper-300/60 pt-6">
+        <section className="mt-14 border-t border-line pt-6">
           <button
             type="button"
             onClick={() => setZeigeAbsicht((z) => !z)}
             aria-expanded={zeigeAbsicht}
-            className="min-h-[40px] font-serif text-[13.5px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+            className="min-h-[40px] font-serif text-[13.5px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
           >
             {beiseite.length} {beiseite.length === 1 ? 'Stelle ist' : 'Stellen sind'} Absicht
             {zeigeAbsicht ? ' – zuklappen' : ' – ansehen'}
@@ -173,7 +173,7 @@ function Entdeckungen() {
       )}
 
       {/* ------------------------------------------------ Wonach gesucht wird */}
-      <section className="mt-14 border-t border-paper-300/60 pt-6">
+      <section className="mt-14 border-t border-line pt-6">
         <p className="rubric mb-2">Wonach das Buch sieht</p>
         <p className="mb-4 max-w-[52ch] font-serif text-[13.5px] italic leading-relaxed text-ink-faint">
           Hinter jeder Entdeckung steht ein Satz, den ein Mensch geschrieben hat – kein Orakel.
@@ -222,7 +222,7 @@ function BefundZeile({
         strokeWidth={1.7}
         className={cx(
           'mt-[4px] shrink-0',
-          befund.art === 'widerspruch' ? 'text-[#8C3A32]' : 'text-ink-faint/60',
+          befund.art === 'widerspruch' ? 'text-mahnung' : 'text-ink-faint/60',
         )}
       />
       <div className="min-w-0">
@@ -232,7 +232,7 @@ function BefundZeile({
             <Link
               key={z.id}
               to={`/eintrag/${z.id}`}
-              className="font-serif text-[13px] italic text-gild-600 no-tap-highlight"
+              className="font-serif text-[13px] italic text-gold no-tap-highlight"
             >
               {z.title} ansehen
             </Link>
@@ -241,7 +241,7 @@ function BefundZeile({
             <button
               type="button"
               onClick={onAbsicht}
-              className="min-h-[32px] font-serif text-[13px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+              className="min-h-[32px] font-serif text-[13px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
             >
               Ist Absicht
             </button>
@@ -250,7 +250,7 @@ function BefundZeile({
             <button
               type="button"
               onClick={onZurueck}
-              className="min-h-[32px] font-serif text-[13px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+              className="min-h-[32px] font-serif text-[13px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
             >
               Doch wieder ansehen
             </button>

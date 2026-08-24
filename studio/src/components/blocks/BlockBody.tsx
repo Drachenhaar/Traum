@@ -619,7 +619,7 @@ function ChecklistBlock({ block, onChange }: BodyProps) {
               <span
                 className={cx(
                   'grid h-5 w-5 place-items-center rounded border',
-                  item.done ? 'border-brass-500 bg-brass-500 text-cream-50' : 'border-lineStrong',
+                  item.done ? 'border-brass-500 bg-brass-500 text-paper-50' : 'border-lineStrong',
                 )}
               >
                 {item.done && '✓'}

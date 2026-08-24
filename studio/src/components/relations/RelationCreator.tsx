@@ -213,7 +213,7 @@ export function RelationCreator({
             'bg-gild-400/5 px-3 py-3 text-left transition-colors hover:bg-gild-400/10 no-tap-highlight',
           )}
         >
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-cream-200 text-gild-600">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-cream-200 text-gold">
             <Plus size={20} />
           </span>
           <span className="min-w-0 flex-1">
@@ -265,7 +265,7 @@ export function RelationCreator({
                   <span
                     className={cx(
                       'grid h-6 w-6 shrink-0 place-items-center rounded-full border',
-                      active ? 'border-brass-500 bg-brass-500 text-cream-50' : 'border-lineStrong',
+                      active ? 'border-brass-500 bg-brass-500 text-paper-50' : 'border-lineStrong',
                     )}
                   >
                     {active && <Check size={14} />}

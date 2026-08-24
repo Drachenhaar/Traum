@@ -58,6 +58,10 @@ import { Registerkante } from '../../components/figur/Registerkante';
 import { ERSTES_BLATT, REGISTERBLAETTER } from '../../components/figur/Register';
 import { Blattinhalt, Kopfbildnis, blattfuellung } from '../../components/figur/Figurblaetter';
 import { Goldteiler, Wegepunkt, zeichenFuer } from '../../lib/zeichen/zeichen';
+import { Kolumnentitel, Seitenzahl } from '../../components/setzerei/Setzerei';
+import { useBook } from '../../components/book/BookShell';
+import { chapterOfType } from '../../lib/book';
+import { bildnisVon } from '../../lib/bildnis';
 import { cx } from '../../lib/utils';
 import { ganzVerborgen, zeigtGeheimes } from '../../lib/geheim';
 import type { Entry } from '../../types';
@@ -203,6 +207,29 @@ export function Charakterseite() {
 
   if (!entry) return <KeineFigur figuren={figuren} />;
 
+  /*
+   * Die echte Seitenzahl aus dem Buchblock.
+   *
+   * `useBook` ist ein reiner Haken ohne Zusammenhang – er baut den Buchblock
+   * aus den Eintraegen und laesst sich deshalb auch hier benutzen, wo die
+   * Buchhuelle gar nicht drumherum liegt. Steht die Figur (noch) auf keiner
+   * Seite, bleibt die Zahl weg; erfunden wird nichts.
+   */
+  const hatBildnis = !!bildnisVon(entry);
+  const buch = useBook();
+  const seitenzahl = entry ? buch.pageOfEntry.get(entry.id) : undefined;
+
+  /*
+   * Woraus der Kolumnentitel besteht.
+   *
+   * Beides ist abgeleitet: der Weltname aus dem aufgeschlagenen Buch, das
+   * Kapitel aus dem Typ des Eintrags. Im Referenzbild steht dort
+   * „DRAGONCORE · PERSONEN" und „DAS NEBELTAL · DENNISSE" – dieselbe
+   * Konstruktion, nur mit den Namen dieser Welt statt jener.
+   */
+  const welt = settings?.worldName?.trim() || 'Dragoncore';
+  const kapitelname = entry ? chapterOfType(entry.type).title : '';
+
   const k = konfig();
   const f = k.figur;
   const offen = richtungen(karte);
@@ -233,7 +260,20 @@ export function Charakterseite() {
   return (
     <div
       /*
-       * Waagerecht: Registerkante links, die Seite rechts daneben.
+       * Waagerecht: die Seite links, das Daumenregister an der Aussenkante
+       * rechts.
+       *
+       * Rechts, weil dort im Referenzbild die Reiter stehen – und weil ein
+       * Daumenregister an die **Schnittkante** gehoert, gegenueber dem Falz.
+       * Damit stimmt auch der Satzspiegel wieder: Sein breiterer Innensteg
+       * liegt jetzt tatsaechlich am Falz.
+       *
+       * Der Umzug wurde vorher gemessen, weil er den tiefen Weg haette
+       * verschuetten koennen: Der Streifen fuer die Raumgeste reicht von 12
+       * bis 46 Punkten vom Rand, das Register ist 56 breit und deckt ihn
+       * vollstaendig ab. Gemessen ging die Geste durch das Register hindurch
+       * – zwoelf von zwoelf auf beiden Kanten. Ein Tipp gehoert dem Reiter,
+       * ein Zug gehoert dem Raum; genau so steht es in `Register.ts`.
        *
        * Die Kante steht **außerhalb** der Seite und nicht darüber. Eine
        * Leiste, die über dem Inhalt schwebt, verdeckt beim Lesen die erste
@@ -261,18 +301,25 @@ export function Charakterseite() {
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          background: `radial-gradient(120% 78% at 50% ${18 + f.grundtiefe * 26}%, #1c1712 0%, #120f0c 46%, #0a0806 100%)`,
+          /*
+           * Der Grund folgt dem Band – mit demselben Mittel wie das Papier.
+           *
+           * Hier standen drei feste Braunwerte. Im Band Tinte hiess das:
+           * silberne Praegung, silberne Reiter, silberne Schrift – in einem
+           * braunen Zimmer. Der Fund kam aus dem Bildschirmfoto, nicht aus
+           * einer Messung; alle Zahlen stimmten.
+           *
+           * Statt sechs Tripel zu erfinden, benutzt die Seite jetzt die zwei
+           * Angaben, mit denen `.paper-sheet` schon arbeitet: einen Grundton
+           * und einen Lichthof darueber. Ein Mittel, an zwei Stellen – und
+           * ein siebter Band muss nichts Zusaetzliches mitbringen.
+           */
+          backgroundColor: 'var(--dc-blattgrund)',
+          backgroundImage: `radial-gradient(120% 78% at 50% ${18 + f.grundtiefe * 26}%, var(--dc-lichthof) 0%, transparent 62%)`,
         }}
         aria-hidden
       />
       <div className="dc-korn pointer-events-none absolute inset-0" aria-hidden />
-
-      <Registerkante
-        offen={blatt}
-        waehle={schlageAuf}
-        fuellung={fuellung}
-        breite={f.registerbreite}
-      />
 
       {/*
         Die Seite neben der Kante.
@@ -374,6 +421,31 @@ export function Charakterseite() {
         </div>
       </header>
 
+      {/* -------------------------------------------------- Kolumnentitel --- */}
+      {/*
+        Der Kolumnentitel (§9) – und ausdruecklich keine zweite Kopfzeile.
+        
+        Im aufgeschlagenen Buch traegt die linke Seite das Werk, die rechte das
+        Stichwort. Auf 390 Punkten gibt es keine Doppelseite, also stehen beide
+        Angaben auf einer Zeile: links, wo man ist, rechts, wen man liest.
+        
+        Er ist unbedienbar und `aria-hidden`. Wer hier etwas anklickbar macht,
+        hat eine Navigationsleiste gebaut – und genau die soll dieses Buch
+        nicht haben.
+      */}
+      {/*
+        Gemessen 2,09:1 bei neuneinhalb Punkt – der Kolumnentitel soll leise
+        sein, nicht unsichtbar. Im Referenzbild liest man „DAS NEBELTAL ·
+        DENNISSE" ohne Muehe; er ist die einzige Zeile, die sagt, wo man
+        steht.
+      */}
+      <div className="relative z-10 mt-1 px-6 text-gild-500/80">
+        <Kolumnentitel
+          links={`${welt} · ${kapitelname}`}
+          rechts={entry.title}
+        />
+      </div>
+
       {/* ---------------------------------------------------------- Name --- */}
       <div className="relative z-10 mt-3 px-6 text-center">
         <h1
@@ -410,7 +482,7 @@ export function Charakterseite() {
          * dem gerahmten Portrait oben rechts tut. Das große Bildnis gehört
          * der Übersicht und käme hier nur in die Quere.
          */
-        <div className="dc-tiefenraum relative z-10 min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-4">
+        <div className="dc-tiefenraum satz-spiegel relative z-10 min-h-0 flex-1 overflow-y-auto">
           {/*
             Kein Name des Blattes im Kopf.
 
@@ -424,13 +496,39 @@ export function Charakterseite() {
             vergisst, über wen man liest. Genau das tut im Referenzbild das
             gerahmte Portrait oben rechts.
           */}
+          {/*
+            Das Brustbild nur, wenn es eines **gibt**.
+
+            Vorher stand hier auf jedem der sieben Registerblaetter derselbe
+            leere Rahmen mit der Rautenpraegung – auf einer Figur ohne Bild
+            also siebenmal ein Platzhalter. Ein wuerdiger Rueckfall ist
+            richtig, wo das Bildnis der Gegenstand der Seite ist (die
+            Uebersicht); als Beigabe oben auf jedem Blatt ist derselbe
+            Rueckfall nur Wiederholung. Wo kein Bild ist, traegt die
+            Haarlinie allein.
+          */}
           <div className="mb-5 flex items-start gap-4">
-            <Kopfbildnis entry={entry} />
-            <div className="min-w-0 flex-1 pt-6 text-gild-500/30">
+            {hatBildnis && <Kopfbildnis entry={entry} />}
+            <div className={cx('min-w-0 flex-1 text-gild-500/30', hatBildnis && 'pt-6')}>
               <Goldteiler breite={92} />
             </div>
           </div>
-          <Blattinhalt blatt={blatt} entry={entry} />
+          <div className="satz-spalte">
+            <Blattinhalt blatt={blatt} entry={entry} />
+          </div>
+
+          {/*
+            Die Seitenzahl gehoert zum Buch (§10).
+
+            Sie ist ausdruecklich **keine Bedienung**: kein „3 von 8", keine
+            Pfeile, keine Punkte. Welches Blatt aufgeschlagen ist, sagt der
+            Reiter daneben – hier steht nur, auf welcher Seite man im Band
+            steht. Die Zahl ist abgeleitet und keine Zierde: Ein Buch mit
+            erfundenen Seitenzahlen waere eine Kulisse.
+          */}
+          {seitenzahl !== undefined && (
+            <Seitenzahl zahl={seitenzahl} className="mt-10 text-gild-500/40" />
+          )}
         </div>
       ) : (
       <>
@@ -451,7 +549,24 @@ export function Charakterseite() {
         es bekommen kann – aber die Untergrenze ist jetzt eine Form und keine
         Null.
       */}
-      <div className="relative z-10 mt-3 flex min-h-0 flex-1 items-stretch px-5">
+      {/*
+        Die Doppelseite, auf dem Telefon gefaltet.
+        
+        Im Referenzbild traegt die linke Seite das Bildnis und die rechte den
+        Steckbrief – Zitat, ALTER/HERKUNFT/VOLK, der beschreibende Absatz. Auf
+        390 Punkten gibt es keine zwei Seiten nebeneinander, also stehen sie
+        untereinander, und man blaettert mit dem Daumen statt mit dem Blick.
+        
+        Hier lag ein echter Fehler: `BlattUebersicht` war in `Blattinhalt`
+        angemeldet, aber die Uebersicht nahm den anderen Zweig – der
+        Steckbrief war **toter Code**, und die fuenf Angaben aus dem
+        Referenzbild standen nirgends. Zu sehen war das nur an der Seite
+        selbst: Sie zeigte ein leeres Bildnis und darunter einen abgeschnittenen
+        Satz. Die Zahlen sagten „0 Absaetze" und ich hielt es erst fuer einen
+        Messfehler.
+      */}
+      <div className="dc-tiefenraum relative z-10 min-h-0 flex-1 overflow-y-auto">
+      <div className="mt-3 flex items-stretch px-5">
         {/*
           `min-h` statt `aspect` – gemessen am Bildschirmfoto.
 
@@ -465,7 +580,7 @@ export function Charakterseite() {
           Die Untergrenze bleibt, damit auf einem sehr kleinen Bildschirm kein
           Streifen daraus wird.
         */}
-        <div className="relative min-h-[240px] w-full">
+        <div className="relative aspect-[3/4] max-h-[58vh] min-h-[240px] w-full">
           {/*
             `h-full w-full` und nicht `absolute inset-0`.
 
@@ -503,14 +618,23 @@ export function Charakterseite() {
         </div>
       </div>
 
-      {/* --------------------------------------------------------- Zitat --- */}
-      {entry.description?.trim() && (
-        <div className="relative z-10 shrink-0 px-8 pb-1 pt-3 text-center">
-          <p className="font-serif text-[12.5px] italic leading-[1.5] text-paper-300/60">
-            {kurz(entry.description, 128)}
-          </p>
+      {/* ------------------------------------------------- Der Steckbrief --- */}
+      {/*
+        Was vorher hier stand: derselbe Beschreibungstext, zentriert, kursiv
+        und nach 128 Zeichen mit „…" abgeschnitten. Ein abgeschnittener Satz
+        ist keine Kurzfassung, sondern ein Versprechen, das die Seite nicht
+        einloest. Jetzt steht der ganze Absatz im Satzspiegel darunter –
+        zusammen mit den Angaben, die im Referenzbild daneben stehen.
+      */}
+      <div className="satz-spiegel">
+        <div className="satz-spalte">
+          <Blattinhalt blatt="uebersicht" entry={entry} />
         </div>
-      )}
+        {seitenzahl !== undefined && (
+          <Seitenzahl zahl={seitenzahl} className="mt-10 text-gild-500/40" />
+        )}
+      </div>
+      </div>
 
       </>
       )}
@@ -535,6 +659,23 @@ export function Charakterseite() {
         )}
       </div>
       </div>
+
+      {/*
+        Das Daumenregister steht **nach** der Seite und damit rechts.
+
+        Im Flex-Fluss ist die Reihenfolge im Quelltext die Reihenfolge auf dem
+        Schirm – der Umzug von links nach rechts ist deshalb kein neues
+        Stueck Gestaltung, sondern eine verschobene Zeile. Was mit umziehen
+        musste, sind die Richtungen *innerhalb* der Kante: Lichtverlauf,
+        Goldnaht und der vorstehende Reiter zeigen jetzt zur Seite hin statt
+        von ihr weg (siehe `Registerkante.tsx`).
+      */}
+      <Registerkante
+        offen={blatt}
+        waehle={schlageAuf}
+        fuellung={fuellung}
+        breite={f.registerbreite}
+      />
     </div>
   );
 }
@@ -617,13 +758,4 @@ function KeineFigur({ figuren }: { figuren: Entry[] }) {
   );
 }
 
-/** Auf Satzgrenze kürzen, nicht auf Zeichen – ein abgeschnittenes Wort ist ein Fehler. */
-function kurz(s: string, max: number): string {
-  const t = s.trim();
-  if (t.length <= max) return t;
-  const schnitt = t.slice(0, max);
-  const punkt = Math.max(schnitt.lastIndexOf('. '), schnitt.lastIndexOf('! '), schnitt.lastIndexOf('? '));
-  if (punkt > max * 0.5) return schnitt.slice(0, punkt + 1);
-  const luecke = schnitt.lastIndexOf(' ');
-  return `${schnitt.slice(0, luecke > 0 ? luecke : max)} …`;
-}
+

@@ -81,7 +81,7 @@ export function Mehr({
         data-leitfaden="mehr"
         className={cx(
           'grid h-9 w-9 place-items-center transition-colors no-tap-highlight',
-          offen ? 'text-gild-500' : (klasse ?? 'text-ink-faint/35 hover:text-gild-500'),
+          offen ? 'text-gild-500' : (klasse ?? 'text-ink-faint/35 hover:text-gold-hell'),
         )}
       >
         <MoreHorizontal size={16} />
@@ -91,7 +91,7 @@ export function Mehr({
         <div
           role="menu"
           className={cx(
-            'absolute top-full z-30 mt-1 w-[13.5rem] rounded-[3px] border border-paper-300/80',
+            'absolute top-full z-30 mt-1 w-[13.5rem] rounded-[3px] border border-line',
             'bg-cream-50 py-1 shadow-[0_18px_44px_-18px_rgba(60,44,26,0.5)] animate-fadeIn',
             ausrichtung === 'rechts' ? 'right-0' : 'left-0',
           )}
@@ -107,8 +107,8 @@ export function Mehr({
               }}
               className={cx(
                 'flex min-h-[40px] w-full items-center gap-2.5 px-3.5 text-left font-serif text-[14.5px]',
-                'transition-colors no-tap-highlight hover:bg-paper-200/60',
-                e.abgesetzt && 'mt-1 border-t border-paper-300/60 pt-2',
+                'transition-colors no-tap-highlight hover:bg-cream-200',
+                e.abgesetzt && 'mt-1 border-t border-line pt-2',
                 e.gefaehrlich ? 'text-red-800/85' : 'text-ink-muted',
               )}
             >

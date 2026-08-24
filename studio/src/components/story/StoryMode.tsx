@@ -84,7 +84,7 @@ export function StoryMode({
 
   if (!entry) {
     return createPortal(
-      <div className="fixed inset-0 z-[80] grid place-items-center bg-olive-900 text-cream-100">
+      <div className="fixed inset-0 z-[80] grid place-items-center bg-olive-900 text-paper-50">
         <div className="text-center">
           <p className="font-serif text-2xl">Nichts zu zeigen</p>
           <button type="button" className="btn-ghost mt-4" onClick={onClose}>
@@ -110,7 +110,7 @@ export function StoryMode({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[80] overflow-y-auto bg-olive-900 text-cream-100 animate-fadeIn"
+      className="fixed inset-0 z-[80] overflow-y-auto bg-olive-900 text-paper-50 animate-fadeIn"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
@@ -131,13 +131,13 @@ export function StoryMode({
 
         <h1 className="font-serif text-[38px] leading-[1.1] sm:text-[52px]">{entry.title}</h1>
         {entry.subtitle && (
-          <p className="mt-2 font-serif text-[20px] italic text-cream-100/70 sm:text-[24px]">
+          <p className="mt-2 font-serif text-[20px] italic text-paper-50/70 sm:text-[24px]">
             {entry.subtitle}
           </p>
         )}
 
         {entry.description && (
-          <p className="mt-7 text-[18px] leading-[1.75] text-cream-100/90">{entry.description}</p>
+          <p className="mt-7 text-[18px] leading-[1.75] text-paper-50/90">{entry.description}</p>
         )}
 
         {palette.length > 0 && (
@@ -145,9 +145,9 @@ export function StoryMode({
             {palette.map((raw, i) => {
               const [color, ...rest] = raw.split('|');
               return (
-                <span key={i} className="flex items-center gap-2 text-[13px] text-cream-100/70">
+                <span key={i} className="flex items-center gap-2 text-[13px] text-paper-50/70">
                   <span
-                    className="h-9 w-9 rounded-lg border border-cream-100/15"
+                    className="h-9 w-9 rounded-lg border border-paper-50/15"
                     style={{ background: color }}
                   />
                   {rest.join('|') || color}
@@ -162,7 +162,7 @@ export function StoryMode({
             {highlights.map((h) => (
               <div key={h.label}>
                 <dt className="text-[12px] uppercase tracking-wide text-brass-300/80">{h.label}</dt>
-                <dd className="mt-1 whitespace-pre-wrap text-[16px] leading-relaxed text-cream-100/85">
+                <dd className="mt-1 whitespace-pre-wrap text-[16px] leading-relaxed text-paper-50/85">
                   {h.value}
                 </dd>
               </div>
@@ -173,7 +173,7 @@ export function StoryMode({
         <BlockList blocks={entry.blocks} tone="dark" />
 
         {relations.length > 0 && (
-          <div className="mt-12 border-t border-cream-100/15 pt-6">
+          <div className="mt-12 border-t border-paper-50/15 pt-6">
             <p className="mb-3 text-[12px] uppercase tracking-[0.18em] text-brass-300/80">
               Steht in Verbindung mit
             </p>
@@ -187,10 +187,10 @@ export function StoryMode({
                     key={rel.relation.id}
                     type="button"
                     onClick={() => pos >= 0 && setIndex(pos)}
-                    className="flex items-center gap-2 rounded-full border border-cream-100/20 px-3 py-1.5 text-[14px] text-cream-100/85 transition-colors hover:border-brass-300 hover:text-cream-100"
+                    className="flex items-center gap-2 rounded-full border border-paper-50/20 px-3 py-1.5 text-[14px] text-paper-50/85 transition-colors hover:border-brass-300 hover:text-paper-50"
                   >
                     <Thumb imageId={other.coverImage} alt="" className="h-6 w-6" rounded="rounded-full" />
-                    <span className="text-cream-100/55">{rel.label}</span>
+                    <span className="text-paper-50/55">{rel.label}</span>
                     {other.title}
                   </button>
                 );
@@ -206,19 +206,19 @@ export function StoryMode({
           type="button"
           onClick={() => go(-1)}
           disabled={index === 0}
-          className="touch-target grid place-items-center rounded-full bg-cream-100/10 px-4 text-cream-100 transition-colors hover:bg-cream-100/20 disabled:opacity-25"
+          className="touch-target grid place-items-center rounded-full bg-paper-50/10 px-4 text-paper-50 transition-colors hover:bg-paper-50/20 disabled:opacity-25"
           aria-label="Zurück"
         >
           <ChevronLeft size={20} />
         </button>
-        <p className="flex-1 text-center text-[13px] text-cream-100/50">
+        <p className="flex-1 text-center text-[13px] text-paper-50/50">
           {index + 1} / {sequence.length}
         </p>
         <button
           type="button"
           onClick={() => go(1)}
           disabled={index === sequence.length - 1}
-          className="touch-target grid place-items-center rounded-full bg-cream-100/10 px-4 text-cream-100 transition-colors hover:bg-cream-100/20 disabled:opacity-25"
+          className="touch-target grid place-items-center rounded-full bg-paper-50/10 px-4 text-paper-50 transition-colors hover:bg-paper-50/20 disabled:opacity-25"
           aria-label="Weiter"
         >
           <ChevronRight size={20} />
@@ -228,7 +228,7 @@ export function StoryMode({
       <button
         type="button"
         onClick={onClose}
-        className="fixed right-3 top-3 grid h-11 w-11 place-items-center rounded-full bg-olive-900/60 text-cream-100/80 backdrop-blur transition-colors hover:bg-olive-900 hover:text-cream-100"
+        className="fixed right-3 top-3 grid h-11 w-11 place-items-center rounded-full bg-olive-900/60 text-paper-50/80 backdrop-blur transition-colors hover:bg-olive-900 hover:text-paper-50"
         style={{ top: 'calc(var(--sat) + 12px)' }}
         aria-label="Story-Modus verlassen"
       >

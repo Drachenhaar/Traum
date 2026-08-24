@@ -73,7 +73,7 @@ export function SzenenBlatt({
         aria-hidden={!offen}
         className={cx(
           'fixed inset-x-0 bottom-0 z-40 max-h-[72vh] sm:inset-y-0 sm:left-auto sm:right-0 sm:max-h-none sm:w-[23rem]',
-          'flex flex-col overflow-hidden border-paper-300/80 bg-cream-50',
+          'flex flex-col overflow-hidden border-line bg-cream-50',
           'border-t sm:border-l sm:border-t-0',
           'shadow-[0_-14px_40px_-20px_rgba(60,44,26,0.45)] sm:shadow-[-14px_0_40px_-20px_rgba(60,44,26,0.45)]',
           'transition-[transform,visibility] duration-300 ease-out motion-reduce:transition-none',
@@ -89,7 +89,7 @@ export function SzenenBlatt({
             : 'invisible delay-300 translate-y-full sm:translate-y-0 sm:translate-x-full',
         )}
       >
-        <header className="flex shrink-0 items-center justify-between border-b border-paper-300/60 px-4 py-3">
+        <header className="flex shrink-0 items-center justify-between border-b border-line px-4 py-3">
           <p className="rubric">Diese Szene</p>
           <button
             type="button"
@@ -189,7 +189,7 @@ export function SzenenBlatt({
                   <p className="font-serif text-[14px] leading-relaxed text-ink">{w.text}</p>
                   <Link
                     to={`/eintrag/${w.entry.id}`}
-                    className="mt-0.5 inline-flex items-center gap-1 font-serif text-[12.5px] text-ink-faint transition-colors hover:text-gild-600"
+                    className="mt-0.5 inline-flex items-center gap-1 font-serif text-[12.5px] text-ink-faint transition-colors hover:text-gold"
                   >
                     Nachsehen <ChevronRight size={11} />
                   </Link>
@@ -220,7 +220,7 @@ export function SzenenBlatt({
                           'success',
                         );
                       }}
-                      className="inline-flex min-h-[32px] items-center gap-1 rounded-full border border-gild-500/40 px-3 font-serif text-[13px] text-gild-600 transition-colors hover:bg-gild-400/10 no-tap-highlight"
+                      className="inline-flex min-h-[32px] items-center gap-1 rounded-full border border-gild-500/40 px-3 font-serif text-[13px] text-gold transition-colors hover:bg-gild-400/10 no-tap-highlight"
                     >
                       <Check size={12} /> Übernehmen
                     </button>
@@ -306,7 +306,7 @@ function Zeile({ label, children }: { label: string; children: React.ReactNode }
 
 function Abschnitt({ titel, children }: { titel: string; children: React.ReactNode }) {
   return (
-    <section className="mt-6 border-t border-paper-300/60 pt-4">
+    <section className="mt-6 border-t border-line pt-4">
       <p className="rubric mb-2.5">{titel}</p>
       {children}
     </section>
@@ -329,7 +329,7 @@ function Wahl({
       <button
         type="button"
         onClick={onWaehlen}
-        className="inline-flex min-h-[34px] items-center gap-1 font-serif text-[14px] italic text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+        className="inline-flex min-h-[34px] items-center gap-1 font-serif text-[14px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
       >
         <Plus size={12} /> {leer}
       </button>

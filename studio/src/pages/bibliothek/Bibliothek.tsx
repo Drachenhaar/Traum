@@ -215,7 +215,7 @@ export function Bibliothek() {
                   type="button"
                   onClick={() => setArchivOffen((o) => !o)}
                   aria-expanded={archivOffen}
-                  className="min-h-[40px] font-serif text-[13.5px] italic text-paper-400/45 transition-colors hover:text-gild-500 no-tap-highlight"
+                  className="min-h-[40px] font-serif text-[13.5px] italic text-paper-400/45 transition-colors hover:text-gold-hell no-tap-highlight"
                 >
                   {archiv.length} {archiv.length === 1 ? 'Band' : 'Bände'} im Archiv
                   {archivOffen ? ' – zuklappen' : ' – ansehen'}

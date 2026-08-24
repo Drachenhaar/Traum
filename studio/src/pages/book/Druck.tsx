@@ -209,7 +209,7 @@ function Druck() {
               'rounded-sm border px-4 py-3 text-left transition-colors no-tap-highlight',
               f.id === formatId
                 ? 'border-gild-600/60 bg-gild-600/10'
-                : 'border-paper-400/30 hover:border-paper-400/60',
+                : 'border-line hover:border-lineStrong',
             )}
           >
             <span className="block font-serif text-[15px] text-ink">{f.name}</span>
@@ -239,7 +239,7 @@ function Druck() {
               'mt-3 w-full rounded-sm border px-4 py-3 text-left transition-colors no-tap-highlight',
               mitBildern
                 ? 'border-gild-600/60 bg-gild-600/10'
-                : 'border-paper-400/30 hover:border-paper-400/60',
+                : 'border-line hover:border-lineStrong',
             )}
           >
             <span className="block font-serif text-[15px] text-ink">
@@ -287,7 +287,7 @@ function Druck() {
                   'rounded-sm border px-4 py-3 text-left transition-colors no-tap-highlight',
                   mitGeheimem === w.an
                     ? 'border-gild-600/60 bg-gild-600/10'
-                    : 'border-paper-400/30 hover:border-paper-400/60',
+                    : 'border-line hover:border-lineStrong',
                 )}
               >
                 <span className="block font-serif text-[15px] text-ink">{w.titel}</span>

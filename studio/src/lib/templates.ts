@@ -160,6 +160,21 @@ const BUILTIN: TemplateDef[] = [
        */
       { key: 'buchauftritt', label: 'Charakteristischer Buchauftritt', kind: 'textarea', hint: 'Wie tritt diese Figur zum ersten Mal in Erscheinung?' },
       /*
+       * Die Randbemerkung – die zweite, persoenliche Ebene des Buches.
+       *
+       * Ein Weltbuch, in dem gearbeitet wurde, traegt Eintragungen, die
+       * spaeter dazukamen: „Sie erzaehlt nie, woher sie diese Narbe hat."
+       * „Noch einmal nach dem Namen des Dorfes fragen." Das sind keine
+       * Angaben ueber die Figur, sondern Notizen des Verfassers *an sich
+       * selbst* – und genau deshalb bekommen sie ein eigenes Feld und werden
+       * auf der Seite von Hand geschrieben dargestellt, nicht gesetzt.
+       *
+       * Sie sind bewusst ein einzelnes Feld und keine Liste. Wer zehn
+       * handschriftliche Notizen auf eine Seite schreibt, hat keinen
+       * gebundenen Band mehr, sondern einen Notizzettel.
+       */
+      { key: 'randbemerkung', label: 'Randbemerkung', kind: 'textarea', hint: 'Was du später von Hand hineingeschrieben hättest.' },
+      /*
        * Die zwei gemalten Szenen aus dem Referenzbild.
        *
        * Sie stehen dort neben der Vergangenheit und neben dem Buchauftritt –

@@ -1,6 +1,7 @@
 import { Component, StrictMode, type ErrorInfo, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
+import { massAlsCss } from './lib/setzerei/mass';
 
 /**
  * Ohne Fehlergrenze wird ein Renderfehler auf iOS bisher lautlos zur weißen
@@ -182,7 +183,7 @@ class Boundary extends Component<{ children: ReactNode }, { error: Error | null 
               window.location.hash = '#/';
               this.setState({ error: null });
             }}
-            className="mt-7 inline-flex min-h-[42px] items-center rounded-full border border-gild-500/40 px-5 font-serif text-[15px] text-gild-600 no-tap-highlight"
+            className="mt-7 inline-flex min-h-[42px] items-center rounded-full border border-gild-500/40 px-5 font-serif text-[15px] text-gold no-tap-highlight"
           >
             Zurück zum Anfang
           </button>
@@ -197,6 +198,19 @@ class Boundary extends Component<{ children: ReactNode }, { error: Error | null 
 
 const container = document.getElementById('root');
 if (!container) throw new Error('Kein Wurzelelement gefunden.');
+
+/*
+ * Das Maß der Setzerei an die Wurzel hängen – vor dem ersten Bild.
+ *
+ * Die Zahlen könnten auch im Stilblatt stehen. Dann stünden sie zweimal da:
+ * einmal für das CSS und einmal für die Bauteile, die mit ihnen rechnen – und
+ * zwei Zahlen über denselben Rand laufen früher oder später auseinander.
+ * Hier gibt es sie einmal, in `lib/setzerei/mass.ts`, mit der Begründung
+ * daneben.
+ */
+for (const [name, wert] of Object.entries(massAlsCss())) {
+  document.documentElement.style.setProperty(name, wert);
+}
 
 import('./App')
   .then(({ default: App }) => {

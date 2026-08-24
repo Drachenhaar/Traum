@@ -31,6 +31,7 @@ import {
   type Profil,
 } from '../../lib/profil';
 import type { BookIdentity } from '../../types';
+import { BAENDE, BAND_VORGABE, bandVon } from '../../lib/baende';
 import { cx } from '../../lib/utils';
 
 const T = BUCH_TEXTE.meinBuch;
@@ -68,7 +69,7 @@ export function MeinBuchSheet() {
               onChange={(e) => aendern({ title: e.target.value })}
               placeholder={TT.platzhalter}
               aria-label="Titel"
-              className="w-full max-w-sm border-0 border-b border-paper-400/50 bg-transparent pb-1.5 font-serif text-[19px] text-ink outline-none transition-colors placeholder:text-ink-faint/30 focus:border-gild-500/60"
+              className="w-full max-w-sm border-0 border-b border-lineStrong bg-transparent pb-1.5 font-serif text-[19px] text-ink outline-none transition-colors placeholder:text-ink-faint/30 focus:border-gild-500/60"
             />
             <input
               value={book.subtitle ?? ''}
@@ -81,7 +82,7 @@ export function MeinBuchSheet() {
                 herauszoomen muss man von Hand. Am Schreibtisch darf es wieder
                 kleiner sein, dort gibt es das Problem nicht.
               */
-              className="mt-4 min-h-[38px] w-full max-w-sm border-0 border-b border-paper-400/30 bg-transparent pb-1.5 font-serif text-[16px] italic text-ink-muted outline-none transition-colors placeholder:text-ink-faint/25 focus:border-gild-500/50 sm:text-[14px]"
+              className="mt-4 min-h-[38px] w-full max-w-sm border-0 border-b border-line bg-transparent pb-1.5 font-serif text-[16px] italic text-ink-muted outline-none transition-colors placeholder:text-ink-faint/25 focus:border-gild-500/50 sm:text-[14px]"
             />
           </Abschnitt>
 
@@ -108,6 +109,38 @@ export function MeinBuchSheet() {
               gewaehlt={book.coverColor}
               onWaehlen={(id) => aendern({ coverColor: id })}
             />
+          </Abschnitt>
+
+          {/* ------------------------------------------------------- Band */}
+          {/*
+            Aus welchem Stoff dieses Buch gebunden ist.
+            
+            Die Probe zeigt, was der Band wirklich tut: den Grund, auf dem
+            gelesen wird, und das Metall, mit dem geprägt ist. Ein Farbfeld
+            allein sagte nichts – der Unterschied zwischen Moos und Rotholz
+            ist nicht der Grundton, sondern Messing gegen Kupfer.
+            
+            Und es steht hier und nicht im Stimmzimmer: Der Band gehört zu
+            diesem Buch. Zwei Bücher in derselben Bibliothek dürfen aus
+            verschiedenem Material sein.
+          */}
+          <Abschnitt titel="Der Band">
+            <Proben
+              werte={BAENDE.map((b) => ({
+                id: b.id,
+                label: b.name,
+                style: {
+                  background:
+                    `linear-gradient(150deg, rgb(${b.toene.grund100}) 0%, rgb(${b.toene.grund300}) 100%)`,
+                  boxShadow: `inset 0 0 0 2px rgb(${b.toene.metall400})`,
+                },
+              }))}
+              gewaehlt={book.band ?? BAND_VORGABE}
+              onWaehlen={(id) => aendern({ band: id })}
+            />
+            <p className="mt-3 max-w-[46ch] font-serif text-[13.5px] italic leading-relaxed text-ink-muted">
+              {bandVon(book.band).wesen}
+            </p>
           </Abschnitt>
 
           {/* ---------------------------------------------------- Zeichen */}
@@ -145,7 +178,7 @@ export function MeinBuchSheet() {
                     'rounded-sm border px-3.5 py-2.5 text-left transition-colors no-tap-highlight',
                     profil.absicht === a.id
                       ? 'border-gild-600/60 bg-gild-600/10'
-                      : 'border-paper-400/30 hover:border-paper-400/60',
+                      : 'border-line hover:border-lineStrong',
                   )}
                 >
                   <span className="block font-serif text-[14.5px] text-ink">{a.name}</span>
@@ -167,7 +200,7 @@ export function MeinBuchSheet() {
                   aria-pressed={profil.tiefe === t.id}
                   className={cx(
                     'min-h-[40px] font-serif text-[14.5px] transition-colors no-tap-highlight',
-                    profil.tiefe === t.id ? 'text-gild-600' : 'text-ink-faint hover:text-ink-muted',
+                    profil.tiefe === t.id ? 'text-gold' : 'text-ink-faint hover:text-ink-muted',
                   )}
                 >
                   {t.name}
@@ -207,7 +240,7 @@ export function MeinBuchSheet() {
                     'rounded-sm border px-3.5 py-2.5 text-left transition-colors no-tap-highlight',
                     profil.anmutung === a.id
                       ? 'border-gild-600/60 bg-gild-600/10'
-                      : 'border-paper-400/30 hover:border-paper-400/60',
+                      : 'border-line hover:border-lineStrong',
                   )}
                 >
                   <span className="block font-serif text-[14.5px] text-ink">{a.name}</span>
@@ -226,10 +259,10 @@ export function MeinBuchSheet() {
            * will, ist oben längst fertig. Wer den Vorgang noch einmal erleben
            * will, findet ihn hier.
            */}
-          <section className="border-t border-paper-300/60 pt-5">
+          <section className="border-t border-line pt-5">
             <Link
               to="/neu-binden"
-              className="inline-flex min-h-[44px] items-center gap-2 font-serif text-[15px] italic text-gild-600 transition-colors hover:text-gild-500 no-tap-highlight"
+              className="inline-flex min-h-[44px] items-center gap-2 font-serif text-[15px] italic text-gold transition-colors hover:text-gold-hell no-tap-highlight"
             >
               <Sparkles size={15} strokeWidth={1.6} /> {T.neuBinden}
             </Link>
@@ -245,7 +278,7 @@ export function MeinBuchSheet() {
 
 function Abschnitt({ titel, children }: { titel: string; children: React.ReactNode }) {
   return (
-    <section className="mb-8 border-t border-paper-300/60 pt-5 first:border-0 first:pt-0">
+    <section className="mb-8 border-t border-line pt-5 first:border-0 first:pt-0">
       <p className="rubric mb-3">{titel}</p>
       {children}
     </section>
@@ -287,7 +320,7 @@ function Proben({
           <span
             className={cx(
               'max-w-[66px] text-center font-serif text-[11px] leading-tight',
-              gewaehlt === w.id ? 'text-gild-600' : 'text-ink-faint',
+              gewaehlt === w.id ? 'text-gold' : 'text-ink-faint',
             )}
           >
             {w.label}

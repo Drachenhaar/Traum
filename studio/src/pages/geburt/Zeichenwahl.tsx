@@ -53,16 +53,22 @@ const TOENE = {
     trenner: 'border-paper-400/10',
   },
   papier: {
-    an: 'text-gild-600',
+    an: 'text-gold',
     aus: 'text-ink-faint hover:text-ink-muted',
     linie: 'bg-gild-500/60',
     still: 'text-ink-faint',
     rahmenAn: 'border-gild-500/60 bg-gild-400/10',
-    rahmenAus: 'border-paper-400/50 hover:border-paper-400/80',
-    zeichenAus: 'rgba(124,106,87,0.55)',
-    knopf: 'border-gild-500/40 text-gild-600 hover:bg-gild-400/10',
-    feld: 'border-paper-400/70 bg-paper-50/70 text-ink focus:border-gild-500/60',
-    trenner: 'border-paper-300/70',
+    rahmenAus: 'border-line text-ink-faint hover:border-lineStrong',
+    /*
+     * `currentColor` statt eines festen Werts: Das Zeichen setzt `stroke`
+     * als SVG-Attribut, und dort greift `var(…)` nicht – SVG-Attribute
+     * werden nicht als CSS gelesen. Ueber `currentColor` erbt der Strich
+     * die Textfarbe des Knopfes, und die haengt am Band.
+     */
+    zeichenAus: 'currentColor',
+    knopf: 'border-gild-500/40 text-gold hover:bg-gild-400/10',
+    feld: 'border-lineStrong bg-cream-100 text-ink focus:border-gild-500/60',
+    trenner: 'border-line',
   },
 } as const;
 

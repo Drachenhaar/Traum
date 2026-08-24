@@ -69,12 +69,12 @@ export function Pfad({ entry }: { entry: Entry }) {
   if (!relIndex.neighbours.get(entry.id)?.size) return null;
 
   return (
-    <section className="mt-8 border-t border-paper-300/60 pt-5">
+    <section className="mt-8 border-t border-line pt-5">
       {!zielId ? (
         <button
           type="button"
           onClick={() => setWaehlen(true)}
-          className="inline-flex min-h-[38px] items-center gap-1.5 font-serif text-[14px] text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+          className="inline-flex min-h-[38px] items-center gap-1.5 font-serif text-[14px] text-ink-faint transition-colors hover:text-gold no-tap-highlight"
         >
           <Route size={13} /> Wie hängt das mit … zusammen?
         </button>
@@ -106,7 +106,7 @@ export function Pfad({ entry }: { entry: Entry }) {
                     <span className="italic text-ink-faint">{s.label}</span>{' '}
                     <Link
                       to={`/eintrag/${s.ziel.id}`}
-                      className="text-ink transition-colors hover:text-gild-600"
+                      className="text-ink transition-colors hover:text-gold"
                     >
                       {s.ziel.title}
                     </Link>
@@ -124,7 +124,7 @@ export function Pfad({ entry }: { entry: Entry }) {
           <button
             type="button"
             onClick={() => setWaehlen(true)}
-            className="mt-3 font-serif text-[13.5px] text-ink-faint transition-colors hover:text-gild-600 no-tap-highlight"
+            className="mt-3 font-serif text-[13.5px] text-ink-faint transition-colors hover:text-gold no-tap-highlight"
           >
             Etwas anderes nachschlagen
           </button>

@@ -327,7 +327,7 @@ function Ausrichtungswahl({
           onClick={() => onChange(undefined)}
           className={cx(
             'mt-1 min-h-[40px] font-serif text-[13px] italic transition-colors no-tap-highlight',
-            gewaehlt ? 'text-paper-400/40 hover:text-gild-500' : 'text-gild-500/70',
+            gewaehlt ? 'text-paper-400/40 hover:text-gold-hell' : 'text-gild-500/70',
           )}
         >
           {T.ausrichtung.ohne}

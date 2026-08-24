@@ -97,7 +97,7 @@ export function ForewordSpread() {
           </div>
 
           {discovery?.to && (
-            <section className="mt-9 border-t border-paper-300/70 pt-5">
+            <section className="mt-9 border-t border-line pt-5">
               <p className="rubric mb-2">Eine Beobachtung</p>
               <p className="prose-book">
                 <Link to={`/eintrag/${discovery.from.id}`} className="underline decoration-gild-500/40">
@@ -112,7 +112,7 @@ export function ForewordSpread() {
               <button
                 type="button"
                 onClick={() => addRelation(discovery.from.id, discovery.to!.id, 'related')}
-                className="mt-3 inline-flex min-h-[36px] items-center rounded-full border border-gild-500/35 px-4 font-serif text-[13.5px] text-gild-600 transition-colors hover:bg-gild-400/10 no-tap-highlight"
+                className="mt-3 inline-flex min-h-[36px] items-center rounded-full border border-gild-500/35 px-4 font-serif text-[13.5px] text-gold transition-colors hover:bg-gild-400/10 no-tap-highlight"
               >
                 Verbinden
               </button>
@@ -157,12 +157,12 @@ export function ForewordSpread() {
                           className="h-[5px] w-[5px] shrink-0 translate-y-[-3px] rounded-full"
                           style={{ background: tpl.accent }}
                         />
-                        <span className="truncate font-serif text-[15.5px] text-ink transition-colors group-hover:text-gild-600">
+                        <span className="truncate font-serif text-[15.5px] text-ink transition-colors group-hover:text-gold">
                           {item.title}
                         </span>
                         <span
                           aria-hidden
-                          className="mx-1 min-w-[1rem] flex-1 translate-y-[-4px] border-b border-dotted border-paper-400/60"
+                          className="mx-1 min-w-[1rem] flex-1 translate-y-[-4px] border-b border-dotted border-lineStrong"
                         />
                         <span className="shrink-0 font-serif text-[13px] tabular-nums text-ink-faint">
                           {page}
