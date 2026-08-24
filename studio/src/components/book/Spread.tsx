@@ -70,7 +70,25 @@ export function Spread({
  * damit 59 Zeichen. Am Schreibtisch sind die Stege zusammen 112 Punkte breit
  * (16 + 12 mal vier), also traegt der Kasten 480 + 112.
  */
-const SPALTE = 592;
+export const SPALTE = 592;
+
+/**
+ * Die Stege einer Seite – innen breiter als aussen.
+ *
+ * Steht hier und wird ausgefuehrt, statt in zwei Dateien abgeschrieben zu
+ * werden. Der Anlass ist der Fehler, den es sonst gaebe – und den es schon
+ * gab: `AppendixSheet` baute sein eigenes Blatt mit 980 Punkten Spalte und
+ * gleichen Raendern. Das sind 141 Zeichen je Zeile. Niemandem faellt so
+ * etwas auf, weil es nicht falsch *aussieht*; es liest sich nur schlecht.
+ *
+ * `single` ist die Telefonseite und die Anhangseite: eine einzelne Seite,
+ * deren Falz links liegt.
+ */
+export function stege(side: 'left' | 'right' | 'single'): string {
+  return side === 'left'
+    ? 'pl-7 pr-10 sm:pl-12 sm:pr-16'
+    : 'pl-10 pr-7 sm:pl-16 sm:pr-12';
+}
 
 function Leaf({
   children,
@@ -116,9 +134,14 @@ function Leaf({
         Setzerei „aussah wie vorher": Die Setzerei kam nie auf den Buchseiten
         an, es gab dort keine einzige `satz-`Klasse.
 
-        Sie kommt jetzt an genau einer Stelle an, und zwar an der richtigen:
-        `Leaf` ist der Rahmen **jeder** Buchseite. Eintrag, Kapitel, Inhalt,
-        Vorwort, Register, Anhang – alle liegen darin.
+        `Leaf` ist der Rahmen der geblaetterten Seiten: Eintrag, Kapitel,
+        Inhalt, Vorwort, Register.
+
+        **Nicht aller Seiten.** Genau das habe ich beim ersten Mal behauptet,
+        ohne nachzusehen: Die Anhangsblaetter (`AppendixSheet`) bauen ihr Blatt
+        selbst – eigenes Papier, eigener Scrollbereich – und gingen mit 980
+        Punkten Spalte an `Leaf` vorbei. Deshalb sind `SPALTE` und `stege`
+        ausgelagert und werden dort ausgefuehrt statt abgeschrieben.
 
         Drei Dinge aendern sich:
 
@@ -135,7 +158,7 @@ function Leaf({
           className={cx(
             'mx-auto w-full pt-9 sm:pt-14',
             /* Innen breiter als aussen – der Falz frisst Papier. */
-            side === 'left' ? 'pl-7 pr-10 sm:pl-12 sm:pr-16' : 'pl-10 pr-7 sm:pl-16 sm:pr-12',
+            stege(side),
           )}
           style={{ maxWidth: SPALTE, paddingBottom: 'calc(var(--satz-raster) * 2)' }}
         >

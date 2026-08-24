@@ -2,6 +2,7 @@ import { Component, StrictMode, type ErrorInfo, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import { massAlsCss } from './lib/setzerei/mass';
+import { frageNachNeuanfang, neuanfangGewuenscht } from './lib/neuanfang';
 
 /**
  * Ohne Fehlergrenze wird ein Renderfehler auf iOS bisher lautlos zur weißen
@@ -200,6 +201,30 @@ const container = document.getElementById('root');
 if (!container) throw new Error('Kein Wurzelelement gefunden.');
 
 /*
+ * Der Neuanfang kommt **vor** allem anderen.
+ *
+ * Wer `?neuanfang` in der Adresse hat, bekommt die Frage und sonst nichts:
+ * kein Speicher, keine Datenbankverbindung, keine App. Genau das ist der
+ * Punkt – gegen einen laufenden Speicher zu löschen hiesse, gegen einen zu
+ * löschen, der gerade schreibt. Siehe `lib/neuanfang.ts`.
+ */
+if (neuanfangGewuenscht()) {
+  frageNachNeuanfang();
+} else {
+  starteBuch(container);
+}
+
+/*
+ * Das Buch aufschlagen.
+ *
+ * Steht in einer Funktion und nicht offen im Modul, weil der Neuanfang sonst
+ * nicht davor kommen kann. Der erste Anlauf beendete den Modulablauf mit einem
+ * `throw` – und das war falsch: Der Fehlerfänger am Fenster hätte ihn
+ * aufgegriffen, `showFatal` hätte die Wurzel geleert und die Rückfrage durch
+ * eine Fehlerseite ersetzt. Ausgerechnet die Fläche, die stehen muss.
+ */
+function starteBuch(wurzel: HTMLElement) {
+/*
  * Das Maß der Setzerei an die Wurzel hängen – vor dem ersten Bild.
  *
  * Die Zahlen könnten auch im Stilblatt stehen. Dann stünden sie zweimal da:
@@ -214,7 +239,7 @@ for (const [name, wert] of Object.entries(massAlsCss())) {
 
 import('./App')
   .then(({ default: App }) => {
-    createRoot(container).render(
+    createRoot(wurzel).render(
       <StrictMode>
         <Boundary>
           <App />
@@ -225,3 +250,4 @@ import('./App')
     appLaeuft = true;
   })
   .catch((err) => showFatal('Die App konnte nicht geladen werden', String((err as { stack?: string })?.stack ?? err)));
+}
