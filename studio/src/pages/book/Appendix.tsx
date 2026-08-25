@@ -13,6 +13,7 @@ import { useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, Eye, EyeOff, Library } from 'lucide-react';
 import { useStudio } from '../../store/useStudio';
+import { bandVon } from '../../lib/baende';
 import { ordne, profilVon, type Werkzeug } from '../../lib/profil';
 import { geheimZeile } from '../../lib/geheim';
 import { cx } from '../../lib/utils';
@@ -46,6 +47,8 @@ export function AppendixSpread() {
   const settings = useStudio((s) => s.settings);
   const updateSettings = useStudio((s) => s.updateSettings);
   const books = useStudio((s) => s.books);
+  /* Der Einband dieses Bandes – für den Namen des Bandes in der Anhangzeile. */
+  const einband = useStudio((s) => s.settings.book);
   const schliesseBuch = useStudio((s) => s.schliesseBuch);
 
   const trashed = entries.filter((e) => e.deletedAt).length;
@@ -205,6 +208,32 @@ export function AppendixSpread() {
     gewicht: {},
   };
 
+  /*
+   * Mein Buch – und warum es hier steht.
+   *
+   * Es stand hier nicht. Der einzige Verweis auf `/mein-buch` im ganzen Buch
+   * lag im Kolophon, eine Ebene tiefer. Damit war der **Band** – das, was
+   * jede Seite des Buches einfärbt: Papier, Tinte, Metall, Schreibtisch,
+   * Registerkante – die am tiefsten vergrabene Einstellung, obwohl sie die
+   * sichtbarste ist. Wer sie nicht zufällig fand, hatte ein Buch, das nur
+   * eine Farbe kennt.
+   *
+   * Es steht bei den Anhängen und nicht unter „Weiteres", weil es kein
+   * Werkzeug ist, das ein Profil weg- oder herandrehen dürfte. Es ist das
+   * Gesicht des Buches, so wie das Kolophon seine Rückseite ist.
+   *
+   * Die zweite Zeile nennt den Band beim Namen. Eine Zeile, die sagt
+   * „Einband, Titel, Zeichen", verschweigt genau das, wonach jemand sucht.
+   */
+  const bandJetzt = bandVon(einband?.band);
+  const meinBuch: AppendixEntry = {
+    id: 'mein-buch',
+    to: '/mein-buch',
+    title: 'Einband & Zeichen',
+    note: `Titel, Einband, Drachenzeichen – und der Band, in dem alles steht. Zurzeit: ${bandJetzt.name}.`,
+    gewicht: {},
+  };
+
   return (
     <Spread
       pageLeft={spread?.page ?? 6}
@@ -268,6 +297,7 @@ export function AppendixSpread() {
             {(offen ? weiter : []).map((item) => (
               <AppendixLine key={item.to} {...item} />
             ))}
+            <AppendixLine {...meinBuch} />
             <AppendixLine {...kolophon} />
           </ol>
 
