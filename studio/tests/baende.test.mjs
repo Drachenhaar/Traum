@@ -137,5 +137,42 @@ pruefe(`Die Vorgabe „${vorgabe}" ist ein echter Band`, BAENDE.some((b) => b.id
 /* Ein Buch ohne Angabe darf sich nicht veraendern – die Vorgabe ist der alte Band. */
 pruefe('Die Vorgabe ist der erste Band in der Liste', BAENDE[0].id === vorgabe);
 
+/*
+ * 5 Findet ihn überhaupt jemand?
+ *
+ * Sechs Bände, jeder für sich gerechnet und lesbar – und trotzdem sah das
+ * Buch bei fast allen aus wie am ersten Tag. Der Grund stand nicht in diesen
+ * Farben: `/mein-buch` war im ganzen Buch **ein einziges Mal** verlinkt, aus
+ * dem Kolophon heraus. Drei Tipps tief, hinter einem Wort, das nicht nach
+ * Farbe klingt. Und die Suche kannte weder „Band" noch „Farbe" noch
+ * „dunkel".
+ *
+ * Dasselbe Muster wie bei der Setzerei, die nie auf den Buchseiten ankam:
+ * **Dass ein Mittel gebaut ist, heisst nicht, dass es erreicht wird.** Also
+ * wird hier nicht mehr nur das Mittel geprüft, sondern der Weg dorthin.
+ */
+console.log('5 Der Weg zum Band');
+const anhang = readFileSync(new URL('../src/pages/book/Appendix.tsx', import.meta.url), 'utf8');
+pruefe(
+  'Die Anhänge verweisen selbst auf den Einband',
+  /to: '\/mein-buch'/.test(anhang),
+  'nur das Kolophon kannte den Weg',
+);
+pruefe(
+  'Die Zeile nennt den Band beim Namen',
+  /bandVon\(/.test(anhang),
+  'ein Verweis, der den Band verschweigt, wird nicht gesucht',
+);
+
+const suche = readFileSync(new URL('../src/lib/suche.ts', import.meta.url), 'utf8');
+const eintrag = (suche.match(/\{ pfad: '\/mein-buch'[\s\S]*?\] \}/) ?? [''])[0];
+for (const wort of ['band', 'farbe', 'dunkel', 'design']) {
+  pruefe(`Die Suche kennt „${wort}"`, eintrag.includes(`'${wort}'`));
+}
+/* Jeder Band muss sich auch beim Namen finden lassen. */
+for (const b of BAENDE) {
+  pruefe(`Die Suche kennt den Band „${b.name}"`, eintrag.includes(`'${b.id}'`));
+}
+
 console.log(`\n  ${bestanden} bestanden, ${gescheitert} gescheitert\n`);
 process.exit(gescheitert ? 1 : 0);

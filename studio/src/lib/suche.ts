@@ -134,8 +134,16 @@ const BLAETTER: (Blattfund & { stichworte: string[] })[] = [
     stichworte: ['lose blätter', 'lose blaetter', 'canvas', 'moodboard', 'skizze', 'bogen'] },
   { pfad: '/werkbank', titel: 'Werkbank', hinweis: 'Produktionsstand',
     stichworte: ['werkbank', 'pipeline', 'produktion', 'asset'] },
-  { pfad: '/mein-buch', titel: 'Mein Buch', hinweis: 'Einband, Titel, Zeichen',
-    stichworte: ['mein buch', 'einband', 'cover', 'titel', 'zeichen', 'umschlag'] },
+  /*
+   * Die Stichworte, die hier fehlten, waren genau die, nach denen jemand
+   * sucht: Der Band färbt das ganze Buch ein – und wer „dunkel", „farbe"
+   * oder „band" eingab, fand nichts. Ein Suchwort, das nur den Titel des
+   * Blattes wiederholt, hilft dem, der den Titel schon kennt.
+   */
+  { pfad: '/mein-buch', titel: 'Mein Buch', hinweis: 'Einband, Zeichen und der Band',
+    stichworte: ['mein buch', 'einband', 'cover', 'titel', 'zeichen', 'umschlag',
+      'band', 'farbe', 'farben', 'dunkel', 'hell', 'pergament', 'elfenbein', 'tinte',
+      'moos', 'rotholz', 'design', 'aussehen', 'anmutung', 'theme'] },
   { pfad: '/kolophon', titel: 'Kolophon', hinweis: 'Einstellungen und Sicherung',
     stichworte: ['kolophon', 'einstellungen', 'sicherung', 'backup', 'export', 'daten'] },
 ];
