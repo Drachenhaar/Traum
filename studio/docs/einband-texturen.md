@@ -55,82 +55,56 @@ die ganze Fläche.
 
 ---
 
-## Der gemeinsame Rahmen
-
-Diesen Block an **jeden** der sechs Prompts anhängen:
-
-> flat lay material swatch, shot perpendicular from directly above, completely
-> even diffuse studio lighting edge to edge, no highlights, no shadows, no
-> vignette, no gradient across the frame, surface fills the entire frame,
-> desaturated near-neutral tone, mid-grey value range, fine even grain across
-> the whole surface, macro material photography, texture reference sheet,
-> seamless uniform, no objects, no text, no lettering, no embossing
-
-**Negativ-Prompt (für alle sechs gleich):**
-
-> book, cover, spine, title, text, letters, typography, emboss, gold, foil,
-> ornament, border, frame, edges of object, corners, clasp, hands, table,
-> background, vignette, spotlight, dramatic lighting, rim light, glow,
-> reflection, saturated colour, colourful, blur, depth of field, bokeh,
-> perspective, angle, tilt, 3d render, illustration, painting, watermark,
-> signature
-
----
-
 ## Die sechs Prompts
+
+Jeder Block ist vollständig – kopieren, einfügen, erzeugen. Der Rahmen, der
+die Textur flach und entsättigt hält, steckt bereits in jedem drin.
 
 ### 1 · Leder, neu
 
-> Full frame close-up of brand new fine bookbinding calfskin leather, tight
-> regular pebble grain, crisp unworn surface, soft satin sheen, uniform pore
-> structure, no creases, no wear
->
-> *(+ gemeinsamer Rahmen)*
+```
+Full frame close-up of brand new fine bookbinding calfskin leather, tight regular pebble grain, crisp unworn surface, soft satin sheen, uniform pore structure, no creases, no wear, flat lay material swatch, shot perpendicular from directly above, completely even diffuse studio lighting edge to edge, no highlights, no shadows, no vignette, no gradient across the frame, surface fills the entire frame, desaturated near-neutral warm grey, mid-grey value range, fine even grain across the whole surface, macro material photography, texture reference sheet, seamless uniform
+```
 
 ### 2 · Leder, alt
 
-> Full frame close-up of century-old bookbinding leather, deep irregular
-> grain, fine spiderweb craquelure, softened and slightly polished from
-> handling, subtle patina mottling, a few faint scuffs distributed evenly
-> across the whole surface, no single dominant blemish
->
-> *(+ gemeinsamer Rahmen)*
+```
+Full frame close-up of century-old bookbinding leather, deep irregular grain, fine spiderweb craquelure, softened and slightly polished from handling, subtle patina mottling, a few faint scuffs distributed evenly across the whole surface, no single dominant blemish, flat lay material swatch, shot perpendicular from directly above, completely even diffuse studio lighting edge to edge, no highlights, no shadows, no vignette, no gradient across the frame, surface fills the entire frame, desaturated near-neutral warm grey, mid-grey value range, fine even grain across the whole surface, macro material photography, texture reference sheet, seamless uniform
+```
 
-Wichtig ist der letzte Halbsatz. Ohne ihn setzt jedes Modell **einen** großen
-Kratzer in die Mitte — und der wandert dann auf jedem Buch der Bibliothek an
-dieselbe Stelle.
+Wichtig ist der Halbsatz „distributed evenly … no single dominant blemish". Ohne ihn
+setzt jedes Modell **einen** großen Kratzer in die Mitte — und der stünde dann auf
+jedem Buch der Bibliothek an derselben Stelle.
 
 ### 3 · Elfenbein, neu
 
-> Full frame close-up of polished new ivory-toned bone plate, smooth cool
-> surface, very fine parallel growth striations, waxy translucent depth,
-> almost no relief, immaculate
->
-> *(+ gemeinsamer Rahmen)*
+```
+Full frame close-up of polished new ivory-toned bone plate, smooth cool surface, very fine parallel growth striations, waxy translucent depth, almost no relief, immaculate, flat lay material swatch, shot perpendicular from directly above, completely even diffuse studio lighting edge to edge, no highlights, no shadows, no vignette, no gradient across the frame, surface fills the entire frame, desaturated near-neutral pale grey, mid-grey value range, fine even grain across the whole surface, macro material photography, texture reference sheet, seamless uniform
+```
 
 ### 4 · Elfenbein, alt
 
-> Full frame close-up of antique aged ivory-toned bone plate, fine hairline
-> age cracks in an irregular network, gentle yellowed mottling, worn smooth
-> and slightly uneven, faint darkened lines settled into the cracks
->
-> *(+ gemeinsamer Rahmen)*
+```
+Full frame close-up of antique aged ivory-toned bone plate, fine hairline age cracks in an irregular network, gentle yellowed mottling, worn smooth and slightly uneven, faint darkened lines settled into the cracks, flat lay material swatch, shot perpendicular from directly above, completely even diffuse studio lighting edge to edge, no highlights, no shadows, no vignette, no gradient across the frame, surface fills the entire frame, desaturated near-neutral pale grey, mid-grey value range, fine even grain across the whole surface, macro material photography, texture reference sheet, seamless uniform
+```
 
 ### 5 · Stoff, neu
 
-> Full frame close-up of new bookbinding buckram cloth, tight even plain
-> weave, crisp warp and weft clearly visible, matte finish, regular thread
-> spacing, no fraying
->
-> *(+ gemeinsamer Rahmen)*
+```
+Full frame close-up of new bookbinding buckram cloth, tight even plain weave, crisp warp and weft clearly visible, matte finish, regular thread spacing, no fraying, flat lay material swatch, shot perpendicular from directly above, completely even diffuse studio lighting edge to edge, no highlights, no shadows, no vignette, no gradient across the frame, surface fills the entire frame, desaturated near-neutral grey, mid-grey value range, fine even grain across the whole surface, macro material photography, texture reference sheet, seamless uniform
+```
 
 ### 6 · Stoff, alt
 
-> Full frame close-up of old library buckram book cloth, coarse plain weave
-> gone soft with age, slightly fuzzed and pilled fibres, weave loosened
-> unevenly, faint dust settled between the threads, gently worn all over
->
-> *(+ gemeinsamer Rahmen)*
+```
+Full frame close-up of old library buckram book cloth, coarse plain weave gone soft with age, slightly fuzzed and pilled fibres, weave loosened unevenly, faint dust settled between the threads, gently worn all over, flat lay material swatch, shot perpendicular from directly above, completely even diffuse studio lighting edge to edge, no highlights, no shadows, no vignette, no gradient across the frame, surface fills the entire frame, desaturated near-neutral grey, mid-grey value range, fine even grain across the whole surface, macro material photography, texture reference sheet, seamless uniform
+```
+
+### Negativ-Prompt — für alle sechs derselbe
+
+```
+book, cover, spine, title, text, letters, typography, emboss, gold, foil, ornament, border, frame, edges of object, corners, clasp, hands, table, background, vignette, spotlight, dramatic lighting, rim light, glow, reflection, saturated colour, colourful, blur, depth of field, bokeh, perspective, angle, tilt, 3d render, illustration, painting, watermark, signature
+```
 
 ---
 
