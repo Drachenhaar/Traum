@@ -13,6 +13,21 @@
 
 import type { ReactNode } from 'react';
 import dragoncore from '../assets/emblem.png';
+import siegelDrache from '../assets/wappen/drache.webp';
+import siegelBaum from '../assets/wappen/baum.webp';
+import siegelBuch from '../assets/wappen/buch.webp';
+import siegelFeder from '../assets/wappen/feder.webp';
+import siegelWindrose from '../assets/wappen/windrose.webp';
+import siegelBurg from '../assets/wappen/burg.webp';
+import siegelMond from '../assets/wappen/mond.webp';
+import siegelSonne from '../assets/wappen/sonne.webp';
+import siegelKristall from '../assets/wappen/kristall.webp';
+import siegelSanduhr from '../assets/wappen/sanduhr.webp';
+import siegelAuge from '../assets/wappen/auge.webp';
+import siegelFlamme from '../assets/wappen/flamme.webp';
+import siegelWolf from '../assets/wappen/wolf.webp';
+import siegelVogel from '../assets/wappen/vogel.webp';
+import siegelWelle from '../assets/wappen/welle.webp';
 
 export interface EmblemPreset {
   id: string;
@@ -22,9 +37,27 @@ export interface EmblemPreset {
   /**
    * Statt einer Zeichnung ein mitgeliefertes Bild. Gebraucht fuer das Zeichen,
    * das dieses Buch schon trug, bevor es waehlbar wurde – es soll niemandem
-   * unter der Hand vom Einband verschwinden.
+   * unter der Hand vom Einband verschwinden – und fuer die geprägten Siegel
+   * unten, die ihre eigene Farbe mitbringen.
    */
   src?: string;
+}
+
+/**
+ * Nimmt dieses Zeichen die Farbe der Umgebung an?
+ *
+ * Das ist der einzige Unterschied, der wirklich einer ist. Eine Zeichnung erbt
+ * `currentColor` und wird deshalb im Elfenbein-Band silbern und im Rotholz-Band
+ * kupfern – sie ist eine *Praegung im Metall des Bandes*. Ein mitgeliefertes
+ * Bild bringt sein Gold selbst mit und bleibt in jedem Band golden.
+ *
+ * Beides ist richtig, aber es sind zwei verschiedene Dinge, und die Wahl sollte
+ * das zeigen, statt sechsundzwanzig Kacheln in einen Topf zu werfen. Abgeleitet
+ * statt als Feld gefuehrt: Ein neues Zeichen braucht weiterhin genau einen
+ * Eintrag – wer `src` setzt, hat damit schon alles gesagt.
+ */
+export function nimmtFarbeAn(preset: EmblemPreset): boolean {
+  return !preset.src;
 }
 
 export const EMBLEM_PRESETS: EmblemPreset[] = [
@@ -156,6 +189,45 @@ export const EMBLEM_PRESETS: EmblemPreset[] = [
       </>
     ),
   },
+
+  /* ------------------------------------------------------ Geprägte Siegel ---
+   *
+   * Fünfzehn Medaillons, aus einem Bogen geschnitten: goldenes Relief in einem
+   * Ring aus Haarlinien und Rauten, oben und unten eine Zierspitze.
+   *
+   * **Warum sie eigene Kennungen tragen.**
+   * Sieben Namen gab es schon – Drache, Baum, Mond, Sonne, Feder, Flamme,
+   * Welle. Hätte ich sie wiederverwendet, fände `emblemById` den ersten Treffer
+   * und jedes Buch, das den gezeichneten Drachen trug, hätte über Nacht den
+   * geprägten getragen. Ein Zeichen ist eine Identität; es tauscht sich nicht
+   * still aus. Deshalb `siegel-`.
+   *
+   * **Warum sie die Strichzeichnungen nicht ersetzen.**
+   * Ein gezeichnetes Zeichen wird im Elfenbein-Band silbern und im Rotholz-Band
+   * kupfern, weil es `currentColor` erbt. Diese hier bleiben in jedem Band
+   * golden. Das ist kein Mangel – ein Wappen hat seine Farbe –, aber es ist
+   * eine andere Sache, und beide sollen wählbar bleiben.
+   *
+   * Die Dateien liegen als WebP mit 256 Punkten Kantenlänge; grösser wird das
+   * Zeichen nirgends gezeigt (130 auf dem Einband, 92 auf der Besitzseite).
+   * Bei 320 Punkten wog der Satz 844 KB und damit fast so viel wie das ganze
+   * Programm.
+   */
+  { id: 'siegel-drache', label: 'Drache', src: siegelDrache },
+  { id: 'siegel-baum', label: 'Weltenbaum', src: siegelBaum },
+  { id: 'siegel-buch', label: 'Aufgeschlagenes Buch', src: siegelBuch },
+  { id: 'siegel-feder', label: 'Feder und Tinte', src: siegelFeder },
+  { id: 'siegel-windrose', label: 'Windrose', src: siegelWindrose },
+  { id: 'siegel-burg', label: 'Feste auf dem Berg', src: siegelBurg },
+  { id: 'siegel-mond', label: 'Mondsichel', src: siegelMond },
+  { id: 'siegel-sonne', label: 'Sonne', src: siegelSonne },
+  { id: 'siegel-kristall', label: 'Kristall', src: siegelKristall },
+  { id: 'siegel-sanduhr', label: 'Sanduhr', src: siegelSanduhr },
+  { id: 'siegel-auge', label: 'Das Auge', src: siegelAuge },
+  { id: 'siegel-flamme', label: 'Flamme', src: siegelFlamme },
+  { id: 'siegel-wolf', label: 'Wolf', src: siegelWolf },
+  { id: 'siegel-vogel', label: 'Vogel im Aufflug', src: siegelVogel },
+  { id: 'siegel-welle', label: 'Welle', src: siegelWelle },
 ];
 
 export function emblemById(id: string | undefined): EmblemPreset | undefined {
