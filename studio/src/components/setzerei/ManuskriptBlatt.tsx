@@ -40,8 +40,32 @@ export function ManuskriptBlatt({
         schreibt && 'shadow-[0_1px_0_rgba(255,255,255,0.5),0_5px_16px_-8px_rgba(60,44,26,0.55)]',
       )}
       style={{
-        /* Etwas heller als das Buchpapier – ein anderes Blatt, kein Kasten. */
-        background: 'linear-gradient(178deg, rgb(var(--dc-blattgrund) / 0.85), rgb(var(--dc-blattgrund) / 0.6))',
+        /*
+         * Etwas heller als das Buchpapier – ein anderes Blatt, kein Kasten.
+         *
+         * Hier stand `rgb(var(--dc-blattgrund) / 0.85)`, und das war die
+         * ganze Zeit **wirkungslos**: `--dc-blattgrund` ist ein Hexwert
+         * (`#ebe1c9`) und kein Kanaltripel, `rgb(#ebe1c9 / 0.85)` ist
+         * ungültig, und ungültige Angaben fallen ersatzlos aus. Das Blatt
+         * hatte gar keinen eigenen Grund; was man sah, war der Ring und der
+         * Schatten. Aufgefallen ist es niemandem – ein fehlender Hintergrund
+         * sieht nicht falsch aus, nur flach.
+         *
+         * Jetzt zwei Schichten: das Papier des Bandes, darüber ein sehr
+         * dünner Lichtschleier. Der macht das Blatt heller als das Buch,
+         * ohne eine zweite Farbe zu erfinden – im Tinte-Band ist es
+         * dasselbe Blaugrau, nur eine Spur angehoben.
+         *
+         * **Zehn Prozent und nicht dreissig.** Der erste Versuch nahm 0,3,
+         * und auf Pergament sah das gut aus. Im Tinte-Band wurde daraus eine
+         * mittelgraue Karte auf fastschwarzem Papier – ein Fremdkörper, kein
+         * eingelegtes Blatt. Ein absoluter Weissanteil ist auf hellem und auf
+         * dunklem Grund nicht dieselbe Geste: Was auf Creme kaum auffällt,
+         * ist auf Tinte ein Scheinwerfer.
+         */
+        background:
+          'linear-gradient(178deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03)),' +
+          ' var(--dc-blattgrund, #ebe1c9)',
       }}
     >
       {/* Die Papierkante: eine Haarlinie, keine Umrandung. */}

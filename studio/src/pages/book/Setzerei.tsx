@@ -218,7 +218,18 @@ export function Setzerei() {
     ).length;
 
   return (
-    <AppendixSheet title="Setzerei" rubric="Anhang · Aus Rohmaterial wird eine Buchseite">
+    <AppendixSheet
+      title="Setzerei"
+      rubric="Anhang · Aus Rohmaterial wird eine Buchseite"
+      /*
+       * Die Schrittfolge gehört an den unteren Rand des Blattes und nicht
+       * ans Ende des Inhalts. Sie steht deshalb hier und nicht unten im
+       * Fluss – siehe `fussleiste` in `AppendixSheet`.
+       */
+      fussleiste={
+        <SetzereiSchritte jetzt={phase} onWechsel={setPhase} bereit={!!draft} />
+      }
+    >
       {phase === 'manuskript' && (
         <Manuskriptphase
           text={text}
@@ -319,8 +330,6 @@ export function Setzerei() {
       {phase !== 'manuskript' && !draft && (
         <Still was="Noch ist nichts eingelegt. Zurück zum Manuskript, dort beginnt es." />
       )}
-
-      <SetzereiSchritte jetzt={phase} onWechsel={setPhase} bereit={!!draft} />
 
       <TypenBogen
         offen={bogenOffen}
