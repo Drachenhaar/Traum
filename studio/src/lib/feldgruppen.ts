@@ -28,13 +28,35 @@ export interface Feldgruppe {
   offen: boolean;
 }
 
+/*
+ * Sieben Gruppen waren zu grob.
+ *
+ * „Wer oder was ist das?" trug bei einer Figur vierundzwanzig Felder – Rolle,
+ * Alter, Gesicht, Haare, Kleidung, Persoenlichkeit, Eigenarten, Herkunft. Das
+ * ist keine Frage mehr, das ist wieder die Liste, nur mit einer Ueberschrift
+ * davor. Wer eine Figur *setzt*, denkt in kleineren Schritten: erst wer sie
+ * ist, dann was in ihr vorgeht, dann woher sie kommt, dann wie sie aussieht.
+ *
+ * Zugeordnet wird weiterhin nach Feldschluessel und nicht je Vorlage – eine
+ * Zeile hier ordnet dasselbe Feld in allen zweiunddreissig Vorlagen. Die
+ * Gruppen sind deshalb so benannt, dass sie auch fuer einen Ort, ein Material
+ * und eine Kreatur stimmen: „Woher es kommt" passt auf eine Figur wie auf ein
+ * Schwert.
+ *
+ * Kurze Vorlagen bleiben ungegliedert (siehe `AB_HIER`) – eine Vorlage mit
+ * vier Feldern in vier Abschnitte zu zerlegen waere das Gegenteil von Ordnung.
+ */
 export const FELDGRUPPEN: Feldgruppe[] = [
-  { id: 'wesen', label: 'Wer oder was ist das?', frage: 'Wer oder was ist das?', offen: true },
-  { id: 'wirkung', label: 'Was tut es?', frage: 'Was tut es?', offen: true },
-  { id: 'umfeld', label: 'Wo gehört es hin?', frage: 'Wo gehört es hin?', offen: false },
-  { id: 'leben', label: 'Sein Werden und Vergehen', frage: 'Sein Werden und Vergehen', offen: false },
+  { id: 'kern', label: 'Der Kern', frage: '', offen: true },
+  { id: 'wesen', label: 'Was in ihm vorgeht', frage: 'Was in ihm vorgeht', offen: true },
+  { id: 'herkunft', label: 'Woher es kommt', frage: 'Woher es kommt', offen: false },
+  { id: 'erscheinung', label: 'Wie es aussieht', frage: 'Wie es aussieht', offen: false },
+  { id: 'wirkung', label: 'Was es tut', frage: 'Was es tut', offen: false },
+  { id: 'umfeld', label: 'Wo es hingehört', frage: 'Wo es hingehört', offen: false },
+  { id: 'alltag', label: 'Wie sein Alltag aussieht', frage: 'Wie sein Alltag aussieht', offen: false },
+  { id: 'werden', label: 'Werden und Vergehen', frage: 'Werden und Vergehen', offen: false },
   { id: 'sinne', label: 'Wie es sich anfühlt', frage: 'Wie es sich anfühlt', offen: false },
-  { id: 'inneres', label: 'Was darunter liegt', frage: 'Was darunter liegt', offen: false },
+  { id: 'ausdruck', label: 'Wie es im Buch erscheint', frage: 'Wie es im Buch erscheint', offen: false },
   { id: 'handwerk', label: 'Für die Herstellung', frage: 'Für die Herstellung', offen: false },
   /*
    * „Weiteres" ist eine Schublade, keine Frage. Beim Bearbeiten braucht sie
@@ -72,53 +94,89 @@ function zuordnen(gruppe: string, schluessel: string[]) {
   for (const k of schluessel) NACH_SCHLUESSEL[k] = gruppe;
 }
 
+/*
+ * Der Kern: die kurzen Angaben, mit denen eine Seite beginnt. Sie stehen im
+ * Buch als Kopfzeilen unter dem Namen und nicht als Absaetze.
+ */
+zuordnen('kern', [
+  'role', 'age', 'species', 'subcategory', 'size', 'sizes', 'scale', 'orientation',
+  /*
+   * `stage` steht **nicht** hier, obwohl „Stufe" nach einem Kennzeichen
+   * klingt. Es ist die Produktionsstufe eines Assets und gehoert zu
+   * `handwerk`. Es stand kurz in beiden Listen, und weil `NACH_SCHLUESSEL`
+   * die letzte Zuordnung gewinnen laesst, war die Doppelung unsichtbar: Das
+   * Feld landete stillschweigend beim Handwerk und die Zeile hier war eine
+   * Behauptung ohne Wirkung.
+   */
+  'era',
+]);
+
 zuordnen('wesen', [
-  'appearance', 'face', 'hair', 'species', 'subcategory', 'size', 'sizes', 'age',
-  'role', 'personality', 'quirks', 'marks', 'shapes', 'clothing', 'fabric', 'cut',
-  'bodyParts', 'scale', 'orientation', 'owner', 'maker', 'speaker', 'teller', 'listener',
+  'personality', 'quirks', 'goals', 'wishes', 'fears', 'wesen', 'faehigkeiten',
+  'truth', 'unsaid', 'intent', 'purpose', 'feeling', 'mood',
+]);
+
+/*
+ * `background` heisst „Vergangenheit" – was geschah, bevor wir die Figur
+ * treffen. Es steht bei der Herkunft und nicht beim Umfeld: Das eine ist,
+ * woher jemand kommt, das andere, wo er gerade ist.
+ *
+ * `speech` und `dialect` stehen ebenfalls hier. Wie jemand spricht, ist in
+ * jeder Welt zuerst eine Auskunft darueber, wo er aufgewachsen ist.
+ */
+zuordnen('herkunft', [
+  'herkunft', 'volk', 'zugehoerigkeit', 'origin', 'background', 'speech', 'dialect',
+  'owner', 'maker', 'teller', 'speaker', 'listener', 'foundAt', 'source',
+  'bildVergangenheit',
+]);
+
+zuordnen('erscheinung', [
+  'appearance', 'face', 'hair', 'clothing', 'marks', 'shapes', 'fabric', 'cut',
+  'bodyParts', 'palette', 'finish', 'hardness', 'details',
 ]);
 
 zuordnen('wirkung', [
-  'behaviour', 'habits', 'routine', 'voice', 'sound', 'speech', 'dialect', 'manner',
-  'movement', 'locomotion', 'tempo', 'effect', 'magic', 'rule', 'principle', 'limit',
-  'trigger', 'consequence', 'usage', 'handling', 'purpose', 'intent', 'ritual',
-  'steps', 'chain', 'because', 'doThis', 'notThis', 'reward', 'hook', 'goals',
+  'behaviour', 'voice', 'sound', 'manner', 'movement', 'locomotion', 'tempo',
+  'effect', 'magic', 'rule', 'principle', 'limit', 'trigger', 'consequence',
+  'usage', 'handling', 'ritual', 'steps', 'chain', 'because', 'doThis', 'notThis',
+  'reward', 'hook',
 ]);
 
 zuordnen('umfeld', [
-  'habitat', 'territory', 'region', 'places', 'climate', 'ground', 'lifeforms',
-  'symbiosis', 'interior', 'construction', 'foundAt', 'origin',
-  'sleep', 'diet', 'mating', 'migration', 'tracks', 'occasion', 'scene', 'perspective',
+  'habitat', 'territory', 'region', 'climate', 'ground', 'lifeforms',
+  'symbiosis', 'interior', 'construction', 'occasion', 'scene', 'perspective',
 ]);
 
-zuordnen('leben', [
-  'growth', 'aging', 'decay', 'rebirth', 'era', 'span', 'making', 'wear', 'states',
-  'variants', 'change', 'loop', 'season', 'timeOfDay',
+/*
+ * Der Alltag – was jemand *taeglich* tut. Vorher lag das bei „Was tut es?"
+ * neben Wirkung und Regeln, und ein Tagesablauf ist etwas anderes als eine
+ * Wirkung: Das eine erzaehlt ein Leben, das andere eine Mechanik.
+ */
+zuordnen('alltag', [
+  'routine', 'habits', 'memories', 'places', 'sleep', 'diet', 'timeOfDay',
+]);
+
+zuordnen('werden', [
+  'growth', 'aging', 'decay', 'rebirth', 'span', 'making', 'wear', 'states',
+  'variants', 'change', 'loop', 'season', 'mating', 'migration', 'tracks',
 ]);
 
 zuordnen('sinne', [
-  'light', 'smell', 'weather', 'air', 'water', 'mood', 'atmosphere', 'feeling',
-  'palette', 'finish', 'hardness', 'details', 'symbolism',
+  'light', 'smell', 'weather', 'air', 'water', 'atmosphere', 'symbolism',
 ]);
 
-zuordnen('inneres', [
-  'wishes', 'fears', 'memories', 'truth', 'unsaid', 'known', 'story', 'pivot',
-  'summary', 'notes', 'source',
-  /*
-   * `background` heisst „Vergangenheit" – was geschah, bevor wir die Figur
-   * treffen. Das ist kein Umfeld, auch wenn das Wort danach klingt: Es
-   * gehoert zu dem, was unter der Oberflaeche liegt.
-   */
-  'background',
-  /*
-   * Der Buchauftritt und das Zitat gehoeren hierher und nicht ans Ende.
-   *
-   * Beide sagen nichts ueber das Umfeld einer Figur, sondern darueber, wie
-   * sie sich zeigt – der eine, wie man sie zum ersten Mal erlebt, das andere,
-   * wie sie klingt. Ohne diese Zeile fielen sie unter „Weiteres", und das ist
-   * genau die Schublade fuer Dinge, an die niemand gedacht hat.
-   */
-  'buchauftritt', 'zitat',
+/*
+ * Wie es im Buch erscheint.
+ *
+ * Der Buchauftritt, das Zitat und die Randbemerkung sagen nichts darueber,
+ * *wer* jemand ist, sondern darueber, **wie man ihm auf der Seite begegnet**.
+ * Fuer ein Weltbuch ist das eine Nebensaechlichkeit; fuer ein Buch, aus dem
+ * ein Roman werden soll, ist es die halbe Figur – und deshalb ein eigener
+ * Abschnitt statt einer Zeile unter „Weiteres".
+ */
+zuordnen('ausdruck', [
+  'buchauftritt', 'zitat', 'randbemerkung', 'story', 'pivot', 'summary', 'notes',
+  'known', 'bildAuftritt',
 ]);
 
 zuordnen('handwerk', [

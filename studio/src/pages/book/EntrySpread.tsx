@@ -15,11 +15,11 @@ import { BookOpen, Copy, PenLine, Printer, ScanFace, Star, Trash2, Compass, Musi
 import type { Entry } from '../../types';
 import { Atmosphaerenwahl, Atmosphaerenzeichen } from '../../components/entry/Atmosphaere';
 import { useStudio, livingEntries } from '../../store/useStudio';
-import { templateFor, asList, asText, asBool } from '../../lib/templates';
+import { templateFor, asList, asText } from '../../lib/templates';
 import { useCurrentSpread } from '../../components/book/BookShell';
 import { Spread, Plate } from '../../components/book/Spread';
-import { Marginalia, FieldNotes } from '../../components/book/Marginalia';
-import { BlockView } from '../../components/blocks/BlockView';
+import { Marginalia } from '../../components/book/Marginalia';
+import { Seitentext } from '../../components/entry/Seitentext';
 import { Thumb, useImageUrl } from '../../components/images/Thumb';
 import { EntryEditor } from './EntryEditor';
 import { Mehr } from '../../components/ui/Mehr';
@@ -28,8 +28,7 @@ import { WerKommtVor } from '../../components/entry/WerKommtVor';
 import { PrintPreview } from '../../components/entry/PrintPreview';
 import { StoryMode } from '../../components/story/StoryMode';
 import { confirm } from '../../components/ui/Confirm';
-import { gruppiere } from '../../lib/feldgruppen';
-import { leseZeit, schreibeZeit } from '../../lib/chronik/zeit';
+import { schreibeZeit } from '../../lib/chronik/zeit';
 import { datiere } from '../../lib/chronik/zustand';
 import { zeitgenossenVon } from '../../lib/chronik/zeitgenossen';
 import { cx } from '../../lib/utils';
@@ -69,24 +68,6 @@ export function EntrySpread() {
 
   /* Beim Blättern schließt sich die Bearbeitung von selbst. */
   useEffect(() => setEditing(false), [id]);
-
-  /*
-   * Die Zeit, wie sie in einem Buch stünde: „1032 – 1078", „seit 1032",
-   * „bis 1078". Was sich nicht lesen lässt, steht trotzdem da – es ist die
-   * Angabe des Verfassers, und der Zeitstrahl sagt ihm dort, dass er sie
-   * nicht deuten konnte.
-   */
-  const lebenszeit = useMemo(() => {
-    const b = entry?.beginn?.trim();
-    const e = entry?.ende?.trim();
-    if (!b && !e) return '';
-    const zeige = (t: string) => {
-      const z = leseZeit(t);
-      return z ? schreibeZeit(z) : t;
-    };
-    if (b && e) return `${zeige(b)} – ${zeige(e)}`;
-    return b ? `seit ${zeige(b)}` : `bis ${zeige(e!)}`;
-  }, [entry?.beginn, entry?.ende]);
 
   if (!entry) {
     return (
@@ -150,41 +131,6 @@ export function EntrySpread() {
 
   /* --------------------------------------------------- Die gelesene Seite */
 
-  const fieldRows = tpl.fields
-    .filter((f) => f.kind === 'text' || f.kind === 'select' || f.kind === 'boolean' || f.kind === 'tags')
-    .map((f) => ({
-      label: f.label,
-      value:
-        f.kind === 'boolean'
-          ? asBool(entry.fields[f.key])
-            ? 'ja'
-            : ''
-          : f.kind === 'tags'
-            ? asList(entry.fields[f.key]).join(' · ')
-            : asText(entry.fields[f.key]),
-    }));
-
-  /*
-   * Der Fliesstext, nach Fragen gebuendelt.
-   *
-   * Im Lesemodus gibt es keine Abschnitte zum Aufklappen – eine Buchseite
-   * klappt nicht. Die Gruppen dienen hier nur der Reihenfolge: Was zusammen
-   * gedacht wird, steht zusammen, und die Rubrik davor ist die Frage statt
-   * einer Feldliste. Leere Felder erscheinen wie bisher gar nicht.
-   */
-  const prose = gruppiere(
-    tpl.fields.filter(
-      (f) => f.kind === 'textarea' && !f.anderswo && asText(entry.fields[f.key]).trim(),
-    ),
-  ).flatMap(({ gruppe, felder }) =>
-    felder.map((f, i) => ({
-      label: f.label,
-      text: asText(entry.fields[f.key]),
-      /* Die Frage steht einmal je Gruppe, ueber dem ersten ihrer Felder. */
-      frage: i === 0 ? gruppe.frage : '',
-    })),
-  );
-
   const palette = asList(entry.fields.palette);
   const gallery = tpl.fields
     .filter((f) => f.kind === 'images')
@@ -192,7 +138,6 @@ export function EntrySpread() {
     .filter((imageId) => imageId !== entry.coverImage)
     .slice(0, 6);
 
-  const visibleBlocks = entry.blocks.filter((b) => b.type !== 'divider' && b.type !== 'spacer');
 
   return (
     <Spread
@@ -327,106 +272,21 @@ export function EntrySpread() {
             </div>
           </div>
 
-          <h1 className="font-serif text-[34px] leading-[1.08] text-ink sm:text-[42px]">
-            {entry.title}
-          </h1>
-          {entry.subtitle && (
-            <p className="mt-1.5 font-serif text-[17px] italic leading-snug text-ink-muted">
-              {entry.subtitle}
-            </p>
-          )}
           {/*
-           * Die Lebenszeit – im Lesemodus eine Zeile, kein Feld.
-           * Steht direkt unter dem Titel, weil sie zur Person gehört wie ihr
-           * Name, und führt zum Zeitstrahl, wo sie im Zusammenhang steht.
-           */}
-          {lebenszeit && (
-            <Link
-              to="/zeitstrahl"
-              className="mt-2.5 inline-block font-serif text-[13.5px] tracking-[0.06em] text-ink-faint transition-colors hover:text-gold no-tap-highlight"
-            >
-              {lebenszeit}
-            </Link>
-          )}
+            Der Textkörper liegt in `entry/Seitentext.tsx`.
 
-          <span aria-hidden className="rule-gild mt-5 block w-24 opacity-70" />
+            Er stand hier, und genau deshalb konnte die Setzerei ihn nicht
+            zeigen: Diese Seite haengt an `useParams` und am Speicher, ein
+            Manuskript hat beides nicht. Die Vorschau baute sich darum eine
+            zweite Seite nach – anderer Titelgrad, keine Initiale, Felder als
+            Tabelle. Zwei Setzungen derselben Sache, und die zweite war die
+            falsche.
 
-          {entry.description && (
-            <div className="prose-book dropcap mt-6">
-              {entry.description.split(/\n{2,}/).map((para, i) => (
-                <p key={i}>{para}</p>
-              ))}
-            </div>
-          )}
-
-          {/*
-            Was am Tisch nicht steht.
-
-            Zwei Zustaende, und beide muessen deutlich sein: Ausserhalb des
-            Tischmodus steht das Geheimnis da, sichtbar eingefasst, damit man
-            weiss, was man versteckt hat. Im Tischmodus steht an seiner Stelle
-            *nichts* – keine Luecke, kein Schloss, kein „hier ist etwas
-            verborgen". Ein Hinweis auf ein Geheimnis ist am Spieltisch schon
-            die halbe Auskunft.
+            Was hier bleibt, sind die Handgriffe *an* einer vorhandenen Seite:
+            Lesezeichen, Stift, Mehr, die offene Frage, die Nachbarn. Die
+            gibt es an einem Manuskript nicht.
           */}
-          {geheimSichtbar && entry.geheim?.text?.trim() && (
-            <section className="mt-8 border-l-2 border-gild-500/45 pl-4">
-              <p className="rubric mb-1.5">Nur für dich</p>
-              <div className="prose-book">
-                {entry.geheim.text.split(/\n{2,}/).map((para, i) => (
-                  <p key={i}>{para}</p>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/*
-            Die Frage traegt den Abstand, nicht der Absatz darunter: Sie ist
-            eine Zaesur im Text, kein weiteres Etikett. Ohne die groessere
-            Luft davor liest sie sich wie eine Rubrik – und damit waere die
-            Gliederung nur eine zweite Reihe Beschriftungen.
-          */}
-          {prose.map((section, si) => (
-            <section
-              key={section.label}
-              className={cx(section.frage && si > 0 ? 'mt-12' : 'mt-7')}
-            >
-              {section.frage && (
-                <p className="mb-5 font-serif text-[15px] italic text-ink-faint/75">
-                  {section.frage}
-                </p>
-              )}
-              <p className="rubric mb-1.5">{section.label}</p>
-              <div className="prose-book">
-                {section.text.split(/\n{2,}/).map((para, i) => (
-                  <p key={i}>{para}</p>
-                ))}
-              </div>
-            </section>
-          ))}
-
-          {/*
-            Eine Szene wird hier gelesen, aber nicht geschrieben. Der Weg zum
-            Manuskript ist ein Verweis, kein zweites Textfeld.
-          */}
-          {entry.type === 'szene' && (
-            <Link
-              to={`/schreiben/${entry.id}`}
-              className="mt-8 inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-gild-500/40 px-4 font-serif text-[14.5px] text-gold transition-colors hover:bg-gild-400/10 no-tap-highlight"
-            >
-              Im Schreibraum öffnen
-            </Link>
-          )}
-
-          <FieldNotes rows={fieldRows} />
-
-          {visibleBlocks.length > 0 && (
-            <div className="mt-8">
-              {visibleBlocks.map((block) => (
-                <BlockView key={block.id} block={block} />
-              ))}
-            </div>
-          )}
+          <Seitentext entry={entry} geheimSichtbar={geheimSichtbar} />
 
           <OpenQuestion entry={entry} />
         </>

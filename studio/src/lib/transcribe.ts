@@ -455,36 +455,46 @@ export interface Mention {
  * („Heimat: Nebelwald“), schlagen wir gleich die richtige Art vor. Sonst bleibt
  * es bei „verwandt mit“ – der Nutzer entscheidet.
  */
+/**
+ * Verraet diese Beschriftung eine Beziehungsart?
+ *
+ * „Herkunft: Nebelwald" ist mehr als ein Name in einem Feld – es ist eine
+ * Kante `comes_from`. Diese Zuordnung stand als Innerei in `findMentions`
+ * und wird jetzt auch von der Setzerei gebraucht: Wer dort ein Feld von Hand
+ * mit einer vorhandenen Seite verbindet, soll dieselbe Kante bekommen wie
+ * jemand, dessen Manuskript den Namen einfach hinschreibt.
+ *
+ * Sie hier herauszuziehen statt sie ein zweites Mal aufzuschreiben ist der
+ * ganze Punkt: Zwei Tabellen fuer dieselbe Zuordnung waeren zwei Wahrheiten,
+ * und beim naechsten neuen Wort waere eine davon veraltet. Der Fehler war
+ * schon da – die Setzerei legte ein vages `related` neben das `comes_from`
+ * des Parsers, zwei Kanten fuer dieselbe Aussage.
+ */
+const EXTRA_RELATION_WORDS: Record<string, string[]> = {
+  lives_in: ['heimat', 'heimatvon', 'lebtin', 'wohnort', 'zuhause', 'habitat', 'vorkommen'],
+  grows_in: ['wachstin', 'standort', 'biom'],
+  made_of: ['bestehtaus', 'material', 'materialien', 'werkstoff'],
+  comes_from: ['stammtvon', 'herkunft', 'quelle'],
+  contains: ['enthalt', 'enthaelt', 'teilvon', 'gehortzu'],
+  owns: ['besitzt', 'ausrustung', 'ausruestung', 'gegenstande'],
+  wears: ['tragt', 'traegt', 'kleidung'],
+  related: ['verwandt', 'verbunden', 'beziehung', 'beziehungen'],
+};
+
+export function beziehungFuer(label: string): string | undefined {
+  for (const r of RELATION_TYPES) {
+    if (matchesLabel(label, [r.label, r.inverse])) return r.id;
+  }
+  for (const [id, words] of Object.entries(EXTRA_RELATION_WORDS)) {
+    if (matchesLabel(label, words)) return id;
+  }
+  return undefined;
+}
+
 export function findMentions(raw: string, pairs: Pair[], entries: Entry[]): Mention[] {
   const out: Mention[] = [];
   const seen = new Set<string>();
   const haystack = normWords(raw);
-
-  /* Beziehungsarten über ihre Beschriftungen auffindbar machen. */
-  const relationByLabel: { words: string[]; id: string }[] = RELATION_TYPES.map((r) => ({
-    id: r.id,
-    words: [r.label, r.inverse],
-  }));
-  const EXTRA_RELATION_WORDS: Record<string, string[]> = {
-    lives_in: ['heimat', 'heimatvon', 'lebtin', 'wohnort', 'zuhause', 'habitat', 'vorkommen'],
-    grows_in: ['wachstin', 'standort', 'biom'],
-    made_of: ['bestehtaus', 'material', 'materialien', 'werkstoff'],
-    comes_from: ['stammtvon', 'herkunft', 'quelle'],
-    contains: ['enthalt', 'enthaelt', 'teilvon', 'gehortzu'],
-    owns: ['besitzt', 'ausrustung', 'ausruestung', 'gegenstande'],
-    wears: ['tragt', 'traegt', 'kleidung'],
-    related: ['verwandt', 'verbunden', 'beziehung', 'beziehungen'],
-  };
-
-  const relationFor = (label: string): string | undefined => {
-    for (const rel of relationByLabel) {
-      if (matchesLabel(label, rel.words)) return rel.id;
-    }
-    for (const [id, words] of Object.entries(EXTRA_RELATION_WORDS)) {
-      if (matchesLabel(label, words)) return id;
-    }
-    return undefined;
-  };
 
   for (const entry of entries) {
     if (entry.deletedAt) continue;
@@ -500,7 +510,7 @@ export function findMentions(raw: string, pairs: Pair[], entries: Entry[]): Ment
     let via = 'im Text erwähnt';
     for (const pair of pairs) {
       if (!normWords(pair.value).includes(` ${needle} `)) continue;
-      const guess = relationFor(pair.label);
+      const guess = beziehungFuer(pair.label);
       if (guess) {
         relationType = guess;
         via = pair.label;
