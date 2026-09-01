@@ -14,7 +14,7 @@
 import { useState } from 'react';
 import { ClipboardCopy, RotateCcw } from 'lucide-react';
 import { useStudio } from '../../store/useStudio';
-import { EMBLEM_PRESETS } from '../../lib/emblems';
+import { EMBLEM_PRESETS, nimmtFarbeAn } from '../../lib/emblems';
 import { EMBLEM_PROMPT_ID, resolveTemplate } from '../../lib/promptTemplates';
 import { BUCH_TEXTE } from '../../lib/bookTexts';
 import { colorById } from '../../lib/bookIdentity';
@@ -183,31 +183,74 @@ function Bibliothek({
   t: TonWerte;
   mittig: boolean;
 }) {
+  /*
+   * Zwei Gruppen, und die Trennlinie ist keine Geschmacksfrage.
+   *
+   * Ein gezeichnetes Zeichen erbt `currentColor` und wird im Elfenbein-Band
+   * silbern, im Rotholz-Band kupfern – es ist in das Metall *dieses* Bandes
+   * geprägt. Ein Siegel bringt sein Gold mit und bleibt golden. Wer das nicht
+   * weiss, wählt ein goldenes Wappen für einen Silberband und wundert sich.
+   *
+   * Und sie brauchen verschiedene Kachelgrössen: Eine Strichzeichnung ist bei
+   * 32 Punkten gut lesbar, ein Medaillon mit Ring, Rauten und Relief ist bei
+   * 32 Punkten ein goldener Fleck.
+   */
+  const gezeichnet = EMBLEM_PRESETS.filter(nimmtFarbeAn);
+  const gepraegt = EMBLEM_PRESETS.filter((p) => !nimmtFarbeAn(p));
+
+  const kachel = (preset: (typeof EMBLEM_PRESETS)[number], seite: number, zeichen: number) => {
+    const an = identity.emblemType === 'preset' && identity.emblemId === preset.id;
+    /*
+     * „Drache" gibt es zweimal – gezeichnet und geprägt. Dasselbe gilt für
+     * Sonne, Flamme und Welle. Mit dem Auge ist das keine Frage, die Kacheln
+     * sehen völlig verschieden aus und stehen unter zwei Überschriften. Für
+     * eine Vorlesehilfe waren es bis hierher **zwei Mal dasselbe Zeichen**:
+     * gleicher zugänglicher Name, kein Unterschied, keine Wahl.
+     *
+     * Die Unterscheidung entsteht hier und nicht in den Namen selbst – sonst
+     * hiesse die Kachel sichtbar „Drache (geprägt)", und das steht schon in
+     * der Überschrift darüber.
+     */
+    const name = nimmtFarbeAn(preset) ? preset.label : `${preset.label}, geprägtes Siegel`;
+    return (
+      <button
+        key={preset.id}
+        type="button"
+        onClick={() => onChange({ emblemType: 'preset', emblemId: preset.id })}
+        aria-pressed={an}
+        aria-label={name}
+        title={preset.label}
+        className={cx(
+          'grid place-items-center rounded-[3px] border transition-all duration-300 no-tap-highlight',
+          an ? t.rahmenAn : t.rahmenAus,
+        )}
+        style={{ width: seite, height: seite }}
+      >
+        <BookEmblem
+          identity={{ emblemType: 'preset', emblemId: preset.id }}
+          size={zeichen}
+          color={an ? foil : t.zeichenAus}
+        />
+      </button>
+    );
+  };
+
+  const reihe = mittig ? 'justify-center' : 'justify-start';
+
   return (
-    <div className={cx('flex flex-wrap gap-2', mittig ? 'justify-center' : 'justify-start')}>
-      {EMBLEM_PRESETS.map((preset) => {
-        const an = identity.emblemType === 'preset' && identity.emblemId === preset.id;
-        return (
-          <button
-            key={preset.id}
-            type="button"
-            onClick={() => onChange({ emblemType: 'preset', emblemId: preset.id })}
-            aria-pressed={an}
-            aria-label={preset.label}
-            title={preset.label}
-            className={cx(
-              'grid h-[56px] w-[56px] place-items-center rounded-[3px] border transition-all duration-300 no-tap-highlight',
-              an ? t.rahmenAn : t.rahmenAus,
-            )}
-          >
-            <BookEmblem
-              identity={{ emblemType: 'preset', emblemId: preset.id }}
-              size={32}
-              color={an ? foil : t.zeichenAus}
-            />
-          </button>
-        );
-      })}
+    <div className="flex flex-col gap-5">
+      <div className={cx('flex flex-wrap gap-2', reihe)}>
+        {gezeichnet.map((p) => kachel(p, 56, 32))}
+      </div>
+
+      <div>
+        <p className={cx('mb-2 text-[10px] uppercase tracking-[0.22em]', t.still, reihe === 'justify-center' && 'text-center')}>
+          Geprägte Siegel
+        </p>
+        <div className={cx('flex flex-wrap gap-2', reihe)}>
+          {gepraegt.map((p) => kachel(p, 72, 56))}
+        </div>
+      </div>
     </div>
   );
 }
