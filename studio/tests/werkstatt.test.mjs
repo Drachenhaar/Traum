@@ -72,6 +72,7 @@ const darstellungQ = lies('../src/lib/setzerei/darstellung.ts');
 const gruppenQ = lies('../src/lib/feldgruppen.ts');
 const templatesQ = lies('../src/lib/templates.ts');
 const transcribeQ = lies('../src/lib/transcribe.ts');
+const anhangQ = lies('../src/pages/book/Appendix.tsx');
 const css = lies('../src/index.css');
 
 /* ================================================== 1 Der Parser lebt noch */
@@ -222,7 +223,67 @@ pruefe(
   spalten.every((p) => p.startsWith('lg:')),
   spalten.join(', '),
 );
-pruefe('Die Schrittfolge ist keine Tab-Leiste', !/fixed|bottom-0/.test(schritte));
+/*
+ * „Keine Tab-Leiste" – und was das prüfbar heisst.
+ *
+ * Die erste Fassung verbot `fixed` und `bottom-0` im ganzen Text der Datei
+ * und schlug an einem Kommentar an, der erklärt, *warum* hier kein `fixed`
+ * steht. Zum dritten Mal dieselbe Lektion; deshalb `ohneProsa`.
+ *
+ * Und die Regel selbst ist schärfer: `bottom-0` ist seit dem Umbau die
+ * richtige Schreibweise – die Leiste klebt am unteren Rand des Blattes. Was
+ * eine Tab-Leiste ausmacht, ist etwas anderes: Sie hängt am *Fenster*
+ * (`fixed`), sie trägt Symbole, und sie ist eine Fläche statt einer Zeile.
+ */
+const schritteCode = ohneProsa(schritte);
+pruefe('Die Schrittfolge hängt nicht am Fenster', !/\bfixed\b/.test(schritteCode));
+pruefe('Sie trägt keine Symbole', !/lucide-react/.test(schritteCode));
+pruefe(
+  'Sie ist die drei Wörter mit einem Punkt dazwischen',
+  /Manuskript/.test(schritteCode) && /Veredeln/.test(schritteCode) && /Seite/.test(schritteCode),
+);
+
+/*
+ * **Wo sie steht.**
+ *
+ * Sie stand am Ende des Inhalts, und auf dem Telefon hiess das: die
+ * Hauptnavigation des ganzen Ablaufs lag hinter zwei Bildschirmhöhen Text.
+ * Jetzt liegt sie in der `fussleiste` des Blattes und bleibt dort stehen –
+ * `sticky` im Scrollbehälter, nicht `fixed` am Fenster: Das Blatt *ist* der
+ * sichtbare Bereich, also kann sie gar nicht erst hinter Safaris
+ * einklappender Werkzeugleiste landen.
+ */
+pruefe('Sie liegt in der Fussleiste des Blattes', /fussleiste=\{/.test(setzerei));
+pruefe(
+  'Das Blatt hält sie am unteren Rand',
+  /sticky bottom-0/.test(ohneProsa(anhangQ)) && /fussleiste/.test(anhangQ),
+);
+/*
+ * Zwei Dinge, die sonst niemandem auffallen: Der letzte Absatz darf nicht
+ * hinter der Leiste verschwinden, und auf einem Gerät mit Home-Balken darf
+ * sie nicht darunter enden. Beides ist Rechnung, keine geratene Zahl für ein
+ * bestimmtes iPhone.
+ */
+pruefe(
+  'Der Inhalt bekommt Luft unter der Leiste',
+  /paddingBottom: fussleiste/.test(anhangQ) && /var\(--sab\)/.test(anhangQ),
+);
+pruefe(
+  'Die Leiste achtet die Sicherheitszone des Geräts',
+  /paddingBottom: 'var\(--sab\)'/.test(schritte),
+);
+/*
+ * Und sie muss decken. `--dc-blattgrund` ist ein Hexwert, kein Kanaltripel –
+ * `rgb(var(--dc-blattgrund) / 0.97)` war ungültig und ergab gar keinen
+ * Hintergrund, sodass der scrollende Text mitten durch die Schrift der Leiste
+ * lief. Den allgemeinen Fall fängt jetzt `npm run klassen`; hier steht, dass
+ * diese Leiste überhaupt einen Grund hat.
+ */
+pruefe(
+  'Sie hat einen deckenden Papiergrund',
+  /background: 'var\(--dc-blattgrund/.test(schritte),
+);
+
 /*
  * Und die Vorschau am Schreibtisch bleibt stehen.
  *

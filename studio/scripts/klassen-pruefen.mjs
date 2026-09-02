@@ -181,3 +181,100 @@ if (doppelt.length) {
 }
 
 console.log('Keine CSS-Variable traegt zwei Arten von Wert.');
+
+/* ------------------------------------------------------------------ 3 ---- */
+
+/**
+ * `rgb(var(--x) / 0.5)` verlangt Kanaele, keine Farbe.
+ *
+ * Dieselbe Familie wie oben, ein Glied weiter: Nicht zwei Arten in *einem*
+ * Namen, sondern eine Schreibweise, die zu ihrem Namen nicht passt.
+ *
+ * Die meisten Marken dieses Buches liegen als „R G B" vor – nur so kann
+ * Tailwind ihnen eine Deckkraft geben (`text-gold/60`). `--dc-blattgrund`
+ * gehoert nicht dazu: Es steht als `#ebe1c9` da und wird direkt als Farbe
+ * benutzt.
+ *
+ * Der echte Fall: In der Fussleiste der Setzerei stand
+ * `rgb(var(--dc-blattgrund) / 0.97)`. `rgb(#ebe1c9 / 0.97)` ist ungueltig,
+ * und ungueltige Angaben fallen ersatzlos aus – gemessen kam
+ * `rgba(0, 0, 0, 0)` heraus. Also **gar kein** Hintergrund, und die Schrift
+ * der Leiste stand mitten im scrollenden Text.
+ *
+ * Nichts sah kaputt aus. Es fehlte nur etwas, das nie da gewesen war.
+ */
+/*
+ * Die Bandtoene zaehlen mit.
+ *
+ * `--dc-blattgrund` wird **nirgends im Stilblatt zugewiesen** – es kommt beim
+ * Aufschlagen aus `lib/baende.ts` und wird per `setProperty` an die Wurzel
+ * geschrieben. Die erste Fassung dieser Pruefung sah es deshalb nicht: Sie
+ * kannte nur, was in CSS steht, und schwieg zu allem anderen.
+ *
+ * Genau daran ist sie beim ersten Versuch gescheitert – ich habe den Fehler
+ * absichtlich wieder eingebaut, und sie meldete nichts. Eine Pruefung, die
+ * ihren eigenen Anlass nicht faengt, ist keine.
+ *
+ * `bandAlsCss` bildet Tonname → Variablenname ab; die Werte stehen als
+ * Literale in den sechs Baenden. Beides hier zusammenzulesen ist stumpf und
+ * genau deshalb verlaesslich.
+ */
+const baende = readFileSync('src/lib/baende.ts', 'utf8');
+const NAMENSPAAR = /'(--dc-[a-z0-9-]+)':\s*t\.(\w+)/g;
+const TONWERT = /^\s*(\w+):\s*'([^']+)'/gm;
+
+const tonArten = new Map(); // Tonname -> Art
+for (const t of baende.matchAll(TONWERT)) {
+  const art = artVon(t[2]);
+  if (art) tonArten.set(t[1], art);
+}
+for (const t of baende.matchAll(NAMENSPAAR)) {
+  const art = tonArten.get(t[2]);
+  if (!art) continue;
+  if (!arten.has(t[1])) arten.set(t[1], new Map());
+  const je = arten.get(t[1]);
+  if (!je.has(art)) je.set(art, new Set());
+  je.get(art).add('src/lib/baende.ts');
+}
+
+const KANALNUTZUNG = /rgba?\(\s*var\((--dc-[a-z0-9-]+)\)/g;
+const falscheKanaele = new Map();
+
+/*
+ * Kommentare zaehlen nicht.
+ *
+ * Beim ersten Lauf meldete diese Pruefung eine Stelle, an der die falsche
+ * Schreibweise nur *zitiert* war – im Kommentar darueber, der erklaert, warum
+ * sie falsch ist. Eine Pruefung, die Code nicht von Prosa unterscheidet,
+ * prueft den Text und nicht das Programm.
+ */
+const ohneProsa = (q) => q.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+for (const pfad of QUELLEN) {
+  for (const t of ohneProsa(readFileSync(pfad, 'utf8')).matchAll(KANALNUTZUNG)) {
+    const je = arten.get(t[1]);
+    /* Unbekannt heisst: nirgends zugewiesen – dazu schweigen wir. */
+    if (!je) continue;
+    if (je.has('Farbkanaele')) continue;
+    if (!je.has('Farbe')) continue;
+    if (!falscheKanaele.has(t[1])) falscheKanaele.set(t[1], new Set());
+    falscheKanaele.get(t[1]).add(pfad);
+  }
+}
+
+if (falscheKanaele.size) {
+  console.error('\nDiese Variablen werden als Farbkanaele gelesen, sind aber Farben:\n');
+  for (const [name, wo] of falscheKanaele) {
+    console.error(`  ${name}  –  benutzt in ${[...wo].join(', ')}`);
+  }
+  console.error(
+    '\n`rgb(var(--x) / 0.5)` verlangt „R G B". Steht dort ein Hexwert, ist die\n' +
+      'Angabe ungueltig und faellt ersatzlos aus – es gibt dann gar keine Farbe.\n' +
+      'Entweder die Variable als Kanaele ablegen oder sie direkt benutzen:\n' +
+      '  background: var(--x)\n' +
+      '  linear-gradient(to bottom, transparent, var(--x))',
+  );
+  process.exit(1);
+}
+
+console.log('Keine Farbe wird als Farbkanal gelesen.');

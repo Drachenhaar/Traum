@@ -416,10 +416,27 @@ export function AppendixSheet({
   title,
   rubric,
   children,
+  fussleiste,
 }: {
   title: string;
   rubric?: string;
   children: ReactNode;
+  /**
+   * Eine Leiste, die am unteren Rand des Blattes stehen bleibt.
+   *
+   * Bisher gab es die nicht, und die Setzerei hängte ihre Schrittfolge
+   * einfach ans Ende des Inhalts. Auf dem Telefon hiess das: Manuskript,
+   * Veredeln und Seite – die Hauptnavigation des ganzen Ablaufs – lagen
+   * hinter zwei Bildschirmhöhen Text. Wer den Schritt wechseln wollte,
+   * musste erst bis ans Ende dessen scrollen, was er gerade nicht wollte.
+   *
+   * `sticky` **im Blatt** und nicht `fixed` am Fenster: Das Blatt ist der
+   * Scrollbehälter, sein unterer Rand ist der sichtbare Rand. Damit kann die
+   * Leiste gar nicht erst hinter Safaris einklappender Werkzeugleiste landen –
+   * ein `fixed`-Element müsste das mit `dvh` nachrechnen und läge in dem
+   * Moment falsch, in dem die Rechnung nicht stimmt.
+   */
+  fussleiste?: ReactNode;
 }) {
   const navigate = useNavigate();
 
@@ -445,7 +462,17 @@ export function AppendixSheet({
         */}
         <div
           className={cx('mx-auto w-full max-w-[980px] pt-8 sm:pt-12', stege('single'))}
-          style={{ paddingBottom: 'calc(var(--satz-raster) * 2.5)' }}
+          style={{
+            /*
+             * Unter einer stehenden Leiste braucht der Inhalt Luft, sonst
+             * verschwindet sein letzter Absatz dahinter. Die Leiste ist etwa
+             * vier Zeilen hoch; dazu die Sicherheitszone des Geräts, damit
+             * nichts unter dem Home-Balken endet.
+             */
+            paddingBottom: fussleiste
+              ? 'calc(var(--satz-raster) * 2.5 + 4.25rem + var(--sab))'
+              : 'calc(var(--satz-raster) * 2.5)',
+          }}
         >
           <button
             type="button"
@@ -469,6 +496,14 @@ export function AppendixSheet({
 
           {children}
         </div>
+
+        {/*
+          `mt-auto` schiebt die Leiste bei kurzem Inhalt an den unteren Rand
+          des Blattes, statt sie direkt unter zwei Zeilen Text kleben zu
+          lassen. Bei langem Inhalt tut es nichts – dann hält `sticky` sie
+          dort, wo sie hingehört.
+        */}
+        {fussleiste && <div className="sticky bottom-0 z-20 mt-auto">{fussleiste}</div>}
       </div>
     </div>
   );
