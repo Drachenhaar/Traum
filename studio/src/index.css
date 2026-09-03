@@ -213,9 +213,28 @@
     transition-duration: var(--dc-buch-oeffnen, 900ms);
   }
   @media (max-width: 767px) {
-    /* Erst kleiner, dann schieben - so bleibt die ganze Doppelseite im Bild. */
+    /*
+     * **Der Umschlag zielte auf ein Bild, das danach nie kommt.**
+     *
+     * Hier stand `scale(0.58)`, damit die ganze Doppelseite ins Bild passt.
+     * Das Buchinnere zeigt auf einem Telefon aber gar keine Doppelseite,
+     * sondern eine einzelne Seite über die volle Breite. Die Bewegung lief
+     * also auf einen Zustand zu, den der Leser nie zu sehen bekommt – und
+     * schlimmer: Sie lief in die **falsche Richtung**.
+     *
+     * Gemessen auf 390 × 844: Das sichtbare Papier schrumpfte während des
+     * Schwungs von 287 auf 168 Punkte Breite und stand im nächsten Bild bei
+     * 386. Das Buch bewegte sich erst vom Leser weg und sprang dann um den
+     * Faktor 2,3 auf ihn zu. Keine Überblendung der Welt versteckt das;
+     * gemeldet wurde es als „der Wechsel ist nicht sehr smooth".
+     *
+     * Jetzt 0,9: Das Buch bleibt gross, und der Schritt ins Innere ist ein
+     * Schritt statt eines Sprungs. Dass die linke Blatthälfte dabei über den
+     * Rand läuft, kostet nichts – über ihr liegt der schwingende Deckel, und
+     * einen Wimpernschlag später ist die Seite da.
+     */
     .book-offen {
-      transform: rotateY(0deg) rotateX(2deg) scale(0.58) translateX(46%);
+      transform: rotateY(0deg) rotateX(2deg) scale(0.9) translateX(46%);
     }
   }
 
@@ -723,12 +742,53 @@
   }
 
   /*
+   * Das Ankommen im Buch – die Fortsetzung des Aufschlagens.
+   *
+   * ---
+   *
+   * **Warum eine eigene Bewegung und nicht `turnForward`.**
+   *
+   * Jede ankommende Seite bekam bisher `turnForward`: eine Drehung um neun
+   * Grad um die senkrechte Achse, drei Prozent seitlicher Versatz. Das ist
+   * die Geste des *Umblätterns*, und für ein Umblättern ist sie richtig.
+   *
+   * Im Augenblick des Aufschlagens ist sie das falsche Wort. Da hat sich
+   * gerade ein Deckel gehoben und der Blick ist nach vorn gegangen; eine
+   * seitliche Drehung sagt „die nächste Seite" statt „das Innere". Zwei
+   * verschiedene Vorgänge dürfen nicht dieselbe Bewegung haben.
+   *
+   * Also: Das Buch tritt näher. Kein Versatz, keine Drehung – nur Grösse und
+   * ein Hauch Höhe, und langsamer als ein Blättern, weil dieser Moment
+   * einmal am Anfang steht und nicht fünfzigmal am Tag.
+   *
+   * `bookOpen` in der Tailwind-Konfiguration wäre beinahe dasselbe gewesen.
+   * Es gehört aber der ausklappbaren Karte, und die Zahl 0,94 ist dort
+   * eingestellt worden. Eine geteilte Bewegung, an der zwei Orte drehen, ist
+   * eine Bewegung, die bald für beide falsch ist.
+   */
+  .buch-aufschlag {
+    animation: dcAufschlag 560ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  }
+
+  @keyframes dcAufschlag {
+    from {
+      opacity: 0;
+      transform: scale(0.9) translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  /*
    * Wer die Bewegung abgestellt hat, bekommt keine. Das ist keine
    * Barrierefreiheits-Pflichtuebung: Fuer manche Menschen ist eine bewegte
    * Flaeche keine Zierde, sondern Uebelkeit.
    */
   @media (prefers-reduced-motion: reduce) {
-    .satz-eintritt {
+    .satz-eintritt,
+    .buch-aufschlag {
       animation: none;
     }
   }

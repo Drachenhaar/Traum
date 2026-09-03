@@ -212,14 +212,20 @@ export function Cover({
         } as React.CSSProperties
       }
     >
-      <div
-        className="flex flex-col items-center"
-        style={{
-          /* Ganz zum Schluss ausblenden, damit der Übergang zur Seite nahtlos ist. */
-          opacity: opening ? 0 : 1,
-          transition: `opacity 220ms ease-in ${Math.max(0, schwungMs - 200)}ms`,
-        }}
-      >
+      {/*
+        Hier lag die eigentliche Naht.
+        ---
+        Dieser Kasten trug `opacity: opening ? 0 : 1` – und er enthält **auch
+        das Buch**. Die ganze Szene blendete also kurz vor der Übergabe auf
+        null aus, und weil das Buchinnere danach seinerseits bei null anfängt,
+        sah der Leser dazwischen für einen Augenblick nur den dunklen Tisch.
+        Kein Sprung, ein Loch – und ein Loch fällt mehr auf als ein Schnitt.
+        Gemeldet wurde es als „der Wechsel ist nicht sehr smooth".
+        Jetzt bleibt das Buch bis zuletzt beleuchtet; nur das, was **um** das
+        Buch herum steht, tritt ab. Übergeben wird ein volles Bild an ein
+        volles Bild.
+      */}
+      <div className="flex flex-col items-center">
         {/* ------------------------------------------------------ Das Buch */}
         <button
           type="button"
@@ -375,7 +381,18 @@ export function Cover({
         </button>
 
         {/* --------------------------------------------------------- Text */}
-        <div className="mt-14 max-w-md text-center">
+        {/*
+          Titel, Knopf und Regalzeile treten ab, sobald der Deckel schwingt.
+          Sie haben ihre Arbeit getan, und ein Knopf, der beim Aufschlagen
+          noch dasteht, lädt zum zweiten Tippen ein.
+        */}
+        <div
+          className="mt-14 max-w-md text-center"
+          style={{
+            opacity: opening ? 0 : 1,
+            transition: `opacity 260ms ease-in ${Math.max(0, Math.round(schwungMs * 0.15))}ms`,
+          }}
+        >
           <p className="font-serif text-[13px] italic leading-relaxed text-paper-400/70">
             {tagline || 'Ein lebendiges Buch. Deine Welt. Deine Geschichte.'}
           </p>
