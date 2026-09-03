@@ -770,6 +770,37 @@
     animation: dcAufschlag 560ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
   }
 
+  /*
+   * Beim durchgehenden Übergang trägt der Buchkasten die Geometrie – der
+   * Inhalt wird nur hell.
+   *
+   * Mit Verzögerung, und die ist der Kern: Die Seite wächst zuerst in ihre
+   * Form, und **dann** steht die Schrift darauf. Andersherum liest man einen
+   * Titel, der sich noch verzieht, und ein sich verziehender Titel ist das
+   * Einzige an dieser Bewegung, das man wirklich sehen würde.
+   */
+  .buch-eintritt,
+  .buch-eintritt-huelle > header,
+  .buch-eintritt-huelle .dc-ansatz {
+    animation: dcEintritt 320ms cubic-bezier(0.22, 0.61, 0.36, 1) 180ms backwards;
+  }
+
+  /*
+   * Nur ein `from`, und das ist keine Sparsamkeit.
+   *
+   * Mit `to { opacity: 1 }` und `both` bliebe der Endwert **stehen** – und
+   * die Ansatzkerbe, die im Ruhezustand bei 0,72 liegt, wäre danach für
+   * immer auf 1. Ohne `to` nimmt der Browser den eigenen Wert des Elements
+   * als Ziel, und `backwards` sorgt dafür, dass während der Verzögerung
+   * schon die Null gilt. So blendet dieselbe Regel drei Dinge ein, die
+   * hinterher drei verschiedene Deckkräfte haben.
+   */
+  @keyframes dcEintritt {
+    from {
+      opacity: 0;
+    }
+  }
+
   @keyframes dcAufschlag {
     from {
       opacity: 0;
@@ -788,7 +819,8 @@
    */
   @media (prefers-reduced-motion: reduce) {
     .satz-eintritt,
-    .buch-aufschlag {
+    .buch-aufschlag,
+    .buch-eintritt {
       animation: none;
     }
   }

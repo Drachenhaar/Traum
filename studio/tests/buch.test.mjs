@@ -472,5 +472,69 @@ wahr('  genau einmal, nicht bei jeder Seite',
 wahr('  und wer keine Bewegung will, bekommt keine',
   /prefers-reduced-motion[\s\S]{0,200}buch-aufschlag/.test(css));
 
+/* -------------------------------------------------------------------------
+ * 4. Der durchgehende Übergang
+ *
+ * Die Umschlagseite ist buchförmig (286 auf 390, Verhältnis 0,73), die
+ * Buchseite bildschirmförmig (390 auf 784, Verhältnis 0,50). **Zwei
+ * verschiedene Seitenverhältnisse – keine Skalierung bringt sie zur Deckung.**
+ * Solange das Ziel eine andere Form hat als der Ausgangspunkt, bleibt ein
+ * Schnitt, egal wie lange man an Dauern dreht.
+ *
+ * Deshalb wird gemessen statt gestimmt: Der Umschlag gibt das Rechteck seiner
+ * aufgedeckten Seite mit, das Innere setzt sich mit einer Umkehrung dorthin
+ * und lässt sie los. Gemessen am Gerät: letztes Umschlagbild 185,118 258×351 –
+ * erstes Buchbild 185,118 258×351, identisch; danach wächst es über
+ * 271×394, 308×516, 352×658 auf 390×784.
+ * ----------------------------------------------------------------------- */
+const app = ohneProsa(lies('../src/App.tsx'));
+
+wahr('Ü4 der Umschlag misst seine aufgedeckte Seite',
+  /getBoundingClientRect\(\)/.test(ohneProsa(cover)) && /onOpen\(/.test(ohneProsa(cover)));
+wahr('  und reicht sie über die Navigation weiter', /ausDemUmschlag: true, von/.test(app));
+wahr('  das Innere setzt sich dorthin', /von\.breite/.test(schale) && /von\.hoehe/.test(schale));
+
+/*
+ * `useLayoutEffect` und nicht `useEffect` – das ist die tragende Zeile.
+ * Zwischen dem Setzen der Umkehrung und dem ersten sichtbaren Bild darf
+ * nichts liegen, sonst blitzt die Seite einmal in voller Grösse auf. Ein
+ * Blitzer ist schlimmer als der Schnitt, den er beheben soll.
+ */
+wahr('  vor dem ersten Anstrich, nicht danach', /useLayoutEffect\(\(\) => \{[\s\S]{0,400}von\.breite/.test(schale));
+
+/*
+ * Zwei Bilder warten, nicht eines: Ein einzelnes `requestAnimationFrame`
+ * liegt noch im selben Anstrich, der Browser fasst Setzen und Lösen zusammen,
+ * und es bewegt sich gar nichts.
+ */
+wahr('  und lässt erst im übernächsten Bild los',
+  /requestAnimationFrame\([\s\S]{0,120}requestAnimationFrame\(/.test(schale));
+
+/*
+ * Der Kasten gehört dem Blättern. Ein liegengebliebener `transform` wäre dort
+ * ein zweiter Besitzer derselben Eigenschaft – genau der Fehler, der das
+ * Blättern schon einmal gekostet hat.
+ */
+wahr('  danach räumt es seine Spuren weg',
+  /el\.style\.transform = ''/.test(schale) && /transitionend/.test(schale));
+
+wahr('  wer keine Bewegung will, bekommt keine',
+  /prefers-reduced-motion[\s\S]{0,80}return/.test(schale));
+
+/*
+ * Und die Einblendung hat **kein** `to`.
+ *
+ * Mit `to { opacity: 1 }` und `both` bliebe der Endwert stehen – die
+ * Ansatzkerbe, die im Ruhezustand bei 0,72 liegt, wäre danach für immer auf
+ * 1. Ohne `to` nimmt der Browser den eigenen Wert des Elements als Ziel.
+ * Am Gerät nachgemessen: Kerbe 0,72, Kopfzeile 1 – dieselbe Regel, zwei
+ * richtige Ergebnisse.
+ */
+{
+  const bild = css.match(/@keyframes dcEintritt\s*\{([\s\S]*?)\n  \}/);
+  wahr('  die Einblendung existiert', !!bild);
+  wahr('  und schreibt keinen Endwert fest', !!bild && !/\bto\b|100%/.test(bild[1]));
+}
+
 console.log(`\n${ok} bestanden, ${bad} gescheitert`);
 process.exit(bad ? 1 : 0);

@@ -9,7 +9,7 @@
  * sich das Buch.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { BookmarkIcon, ChevronLeft, ChevronRight, Eye, FilePlus2, Search } from 'lucide-react';
 import { useStudio, livingEntries } from '../../store/useStudio';
@@ -76,6 +76,30 @@ export function BookShell() {
   const aufgeschlagen = useRef(!!(state as { ausDemUmschlag?: boolean } | null)?.ausDemUmschlag);
 
   /*
+   * Wo die Umschlagseite zuletzt stand – der Anfangspunkt des Übergangs.
+   *
+   * ---
+   *
+   * **Warum es ohne diese Messung nicht geht.**
+   *
+   * Die Umschlagseite ist buchförmig: 286 auf 390 Punkte, Verhältnis 0,73.
+   * Die Buchseite ist bildschirmförmig: 390 auf 784, Verhältnis 0,50. Zwei
+   * verschiedene Seitenverhältnisse – **keine Skalierung bringt sie zur
+   * Deckung.** Man kann die Umschlagbewegung beliebig lange stimmen; solange
+   * das Ziel eine andere Form hat als der Ausgangspunkt, bleibt ein Schnitt.
+   *
+   * Also wird nicht gestimmt, sondern gemessen: Der Umschlag gibt das
+   * Rechteck seiner aufgedeckten Seite mit, das Innere setzt sich mit einer
+   * Umkehrung genau dorthin und lässt sie in einem Zug los. Das ist die
+   * altbekannte FLIP-Technik, und sie ist hier deshalb richtig, weil sie das
+   * einzige Verfahren ist, das **zwei Formen** ineinander überführt statt
+   * zwei Grössen.
+   */
+  const von = (state as { von?: { x: number; y: number; breite: number; hoehe: number } } | null)
+    ?.von;
+  const kommtAusDemUmschlag = useRef(!!von);
+
+  /*
    * Und sie gilt genau **einmal**.
    *
    * Ohne diese vier Zeilen bliebe das Merkmal für die Lebensdauer der Hülle
@@ -87,6 +111,75 @@ export function BookShell() {
    */
   useEffect(() => {
     aufgeschlagen.current = false;
+    kommtAusDemUmschlag.current = false;
+  }, []);
+
+  /*
+   * Die Umkehrung, vor dem ersten Anstrich.
+   *
+   * `useLayoutEffect` und nicht `useEffect`: Zwischen dem Setzen der
+   * Umkehrung und dem ersten sichtbaren Bild darf nichts liegen, sonst
+   * blitzt die Seite einmal in ihrer Endgrösse auf – und ein Blitzer ist
+   * schlimmer als der Schnitt, den er beheben soll.
+   *
+   * Gemessen wird auf **beiden** Seiten das Papier und nicht der Kasten
+   * darum. Der Kasten trägt Innenabstände, die es im Umschlag nicht gibt;
+   * wer ihn misst, trifft um ein paar Punkte daneben, und ein paar Punkte
+   * sind bei einem Übergang genau der Ruck, den niemand benennen kann.
+   */
+  useLayoutEffect(() => {
+    const el = buchkasten.current;
+    if (!el || !von) return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const papier = el.querySelector('.paper-sheet');
+    if (!papier) return;
+
+    const nach = papier.getBoundingClientRect();
+    const kasten = el.getBoundingClientRect();
+    if (!nach.width || !nach.height) return;
+
+    const sx = von.breite / nach.width;
+    const sy = von.hoehe / nach.height;
+    /* Der Ursprung liegt oben links am Kasten; das Papier sitzt versetzt darin. */
+    const tx = von.x - kasten.x - sx * (nach.x - kasten.x);
+    const ty = von.y - kasten.y - sy * (nach.y - kasten.y);
+
+    el.style.transformOrigin = '0 0';
+    el.style.transition = 'none';
+    el.style.transform = `translate(${tx}px, ${ty}px) scale(${sx}, ${sy})`;
+
+    /*
+     * Zwei Bilder warten, nicht eines. Ein einzelnes `requestAnimationFrame`
+     * liegt noch im selben Anstrich; der Browser fasst dann Setzen und Lösen
+     * zusammen, und es bewegt sich gar nichts.
+     */
+    let ab = requestAnimationFrame(() => {
+      ab = requestAnimationFrame(() => {
+        el.style.transition = 'transform 460ms cubic-bezier(0.22, 0.61, 0.36, 1)';
+        el.style.transform = 'none';
+      });
+    });
+
+    /*
+     * Danach die Spuren wegräumen. Der Kasten gehört dem Blättern, und ein
+     * liegengebliebener `transform` wäre dort ein zweiter Besitzer derselben
+     * Eigenschaft – genau der Fehler, der das Blättern schon einmal gekostet
+     * hat.
+     */
+    const fertig = () => {
+      el.style.transition = '';
+      el.style.transform = '';
+      el.style.transformOrigin = '';
+    };
+    el.addEventListener('transitionend', fertig, { once: true });
+    const notnagel = window.setTimeout(fertig, 900);
+    return () => {
+      cancelAnimationFrame(ab);
+      window.clearTimeout(notnagel);
+      el.removeEventListener('transitionend', fertig);
+    };
+    /* Nur beim Aufbau – `von` gilt für genau diese eine Ankunft. */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const settings = useStudio((s) => s.settings);
   const updateSettings = useStudio((s) => s.updateSettings);
@@ -268,7 +361,16 @@ export function BookShell() {
        */
       data-anmutung={profilVon(settings).anmutung}
       data-flaeche={flaeche}
-      className="flex h-full w-full flex-col overflow-hidden"
+      className={cx(
+        'flex h-full w-full flex-col overflow-hidden',
+        /*
+         * Beim durchgehenden Übergang treten Kopfzeile und Ansatzkerben mit
+         * dem Inhalt an, nicht vor ihm. Sonst steht die Bedienung fertig da,
+         * während die Seite noch wächst – und das Buch sieht aus, als sei die
+         * Oberfläche zuerst da gewesen und das Buch hinterher.
+         */
+        kommtAusDemUmschlag.current && 'buch-eintritt-huelle',
+      )}
       style={
         {
           ...deskStyle,
@@ -472,11 +574,19 @@ export function BookShell() {
                        * war es eine, und deshalb fühlte sich das
                        * Aufschlagen an wie ein verrutschtes Umblättern.
                        */
-                      aufgeschlagen.current
-                        ? 'buch-aufschlag'
-                        : direction === 'forward'
-                          ? 'animate-turnForward'
-                          : 'animate-turnBack',
+                      /*
+                       * Beim durchgehenden Übergang trägt der Kasten die
+                       * ganze Geometrie. Der Inhalt darf dann **nur** noch
+                       * heller werden – eine zweite Skalierung darüber wäre
+                       * eine Bewegung zu viel und sähe aus wie ein Wackler.
+                       */
+                      kommtAusDemUmschlag.current
+                        ? 'buch-eintritt'
+                        : aufgeschlagen.current
+                          ? 'buch-aufschlag'
+                          : direction === 'forward'
+                            ? 'animate-turnForward'
+                            : 'animate-turnBack',
                     )}
                   >
                     <Outlet context={{ book, spread, wear, living }} />

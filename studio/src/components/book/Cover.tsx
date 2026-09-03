@@ -66,7 +66,17 @@ export function Cover({
   tagline: string;
   resumePage?: number;
   resumeLabel?: string;
-  onOpen: () => void;
+  /**
+   * Aufgeschlagen – und **wo** die erste Seite dabei zuletzt stand.
+   *
+   * Ohne dieses Rechteck kann das Buchinnere nur an seiner eigenen Stelle
+   * erscheinen, und das ist der Schnitt, den es hier zu vermeiden gilt: Die
+   * Umschlagseite ist buchförmig (286 auf 390), die Buchseite
+   * bildschirmförmig (390 auf 784). Zwei verschiedene Seitenverhältnisse –
+   * keine Skalierung der Welt bringt sie zur Deckung. Also übergibt der
+   * Umschlag seine Messung, und das Innere wächst von dort in seine Form.
+   */
+  onOpen: (von?: { x: number; y: number; breite: number; hoehe: number }) => void;
   /**
    * Zurueck ins Regal.
    *
@@ -81,6 +91,8 @@ export function Cover({
   const [beruehrt, setBeruehrt] = useState(false);
   const timers = useRef<number[]>([]);
   const deckel = useRef<HTMLDivElement>(null);
+  /** Die aufgedeckte erste Seite – der Anfangspunkt des Übergangs. */
+  const aufgedeckteSeite = useRef<HTMLDivElement>(null);
   const bild = useRef<number | null>(null);
 
   /*
@@ -178,7 +190,16 @@ export function Cover({
       window.setTimeout(() => {
         setPhase('oeffnet');
         haptik.oeffnen();
-        schwinge(k, schwungMs, onOpen);
+        schwinge(k, schwungMs, () => {
+          /*
+           * Gemessen im letzten Bild vor der Übergabe – dann, wenn die
+           * Stellung `book-offen` fertig gewirkt hat. Eine Zahl aus dem
+           * Stylesheet nachzurechnen wäre eine zweite Wahrheit über
+           * dasselbe und beim nächsten Regler falsch.
+           */
+          const r = aufgedeckteSeite.current?.getBoundingClientRect();
+          onOpen(r ? { x: r.x, y: r.y, breite: r.width, hoehe: r.height } : undefined);
+        });
       }, richtenMs),
     );
   };
@@ -293,8 +314,17 @@ export function Cover({
                 }}
               />
 
-              {/* Die erste Seite – liegt unter dem Deckel und wird beim Öffnen frei */}
+              {/*
+                Die erste Seite – liegt unter dem Deckel und wird beim Öffnen
+                frei.
+
+                Sie trägt den Griff für den durchgehenden Übergang: Wo *diese*
+                Fläche im Augenblick der Übergabe steht, dort setzt das
+                Buchinnere an. Gemessen wird sie und nicht der Kasten darum –
+                der Leser sieht Papier, keine Kästen.
+              */}
               <div
+                ref={aufgedeckteSeite}
                 aria-hidden
                 className="paper-sheet absolute inset-0 z-[1] rounded-[3px]"
                 style={{ boxShadow: 'inset 14px 0 26px -18px rgba(60,44,26,0.75)' }}
