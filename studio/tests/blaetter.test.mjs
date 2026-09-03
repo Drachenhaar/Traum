@@ -224,14 +224,21 @@ wahr('  sie zeigt die Raute mit der Initiale',
  * Das hier ist eine **reine Funktion**, also wird sie auch als solche geprüft
  * und nicht am Quelltext abgelesen.
  * ========================================================================= */
-p('I1 ein einzelner kurzer Satz trägt keine Initiale',
-  SATZ.traegtInitiale('Sie geht dorthin, wo die Karten aufhören.'), false);
-p('  ein Absatz von zwei Zeilen trägt eine',
-  SATZ.traegtInitiale(
+/*
+ * Die Längenregel wird geprüft, **auch während der Schalter aus ist**.
+ *
+ * Sonst verfiele sie unbemerkt und wäre beim Wiedereinschalten falsch. Genau
+ * deshalb ist sie eine eigene Funktion und nicht in den Schalter
+ * hineingeschrieben.
+ */
+p('I1 ein einzelner kurzer Satz passt nicht zur Initiale',
+  SATZ.initialePasst('Sie geht dorthin, wo die Karten aufhören.'), false);
+p('  ein Absatz von zwei Zeilen passt',
+  SATZ.initialePasst(
     'Sie geht dorthin, wo die Karten aufhören, und kehrt mit Namen zurück, die vorher niemand kannte.',
   ), true);
-p('  leerer Text trägt keine', SATZ.traegtInitiale(''), false);
-p('  und fehlender Text stürzt nicht ab', SATZ.traegtInitiale(undefined), false);
+p('  leerer Text passt nicht', SATZ.initialePasst(''), false);
+p('  und fehlender Text stürzt nicht ab', SATZ.initialePasst(undefined), false);
 
 /*
  * Gemessen wird der **erste Absatz**, nicht der ganze Text: Die Initiale sitzt
@@ -239,7 +246,21 @@ p('  und fehlender Text stürzt nicht ab', SATZ.traegtInitiale(undefined), false
  * Initiale, neben der wieder nichts steht.
  */
 p('  ein kurzer erster Absatz zählt, nicht die Summe',
-  SATZ.traegtInitiale('Kurz.\n\n' + 'Sehr viel späterer Text. '.repeat(20)), false);
+  SATZ.initialePasst('Kurz.\n\n' + 'Sehr viel späterer Text. '.repeat(20)), false);
+
+/*
+ * Der Schalter steht zurzeit auf aus – ein Versuch, keine Entscheidung:
+ * „Ich möchte den grossen Buchstaben erstmal nicht, um zu sehen, wie das
+ * Gefühl ist." Geprüft wird deshalb nicht **welchen** Wert er hat, sondern
+ * dass er wirkt: Solange er aus ist, trägt auch ein langer Text keine.
+ */
+p('  solange der Schalter aus ist, trägt auch ein langer Text keine',
+  SATZ.INITIALE_AN === false
+    ? SATZ.traegtInitiale('Sie geht dorthin, wo die Karten aufhören, und kehrt mit Namen zurück, die vorher niemand kannte.')
+    : false,
+  false);
+wahr('  und der Schalter ist ein benannter Wahrheitswert',
+  typeof SATZ.INITIALE_AN === 'boolean');
 
 /* Die Schwelle steht als Zahl da und ist nicht im Code versteckt. */
 wahr('  die Schwelle ist eine benannte Zahl',
@@ -249,9 +270,20 @@ wahr('  die Schwelle ist eine benannte Zahl',
  * Und die Seite benutzt sie wirklich. Zu prüfen, dass es die Regel *gibt*,
  * hiesse prüfen, dass ein Mechanismus existiert – nicht, dass er wirkt.
  */
-wahr('  und die Seite fragt sie, statt die Initiale immer zu setzen',
-  /traegtInitiale\(entry\.description\)/.test(seitentext)
-    && !/prose-book dropcap/.test(seitentext));
+/*
+ * **Keine Stelle setzt die Initiale fest.**
+ *
+ * Drei Seiten zeigen Lesetext: der Eintrag, das Vorwort und die Schauseite.
+ * Bliebe an einer davon `prose-book dropcap` stehen, sähe man es beim
+ * nächsten Umschalten nicht – auf dem Vorwort sähe eine übriggebliebene
+ * Initiale sogar richtig aus. Deshalb wird über **alle** Quellen geprüft.
+ */
+{
+  const feste = quellen.filter((q) => /prose-book[^"']*dropcap/.test(q));
+  p('  keine Seite setzt die Initiale fest', feste.length, 0);
+}
+wahr('  der Eintrag fragt nach der Länge',
+  /traegtInitiale\(entry\.description\)/.test(seitentext));
 
 console.log(`\n${ok} bestanden, ${bad} gescheitert`);
 process.exit(bad ? 1 : 0);

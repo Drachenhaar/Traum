@@ -44,12 +44,50 @@
 export const INITIALE_AB_ZEICHEN = 80;
 
 /**
- * Trägt dieser Text eine Initiale – oder wäre sie ein Versehen?
+ * Passt eine Initiale zu diesem Text?
  *
  * Gemessen wird der **erste Absatz**, nicht der ganze Text: Die Initiale sitzt
- * in ihm, und was danach kommt, läuft ohnehin unter dem Buchstaben durch.
+ * in ihm, und was danach kommt, läuft ohnehin unter dem Buchstaben durch. Ein
+ * kurzer erster Absatz mit viel Text darunter bekäme sonst wieder eine
+ * Initiale, neben der nichts steht.
+ *
+ * Diese Frage ist unabhängig davon, ob das Buch gerade überhaupt Initialen
+ * setzt – siehe `INITIALE_AN`. Sie bleibt beantwortbar, damit die Regel nicht
+ * verfällt, während der Schalter aus ist.
  */
-export function traegtInitiale(text: string | undefined): boolean {
+export function initialePasst(text: string | undefined): boolean {
   const ersterAbsatz = (text ?? '').split(/\n{2,}/)[0] ?? '';
   return ersterAbsatz.trim().length >= INITIALE_AB_ZEICHEN;
+}
+
+/**
+ * Setzt dieses Buch überhaupt Initialen?
+ *
+ * ---
+ *
+ * **Zurzeit nicht – und das ist ein Versuch, keine Entscheidung.**
+ *
+ * Gewünscht als: „Ich möchte nicht, dass da weniger steht, nur möchte ich den
+ * grossen Buchstaben erstmal nicht, um zu sehen, wie das Gefühl ist."
+ *
+ * Genau dafür steht hier ein Schalter und keine gelöschte Zeile. Der
+ * Unterschied ist wichtig: Eine gelöschte Initiale müsste man neu bauen, ein
+ * ausgeschalteter Schalter ist ein Wort. Und die Längenregel darüber bleibt
+ * geprüft, während er aus ist – sonst verfällt sie unbemerkt und wäre beim
+ * Wiedereinschalten falsch.
+ *
+ * Es geht dabei nicht um weniger Text. Am Satz ändert sich nichts; nur der
+ * erste Buchstabe ist wieder so gross wie die anderen.
+ */
+export const INITIALE_AN = false;
+
+/**
+ * Trägt dieser Text eine Initiale?
+ *
+ * Beides zusammen: Der Schalter muss an sein **und** der Text muss lang genug
+ * sein. Die Seiten fragen nur diese eine Funktion, damit es keine zweite
+ * Stelle gibt, an der jemand die Initiale doch noch setzt.
+ */
+export function traegtInitiale(text: string | undefined): boolean {
+  return INITIALE_AN && initialePasst(text);
 }

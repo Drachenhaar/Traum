@@ -21,6 +21,7 @@
  */
 
 import { useMemo, useState } from 'react';
+import { INITIALE_AN } from '../../lib/satz';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   DEMO_EINTRAEGE,
@@ -145,7 +146,10 @@ function Figur() {
       <Ueberschrift>Eine Geschichte beginnt oft mit jemandem.</Ueberschrift>
       <span aria-hidden className="rule-gild mt-6 block w-24 opacity-70" />
 
-      <p className="prose-book dropcap mt-7 max-w-[44ch]">{elian.description}</p>
+      {/* Dieselbe Frage wie im Buch – die Schauseite zeigt, wie es später aussieht. */}
+      <p className={cx('prose-book mt-7 max-w-[44ch]', INITIALE_AN && 'dropcap')}>
+        {elian.description}
+      </p>
 
       {/*
        * Keine Feldtabelle. Ein Buch schreibt so etwas als Zeile, nicht als
