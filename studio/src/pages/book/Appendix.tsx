@@ -38,41 +38,33 @@ interface AppendixEntry extends Werkzeug {
   note: string;
 }
 
-export function AppendixSpread() {
-  const { book, spread, wear } = useCurrentSpread();
-  const navigate = useNavigate();
-  const images = useStudio((s) => s.images);
-  const boards = useStudio((s) => s.boards);
-  const entries = useStudio((s) => s.entries);
-  const settings = useStudio((s) => s.settings);
-  const updateSettings = useStudio((s) => s.updateSettings);
-  const books = useStudio((s) => s.books);
-  /* Der Einband dieses Bandes – für den Namen des Bandes in der Anhangzeile. */
-  const einband = useStudio((s) => s.settings.book);
-  const schliesseBuch = useStudio((s) => s.schliesseBuch);
+/**
+ * Die Anhänge als **Daten**, nicht als Ansicht.
+ *
+ * Sie standen mitten in `AppendixSpread`, und das war richtig, solange es
+ * genau eine Stelle gab, die sie zeigt. Jetzt gibt es zwei – den Anhang und
+ * das Blattverzeichnis –, und zwei handgeschriebene Listen derselben Sache
+ * sind in diesem Projekt schon mehrfach auseinandergelaufen: Wer einen Anhang
+ * hinzufügt, trägt ihn in eine ein und vergisst die andere, ohne dass etwas
+ * kaputt aussieht.
+ *
+ * Die Zahlen kommen von aussen herein, weil die Zeilen sie nennen („%d
+ * Bögen", „%d Tafeln"). Eine Liste, die selbst in den Speicher greift, wäre
+ * nicht mehr prüfbar ohne Speicher.
+ */
+export interface AnhangZahlen {
+  szenen: number;
+  tafeln: number;
+  boegen: number;
+  assets: number;
+  entnommen: number;
+  /** Der Name des aufgeschlagenen Bandes – für die Zeile „Einband & Zeichen". */
+  bandName: string;
+}
 
-  const trashed = entries.filter((e) => e.deletedAt).length;
-  const assets = entries.filter((e) => e.type === 'asset' && !e.deletedAt).length;
-
-  const szenen = entries.filter((e) => e.type === 'szene' && !e.deletedAt).length;
-  /* Die anderen Baende – nur fuer die Wortwahl, nicht fuer das Ob. */
-  const andereBaende = books.filter((b) => !b.archived).length - 1;
-
-  const profil = profilVon(settings);
-  const [offen, setOffen] = useState(false);
-  const verborgen = geheimZeile(entries);
-
-  /*
-   * Eine Liste, nicht zwei.
-   *
-   * Vorher standen hier „primary" und „secondary" – eine Einteilung, die
-   * jemand einmal getroffen hatte und die fuer jeden gleich war. Wer Bilder
-   * sammelt, fand die Werkbank unter „Weiteres"; wer Systeme entwirft, fand
-   * die Entdeckungen zwischen Karte und Tafelteil. Jetzt entscheidet das
-   * Profil, was vorn liegt – und „Weiteres" ist nicht mehr eine Restekiste,
-   * sondern die zweite Haelfte derselben Ordnung.
-   */
-  const werkzeuge: AppendixEntry[] = [
+/** Die Werkzeuge, die das Profil ordnen darf. */
+export function anhangWerkzeuge(z: AnhangZahlen): AppendixEntry[] {
+  return [
     {
       /*
        * Der Roman steht zuoberst, weil er der einzige Anhang ist, in dem
@@ -83,8 +75,8 @@ export function AppendixSpread() {
       to: '/roman',
       title: 'Manuskript',
       note:
-        szenen > 0
-          ? `${szenen} ${szenen === 1 ? 'Szene' : 'Szenen'} – schreiben, während die Welt danebensteht.`
+        z.szenen > 0
+          ? `${z.szenen} ${z.szenen === 1 ? 'Szene' : 'Szenen'} – schreiben, während die Welt danebensteht.`
           : 'Einen Roman schreiben, in dem deine Figuren deine Figuren bleiben.',
       gewicht: { schreiben: 1, spiel: 0.2 },
     },
@@ -106,7 +98,7 @@ export function AppendixSpread() {
       id: 'tafeln',
       to: '/tafeln',
       title: 'Tafelteil',
-      note: `${images.length} ${images.length === 1 ? 'Tafel' : 'Tafeln'} – Illustrationen und Referenzen in voller Größe.`,
+      note: `${z.tafeln} ${z.tafeln === 1 ? 'Tafel' : 'Tafeln'} – Illustrationen und Referenzen in voller Größe.`,
       gewicht: { bild: 1, welt: 0.4 },
     },
     {
@@ -149,7 +141,7 @@ export function AppendixSpread() {
       id: 'chronik',
       to: '/chronik',
       title: 'Chronik',
-      note: `Der Verlauf deiner Arbeit. ${trashed > 0 ? `${trashed} entnommene ${trashed === 1 ? 'Seite' : 'Seiten'} liegen hier bereit.` : 'Frühere Fassungen lassen sich zurückholen.'}`,
+      note: `Der Verlauf deiner Arbeit. ${z.entnommen > 0 ? `${z.entnommen} entnommene ${z.entnommen === 1 ? 'Seite' : 'Seiten'} liegen hier bereit.` : 'Frühere Fassungen lassen sich zurückholen.'}`,
       gewicht: { welt: 0.4, system: 0.5 },
       ab: 'standard',
     },
@@ -157,7 +149,7 @@ export function AppendixSpread() {
       id: 'lose',
       to: '/lose-blaetter',
       title: 'Lose Blätter',
-      note: `${boards.length} ${boards.length === 1 ? 'Bogen' : 'Bögen'} zum Sammeln, Skizzieren und Sortieren.`,
+      note: `${z.boegen} ${z.boegen === 1 ? 'Bogen' : 'Bögen'} zum Sammeln, Skizzieren und Sortieren.`,
       gewicht: { bild: 0.9, welt: 0.4, spiel: 0.5 },
     },
     {
@@ -176,7 +168,7 @@ export function AppendixSpread() {
       id: 'werkbank',
       to: '/werkbank',
       title: 'Werkbank',
-      note: `Produktionsstand von ${assets} ${assets === 1 ? 'Asset' : 'Assets'}.`,
+      note: `Produktionsstand von ${z.assets} ${z.assets === 1 ? 'Asset' : 'Assets'}.`,
       gewicht: { bild: 0.6, system: 0.6 },
       ab: 'tief',
     },
@@ -188,9 +180,19 @@ export function AppendixSpread() {
       gewicht: { welt: 0.5, system: 0.5, spiel: 0.4 },
     },
   ];
+}
 
-  const { vorn, weiter } = ordne(werkzeuge, profil);
-
+/**
+ * Und die zwei, die ausserhalb der Ordnung stehen.
+ *
+ * Sie gehören nicht zum Handwerk: Das eine ist die Rückseite des Buches, das
+ * andere sein Gesicht. Ein Profil, das sie wegsortieren dürfte, könnte die
+ * Stelle wegsortieren, an der man das Profil ändert.
+ */
+export function anhangAusserhalb(z: AnhangZahlen): {
+  kolophon: AppendixEntry;
+  meinBuch: AppendixEntry;
+} {
   /*
    * Das Kolophon steht ausserhalb der Ordnung.
    *
@@ -225,14 +227,64 @@ export function AppendixSpread() {
    * Die zweite Zeile nennt den Band beim Namen. Eine Zeile, die sagt
    * „Einband, Titel, Zeichen", verschweigt genau das, wonach jemand sucht.
    */
-  const bandJetzt = bandVon(einband?.band);
   const meinBuch: AppendixEntry = {
     id: 'mein-buch',
     to: '/mein-buch',
     title: 'Einband & Zeichen',
-    note: `Titel, Einband, Drachenzeichen – und der Band, in dem alles steht. Zurzeit: ${bandJetzt.name}.`,
+    note: `Titel, Einband, Drachenzeichen – und der Band, in dem alles steht. Zurzeit: ${z.bandName}.`,
     gewicht: {},
   };
+  return { kolophon, meinBuch };
+}
+
+export function AppendixSpread() {
+  const { book, spread, wear } = useCurrentSpread();
+  const navigate = useNavigate();
+  const images = useStudio((s) => s.images);
+  const boards = useStudio((s) => s.boards);
+  const entries = useStudio((s) => s.entries);
+  const settings = useStudio((s) => s.settings);
+  const updateSettings = useStudio((s) => s.updateSettings);
+  const books = useStudio((s) => s.books);
+  /* Der Einband dieses Bandes – für den Namen des Bandes in der Anhangzeile. */
+  const einband = useStudio((s) => s.settings.book);
+  const schliesseBuch = useStudio((s) => s.schliesseBuch);
+
+  const trashed = entries.filter((e) => e.deletedAt).length;
+  const assets = entries.filter((e) => e.type === 'asset' && !e.deletedAt).length;
+
+  const szenen = entries.filter((e) => e.type === 'szene' && !e.deletedAt).length;
+  /* Die anderen Baende – nur fuer die Wortwahl, nicht fuer das Ob. */
+  const andereBaende = books.filter((b) => !b.archived).length - 1;
+
+  const profil = profilVon(settings);
+  /* Eine Mappe statt sechs Argumente – und sie steht dort, wo die Zahlen entstehen. */
+  const zahlen: AnhangZahlen = {
+    szenen,
+    tafeln: images.length,
+    boegen: boards.length,
+    assets,
+    entnommen: trashed,
+    bandName: bandVon(einband?.band).name,
+  };
+  const [offen, setOffen] = useState(false);
+  const verborgen = geheimZeile(entries);
+
+  /*
+   * Eine Liste, nicht zwei.
+   *
+   * Vorher standen hier „primary" und „secondary" – eine Einteilung, die
+   * jemand einmal getroffen hatte und die fuer jeden gleich war. Wer Bilder
+   * sammelt, fand die Werkbank unter „Weiteres"; wer Systeme entwirft, fand
+   * die Entdeckungen zwischen Karte und Tafelteil. Jetzt entscheidet das
+   * Profil, was vorn liegt – und „Weiteres" ist nicht mehr eine Restekiste,
+   * sondern die zweite Haelfte derselben Ordnung.
+   */
+  const werkzeuge = anhangWerkzeuge(zahlen);
+
+  const { vorn, weiter } = ordne(werkzeuge, profil);
+
+  const { kolophon, meinBuch } = anhangAusserhalb(zahlen);
 
   return (
     <Spread
@@ -299,6 +351,27 @@ export function AppendixSpread() {
             ))}
             <AppendixLine {...meinBuch} />
             <AppendixLine {...kolophon} />
+            {/*
+              Das Blattverzeichnis steht zuletzt und leise.
+
+              Es ist die Gegenprobe zu allem darüber: Der Anhang ordnet nach
+              der Arbeitsweise und legt einen Teil unter „Weiteres"; das
+              Verzeichnis lässt nichts weg und fragt kein Profil. Wer hier
+              nachsieht, hat die Ordnung schon einmal nicht gefunden – dann
+              soll ihm nichts mehr im Weg stehen.
+
+              Und es nennt die Blätter, zu denen es bis hierher gar keine Tür
+              gab: die Weltkarte hinter der Tiefengeste, das Tafelteil hinter
+              dem Register, die Charakterseiten hinter den Blättern einer
+              Figur.
+            */}
+            <AppendixLine
+              id="blaetter"
+              to="/blaetter"
+              title="Blattverzeichnis"
+              note="Jedes Blatt dieses Buches, mit einem Tipp erreichbar – ohne Ordnung nach Arbeitsweise, ohne Auslassung."
+              gewicht={{}}
+            />
           </ol>
 
           {/*
