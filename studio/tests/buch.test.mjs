@@ -19,6 +19,7 @@
  * was auf ihnen steht.
  */
 import { execSync } from 'child_process';
+import { readFileSync } from 'node:fs';
 import { ARBEIT } from './arbeit.mjs';
 const S = ARBEIT;
 for (const [aus, ein] of [
@@ -395,6 +396,81 @@ wahr(
   }
   p('  stark gedämpft schwingt sie nicht über', ueber, 0);
 }
+
+/* =========================================================================
+ * DIE ÜBERGABE: VOM UMSCHLAG INS BUCH
+ *
+ * Gemeldet: „Wenn man das Buch aufschlägt und man in das Buch kommt, ist der
+ * Wechsel nicht sehr smooth."
+ *
+ * Drei Ursachen, gemessen auf 390 × 844, und alle drei sind hier festgehalten,
+ * weil keine davon in einer reinen Funktion steht – nur im Quelltext.
+ * ========================================================================= */
+const ohneProsa = (q) => q.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+const lies = (pf) => readFileSync(new URL(pf, import.meta.url), 'utf8');
+const cover = lies('../src/components/book/Cover.tsx');
+const schale = ohneProsa(lies('../src/components/book/BookShell.tsx'));
+const css = ohneProsa(lies('../src/index.css'));
+
+/*
+ * 1. Das Loch.
+ *
+ * Der Kasten, der das Buch enthält, trug `opacity: opening ? 0 : 1`. Die
+ * ganze Szene blendete kurz vor der Übergabe aus, und weil das Buchinnere
+ * seinerseits bei null anfängt, sah der Leser dazwischen den dunklen Tisch.
+ * Gemessen an der Sichtbarkeit des Papiers in den letzten Bildern davor:
+ * 0,98 → 0,91 → 0,71 → 0,54. Danach: durchgehend 1,00.
+ *
+ * Ein Loch fällt mehr auf als ein Schnitt.
+ */
+{
+  const q = ohneProsa(cover);
+  const kasten = q.indexOf('flex flex-col items-center');
+  const buehne = q.indexOf('book-stage');
+  wahr('Ü1 Umschlag: Bühne und Kasten sind gefunden', kasten >= 0 && buehne > kasten);
+  wahr('  das Buch blendet vor der Übergabe nicht aus',
+    !/opening \? 0 : 1/.test(q.slice(kasten, buehne)));
+  wahr('  aber der Beitext tritt ab', /opening \? 0 : 1/.test(q.slice(buehne)));
+}
+
+/*
+ * 2. Die Richtung.
+ *
+ * `scale(0.58)` liess das Buch während des Schwungs von 287 auf 168 Punkte
+ * schrumpfen – es bewegte sich vom Leser **weg** – und sprang im nächsten
+ * Bild auf 386. Die Umschlagbewegung zielte auf eine Doppelseite, die das
+ * Buchinnere auf einem Telefon gar nicht zeigt.
+ */
+{
+  const regel = css.match(/@media \(max-width: 767px\)[\s\S]{0,400}?\.book-offen\s*\{([^}]*)\}/);
+  wahr('Ü2 es gibt eine eigene Stellung für schmale Geräte', !!regel);
+  const skala = Number((regel?.[1] ?? '').match(/scale\(([\d.]+)\)/)?.[1] ?? 1);
+  wahr(`  und sie schrumpft das Buch nicht vom Leser weg (scale ${skala})`, skala >= 0.8);
+}
+
+/*
+ * 3. Das falsche Wort.
+ *
+ * Jede ankommende Seite bekam `turnForward` – neun Grad Drehung, drei Prozent
+ * Versatz. Das ist die Geste des Umblätterns. Im Augenblick des Aufschlagens
+ * sagt sie „die nächste Seite" statt „das Innere".
+ */
+wahr('Ü3 das Aufschlagen hat eine eigene Bewegung', /@keyframes dcAufschlag/.test(css));
+wahr('  und die Buchhülle benutzt sie', /buch-aufschlag/.test(schale));
+wahr('  sie unterscheidet Aufschlagen von Blättern',
+  /ausDemUmschlag/.test(schale) && /animate-turnForward/.test(schale));
+
+/*
+ * Und sie gilt **einmal**. Ohne das Zurücksetzen bekäme auch die erste
+ * umgeblätterte Seite die Aufschlagbewegung – ein Buch, das sich beim
+ * Weiterblättern noch einmal öffnet.
+ */
+wahr('  genau einmal, nicht bei jeder Seite',
+  /aufgeschlagen\.current = false/.test(schale));
+
+/* Wer die Bewegung abgestellt hat, bekommt auch diese nicht. */
+wahr('  und wer keine Bewegung will, bekommt keine',
+  /prefers-reduced-motion[\s\S]{0,200}buch-aufschlag/.test(css));
 
 console.log(`\n${ok} bestanden, ${bad} gescheitert`);
 process.exit(bad ? 1 : 0);

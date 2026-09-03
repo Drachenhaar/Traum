@@ -61,8 +61,33 @@ export function useCurrentSpread() {
 
 export function BookShell() {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname, state } = useLocation();
   const { index, spread, book, wear } = useCurrentSpread();
+
+  /*
+   * Wurde gerade aufgeschlagen – oder nur weitergeblättert?
+   *
+   * Der Umschlag reicht die Antwort über den Navigationszustand herein. Sie
+   * wird **einmal beim Aufbau festgehalten** und danach nicht mehr gelesen:
+   * Der Zustand einer Adresse überlebt ein Neuzeichnen, und ohne diesen
+   * Griff bekäme jede Seite dieser Adresse die Aufschlagbewegung erneut –
+   * auch die, zu der man später zurückkehrt.
+   */
+  const aufgeschlagen = useRef(!!(state as { ausDemUmschlag?: boolean } | null)?.ausDemUmschlag);
+
+  /*
+   * Und sie gilt genau **einmal**.
+   *
+   * Ohne diese vier Zeilen bliebe das Merkmal für die Lebensdauer der Hülle
+   * stehen, und weil jede neue Seite einen neuen Knoten bekommt, bekäme auch
+   * das erste Umblättern die Aufschlagbewegung – ein Buch, das sich beim
+   * Weiterblättern noch einmal öffnet. Der Haken läuft nach dem ersten
+   * Anstrich; die laufende Bewegung stört er nicht, weil sie in der CSS
+   * hängt und nicht an diesem Wert.
+   */
+  useEffect(() => {
+    aufgeschlagen.current = false;
+  }, []);
   const settings = useStudio((s) => s.settings);
   const updateSettings = useStudio((s) => s.updateSettings);
   const entries = useStudio((s) => s.entries);
@@ -438,7 +463,20 @@ export function BookShell() {
                     key={spread?.key ?? pathname}
                     className={cx(
                       'relative flex min-w-0 flex-1',
-                      direction === 'forward' ? 'animate-turnForward' : 'animate-turnBack',
+                      /*
+                       * Aufschlagen ist kein Umblättern.
+                       *
+                       * Beim allerersten Ankommen tritt das Buch näher
+                       * (`buch-aufschlag`); jedes spätere Blatt dreht sich
+                       * zur Seite. Zwei Vorgänge, zwei Bewegungen – vorher
+                       * war es eine, und deshalb fühlte sich das
+                       * Aufschlagen an wie ein verrutschtes Umblättern.
+                       */
+                      aufgeschlagen.current
+                        ? 'buch-aufschlag'
+                        : direction === 'forward'
+                          ? 'animate-turnForward'
+                          : 'animate-turnBack',
                     )}
                   >
                     <Outlet context={{ book, spread, wear, living }} />

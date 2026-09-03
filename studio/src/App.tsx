@@ -371,7 +371,16 @@ function CoverGate() {
       tagline={settings.worldTagline}
       resumePage={resume?.page}
       resumeLabel={resume ? resume.label : undefined}
-      onOpen={() => navigate(ziel)}
+      /*
+       * Der Umschlag reicht den Augenblick weiter, nicht nur die Adresse.
+       *
+       * Ohne diese Mitteilung kann das Buchinnere nicht wissen, ob es gerade
+       * aufgeschlagen oder nur weitergeblättert wurde – und beides sieht
+       * gleich aus, obwohl es zwei verschiedene Vorgänge sind. Der Zustand
+       * gilt genau für diese eine Ankunft; der nächste Seitenwechsel legt
+       * eine neue Adresse ohne ihn an.
+       */
+      onOpen={() => navigate(ziel, { state: { ausDemUmschlag: true } })}
       onRegal={() => navigate('/bibliothek')}
     />
   );
