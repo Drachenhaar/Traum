@@ -459,9 +459,21 @@ p('  und die Punkte auch nicht', JSON.stringify(punkte), punkteAbzug);
  * wird nicht, dass es Regler *gibt*, sondern dass sie *wirken* – dieselbe
  * Geste, andere Konfiguration, anderes Ergebnis.
  */
-const streng = K.VORGABE;
-const locker = { ...streng, geste: { ...streng.geste, verpflichtung: 0.3 } };
-const halb = -strecke(0.4);
+/*
+ * Beide Schwellen werden hier **selbst gesetzt**, und das ist eine Lehre.
+ *
+ * Vorher stand hier `const streng = K.VORGABE` – die Vorgabe wurde als „die
+ * strenge" angenommen und dagegen ein Zug von 0,4 gehalten. Das ging so
+ * lange gut, wie die Vorgabe über 0,4 lag. Als sie auf 0,34 sank, weil die
+ * Geste am Gerät zu weit zu ziehen war, scheiterte diese Zusicherung – und
+ * sie scheiterte über etwas, das sie gar nicht prüfen will.
+ *
+ * Sie prüft, dass der Regler **wirkt**. Dann darf sie nicht davon abhängen,
+ * wo er zufällig gerade steht.
+ */
+const streng = { ...K.VORGABE, geste: { ...K.VORGABE.geste, verpflichtung: 0.6 } };
+const locker = { ...K.VORGABE, geste: { ...K.VORGABE.geste, verpflichtung: 0.3 } };
+const halb = -strecke(0.45);
 p(
   '10 dieselbe Geste, strenge Schwelle: zurück',
   wische(rechtsX, 400, halb, 0, { konf: streng }).ergebnis,
@@ -473,11 +485,11 @@ p(
   'oeffnen',
 );
 
-const breit = { ...streng, geste: { ...streng.geste, randBreitePx: 120 } };
+const breit = { ...K.VORGABE, geste: { ...K.VORGABE.geste, randBreitePx: 120 } };
 p('  ein breiterer Streifen fängt weiter innen an', G.randRichtung(300, 400, feld, breit), 'rechts');
-p('  mit der Vorgabe nicht', G.randRichtung(300, 400, feld, streng), undefined);
+p('  mit der Vorgabe nicht', G.randRichtung(300, 400, feld, k), undefined);
 
-const tief = { ...streng, geste: { ...streng.geste, hoechsteTiefe: 2 } };
+const tief = { ...K.VORGABE, geste: { ...K.VORGABE.geste, hoechsteTiefe: 2 } };
 p(
   '  und die höchste Tiefe ist ein Regler',
   G.naechsterStand({ ort: 'rechts', tiefe: 2 }, 'rechts', tief),
@@ -668,6 +680,68 @@ const wegpunkte = ohneProsa(lies('../src/lib/leitfaden.ts'));
 wahr('  ein Wegweiser erklärt sie ein einziges Mal',
   /id: 'tiefe'/.test(wegpunkte) && /ziel: 'tiefe'/.test(wegpunkte)
     && /data-leitfaden=\{[^}]*'tiefe'/.test(marken));
+
+/* =========================================================================
+ * 15  WIE WEIT MAN ZIEHEN MUSS
+ *
+ * Gemeldet: „Man muss sehr weit ziehen, um in die Tiefe zu kommen. Auch wenn
+ * man von unten in die Mitte zieht, dann muss man wirklich bis in die Mitte
+ * ziehen." Und im selben Atemzug: „Die Tiefe nur noch durch den Knopf."
+ *
+ * Das ist dieselbe Meldung zweimal. Wer eine Geste dreimal nicht schafft,
+ * hört auf, sie zu versuchen, und nimmt die Abkürzung – und eine Abkürzung,
+ * die zum einzigen Weg wird, ist ein Zeugnis über den Hauptweg.
+ *
+ * Gemessen war es: 88 Punkte waagerecht, 110 senkrecht.
+ *
+ * Zwei Zusicherungen, und beide prüfen eine Strecke in Punkten und keinen
+ * Anteil. Anteile lassen sich nicht mit einem Daumen vergleichen – die Zahl,
+ * die zählt, ist die, die der Finger wirklich zurücklegen muss.
+ * ========================================================================= */
+
+/** Wie viele Punkte bis zum Öffnen – bei ruhigem Zug, ohne Schwung. */
+function ziehstrecke(richtung, konf = k) {
+  const f = { breite: 390, hoehe: 844, oben: 67, unten: 62 };
+  const start =
+    richtung === 'rechts' ? [356, 420]
+      : richtung === 'links' ? [22, 420]
+      : richtung === 'oben' ? [195, f.oben + 25]
+      : [195, f.hoehe - f.unten - 25];
+  const [ex, ey] = G.EINWAERTS[richtung];
+  for (let d = 1; d <= 900; d++) {
+    const weg = G.fortschritt(start, [start[0] + ex * d, start[1] + ey * d], richtung, f, konf);
+    if (G.entscheide(weg, 0.2, konf) === 'oeffnen') return d;
+  }
+  return Infinity;
+}
+
+const waagerecht = ziehstrecke('rechts');
+const senkrecht = ziehstrecke('unten');
+
+/*
+ * Ein Daumen, der am Rand aufsetzt, reicht rund neunzig Punkte weit, bevor
+ * die ganze Hand mitwandern muss – und währenddessen muss die Richtung auch
+ * noch im Toleranzkorridor bleiben. Fünfundsiebzig ist die Grenze, ab der es
+ * sich nach Arbeit anfühlt.
+ */
+wahr(`15 waagerecht bleibt in Daumenreichweite (${waagerecht} Punkte)`, waagerecht <= 75);
+wahr(`  senkrecht auch (${senkrecht} Punkte)`, senkrecht <= 75);
+
+/*
+ * **Und beide Achsen kosten gleich viel.**
+ *
+ * Das ist die Zusicherung, die zweimal gefehlt hat. Zuerst gab es einen
+ * einzigen Anteil für beide Achsen – auf einem Telefon von 390 × 844 kostete
+ * senkrecht damit mehr als das Doppelte. Dann wurden die Anteile getrennt,
+ * und es waren immer noch 110 gegen 88: die Schieflage war kleiner, aber
+ * nicht weg. Beide Male hat es niemand entschieden; beide Male war es das
+ * Seitenverhältnis des Geräts, das sich als Designentscheidung ausgab.
+ *
+ * Geprüft wird deshalb nicht, dass zwei Regler *existieren*, sondern dass
+ * sie zum selben Ergebnis führen.
+ */
+wahr(`  und beide Achsen kosten gleich viel (${waagerecht} zu ${senkrecht})`,
+  Math.abs(waagerecht - senkrecht) <= Math.max(waagerecht, senkrecht) * 0.12);
 
 console.log(`\n${ok} bestanden, ${bad} gescheitert`);
 process.exit(bad ? 1 : 0);

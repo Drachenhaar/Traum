@@ -1203,7 +1203,33 @@
 
 .dc-ansatz {
   transition: opacity 260ms ease-out;
-  opacity: 0.5;
+  /*
+   * Der erste Bau war eine Haftnotiz (siehe unten), der zweite mit 0,5 zu
+   * leise – gemeldet als „etwas zu leise". Dazwischen liegt der schmale
+   * Bereich, in dem eine Marke gefunden wird, ohne mitzureden.
+   *
+   * ---
+   *
+   * **Zwei Deckkräfte multiplizieren sich, und das habe ich zuerst
+   * übersehen.**
+   *
+   * Der Strich trägt `rgb(… / 0.5)`, der Knopf darüber diese Deckkraft. Was
+   * auf dem Papier ankommt, ist das Produkt – bei 0,5 und 0,5 also 0,25 und
+   * nicht 0,5. Eine erste Messung, die nur den Strich betrachtete, meldete
+   * einen Helligkeitsabstand von 61; tatsächlich waren es rund 30. Wer
+   * Deckkraft misst, muss die ganze Kette messen.
+   *
+   * Gemessen mit 0,72, Helligkeitsabstand zum Papiergrund:
+   *
+   *   Pergament   Kerbe 44   Fliesstext 45
+   *   Tinte       Kerbe 38   Fliesstext 162
+   *
+   * Im hellen Band liegt die Kerbe damit genau auf der Höhe des Fliesstextes
+   * – und das ist vertretbar, weil vier auf sechsundfünfzig Punkte Strich
+   * eine ganz andere Fläche sind als eine Seite voller Buchstaben. Im
+   * dunklen Band liegt sie weit darunter.
+   */
+  opacity: 0.72;
 }
 
 /*

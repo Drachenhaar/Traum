@@ -52,7 +52,7 @@ export interface Raumkonfig {
      * Anteil der Bildschirmkante entlang der jeweiligen Achse.
      *
      * Zusammen mit `verpflichtung` ergibt das die tatsächliche Strecke: bei
-     * 0.45 und 0.5 sind das auf einem 390 Punkte breiten Telefon etwa 88
+     * 0.45 und 0.34 sind das auf einem 390 Punkte breiten Telefon rund 60
      * Punkte bis zur Schwelle. Zwei Regler statt einem, weil sie
      * Verschiedenes bedeuten – der eine, wie schnell der Bogen wächst, der
      * andere, wann er kippt.
@@ -71,13 +71,57 @@ export interface Raumkonfig {
      *
      * Gemessen als Fangquote: rechts wurden 12 von 25 Daumenzügen gefangen,
      * unten 8 von 25.
+     *
+     * ---
+     *
+     * **Und dann war es immer noch nicht gleich.**
+     *
+     * 0,26 auf 844 ergibt 219 Punkte für den vollen Weg, 0,45 auf 390 ergibt
+     * 175. Senkrecht kostete damit weiterhin ein Viertel mehr als waagerecht
+     * – die Trennung der Achsen hatte die Schieflage verkleinert, aber nicht
+     * beseitigt, und niemand hatte je entschieden, dass ein Zug nach oben
+     * mehr wert sein soll als einer nach rechts.
+     *
+     * 0,21 auf 844 sind 177 Punkte. Jetzt sind die beiden Achsen wirklich
+     * gleich weit, und was noch verschieden ist, ist die Absicht und nicht
+     * das Seitenverhältnis des Geräts.
      */
     wegAnteilWaagerecht: number;
     wegAnteilSenkrecht: number;
 
     /** Ab hier erkennt Dragoncore die Richtung. Erster Tick. */
     andeutung: number;
-    /** Ab hier öffnet ein Loslassen den Raum. Zweiter, klarerer Tick. */
+    /**
+     * Ab hier öffnet ein Loslassen den Raum. Zweiter, klarerer Tick.
+     *
+     * ---
+     *
+     * **Stand auf 0,5, und das waren hundertzehn Punkte.**
+     *
+     * Gemeldet als: „Man muss sehr weit ziehen, um in die Tiefe zu kommen.
+     * Auch wenn man von unten in die Mitte zieht, dann muss man wirklich bis
+     * in die Mitte ziehen." Und danach: „Die Tiefe nur noch durch den
+     * Knopf." Das ist dieselbe Meldung zweimal – wer eine Geste dreimal
+     * nicht schafft, hört auf, sie zu versuchen, und nimmt den Knopf. Eine
+     * Abkürzung, die zum einzigen Weg wird, ist ein Zeugnis über den
+     * Hauptweg.
+     *
+     * Gemessen auf 390 × 844 bei ruhigem Zug: achtundachtzig Punkte
+     * waagerecht, **hundertzehn senkrecht**. Ein Daumen, der am unteren Rand
+     * aufsetzt, reicht nicht hundertzehn Punkte weit, ohne dass die ganze
+     * Hand mitwandert – und währenddessen muss die Richtung auch noch im
+     * Toleranzkorridor bleiben.
+     *
+     * Jetzt 0,34, zusammen mit dem gleichgezogenen senkrechten Anteil: rund
+     * **sechzig Punkte in jede Richtung**. Das ist eine Wischstrecke, keine
+     * Reise.
+     *
+     * Was dagegen absichert, dass das nicht zu leicht wird, steht anderswo
+     * und ist unverändert: der Streifen von vierunddreissig Punkten, die
+     * Richtungsurteile, `scrolltNoch` und die Frage, ob die Richtung
+     * überhaupt irgendwohin führt. Die Schwelle war nie das, was Fehlgriffe
+     * verhindert hat – sie hat nur die Richtigen ausgesperrt.
+     */
     verpflichtung: number;
 
     /** Ein kurzer, schneller Wisch genügt statt des vollen Wegs. */
@@ -376,9 +420,9 @@ export const VORGABE: Raumkonfig = {
     systemEinzugObenPx: 8,
     systemEinzugUntenPx: 28,
     wegAnteilWaagerecht: 0.45,
-    wegAnteilSenkrecht: 0.26,
+    wegAnteilSenkrecht: 0.21,
     andeutung: 0.15,
-    verpflichtung: 0.5,
+    verpflichtung: 0.34,
     schnellMindestweg: 0.26,
     schnellTempoPxProMs: 0.75,
     richtungssperrePx: 10,
