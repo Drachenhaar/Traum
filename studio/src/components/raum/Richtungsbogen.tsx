@@ -206,7 +206,15 @@ export function Richtungsbogen({ richtung }: { richtung: Richtung }) {
  * und in jeder Buchidentität stimmen, und ein Strich, der aus derselben Marke
  * wie der Bogen kommt, stimmt immer.
  */
-function Zeichnung({ richtung }: { richtung: Richtung }) {
+/**
+ * Das Zeichen selbst – ohne Schein, ohne Stellung, ohne Deckkraft.
+ *
+ * Exportiert, weil die Ansatzmarke am Rand dasselbe Zeichen trägt, nur klein
+ * und leise. Zwei Zeichensprachen für dieselbe Sache wären eine zu viel: Wer
+ * die kleine Marke einmal gesehen hat, erkennt das grosse Zeichen wieder, das
+ * ihm mitten in der Geste entgegenkommt.
+ */
+export function Zeichnung({ richtung }: { richtung: Richtung }) {
   const strich = { stroke: 'var(--dc-accent)', strokeWidth: 1.4, fill: 'none' } as const;
 
   return (

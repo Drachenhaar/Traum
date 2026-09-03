@@ -1175,3 +1175,98 @@
     opacity: 0 !important;
   }
 }
+
+/* =========================================================================
+ * DIE ANSATZMARKEN
+ *
+ * Die Daumenkerbe am Blattrand: sichtbar genug, um gefunden zu werden, still
+ * genug, um beim Lesen nicht mitzureden. Warum es sie gibt, steht in
+ * `components/raum/Ansatzmarken.tsx`; hier steht nur, wie sie aussieht.
+ *
+ * ---
+ *
+ * **Der erste Bau war eine Haftnotiz.**
+ *
+ * Zehn Punkte breit, zweiundsiebzig lang, kräftiger Goldverlauf, dazu eine
+ * Polsterung von siebzehn Punkten für die Trefferfläche – und weil `inset-0`
+ * einer gepolsterten Fläche die *Polsterung mitzählt*, füllte die Kapsel die
+ * ganzen vierundvierzig Punkte statt der zehn. Im gerenderten Bild waren das
+ * zwei gelbe Pillen auf dem Papier.
+ *
+ * Zwei Lehren daraus, und die zweite ist die teurere. Erstens: Trefferfläche
+ * nach **aussen** wachsen lassen (`::after` mit negativen Einzügen), nie nach
+ * innen polstern – sonst ist das Bild so gross wie das Ziel. Zweitens: Eine
+ * Marke, die lauter ist als die Überschrift der Seite, hat ihre Aufgabe
+ * verfehlt. Sie soll gefunden werden, wenn man sie sucht, und übersehen,
+ * wenn man liest.
+ * ========================================================================= */
+
+.dc-ansatz {
+  transition: opacity 260ms ease-out;
+  opacity: 0.5;
+}
+
+/*
+ * Die Trefferfläche – vierundvierzig Punkte in der schmalen Achse, während
+ * das Bild vier bleibt. Sie wächst nach aussen und verschiebt deshalb nichts.
+ */
+.dc-ansatz::after {
+  content: '';
+  position: absolute;
+  inset: -8px -20px;
+}
+.dc-ansatz[data-ansatzmarke='oben']::after,
+.dc-ansatz[data-ansatzmarke='unten']::after {
+  inset: -20px -8px;
+}
+
+/*
+ * Am Schreibtisch darf sie auf den Zeiger antworten, am Telefon nicht – dort
+ * gibt es kein Darüberfahren, und `hover` bliebe nach einem Tipp hängen.
+ */
+@media (hover: hover) {
+  .dc-ansatz:hover {
+    opacity: 1;
+  }
+}
+
+/*
+ * Die Antwort auf die Berührung, **bevor** sich etwas bewegt.
+ *
+ * Das ist der eigentliche Zweck der ganzen Übung. Wer den Daumen im Streifen
+ * aufsetzt, sieht sofort, dass er richtig liegt – und wer daneben liegt,
+ * sieht, dass nichts passiert, ohne dafür eine Seite umgeblättert zu haben.
+ * Das Merkmal setzt `Raumschicht` beim Aufsetzen direkt ins DOM, ohne React:
+ * ein Finger wartet nicht auf ein Neuzeichnen.
+ *
+ * Es hängt am ganzen Streifen und nicht an der Kerbe. Genau das ist der
+ * Unterricht: Die Kerbe ist das Bild, der Streifen ist die Sache.
+ */
+[data-ansatz='links'] .dc-ansatz[data-ansatzmarke='links'],
+[data-ansatz='rechts'] .dc-ansatz[data-ansatzmarke='rechts'],
+[data-ansatz='oben'] .dc-ansatz[data-ansatzmarke='oben'],
+[data-ansatz='unten'] .dc-ansatz[data-ansatzmarke='unten'] {
+  opacity: 1;
+  transition-duration: 90ms;
+}
+
+/*
+ * Eine Prägung, kein Aufkleber.
+ *
+ * Der Strich selbst ist das gedeckte Metall des Bandes; darüber liegt eine
+ * halbe Punktbreite Licht. Das ist derselbe Griff wie bei den Papierkanten im
+ * ganzen Buch – etwas, das in die Seite eingedrückt wurde, hat unten eine
+ * Kante und oben einen Schatten, und beides zusammen ist der ganze Effekt.
+ */
+.dc-ansatz-kerbe {
+  background: rgb(var(--dc-metall-600) / 0.5);
+  box-shadow:
+    0 0 0 0.5px rgb(var(--dc-metall-300) / 0.3),
+    0 0 8px -2px rgb(var(--dc-metall-500) / 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dc-ansatz {
+    transition: none;
+  }
+}
