@@ -56,6 +56,23 @@ export const WEGPUNKTE: Wegpunkt[] = [
     text: 'Die Suche findet nicht nur Namen, sondern auch Jahre, Verbindungen und die Blätter des Buches selbst.',
   },
   {
+    /*
+     * Die Tiefe – der Wegpunkt, der am dringendsten gebraucht wird.
+     *
+     * Gemeldet als: „Man muss noch raten, ob man nun umblättert oder die
+     * Tiefe erwischt." Die Kerben am Blattrand beantworten das *Wo*; dieser
+     * Satz beantwortet einmal das *Was*. Danach nie wieder – siehe die dritte
+     * Regel oben.
+     *
+     * Ohne `pfad`, weil die Tiefe nicht an einer Adresse hängt, sondern an
+     * der Seite: Der Wegweiser erscheint ohnehin nur dort, wo eine Kerbe
+     * wirklich steht, und eine Kerbe steht nur, wo ein Weg hinführt.
+     */
+    id: 'tiefe',
+    ziel: 'tiefe',
+    text: 'Am Blattrand hat das Buch Tiefe. Die Kerbe zeigt, wo sie beginnt – von dort nach innen ziehen, oder sie einfach antippen.',
+  },
+  {
     id: 'bearbeiten',
     ziel: 'bearbeiten',
     pfad: '/eintrag/',

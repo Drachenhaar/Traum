@@ -610,5 +610,64 @@ const html = lies('../index.html');
 wahr('  das Dokument selbst erlaubt Vergrössern',
   /maximum-scale=\s*[2-9]/.test(html) && !/user-scalable\s*=\s*no/.test(html));
 
+/* =========================================================================
+ * 14  DIE ANSATZMARKEN
+ *
+ * „Man muss noch raten, ob man nun umblättert oder die Tiefe erwischt."
+ *
+ * Die Randstreifen waren unsichtbar. Wer daneben aufsetzte, blätterte um –
+ * eine Antwort auf eine Frage, die niemand gestellt hat, und man muss sie
+ * zurücknehmen, bevor man es noch einmal versucht. Die Geste war fertig
+ * gebaut, gemessen, richtig eingestellt und praktisch unauffindbar.
+ *
+ * Vier Dinge müssen dafür wahr bleiben, und alle vier sind schon einmal
+ * fast danebengegangen.
+ * ========================================================================= */
+const marken = ohneProsa(lies('../src/components/raum/Ansatzmarken.tsx'));
+
+/*
+ * Eine Marke, unter der nichts liegt, ist schlimmer als gar keine Marke.
+ * Deshalb dieselbe Frage mit derselben Funktion wie in `Raumschicht.runter` –
+ * keine zweite Meinung, die auseinanderlaufen kann.
+ */
+wahr('14 die Marke fragt dieselbe Funktion wie die Geste',
+  /gesteErlaubt\(/.test(marken) && /gesteErlaubt\(/.test(schicht));
+wahr('  und erfindet keine eigene Liste von Richtungen',
+  !/'character'|'location'|'creature'/.test(marken));
+
+/* Die Zahlen kommen aus der Konfiguration, nicht aus dieser Datei – sonst
+ * wandert der Streifen im Labor und die Marke bleibt stehen. */
+wahr('  ihre Stellung kommt aus derselben Konfiguration wie der Streifen',
+  /randEinzugPx/.test(marken) && !/=\s*12\b/.test(marken));
+
+/*
+ * Der Grund, warum ein Zug *von der Marke aus* trotzdem eine Reise wird:
+ * `BEDIENELEMENTE` kennt keinen Knopf. Stünde `button` in dieser Liste,
+ * bliebe die Marke antippbar und die Geste wäre auf ihr tot – und niemand
+ * käme darauf, in dieser Zeile nachzusehen.
+ */
+wahr('  ein Knopf am Rand nimmt der Geste den Finger nicht',
+  /const BEDIENELEMENTE =/.test(schicht)
+    && !/const BEDIENELEMENTE = '[^']*button/.test(schicht));
+
+/*
+ * Die Trefferfläche wächst nach aussen.
+ *
+ * Der erste Bau polsterte den Knopf um siebzehn Punkte nach innen – und weil
+ * `inset-0` die Polsterung mitzählt, war das Bild so gross wie das Ziel:
+ * zwei gelbe Pillen auf dem Papier. Gefunden hat das kein Test, sondern ein
+ * gerendertes Bild.
+ */
+const marktCss = ohneProsa(css).match(/\.dc-ansatz\s*\{[^}]*\}/)?.[0] ?? '';
+wahr('  die Marke wird nicht nach innen gepolstert', !/padding/.test(marktCss));
+wahr('  ihre Trefferfläche wächst nach aussen',
+  /\.dc-ansatz::after\s*\{[^}]*inset:\s*-/.test(ohneProsa(css)));
+
+/* Einmal erklärt, nie wieder – über den Leitfaden, der genau dafür da ist. */
+const wegpunkte = ohneProsa(lies('../src/lib/leitfaden.ts'));
+wahr('  ein Wegweiser erklärt sie ein einziges Mal',
+  /id: 'tiefe'/.test(wegpunkte) && /ziel: 'tiefe'/.test(wegpunkte)
+    && /data-leitfaden=\{[^}]*'tiefe'/.test(marken));
+
 console.log(`\n${ok} bestanden, ${bad} gescheitert`);
 process.exit(bad ? 1 : 0);

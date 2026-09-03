@@ -65,6 +65,7 @@ import { haptik } from '../../lib/raum/haptik';
 import { karteJetzt, useRaum } from '../../lib/raum/useRaum';
 import { gesteErlaubt } from '../../lib/raum/tiefenkarte';
 import { Fokuspunkt, Richtungsbogen, Richtungszeichen } from './Richtungsbogen';
+import { Ansatzmarken } from './Ansatzmarken';
 
 interface Lauf {
   id: number;
@@ -349,6 +350,7 @@ export function Raumschicht({ children }: { children: ReactNode }) {
       wache.current = null;
     }
     /* Nichts war sichtbar – dann gibt es auch nichts zurückzunehmen. */
+    huelle.current?.removeAttribute('data-ansatz');
     if (!g || !g.gesperrt || g.verworfen) return;
     huelle.current?.setAttribute('data-abbruch', 'ja');
     raeumeAuf();
@@ -454,6 +456,20 @@ export function Raumschicht({ children }: { children: ReactNode }) {
       sagteVerpflichtung: false,
     };
     huete();
+
+    /*
+     * Die Ansatzmarke antwortet – sofort, und ohne dass sich etwas bewegt
+     * haben muss.
+     *
+     * Das ist der Augenblick, in dem sich entscheidet, ob jemand die Tiefe
+     * findet: Der Daumen liegt im Streifen, es ist noch nichts geschehen, und
+     * die Marke unter ihm wird hell. Wer daneben liegt, sieht nichts – und
+     * hat dafür auch keine Seite umgeblättert.
+     *
+     * Direkt ins DOM und nicht über React, aus demselben Grund wie alles
+     * andere hier: Ein Finger wartet nicht auf ein Neuzeichnen der Hülle.
+     */
+    huelle.current?.setAttribute('data-ansatz', richtung);
   };
 
   const bewegen = (e: PointerEvent) => {
@@ -531,6 +547,8 @@ export function Raumschicht({ children }: { children: ReactNode }) {
       clearTimeout(wache.current);
       wache.current = null;
     }
+    /* Und die Marke tritt zurück, ganz gleich, was aus der Geste wurde. */
+    huelle.current?.removeAttribute('data-ansatz');
     if (g && g.id === e.pointerId && g.gesperrt && !g.verworfen) {
       lauf.current = null;
       const k = konfig();
@@ -755,6 +773,21 @@ export function Raumschicht({ children }: { children: ReactNode }) {
         </>
       )}
       {phase === 'verpflichtend' && <Fokuspunkt />}
+
+      {/*
+        Die Kerben am Blattrand – dieselbe Folge wie am Ende einer vollen
+        Geste und wie bei Alt+Pfeil. Es gibt genau einen Weg, einen Raum zu
+        öffnen; die Marke ist nur ein weiterer Anlass, ihn zu gehen.
+      */}
+      <Ansatzmarken
+        onOeffne={(r) => {
+          const s = useRaum.getState();
+          s.beginneGeste(r);
+          s.oeffne();
+          haptik.einrasten();
+          beende(konfig().bewegung.verpflichtenMs);
+        }}
+      />
 
       <button
         type="button"
