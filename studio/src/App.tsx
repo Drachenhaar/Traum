@@ -380,7 +380,7 @@ function CoverGate() {
        * gilt genau für diese eine Ankunft; der nächste Seitenwechsel legt
        * eine neue Adresse ohne ihn an.
        */
-      onOpen={() => navigate(ziel, { state: { ausDemUmschlag: true } })}
+      onOpen={(von) => navigate(ziel, { state: { ausDemUmschlag: true, von } })}
       onRegal={() => navigate('/bibliothek')}
     />
   );
