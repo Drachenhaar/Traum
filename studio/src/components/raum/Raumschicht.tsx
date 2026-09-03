@@ -197,6 +197,8 @@ export function Raumschicht({ children }: { children: ReactNode }) {
   const lauf = useRef<Lauf | null>(null);
   const letzterTipp = useRef<{ x: number; y: number; t: number } | null>(null);
   const uhr = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Die Wache über den Finger, der nicht mehr wiederkommt. */
+  const wache = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const ort = useRaum((s) => s.ort);
   const tiefe = useRaum((s) => s.tiefe);
@@ -313,10 +315,66 @@ export function Raumschicht({ children }: { children: ReactNode }) {
     [],
   );
 
+  /*
+   * Der Rückweg aus einer Geste, die niemand beendet hat.
+   *
+   * ---
+   *
+   * **Der Ablauf setzte voraus, dass jeder Finger wieder losgelassen wird.**
+   *
+   * Er wird es nicht. Die Randstreifen liegen genau dort, wo auch iOS
+   * zuhört; nimmt das System die Berührung an sich, kommt weder `pointerup`
+   * noch `pointercancel`. Dann bleibt `lauf.current` für immer gesetzt, und
+   * das hat drei Folgen, die wie drei verschiedene Fehler aussehen:
+   *
+   *   – der Inhalt bleibt um `--dc-mitte-x` verschoben stehen,
+   *   – `runter` weist jede neue Geste ab („`if (lauf.current) return`"),
+   *   – der `touchmove`-Halt ruft weiter `preventDefault` und nimmt damit
+   *     Scrollen, Zoomen **und** das Markieren von Text mit.
+   *
+   * Gemessen an einer gebauten verlorenen Berührung: `phase: ergriffen`,
+   * `--dc-mitte-x: -4,56px`, `--dc-zeichen-deck: 1`, nach 1,5 Sekunden
+   * unverändert, `touchmove` verhindert. Genau das Bild, das ein Leser
+   * meldet als „die Tiefe bleibt hängen und ich kann nichts mehr".
+   *
+   * Deshalb hat das Ende der Geste jetzt vier Auslöser statt einem. Es ist
+   * **eine** Genesung, nicht vier Flicken: Sie räumt auf und federt zurück,
+   * so wie ein Loslassen unterhalb der Schwelle es täte.
+   */
+  const verwerfeGeste = useCallback(() => {
+    const g = lauf.current;
+    lauf.current = null;
+    if (wache.current) {
+      clearTimeout(wache.current);
+      wache.current = null;
+    }
+    /* Nichts war sichtbar – dann gibt es auch nichts zurückzunehmen. */
+    if (!g || !g.gesperrt || g.verworfen) return;
+    huelle.current?.setAttribute('data-abbruch', 'ja');
+    raeumeAuf();
+    useRaum.getState().brichAb();
+    beende(konfig().bewegung.abbrechenMs);
+  }, [beende, raeumeAuf]);
+
+  /** Die Wache neu stellen – nach jedem Schritt, den der Finger wirklich tut. */
+  const huete = useCallback(() => {
+    if (wache.current) clearTimeout(wache.current);
+    wache.current = setTimeout(verwerfeGeste, konfig().geste.verlorenNachMs);
+  }, [verwerfeGeste]);
+
   const runter = (e: PointerEvent) => {
     /* Während einer laufenden Bewegung nimmt Dragoncore keine neue an. */
     if (useRaum.getState().imUebergang) return;
-    if (lauf.current) return;
+    /*
+     * Ein neuer Finger heisst: der alte ist weg.
+     *
+     * Hier stand `if (lauf.current) return`, und das war die Stelle, an der
+     * eine verlorene Berührung das Buch dauerhaft verschloss – der Leser
+     * tippte, wischte, versuchte alles, und jede neue Geste lief gegen diese
+     * eine Zeile. Ein zweites `pointerdown` ist der beste Beweis dafür, dass
+     * die vorige Geste vorbei ist; niemand setzt zweimal denselben Finger auf.
+     */
+    if (lauf.current) verwerfeGeste();
 
     /*
      * Gemessen wird am **Bildschirm**, nicht am Buchkasten.
@@ -395,11 +453,15 @@ export function Raumschicht({ children }: { children: ReactNode }) {
       sagteAndeutung: false,
       sagteVerpflichtung: false,
     };
+    huete();
   };
 
   const bewegen = (e: PointerEvent) => {
     const g = lauf.current;
     if (!g || g.id !== e.pointerId || g.verworfen) return;
+
+    /* Der Finger lebt – die Wache bekommt ihre Zeit zurück. */
+    huete();
 
     const dx = e.clientX - g.x0;
     const dy = e.clientY - g.y0;
@@ -464,6 +526,11 @@ export function Raumschicht({ children }: { children: ReactNode }) {
 
   const hoch = (e: PointerEvent) => {
     const g = lauf.current;
+    /* Der Finger ist zurück – die Wache wird nicht mehr gebraucht. */
+    if (wache.current) {
+      clearTimeout(wache.current);
+      wache.current = null;
+    }
     if (g && g.id === e.pointerId && g.gesperrt && !g.verworfen) {
       lauf.current = null;
       const k = konfig();
@@ -609,13 +676,65 @@ export function Raumschicht({ children }: { children: ReactNode }) {
   useEffect(() => {
     const halt = (e: TouchEvent) => {
       const g = lauf.current;
-      if (g && !g.verworfen && e.cancelable) e.preventDefault();
+      if (!g || g.verworfen) return;
+      /*
+       * Zwei Finger sind ein Zoom und keine Reise.
+       *
+       * Ohne diese Zeile verschluckt der Halt das Auseinanderziehen, und das
+       * Buch lässt sich nicht mehr vergrössern – auch dann nicht, wenn die
+       * Geste gleich darauf ordentlich endet. Wer zwei Finger aufsetzt, will
+       * die Seite ansehen; die angefangene Reise tritt zurück.
+       */
+      if (e.touches.length > 1) {
+        verwerfeGeste();
+        return;
+      }
+      if (e.cancelable) e.preventDefault();
     };
     window.addEventListener('touchmove', halt, { passive: false });
     return () => window.removeEventListener('touchmove', halt);
-  }, []);
+  }, [verwerfeGeste]);
 
-  useEffect(() => () => void (uhr.current && clearTimeout(uhr.current)), []);
+  /*
+   * Die übrigen Wege, auf denen ein Finger verschwindet.
+   *
+   * `touchend` und `touchcancel` kommen auf iOS auch dann noch, wenn die
+   * Zeigerereignisse schon verloren sind – sie sind der direkteste Beweis,
+   * dass kein Finger mehr auf dem Glas liegt. `visibilitychange` und `blur`
+   * decken den Wechsel in eine andere App ab: Wer zurückkommt, soll kein
+   * verbogenes Buch vorfinden.
+   *
+   * Bei einer sauber beendeten Geste läuft `hoch` vorher und hat
+   * `lauf.current` schon geleert; `verwerfeGeste` findet dann nichts vor und
+   * tut nichts. Die Reihenfolge ist Absicht und keine Annahme.
+   */
+  useEffect(() => {
+    const losgelassen = (e: TouchEvent) => {
+      if (e.touches.length === 0) verwerfeGeste();
+    };
+    const abgewendet = () => verwerfeGeste();
+    const versteckt = () => {
+      if (document.hidden) verwerfeGeste();
+    };
+    window.addEventListener('touchend', losgelassen, { passive: true });
+    window.addEventListener('touchcancel', losgelassen, { passive: true });
+    window.addEventListener('blur', abgewendet);
+    document.addEventListener('visibilitychange', versteckt);
+    return () => {
+      window.removeEventListener('touchend', losgelassen);
+      window.removeEventListener('touchcancel', losgelassen);
+      window.removeEventListener('blur', abgewendet);
+      document.removeEventListener('visibilitychange', versteckt);
+    };
+  }, [verwerfeGeste]);
+
+  useEffect(
+    () => () => {
+      if (uhr.current) clearTimeout(uhr.current);
+      if (wache.current) clearTimeout(wache.current);
+    },
+    [],
+  );
 
   const drin = tiefe > 0;
 

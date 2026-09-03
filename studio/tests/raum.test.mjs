@@ -14,6 +14,7 @@
  * andere nur schlecht.
  */
 import { execSync } from 'child_process';
+import { readFileSync } from 'node:fs';
 import { ARBEIT } from './arbeit.mjs';
 const S = ARBEIT;
 for (const f of ['geste', 'konfig'])
@@ -528,6 +529,86 @@ p('  eine Figur gehört zu den Wesen', B.chapterOfType('character').id, 'bewohne
 p('  ein Ort gehört zur Welt', B.chapterOfType('location').id, 'lebendige-welt');
 wahr('  und beide werden gefunden', KAPITEL.wesen.includes(B.chapterOfType('character').id)
   && KAPITEL.welt.includes(B.chapterOfType('location').id));
+
+/* =========================================================================
+ * 12  DIE GESTE MUSS ENDEN KÖNNEN
+ *
+ * Der Ablauf setzte voraus, dass auf jedes Aufsetzen ein Loslassen folgt. Auf
+ * einem iPhone tut es das nicht: Die Randstreifen liegen dort, wo auch das
+ * Betriebssystem zuhört, und wer die Berührung an sich nimmt, schickt weder
+ * `pointerup` noch `pointercancel`.
+ *
+ * Dann blieb `lauf.current` für immer gesetzt – und das sah aus wie drei
+ * verschiedene Fehler: der Inhalt blieb verschoben stehen, jede neue Geste
+ * lief gegen `if (lauf.current) return`, und der nicht-passive
+ * `touchmove`-Halt nahm mit seinem `preventDefault` das Scrollen, das Zoomen
+ * **und** das Markieren von Text mit.
+ *
+ * Gemessen an einer gebauten verlorenen Berührung, vorher: `phase:
+ * ergriffen`, `--dc-mitte-x: -4,56px`, nach 1,5 Sekunden unverändert,
+ * `touchmove` verhindert. Nachher: nach 2,2 Sekunden `phase: ruhe`,
+ * `--dc-mitte-x: 0px`, `touchmove` nicht mehr verhindert.
+ *
+ * Prüfbar ist das hier nur am Quelltext – eine Wache über einen Finger, den
+ * es nicht gibt, hat keine reine Funktion. Deshalb: Kommentare weg, dann
+ * suchen. Eine Prüfung, die Code nicht von Prosa unterscheidet, prüft den
+ * Text und nicht das Programm; genau das ist in diesem Projekt schon dreimal
+ * passiert.
+ * ========================================================================= */
+const ohneProsa = (q) => q.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+const lies = (pf) => readFileSync(new URL(pf, import.meta.url), 'utf8');
+const schicht = ohneProsa(lies('../src/components/raum/Raumschicht.tsx'));
+
+wahr('12 die Stille hat eine Zahl, und sie steht in der Konfiguration',
+  typeof k.geste.verlorenNachMs === 'number' && k.geste.verlorenNachMs > 0);
+wahr('  die Wache liest sie von dort und erfindet keine eigene',
+  /verlorenNachMs/.test(schicht) && !/setTimeout\(\s*verwerfeGeste\s*,\s*\d/.test(schicht));
+
+/*
+ * Die Zeile, die das Buch verschloss. Ein zweites Aufsetzen ist der beste
+ * Beweis, dass die vorige Geste vorbei ist – niemand setzt zweimal denselben
+ * Finger auf.
+ */
+wahr('  ein neues Aufsetzen wird nicht mehr stumm abgewiesen',
+  !/if\s*\(\s*lauf\.current\s*\)\s*return/.test(schicht));
+wahr('  sondern verwirft die alte Geste', /if\s*\(lauf\.current\)\s*verwerfeGeste\(\)/.test(schicht));
+
+/* Vier Auslöser, eine Genesung – jeder einzelne ist ein Weg, auf dem ein
+ * Finger auf dem Gerät verschwindet. */
+for (const auslöser of ['touchend', 'touchcancel', 'visibilitychange', 'blur'])
+  wahr(`  „${auslöser}" beendet eine verlorene Geste`,
+    new RegExp(`'${auslöser}'`).test(schicht));
+
+/* Zwei Finger sind ein Zoom. Ohne diese Zeile frisst der Halt das
+ * Auseinanderziehen, auch wenn die Geste danach sauber endet. */
+wahr('  zwei Finger nehmen der Reise den Vortritt',
+  /touches\.length\s*>\s*1/.test(schicht) && /touchmove/.test(schicht));
+
+/* =========================================================================
+ * 13  `pan-y` ALLEIN VERBIETET AUCH DAS ZOOMEN
+ *
+ * `touch-action` zählt auf, was der Browser noch selbst tun darf; was nicht
+ * dasteht, ist verboten. An vier Stellen stand `pan-y`, gedacht gegen das
+ * waagerechte Ziehen – und schaltete nebenbei das Auseinanderziehen mit zwei
+ * Fingern im ganzen Buch ab. `maximum-scale=5.0` im `index.html` half nichts,
+ * weil diese Regeln davor lagen.
+ *
+ * Die Prüfung ist bewusst hart: **kein** `pan-y` ohne `pinch-zoom`. Die
+ * nächste Regel entsteht durch Abschreiben von der Nachbarregel, und dann
+ * wäre das Zoomen wieder weg, ohne dass irgendetwas kaputt aussieht.
+ * ========================================================================= */
+const css = ohneProsa(lies('../src/index.css'));
+const panRegeln = [...css.matchAll(/touch-action:\s*([^;]+);/g)].map((m) => m[1].trim());
+wahr('13 es gibt überhaupt `touch-action`-Regeln', panRegeln.length >= 4);
+for (const regel of panRegeln)
+  wahr(`  „${regel}" erlaubt das Zoomen`,
+    !/\bpan-y\b/.test(regel) || /\bpinch-zoom\b/.test(regel));
+
+/* Und die Gegenprobe am Dokument selbst: Ohne diese Angabe im `index.html`
+ * hilft das beste `touch-action` nichts. */
+const html = lies('../index.html');
+wahr('  das Dokument selbst erlaubt Vergrössern',
+  /maximum-scale=\s*[2-9]/.test(html) && !/user-scalable\s*=\s*no/.test(html));
 
 console.log(`\n${ok} bestanden, ${bad} gescheitert`);
 process.exit(bad ? 1 : 0);

@@ -159,6 +159,36 @@ export interface Raumkonfig {
      * nichts anzuzeigen hätten.
      */
     hoechsteTiefe: number;
+
+    /**
+     * Nach welcher Stille eine begonnene Geste als verloren gilt.
+     *
+     * ---
+     *
+     * **Eine Geste, die nicht enden kann, nimmt das ganze Buch mit.**
+     *
+     * Der Ablauf setzte voraus, dass auf jedes `pointerdown` irgendwann ein
+     * `pointerup` oder ein `pointercancel` folgt. Auf einem iPhone stimmt das
+     * nicht: Die Randstreifen liegen genau dort, wo auch das Betriebssystem
+     * zuhört – Zurückwischen, der Streifen zum Startbildschirm, die
+     * Werkzeugleiste, der Wechsel in eine andere App. Nimmt iOS die Berührung
+     * an sich, kommt schlicht nichts mehr.
+     *
+     * Und dann steht alles still: Der Inhalt bleibt um `--dc-mitte-x`
+     * verschoben, das Richtungszeichen steht in voller Deckkraft da, der
+     * nicht-passive `touchmove`-Halt ruft weiter `preventDefault` – womit
+     * gleichzeitig das Scrollen, das Zoomen mit zwei Fingern und das
+     * Markieren von Text aufhören. Gemessen an einem gebauten Fall: nach
+     * anderthalb Sekunden ohne Loslassen war jeder Wert unverändert und
+     * `touchmove` verhindert.
+     *
+     * Von aussen sieht das aus wie drei Fehler – „hängt", „lässt sich nicht
+     * zoomen", „lässt sich nicht kopieren". Es ist einer.
+     *
+     * Gemessen wird die Stille, nicht die Dauer: Ein langsamer, absichtlicher
+     * Zug bewegt sich; ein verlorener Finger bewegt sich nie wieder.
+     */
+    verlorenNachMs: number;
   };
 
   bogen: {
@@ -356,6 +386,7 @@ export const VORGABE: Raumkonfig = {
     aufgabewinkelGrad: 54,
     fremdwegPx: 96,
     hoechsteTiefe: 3,
+    verlorenNachMs: 1400,
   },
   bogen: {
     grundDeckkraft: 0,

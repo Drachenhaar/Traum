@@ -415,8 +415,27 @@
    * `pointercancel`. Gefunden wurde es mit echten Berührungsereignissen bei
    * 390 × 844 – dieselbe Art Fehler wie die Systemzonen oben und unten.
    */
+  /*
+   * ---
+   *
+   * **`pan-y` allein verbietet auch das Zoomen.**
+   *
+   * Das war nicht beabsichtigt und stand trotzdem an jeder dieser vier
+   * Stellen. `touch-action` zählt auf, was der Browser noch selbst tun darf;
+   * was nicht dasteht, ist verboten. Also war mit `pan-y` das
+   * Auseinanderziehen mit zwei Fingern im ganzen Buch abgeschaltet – auf
+   * jeder Seite, in jedem Bildnis, in jedem Tiefenraum.
+   *
+   * Für einen Artbook-Leser ist das keine Kleinigkeit: Ein Buch, in das man
+   * nicht hineinsehen kann, hält sein Versprechen nicht, und wer schlechter
+   * sieht, ist damit ausgeschlossen. `maximum-scale=5.0` steht seit jeher im
+   * `index.html` – es half nur nichts, weil diese Zeile davor lag.
+   *
+   * `pinch-zoom` dazu ändert nichts an dem, wogegen `pan-y` gerichtet war:
+   * Das waagerechte Ziehen bleibt dem Blatt, das senkrechte dem Text.
+   */
   .scroll-slim {
-    touch-action: pan-y;
+    touch-action: pan-y pinch-zoom;
   }
   .scroll-slim::-webkit-scrollbar {
     width: 10px;
@@ -980,14 +999,14 @@
 /*
  * Die Charakterseite gehört ganz der Geste.
  *
- * `touch-action: pan-y` und nicht `none`: Ein langes Bildnis darf gescrollt
+ * `touch-action: pan-y pinch-zoom` und nicht `none`: Ein langes Bildnis darf
  * werden, wenn die Seite höher ist als der Bildschirm. Waagerecht gibt es
  * hier nichts zu scrollen, und der Browser soll das wissen, bevor der erste
  * Finger aufsetzt – sonst nimmt er die Randgeste für ein Wischen und schickt
  * `pointercancel`. Genau dieser Fehler hat das Blättern schon einmal gekostet.
  */
 .dc-figur {
-  touch-action: pan-y;
+  touch-action: pan-y pinch-zoom;
 }
 
 /*
@@ -1009,7 +1028,7 @@
  * **Merksatz für den nächsten Behälter: Wer senkrecht scrollt, muss es sagen.**
  */
 .dc-tiefenraum {
-  touch-action: pan-y;
+  touch-action: pan-y pinch-zoom;
 }
 
 /*
@@ -1038,13 +1057,13 @@
   /*
    * Waagerechtes Ziehen gehört dem Blatt, senkrechtes dem Text.
    *
-   * `touch-action: pan-y` sagt das dem Browser *bevor* ein Ereignis bei uns
+   * `touch-action: pan-y pinch-zoom` sagt das dem Browser *bevor* ein Ereignis
    * ankommt. Ohne die Zeile nimmt Safari das waagerechte Ziehen für seine
    * eigene Zurück-Geste, und das Blatt bekäme mitten in der Bewegung ein
    * pointercancel – genau der Fehler, der sich als „manchmal blättert es
    * nicht" zeigt und den man am Schreibtisch nie sieht.
    */
-  touch-action: pan-y;
+  touch-action: pan-y pinch-zoom;
 }
 
 /*
