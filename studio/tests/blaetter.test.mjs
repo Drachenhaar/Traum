@@ -144,5 +144,65 @@ wahr('  es fragt kein Profil', !/ordne\(|profilVon\(/.test(ohneProsa(verzeichnis
 wahr('  und zählt die Einträge nicht ab',
   /Register/.test(verzeichnis) && !/livingEntries\(entries\)\.map/.test(ohneProsa(verzeichnis)));
 
+/* =========================================================================
+ * DIE BILDNISMARKE – die Tür neben dem Namen
+ *
+ * Gewünscht als „einen eigenen schönen Knopf neben Dennisse ihrem Namen".
+ *
+ * Es gab schon eine Tür zur Charakterseite: ein Gesicht-Zeichen in
+ * `text-ink-faint/35`, in der Reihe neben Stern und Stift. Dieselbe
+ * Lautstärke wie „bearbeiten" und „merken" – ein Handgriff unter
+ * Handgriffen, obwohl die Charakterseite kein Handgriff ist, sondern die
+ * zweite Art, dieselbe Figur anzusehen.
+ * ========================================================================= */
+const marke = ohneProsa(lies('../src/components/entry/Bildnismarke.tsx'));
+const seitentext = ohneProsa(lies('../src/components/entry/Seitentext.tsx'));
+const eintragsseite = ohneProsa(lies('../src/pages/book/EntrySpread.tsx'));
+const stil = ohneProsa(lies('../src/index.css'));
+
+wahr('B1 die Marke führt auf die Charakterseite', /to=\{`\/figur\/\$\{entry\.id\}`\}/.test(marke));
+
+/*
+ * Sie steht **im** Titel. Ein eigener Kasten neben der Überschrift bräche,
+ * sobald ein langer Name umbricht: Die Marke sässe neben der ersten Zeile
+ * und der Name ginge unter ihr weiter.
+ */
+{
+  const h1 = seitentext.match(/<h1[\s\S]*?<\/h1>/)?.[0] ?? '';
+  wahr('  und steht im Titel, nicht daneben', /Bildnismarke/.test(h1));
+}
+
+/*
+ * Nur bei Figuren – ein Ort hat keine Charakterseite. Und nur dort, wo
+ * Verweise erlaubt sind: Die Setzerei zeigt dieselbe Seite als Vorschau, und
+ * eine Vorschau kann nirgendwohin führen. Am Gerät nachgemessen: in der
+ * Setzerei nicht sichtbar.
+ */
+wahr('  nur bei Figuren und nur mit Verweisen',
+  /verweise && entry\.type === 'character' && <Bildnismarke/.test(seitentext));
+
+/*
+ * **Zwei Türen zur selben Seite in einer Kopfzeile wären eine zu viel.**
+ * Die eine nähme der anderen das Gewicht, und der Leser fragte sich, worin
+ * sie sich unterscheiden.
+ */
+wahr('  die alte, blasse Tür ist weg',
+  !/ScanFace/.test(eintragsseite) && !/navigate\(`\/figur\/\$\{entry\.id\}`\)/.test(eintragsseite));
+
+/*
+ * Dieselbe Lehre wie bei den Ansatzmarken: Trefferfläche nach **aussen**.
+ * Wer nach innen polstert, macht das Bild so gross wie das Ziel.
+ */
+{
+  const regel = stil.match(/\.dc-bildnismarke\s*\{[^}]*\}/)?.[0] ?? '';
+  wahr('  sie wird nicht nach innen gepolstert', regel !== '' && !/padding/.test(regel));
+  wahr('  ihre Trefferfläche wächst nach aussen',
+    /\.dc-bildnismarke::after\s*\{[^}]*inset:\s*-/.test(stil));
+}
+
+/* Die Raute ist dieselbe Form wie auf der Zielseite – kein neues Zeichen. */
+wahr('  sie zeigt die Raute mit der Initiale',
+  /initialeVon/.test(marke) && /<path/.test(marke) && !/lucide-react/.test(marke));
+
 console.log(`\n${ok} bestanden, ${bad} gescheitert`);
 process.exit(bad ? 1 : 0);

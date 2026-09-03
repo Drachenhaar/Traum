@@ -1388,3 +1388,49 @@
     transition: none;
   }
 }
+
+/* =========================================================================
+ * DIE BILDNISMARKE
+ *
+ * Die kleine Raute neben dem Namen einer Figur – die Tür zur Charakterseite.
+ * Warum es sie gibt, steht in `components/entry/Bildnismarke.tsx`.
+ * ========================================================================= */
+
+.dc-bildnismarke {
+  color: rgb(var(--dc-metall-500));
+  opacity: 0.75;
+  transition:
+    opacity 220ms ease-out,
+    color 220ms ease-out;
+}
+
+/*
+ * Die Trefferfläche wächst nach **aussen**.
+ *
+ * Dieselbe Lehre wie bei den Ansatzmarken am Blattrand: Wer nach innen
+ * polstert, macht das Bild so gross wie das Ziel. Dreissig Punkte zum
+ * Ansehen, vierundvierzig zum Treffen – und die sieben Punkte ringsum
+ * verschieben nichts, weil sie ausserhalb des Kastens liegen.
+ */
+.dc-bildnismarke::after {
+  content: '';
+  position: absolute;
+  inset: -7px;
+}
+
+@media (hover: hover) {
+  .dc-bildnismarke:hover {
+    opacity: 1;
+    color: rgb(var(--dc-metall-400));
+  }
+}
+
+.dc-bildnismarke:active {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dc-bildnismarke {
+    transition: none;
+  }
+}
