@@ -20,6 +20,12 @@
  * in einem halben Jahr.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { execSync } from 'node:child_process';
+import { ARBEIT } from './arbeit.mjs';
+execSync(`npx esbuild src/lib/satz.ts --bundle --format=esm --outfile=${ARBEIT}/t/satz.mjs`, {
+  stdio: 'pipe',
+});
+const SATZ = await import(ARBEIT + '/t/satz.mjs');
 
 let ok = 0,
   bad = 0;
@@ -203,6 +209,49 @@ wahr('  die alte, blasse Tür ist weg',
 /* Die Raute ist dieselbe Form wie auf der Zielseite – kein neues Zeichen. */
 wahr('  sie zeigt die Raute mit der Initiale',
   /initialeVon/.test(marke) && /<path/.test(marke) && !/lucide-react/.test(marke));
+
+/* =========================================================================
+ * DIE INITIALE BRAUCHT ZEILEN NEBEN SICH
+ *
+ * Gemeldet: „Können wir das mit den grossen Buchstaben am Anfang des Satzes
+ * weglassen? Es sieht irgendwie nicht passend aus."
+ *
+ * Die Initiale steht auf 3.4em bei line-height 0.82, ist also rund 2,8 em
+ * hoch; eine Zeile misst 1,78 em. Steht daneben nur **eine** Zeile, hängt der
+ * Buchstabe darunter ins Leere. Auf einer langen Seite ist derselbe Buchstabe
+ * richtig – der Fehler war nicht die Initiale, sondern dass sie immer kam.
+ *
+ * Das hier ist eine **reine Funktion**, also wird sie auch als solche geprüft
+ * und nicht am Quelltext abgelesen.
+ * ========================================================================= */
+p('I1 ein einzelner kurzer Satz trägt keine Initiale',
+  SATZ.traegtInitiale('Sie geht dorthin, wo die Karten aufhören.'), false);
+p('  ein Absatz von zwei Zeilen trägt eine',
+  SATZ.traegtInitiale(
+    'Sie geht dorthin, wo die Karten aufhören, und kehrt mit Namen zurück, die vorher niemand kannte.',
+  ), true);
+p('  leerer Text trägt keine', SATZ.traegtInitiale(''), false);
+p('  und fehlender Text stürzt nicht ab', SATZ.traegtInitiale(undefined), false);
+
+/*
+ * Gemessen wird der **erste Absatz**, nicht der ganze Text: Die Initiale sitzt
+ * in ihm. Ein kurzer erster Absatz mit viel Text darunter bekäme sonst eine
+ * Initiale, neben der wieder nichts steht.
+ */
+p('  ein kurzer erster Absatz zählt, nicht die Summe',
+  SATZ.traegtInitiale('Kurz.\n\n' + 'Sehr viel späterer Text. '.repeat(20)), false);
+
+/* Die Schwelle steht als Zahl da und ist nicht im Code versteckt. */
+wahr('  die Schwelle ist eine benannte Zahl',
+  typeof SATZ.INITIALE_AB_ZEICHEN === 'number' && SATZ.INITIALE_AB_ZEICHEN > 0);
+
+/*
+ * Und die Seite benutzt sie wirklich. Zu prüfen, dass es die Regel *gibt*,
+ * hiesse prüfen, dass ein Mechanismus existiert – nicht, dass er wirkt.
+ */
+wahr('  und die Seite fragt sie, statt die Initiale immer zu setzen',
+  /traegtInitiale\(entry\.description\)/.test(seitentext)
+    && !/prose-book dropcap/.test(seitentext));
 
 console.log(`\n${ok} bestanden, ${bad} gescheitert`);
 process.exit(bad ? 1 : 0);

@@ -27,6 +27,7 @@ import { leseZeit, schreibeZeit } from '../../lib/chronik/zeit';
 import { FieldNotes } from '../book/Marginalia';
 import { BlockView } from '../blocks/BlockView';
 import { cx } from '../../lib/utils';
+import { traegtInitiale } from '../../lib/satz';
 
 /**
  * Die Zeit, wie sie in einem Buch stünde: „1032 – 1078", „seit 1032",
@@ -156,7 +157,7 @@ export function Seitentext({
       <span aria-hidden className="rule-gild mt-5 block w-24 opacity-70" />
 
       {entry.description && (
-        <div className="prose-book dropcap mt-6">
+        <div className={cx('prose-book mt-6', traegtInitiale(entry.description) && 'dropcap')}>
           {entry.description.split(/\n{2,}/).map((para, i) => (
             <p key={i}>{para}</p>
           ))}
