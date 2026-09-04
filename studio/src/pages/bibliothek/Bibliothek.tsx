@@ -36,6 +36,7 @@ import { imArchiv, imRegal, zuletztOffen } from '../../lib/bibliothek';
 import { deskStyle } from '../../lib/textures';
 import { cx, downloadFile } from '../../lib/utils';
 import { backupFileName, buildBookBackup } from '../../lib/portability';
+import { BEISPIEL_TITEL } from '../../lib/beispiel/mooshalde';
 import type { LibraryBook } from '../../types';
 
 /** Ab wie vielen Bänden ein Suchfeld mehr hilft als es stört. */
@@ -208,6 +209,21 @@ export function Bibliothek() {
               <BookPlus size={16} /> Ein neues Buch beginnen
             </button>
 
+            {/*
+              Ein fertiger Band, zum Ansehen.
+
+              Er steht leiser da als „Ein neues Buch beginnen" – kleiner, in
+              Kursiv, ohne Zeichen davor. Das ist die richtige Lautstärke: Ein
+              Beispiel ist eine Antwort auf eine Frage, die man vielleicht hat,
+              und keine Aufforderung. Wer sein eigenes Buch schreiben will,
+              soll nicht zweimal am Tag daran vorbeilesen.
+
+              Er wird ausdrücklich **nicht** aufgeschlagen. Ein Band, der sich
+              beim Laden selbst öffnet, hat das gerade offene Buch zugeklappt,
+              ohne zu fragen.
+            */}
+            <BeispielZeile />
+
             {/* ----------------------------------------------- Das Archiv */}
             {archiv.length > 0 && (
               <section className="mt-14 border-t border-paper-400/10 pt-6">
@@ -239,6 +255,50 @@ export function Bibliothek() {
         )}
       </div>
     </div>
+  );
+}
+
+/* --------------------------------------------------- Der Beispielband ---- */
+
+/**
+ * „Mooshalde ansehen" – und was danach dasteht.
+ *
+ * Nach dem Laden verschwindet die Zeile nicht, sondern sagt, was geschehen
+ * ist und wo es steht. Ein Knopf, der wortlos nichts tut, weil er schon
+ * gedrückt wurde, ist die häufigste Art, jemanden zu verwirren.
+ *
+ * Und er lädt nur **einmal**: Steht Mooshalde schon im Regal, wird nicht ein
+ * zweiter angelegt. Zwei gleich benannte Bände nebeneinander wären kein
+ * Angebot mehr, sondern ein Fehler mit Doppelklick als Ursache.
+ */
+function BeispielZeile() {
+  const books = useStudio((s) => s.books);
+  const ladeBeispielband = useStudio((s) => s.ladeBeispielband);
+  const [laedt, setLaedt] = useState(false);
+
+  const schonDa = books.some((b) => b.title === BEISPIEL_TITEL);
+
+  if (schonDa) {
+    return (
+      <p className="mt-4 font-serif text-[13.5px] italic leading-relaxed text-paper-400/40">
+        „{BEISPIEL_TITEL}" steht im Regal. Schlag ihn auf – und nimm ihn wieder heraus, wenn du
+        ihn gesehen hast.
+      </p>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      disabled={laedt}
+      onClick={() => {
+        setLaedt(true);
+        void ladeBeispielband().finally(() => setLaedt(false));
+      }}
+      className="mt-4 block min-h-[40px] text-left font-serif text-[13.5px] italic leading-relaxed text-paper-400/45 transition-colors hover:text-gold-hell disabled:opacity-50 no-tap-highlight"
+    >
+      {laedt ? 'Wird eingeräumt …' : `Oder einen fertigen Band ansehen: „${BEISPIEL_TITEL}"`}
+    </button>
   );
 }
 

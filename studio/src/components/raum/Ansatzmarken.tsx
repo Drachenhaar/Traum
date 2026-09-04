@@ -53,7 +53,7 @@
  * es mit dem Finger nicht ging, war keine Entscheidung, sondern eine Lücke.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import { fenster } from './Raumschicht';
 import { konfig, beiKonfig } from '../../lib/raum/konfig';
 import type { Richtung } from '../../lib/raum/geste';
@@ -84,30 +84,37 @@ const DICKE = 4;
  * läge also auf den Wörtern. Die schmale Kerbe zeigt den Anfang des Streifens;
  * der Rest von ihm bleibt stumm und funktioniert trotzdem.
  */
+function kerbenlage(
+  r: Richtung,
+  feld: ReturnType<typeof fenster>,
+  ein: number,
+): { x: number; y: number; breite: number; hoehe: number } {
+  const waagerecht = r === 'links' || r === 'rechts';
+  const breite = waagerecht ? DICKE : LAENGE;
+  const hoehe = waagerecht ? LAENGE : DICKE;
+  const x =
+    r === 'links' ? ein : r === 'rechts' ? feld.breite - ein - DICKE : (feld.breite - LAENGE) / 2;
+  const y =
+    r === 'oben'
+      ? ein + feld.oben
+      : r === 'unten'
+        ? feld.hoehe - ein - feld.unten - DICKE
+        : (feld.hoehe - LAENGE) / 2;
+  return { x, y, breite, hoehe };
+}
+
+/**
+ * Dieselbe Lage, nur als CSS.
+ *
+ * Abgeleitet und nicht zweitgerechnet: Es gab in diesem Projekt schon
+ * mehrfach zwei Stellen, die dasselbe ausrechneten, und sie sind jedes Mal
+ * auseinandergelaufen, ohne dass etwas kaputt aussah. Wer die Kerbe
+ * verschiebt, verschiebt damit auch den Punkt, an dem nachgesehen wird, ob
+ * dort schon etwas liegt.
+ */
 function stellung(r: Richtung, feld: ReturnType<typeof fenster>, ein: number) {
-  const dick = DICKE;
-  switch (r) {
-    case 'links':
-      return { left: ein, top: '50%', width: dick, height: LAENGE, marginTop: -LAENGE / 2 };
-    case 'rechts':
-      return { right: ein, top: '50%', width: dick, height: LAENGE, marginTop: -LAENGE / 2 };
-    case 'oben':
-      return {
-        top: ein + feld.oben,
-        left: '50%',
-        height: dick,
-        width: LAENGE,
-        marginLeft: -LAENGE / 2,
-      };
-    default:
-      return {
-        bottom: ein + feld.unten,
-        left: '50%',
-        height: dick,
-        width: LAENGE,
-        marginLeft: -LAENGE / 2,
-      };
-  }
+  const l = kerbenlage(r, feld, ein);
+  return { left: l.x, top: l.y, width: l.breite, height: l.hoehe };
 }
 
 /*
@@ -169,6 +176,68 @@ export function Ansatzmarken({
   }, []);
 
   /*
+   * Wo schon ein Bedienelement an der Kante sitzt, tritt die Kerbe zurück.
+   *
+   * ---
+   *
+   * **Der Fehler, den diese Datei selbst verursacht hat.**
+   *
+   * Die Charakterseite trägt ein Daumenregister an der Aussenkante. Ihr
+   * Quelltext beschreibt den Entwurf in einem Satz: „Ein Tipp gehört ihnen,
+   * ein Zug gehört dem Raum." Das war ein guter Kompromiss – bis die Kerbe
+   * **antippbar** wurde. Seither lag sie mit ihrer Trefferfläche über den
+   * Reitern, und wer das Register am äusseren Rand antippte, landete in der
+   * Tiefe. Gemessen: an (376, 422) lagen drei Lagen Ansatzmarke über dem
+   * Registerknopf; die Reiter selbst reichen von 334 bis 390, die Kerbe von
+   * 367 bis 385.
+   *
+   * Gemeldet wurde es als: „Wenn ich mich rechts durchnavigieren möchte,
+   * klicke ich unweigerlich auf die Tiefe."
+   *
+   * Die Antwort ist nicht, das Register auf die andere Seite zu legen – dort
+   * liegt derselbe Streifen für eine andere Richtung, und der Fehler zöge mit
+   * um. Sie ist: **Eine Kerbe wird nicht über etwas gelegt, das schon da
+   * ist.** Der Streifen bleibt; ein Zug von dort führt weiter in die Tiefe,
+   * genau wie beschrieben. Nur das Bild und sein Tipp treten zurück.
+   *
+   * Gefragt wird nicht nach Namen, sondern nach dem, was wirklich unter dem
+   * Punkt liegt – `elementsFromPoint`. Eine Liste bekannter Bauteile wäre beim
+   * nächsten Bauteil unvollständig, ohne dass etwas auffällt.
+   */
+  /*
+   * Diese beiden stehen **vor** dem Effekt und vor jedem vorzeitigen
+   * Zurückkehren – und das ist keine Kosmetik.
+   *
+   * Sie standen darunter. Sobald eine Geste begann, kehrte die Komponente bei
+   * `phase !== 'ruhe'` zurück, bevor `ein` zugewiesen war; der Effekt lief
+   * trotzdem und griff in ein Feld, das es in diesem Durchlauf nie gegeben
+   * hatte. Das Ergebnis war kein falsches Bild, sondern ein Absturz –
+   * „Diese Seite ist gerissen", genau beim Ziehen vom Rand.
+   *
+   * **Ein Haken läuft auch dann, wenn der Anstrich vorher aufgibt.** Was er
+   * anfasst, muss deshalb schon dastehen.
+   */
+  const ein = konfig().geste.randEinzugPx;
+  const stand = { ort, tiefe };
+
+  const [verdeckt, setVerdeckt] = useState<Richtung[]>([]);
+  useLayoutEffect(() => {
+    const mitte = (r: Richtung) => {
+      const l = kerbenlage(r, feld, ein);
+      return [l.x + l.breite / 2, l.y + l.hoehe / 2] as const;
+    };
+    const jetzt = ALLE.filter((r) => {
+      const [x, y] = mitte(r);
+      return document
+        .elementsFromPoint(x, y)
+        .some((e) => !e.closest('[data-ansatzmarke]') && e.closest('button, a[href]'));
+    });
+    setVerdeckt((alt) =>
+      alt.length === jetzt.length && alt.every((r, i) => r === jetzt[i]) ? alt : jetzt,
+    );
+  });
+
+  /*
    * Während einer Geste treten die Marken zurück.
    *
    * Ab da spricht der Bogen, und er sagt dasselbe, nur genauer. Zwei Zeichen
@@ -177,9 +246,9 @@ export function Ansatzmarken({
    */
   if (phase !== 'ruhe') return null;
 
-  const ein = konfig().geste.randEinzugPx;
-  const stand = { ort, tiefe };
-  const offen = ALLE.filter((r) => gesteErlaubt(karte, stand, r, wahlPfad));
+  const offen = ALLE.filter(
+    (r) => gesteErlaubt(karte, stand, r, wahlPfad) && !verdeckt.includes(r),
+  );
   if (!offen.length) return null;
 
   return (

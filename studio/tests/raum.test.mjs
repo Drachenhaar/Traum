@@ -681,6 +681,62 @@ wahr('  ein Wegweiser erklärt sie ein einziges Mal',
   /id: 'tiefe'/.test(wegpunkte) && /ziel: 'tiefe'/.test(wegpunkte)
     && /data-leitfaden=\{[^}]*'tiefe'/.test(marken));
 
+/*
+ * **Eine Kerbe wird nicht über etwas gelegt, das schon da ist.**
+ *
+ * Die Charakterseite trägt ein Daumenregister an der Aussenkante. Ihr eigener
+ * Quelltext beschreibt den Entwurf in einem Satz: „Ein Tipp gehört ihnen, ein
+ * Zug gehört dem Raum." Das hielt – bis die Kerbe antippbar wurde. Seither lag
+ * ihre Trefferfläche (367 bis 385) über den Reitern (334 bis 390), und wer das
+ * Register am äusseren Rand antippte, landete in der Tiefe. Gemessen lagen an
+ * (376, 422) drei Lagen Ansatzmarke über dem Registerknopf.
+ *
+ * Gemeldet als: „Wenn ich mich rechts durchnavigieren möchte, klicke ich
+ * unweigerlich auf die Tiefe."
+ *
+ * Das Register auf die andere Seite zu legen hätte nichts geheilt – dort liegt
+ * derselbe Streifen für eine andere Richtung, und der Fehler zöge mit um.
+ */
+wahr('  eine Kerbe weicht, wo schon ein Bedienelement liegt',
+  /elementsFromPoint/.test(marken) && /verdeckt/.test(marken));
+wahr('  gefragt wird, was wirklich dort liegt – nicht eine Liste von Namen',
+  !/Registerkante|dc-registerkante/.test(marken));
+
+/*
+ * Und die Lage der Kerbe hat **eine** Quelle.
+ *
+ * Der Messpunkt und das Bild müssen dieselbe Stelle meinen. Zwei Rechnungen
+ * für dieselbe Lage sind in diesem Projekt schon mehrfach auseinandergelaufen,
+ * ohne dass etwas kaputt aussah – hier hiesse das: Die Kerbe weicht an einer
+ * Stelle aus, an der gar nichts liegt.
+ */
+wahr('  Bild und Messpunkt kommen aus derselben Rechnung',
+  /function kerbenlage/.test(marken) && (marken.match(/kerbenlage\(/g) ?? []).length >= 3);
+
+/*
+ * **Ein Haken läuft auch dann, wenn der Anstrich vorher aufgibt.**
+ *
+ * Der teuerste Fehler dieser Datei, und er dauerte einen Nachmittag: `ein`
+ * stand unter dem vorzeitigen `return null`. Sobald eine Geste begann, kehrte
+ * die Komponente zurück, bevor der Wert zugewiesen war – der Haken lief
+ * trotzdem und griff ins Leere. Kein falsches Bild, sondern ein Absturz:
+ * „Diese Seite ist gerissen", genau beim Ziehen vom Rand.
+ *
+ * Geprüft wird die Reihenfolge im Quelltext, weil genau sie der Fehler war.
+ */
+{
+  const werte = marken.indexOf('const ein = konfig()');
+  /*
+   * Mit Klammer gesucht, sonst findet man die Einfuhrzeile ganz oben und
+   * nicht den Haken selbst – und die Prüfung wäre immer erfüllt.
+   */
+  const haken = marken.indexOf('useLayoutEffect(');
+  const aufgabe = marken.indexOf("if (phase !== 'ruhe') return null");
+  wahr('  alle drei Stellen sind auffindbar', werte >= 0 && haken >= 0 && aufgabe >= 0);
+  wahr('  was der Haken anfasst, steht vor ihm', werte < haken);
+  wahr('  und vor jedem vorzeitigen Zurückkehren', werte < aufgabe);
+}
+
 /* =========================================================================
  * 15  WIE WEIT MAN ZIEHEN MUSS
  *

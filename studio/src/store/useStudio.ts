@@ -40,6 +40,7 @@ import {
   zerlegeAenderung,
 } from '../lib/bibliothek';
 import { seedIfEmpty } from '../db/seed';
+import { MOOSHALDE_BUCH, mooshalde } from '../lib/beispiel/mooshalde';
 import { buildRelationIndex, makeRelation, type RelationIndex } from '../lib/relations';
 import { kinderVon, naechsteOrdnung } from '../lib/roman/struktur';
 import { heileBeziehungen, heileEintraege } from '../lib/heilung';
@@ -98,6 +99,14 @@ interface StudioState {
   archiviereBuch: (id: string, archiviert: boolean) => Promise<void>;
   dupliziereBuch: (id: string) => Promise<LibraryBook | null>;
   loescheBuch: (id: string) => Promise<void>;
+  /**
+   * Einen fertigen Band ins Regal stellen – zum Ansehen.
+   *
+   * Ausdrücklich ein **eigener** Band und kein Hineinschreiben in das offene
+   * Buch: Wer sein Artbook aufschlägt, will darin nicht die Figuren eines
+   * anderen finden und sie einzeln wieder herauspflücken müssen.
+   */
+  ladeBeispielband: () => Promise<LibraryBook>;
   /**
    * Zu welchem Buch gehört diese Seite? Für Verweise, die aus einem anderen
    * Buch kommen – siehe `components/book/BuchWeiche.tsx`.
@@ -625,6 +634,31 @@ export const useStudio = create<StudioState>((set, get) => {
       const buch = neuesBuch(patch);
       await db.books.put(buch);
       set((s) => ({ books: [...s.books, buch] }));
+      return buch;
+    },
+
+    /**
+     * Mooshalde ins Regal stellen.
+     *
+     * Es wird **nicht** geöffnet. Das ist Absicht: Ein Band, der sich beim
+     * Laden selbst aufschlägt, hat das gerade offene Buch zugeklappt, ohne zu
+     * fragen. Er stellt sich hin, sagt Bescheid, und der Leser entscheidet.
+     */
+    async ladeBeispielband() {
+      const buch = neuesBuch(MOOSHALDE_BUCH);
+      const { entries, relations } = mooshalde(buch.id);
+
+      await db.transaction('rw', [db.books, db.entries, db.relations], async () => {
+        await db.books.put(buch);
+        await db.entries.bulkPut(entries);
+        await db.relations.bulkPut(relations);
+      });
+
+      set((s) => ({ books: [...s.books, buch] }));
+      get().notify(
+        `„${buch.title}" steht im Regal – ${entries.length} Einträge und ${relations.length} Verbindungen.`,
+        'success',
+      );
       return buch;
     },
 
