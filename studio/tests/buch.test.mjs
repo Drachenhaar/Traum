@@ -536,5 +536,105 @@ wahr('  wer keine Bewegung will, bekommt keine',
   wahr('  und schreibt keinen Endwert fest', !!bild && !/\bto\b|100%/.test(bild[1]));
 }
 
+/* =========================================================================
+ * Ü5  WAS NEBEN DER SEITE STAND
+ *
+ * Die Übergabe der Seite ist auf den Punkt genau – und trotzdem war da ein
+ * Schlag. Er liess sich an der Seite nicht messen, nur am ganzen Bild: Die
+ * **linke** Bildschirmhälfte fiel in einem einzigen Bild von Helligkeit 172
+ * auf 47.
+ *
+ * Denn beim Aufschlagen liegen zwei helle Flächen da: die aufgedeckte Seite
+ * rechts und das Vorsatzpapier des offenen Deckels links. Das Innere kannte
+ * nur die erste; die zweite fiel weg. Ein Loch, halb so breit wie der Schirm,
+ * sieht man auch dann, wenn alles andere stimmt.
+ *
+ * **Die Lehre, und sie ist der Grund für diesen Abschnitt:** Ein Übergang
+ * wird nicht an dem Ding gemessen, das man überführt, sondern an dem Bild,
+ * das dabei stehenbleibt.
+ * ----------------------------------------------------------------------- */
+
+wahr('Ü5 der Umschlag misst auch sein Vorsatzpapier',
+  /vorsatzpapier/.test(ohneProsa(cover)));
+wahr('  und reicht es mit weiter', /von, vorsatz/.test(app));
+wahr('  das Innere zeichnet den Deckel noch einmal',
+  /dc-deckel-ausklang/.test(schale) && /vorsatz\.breite/.test(schale));
+
+/*
+ * Eine Zahl für zwei Bewegungen.
+ *
+ * Die Seite wächst, und der Deckel daneben klingt aus. Stünden dafür zwei
+ * Zahlen – eine im Bauteil, eine im Stylesheet –, wäre das beim ersten
+ * Stimmen zweierlei. Und zweierlei sieht man sofort: Die eine Fläche ist
+ * fertig, die andere noch unterwegs.
+ */
+wahr('  beide Bewegungen aus derselben Zahl',
+  /const UEBERGANG_MS/.test(schale) &&
+    /transform \$\{UEBERGANG_MS\}ms/.test(schale) &&
+    /animationDuration: `\$\{UEBERGANG_MS\}ms`/.test(schale));
+{
+  const regel = css.match(/\.dc-deckel-ausklang\s*\{([\s\S]*?)\}/);
+  wahr('  und im Stylesheet steht keine zweite', !!regel && !/\d+ms/.test(regel[1]));
+}
+
+/*
+ * Der Nachklang liegt hinten.
+ *
+ * Mit `z-[1]` stand er der wachsenden Seite vor der Nase – ein grauer Kasten
+ * quer darüber, im Bildschirmfoto sofort zu sehen. Was zurücktritt, gehört
+ * nach hinten.
+ */
+wahr('  und liegt hinter allem, was ankommt', /dc-deckel-ausklang[^"]*\bz-0\b/.test(schale));
+
+/*
+ * Und wer keine Bewegung will, bekommt nicht etwa eine angehaltene.
+ *
+ * `animation: none` wäre hier der schlimmere Fehler von beiden: Die Fläche
+ * bliebe bei Deckkraft 1 stehen – für immer ein Blatt Papier quer über der
+ * halben Seite.
+ */
+{
+  const still = css.match(/@media \(prefers-reduced-motion: reduce\)\s*\{([\s\S]*?)\n  \}\n/);
+  wahr('  ohne Bewegung wird der Nachklang nicht gezeigt',
+    /\.dc-deckel-ausklang\s*\{\s*display: none/.test(css));
+  wahr('  und nicht bloss angehalten',
+    !(still && /\.dc-deckel-ausklang,[\s\S]{0,80}animation: none/.test(still[1])));
+}
+
+/* =========================================================================
+ * Ü6  DAS BLATT NEBEN DEM BUCHKÖRPER KOMMT AUCH AN
+ *
+ * Gemeldet als: „Das selbe, wenn ich auf das neue Charakterblatt klicke
+ * rechts neben dem Namen." Gemessen war es eindeutig: Deckkraft 1,00 und
+ * Einheitsmatrix im **ersten** Bild nach dem Antippen, `getAnimations()`
+ * leer. Kein Übergang, nirgends.
+ *
+ * Der Grund ist die Ausnahme selbst: Die Charakterseite liegt neben dem
+ * Buchkörper, und der Buchkörper trägt die Ankunft. Wer eine Seite aus dem
+ * Buch herausnimmt, nimmt ihr auch das mit.
+ * ----------------------------------------------------------------------- */
+
+wahr('Ü6 das randlose Blatt bekommt eine Ankunft', /blatt-eintritt/.test(schale));
+
+/*
+ * Mit Schlüssel am Pfad. Ohne ihn behielte React beim Wechsel von einer Figur
+ * zur nächsten denselben Knoten – und die zweite Figur käme wieder ohne.
+ */
+wahr('  und einen Schlüssel, damit sie sich wiederholt',
+  /key=\{pathname\}[^>]*blatt-eintritt|blatt-eintritt[^>]*key=\{pathname\}/.test(schale));
+
+/*
+ * Auch hier kein `to`: Ein festgenagelter `transform` wäre auf dieser Seite
+ * ein zweiter Besitzer derselben Eigenschaft. Am Gerät nachgemessen – nach
+ * 413 ms meldet die Fläche `transform: none`, nicht `scale(1)`.
+ */
+{
+  const bild = css.match(/@keyframes dcBlattEintritt\s*\{([\s\S]*?)\n  \}/);
+  wahr('  die Bewegung existiert', !!bild);
+  wahr('  und schreibt keinen Endwert fest', !!bild && !/\bto\b|100%/.test(bild[1]));
+  wahr('  sie tritt näher, sie blättert nicht',
+    !!bild && /scale\(/.test(bild[1]) && !/rotate/.test(bild[1]));
+}
+
 console.log(`\n${ok} bestanden, ${bad} gescheitert`);
 process.exit(bad ? 1 : 0);

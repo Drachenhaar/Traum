@@ -59,6 +59,17 @@ export function useCurrentSpread() {
   }, [book, pathname, visits]);
 }
 
+/**
+ * Wie lange das Innere braucht, um aus dem Umschlag heraus dazustehen.
+ *
+ * **Eine Zahl für zwei Bewegungen**, und das ist der ganze Sinn dieser
+ * Konstante: Die Seite wächst, und der aufgeschlagene Deckel daneben klingt
+ * aus. Stünden dafür zwei Zahlen – eine hier, eine im Stylesheet –, wäre das
+ * beim ersten Stimmen zweierlei, und zweierlei sieht man sofort: Die eine
+ * Fläche ist fertig, die andere noch unterwegs.
+ */
+const UEBERGANG_MS = 460;
+
 export function BookShell() {
   const navigate = useNavigate();
   const { pathname, state } = useLocation();
@@ -100,6 +111,37 @@ export function BookShell() {
   const kommtAusDemUmschlag = useRef(!!von);
 
   /*
+   * Und das, was neben der Seite stand.
+   *
+   * ---
+   *
+   * **Der Fund.** Die Übergabe der Seite selbst ist auf den Punkt genau: Das
+   * Papier steht bei `[185,118,258,351]`, und der Buchkasten setzt im nächsten
+   * Bild bei `[185,118,258,351]` an – kein Pixel Versatz. Trotzdem war da ein
+   * Schlag, und er liess sich nicht an der Seite messen, sondern nur am
+   * ganzen Bild: Die **linke** Bildschirmhälfte fiel in einem einzigen Bild
+   * von Helligkeit 172 auf 47.
+   *
+   * Denn im Augenblick des Aufschlagens liegen zwei helle Flächen da: die
+   * aufgedeckte Seite rechts und das Vorsatzpapier des offenen Deckels links.
+   * Das Innere kennt nur die erste. Die zweite fiel weg – und ein Loch, das
+   * halb so breit ist wie der Schirm, sieht man auch dann, wenn alles andere
+   * stimmt.
+   *
+   * **Die Lehre.** Ein Übergang wird nicht an dem Ding gemessen, das man
+   * überführt, sondern an dem Bild, das dabei stehenbleibt.
+   *
+   * Der Deckel wird deshalb hier noch einmal gezeichnet, genau dort, wo er
+   * war, und klingt über dieselbe Dauer aus, in der die Seite nach vorn kommt.
+   * Nicht als Kopie des Einbands – als das, was er in diesem Augenblick ist:
+   * eine Fläche Papier, die zurücktritt.
+   */
+  const vorsatz = (
+    state as { vorsatz?: { x: number; y: number; breite: number; hoehe: number } } | null
+  )?.vorsatz;
+  const deckelKlingtAus = useRef(!!vorsatz);
+
+  /*
    * Und sie gilt genau **einmal**.
    *
    * Ohne diese vier Zeilen bliebe das Merkmal für die Lebensdauer der Hülle
@@ -112,6 +154,7 @@ export function BookShell() {
   useEffect(() => {
     aufgeschlagen.current = false;
     kommtAusDemUmschlag.current = false;
+    deckelKlingtAus.current = false;
   }, []);
 
   /*
@@ -155,7 +198,7 @@ export function BookShell() {
      */
     let ab = requestAnimationFrame(() => {
       ab = requestAnimationFrame(() => {
-        el.style.transition = 'transform 460ms cubic-bezier(0.22, 0.61, 0.36, 1)';
+        el.style.transition = `transform ${UEBERGANG_MS}ms cubic-bezier(0.22, 0.61, 0.36, 1)`;
         el.style.transform = 'none';
       });
     });
@@ -380,6 +423,56 @@ export function BookShell() {
       }
     >
       {/*
+        Der aufgeschlagene Deckel, im Ausklingen.
+
+        Er liegt fest im Fenster und nicht im Buchkörper: Gemessen wurde er am
+        Fenster, und der Buchkörper wächst gerade – ein Kind darin würde
+        mitwachsen und wäre nach vierhundert Millisekunden woanders als der
+        Deckel, den es fortsetzt.
+
+        `pointer-events-none` und `aria-hidden`, weil es kein Gegenstand ist,
+        sondern der Nachklang eines Gegenstands. Nach einer halben Sekunde ist
+        es weg; solange darf es nichts abfangen und nichts vorlesen.
+      */}
+      {deckelKlingtAus.current && vorsatz && (
+        <div
+          aria-hidden
+          /*
+             Ganz hinten. Der Nachklang liegt **unter** allem, was ankommt:
+             Er ist das, was zurücktritt, und etwas, das zurücktritt, darf der
+             Seite nicht vor der Nase stehen. Mit `z-[1]` tat er genau das –
+             ein grauer Kasten quer über der wachsenden Seite.
+          */
+          className="dc-deckel-ausklang paper-sheet pointer-events-none fixed z-0 rounded-[4px]"
+          style={{
+            left: vorsatz.x,
+            top: vorsatz.y,
+            width: vorsatz.breite,
+            height: vorsatz.hoehe,
+            /* Dieselbe Zahl wie das Wachsen der Seite – siehe `UEBERGANG_MS`. */
+            animationDuration: `${UEBERGANG_MS}ms`,
+            /*
+             * Und **nicht** dieselbe Helligkeit wie im Umschlag.
+             *
+             * Dort trägt das Vorsatzpapier `brightness(0.86)` – aber dort
+             * liegt es auf dem Deckel, und der leuchtet darunter mit. Hier
+             * liegt dieselbe Fläche auf dem blossen Tisch. Den Filter
+             * mitzukopieren war der naheliegende Fehler und sofort messbar:
+             * Das Blatt im Umschlag hat (206, 200, 182), der Nachklang mit
+             * 0,86 hatte (169, 163, 147) – achtzehn Prozent zu dunkel, ein
+             * sichtbarer Absatz genau im ersten Bild nach der Übergabe.
+             *
+             * Ein Filter ist keine Eigenschaft des Papiers, sondern des
+             * Lichts, in dem es liegt. Wer ihn verschiebt, muss ihn neu
+             * rechnen.
+             */
+            filter: 'brightness(1.05)',
+            boxShadow: 'inset -16px 0 30px -18px rgba(60,44,26,0.8)',
+          }}
+        />
+      )}
+
+      {/*
         Der Tischmodus, sichtbar.
 
         Ein Balken ueber dem ganzen Buch, nicht ein Punkt in der Ecke. Das ist
@@ -504,7 +597,29 @@ export function BookShell() {
             *behält*, ist das Wesentliche: Randgeste, Richtungsbogen,
             Tiefenraum und Doppeltipp gehören der Schicht und nicht dem Buch.
           */
-          <div className="flex min-h-0 flex-1 flex-col">
+          /*
+            Auch dieses Blatt muss ankommen und nicht dastehen.
+
+            Gemeldet als: „Das selbe, wenn ich auf das neue Charakterblatt
+            klicke rechts neben dem Namen." Gemessen war es eindeutig: Deckkraft
+            1,00 und Einheitsmatrix im **ersten** Bild nach dem Antippen,
+            `document.getAnimations()` leer. Kein Übergang, nirgends – während
+            jede Buchseite daneben eine hat.
+
+            Der Grund ist die Ausnahme selbst: Diese Seite liegt neben dem
+            Buchkörper, und der Buchkörper ist es, der die Ankunft trägt. Wer
+            eine Seite aus dem Buch herausnimmt, nimmt ihr auch das mit.
+
+            Kein Umblättern – sie ist kein Blatt im Band. Sie **tritt näher**:
+            derselbe Gedanke wie beim Aufschlagen, nur kürzer, weil hier kein
+            Deckel im Weg lag. Das passt zu dem, was der Griff bedeutet – die
+            Bildnismarke ist die kleine Raute, die Seite dahinter die grosse.
+
+            Der Schlüssel steht dabei am Pfad und nicht an der Figur: Ohne ihn
+            behielte React beim Wechsel von einer Figur zur nächsten denselben
+            Knoten, und die zweite Figur käme wieder ohne Ankunft.
+          */
+          <div key={pathname} className="blatt-eintritt flex min-h-0 flex-1 flex-col">
             <Outlet context={{ book, spread, wear, living }} />
           </div>
         ) : (

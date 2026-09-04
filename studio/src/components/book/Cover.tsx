@@ -76,7 +76,23 @@ export function Cover({
    * keine Skalierung der Welt bringt sie zur Deckung. Also übergibt der
    * Umschlag seine Messung, und das Innere wächst von dort in seine Form.
    */
-  onOpen: (von?: { x: number; y: number; breite: number; hoehe: number }) => void;
+  /*
+   * Das zweite Rechteck: der aufgeschlagene Deckel daneben.
+   *
+   * Im Augenblick der Übergabe stehen **zwei** helle Flächen auf dem Schirm –
+   * die aufgedeckte Seite rechts und das Vorsatzpapier des offenen Deckels
+   * links. Das Innere übernimmt nur die erste; die zweite verschwand bisher in
+   * einem einzigen Bild. Gemessen: Die linke Bildschirmhälfte fiel von
+   * Helligkeit 172 auf 47, ohne Zwischenschritt. Genau dieses Loch liest das
+   * Auge als „Klatsch" – nicht die Seite, sondern das, was neben ihr fehlt.
+   *
+   * Also reicht der Umschlag auch dieses Rechteck weiter, und das Innere lässt
+   * den Deckel dort ausklingen, während die Seite nach vorn kommt.
+   */
+  onOpen: (
+    von?: { x: number; y: number; breite: number; hoehe: number },
+    vorsatz?: { x: number; y: number; breite: number; hoehe: number },
+  ) => void;
   /**
    * Zurueck ins Regal.
    *
@@ -93,6 +109,8 @@ export function Cover({
   const deckel = useRef<HTMLDivElement>(null);
   /** Die aufgedeckte erste Seite – der Anfangspunkt des Übergangs. */
   const aufgedeckteSeite = useRef<HTMLDivElement>(null);
+  /** Das Vorsatzpapier im offenen Deckel – die Fläche, die daneben stehenbleibt. */
+  const vorsatzpapier = useRef<HTMLDivElement>(null);
   const bild = useRef<number | null>(null);
 
   /*
@@ -197,8 +215,13 @@ export function Cover({
            * Stylesheet nachzurechnen wäre eine zweite Wahrheit über
            * dasselbe und beim nächsten Regler falsch.
            */
-          const r = aufgedeckteSeite.current?.getBoundingClientRect();
-          onOpen(r ? { x: r.x, y: r.y, breite: r.width, hoehe: r.height } : undefined);
+          const messe = (e: HTMLDivElement | null) => {
+            const r = e?.getBoundingClientRect();
+            return r && r.width > 4 && r.height > 4
+              ? { x: r.x, y: r.y, breite: r.width, hoehe: r.height }
+              : undefined;
+          };
+          onOpen(messe(aufgedeckteSeite.current), messe(vorsatzpapier.current));
         });
       }, richtenMs),
     );
@@ -374,6 +397,7 @@ export function Cover({
 
                 {/* Innenseite des Deckels: das Vorsatzpapier */}
                 <div
+                  ref={vorsatzpapier}
                   aria-hidden
                   className="paper-sheet absolute inset-0 rounded-[4px]"
                   style={{

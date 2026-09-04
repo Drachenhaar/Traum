@@ -801,6 +801,53 @@
     }
   }
 
+  /*
+   * Der aufgeschlagene Deckel klingt aus, während die Seite nach vorn kommt.
+   *
+   * Die Dauer steht **nicht** hier, sondern kommt als Stilangabe aus
+   * `BookShell` – dieselbe Zahl, die dort das Wachsen der Seite steuert. Zwei
+   * Zahlen wären zwei Bewegungen, und dass die eine fertig ist, während die
+   * andere noch läuft, ist genau der Riss, den das hier beheben soll.
+   *
+   * `forwards`, damit die Fläche nach dem Ausklingen weg bleibt und nicht im
+   * letzten Bild noch einmal aufblitzt.
+   */
+  .dc-deckel-ausklang {
+    animation: dcDeckelAusklang cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  }
+
+  @keyframes dcDeckelAusklang {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+
+  /*
+   * Ein Blatt, das nicht im Buchkörper liegt, kommt trotzdem an.
+   *
+   * Nur ein `from` – dieselbe Regel wie bei `dcEintritt` und aus demselben
+   * Grund: Mit einem `to` und `both` bliebe der Endwert stehen, und ein
+   * festgenagelter `transform` ist auf dieser Seite ein zweiter Besitzer
+   * derselben Eigenschaft. Genau daran hat sich das Blättern schon einmal
+   * verschluckt.
+   *
+   * Das Mass ist bewusst klein: 0,985 sind bei 390 Punkten knapp sechs Punkte.
+   * Man sieht keine Kante, man sieht ein Näherkommen.
+   */
+  .blatt-eintritt {
+    animation: dcBlattEintritt 380ms cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+  }
+
+  @keyframes dcBlattEintritt {
+    from {
+      opacity: 0;
+      transform: scale(0.985);
+    }
+  }
+
   @keyframes dcAufschlag {
     from {
       opacity: 0;
@@ -820,8 +867,20 @@
   @media (prefers-reduced-motion: reduce) {
     .satz-eintritt,
     .buch-aufschlag,
-    .buch-eintritt {
+    .buch-eintritt,
+    .blatt-eintritt {
       animation: none;
+    }
+
+    /*
+     * Der Ausklang wird nicht angehalten, sondern gar nicht gezeigt.
+     *
+     * `animation: none` wäre hier der schlimmere Fehler von beiden: Die Fläche
+     * bliebe bei Deckkraft 1 stehen – für immer ein Blatt Papier quer über der
+     * halben Seite. Wer keine Bewegung will, bekommt auch keinen Nachklang.
+     */
+    .dc-deckel-ausklang {
+      display: none;
     }
   }
 
