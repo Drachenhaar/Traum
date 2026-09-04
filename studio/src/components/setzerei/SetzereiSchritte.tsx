@@ -31,7 +31,19 @@ import type { SetzereiPhase } from '../../lib/setzerei/draft';
 import { cx } from '../../lib/utils';
 
 const SCHRITTE: { id: SetzereiPhase; label: string }[] = [
-  { id: 'manuskript', label: 'Manuskript' },
+  /*
+   * „Anfang", nicht mehr „Manuskript".
+   *
+   * Der Schritt trägt jetzt zwei Wege: die Felder und das Manuskript. Ihn
+   * nach einem der beiden zu benennen hiesse, den anderen zu verstecken –
+   * und versteckt war genau das Problem, das hier behoben wurde.
+   *
+   * Die Kennung bleibt : Sie steht in  und in
+   * jedem gespeicherten Zustand. Ein Name im Quelltext ist kein Wort auf dem
+   * Bildschirm, und eine Umbenennung, die beides zugleich anfasst, ist zwei
+   * Änderungen in einer.
+   */
+  { id: 'manuskript', label: 'Anfang' },
   { id: 'veredeln', label: 'Veredeln' },
   { id: 'seite', label: 'Seite' },
 ];

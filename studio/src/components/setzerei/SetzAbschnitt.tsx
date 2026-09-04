@@ -33,6 +33,15 @@ export function SetzAbschnitt({
   onOeffnen,
   onSchliessen,
   entries,
+  /**
+   * Der Typ, zu dem diese Felder gehören.
+   *
+   * Er wird nur weitergereicht – gebraucht wird er in `SetzFeld` für die
+   * wiederkehrenden Werte. Dass er hier durchmuss, ist der ganze Punkt: Es
+   * gibt **zwei** Stellen, die `SetzFeld` anstreichen, und wer nur eine
+   * bedient, baut ein Merkmal, das auf der Hälfte der Felder fehlt.
+   */
+  type,
   weltbezuege,
   onWeltbezug,
   /** Der erste Abschnitt braucht keine Linie über sich. */
@@ -46,6 +55,7 @@ export function SetzAbschnitt({
   onOeffnen: (key: string) => void;
   onSchliessen: () => void;
   entries: Entry[];
+  type: string;
   weltbezuege: Record<string, string>;
   onWeltbezug: (def: FieldDef) => void;
   erster?: boolean;
@@ -77,6 +87,7 @@ export function SetzAbschnitt({
             onOeffnen={() => onOeffnen(def.key)}
             onSchliessen={onSchliessen}
             entries={entries}
+            type={type}
             weltbezug={entries.find((e) => e.id === weltbezuege[def.key])}
             onWeltbezug={onWeltbezug}
           />
@@ -92,6 +103,7 @@ export function SetzAbschnitt({
             onOeffnen={() => onOeffnen(def.key)}
             onSchliessen={onSchliessen}
             entries={entries}
+            type={type}
             weltbezug={entries.find((e) => e.id === weltbezuege[def.key])}
             onWeltbezug={onWeltbezug}
           />

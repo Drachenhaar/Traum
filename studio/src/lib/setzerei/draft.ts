@@ -65,6 +65,68 @@ export interface SetzereiDraft {
   beruehrt: string[];
 }
 
+/**
+ * Ein Entwurf ohne Manuskript – der leere Bogen.
+ *
+ * ---
+ *
+ * **Warum es das braucht.**
+ *
+ * Bis hierher führte genau ein Weg in die Setzerei: Text einlegen, lesen
+ * lassen, veredeln. Wer nichts zum Einlegen hatte, bekam ein Gerüst – also
+ * die Feldnamen als **Text** in das grosse Schriftfeld geschrieben:
+ *
+ *     Titel:
+ *     Untertitel:
+ *     Kategorie:
+ *     Beschreibung:
+ *
+ * Man tippte dann hinter die Doppelpunkte, und die Setzerei las das wieder
+ * auseinander. Das ist ein Formular, das sich als Fliesstext verkleidet – und
+ * es war die Meldung: „Das Gitter im grossen Schriftfeld sollen schöne
+ * separate Felder sein."
+ *
+ * Die Felder gab es längst; sie lagen einen Schritt weiter, im Veredeln. Es
+ * fehlte nur der Weg, dort **anzufangen**. Genau den öffnet diese Funktion.
+ *
+ * Der Typ muss dabei mitkommen und lässt sich nicht raten: Ohne Text gibt es
+ * nichts zu erkennen, und ein stillschweigendes „Seite" wäre die falsche
+ * Antwort auf eine Frage, die niemand gestellt hat.
+ */
+export function draftLeer(type: EntryType): SetzereiDraft {
+  return {
+    type,
+    title: '',
+    subtitle: '',
+    category: '',
+    description: '',
+    beginn: '',
+    ende: '',
+    tags: [],
+    fields: {},
+    blocks: [],
+    /*
+     * Nichts erkannt, nichts zu verbinden – und das ist kein Mangel: Es gab
+     * keinen Text, in dem etwas hätte stehen können. Die Verbindungen
+     * entstehen hier von Hand, wie überall sonst im Buch.
+     */
+    mentions: [],
+    verbinden: [],
+    /*
+     * **Alles gilt als berührt.**
+     *
+     * Wer im leeren Bogen anfängt und später doch noch ein Manuskript
+     * einlegt, hat jedes Wort selbst geschrieben. `draftAuffrischen` würde
+     * ohne diese Liste alles überschreiben, was dasteht – und das wäre kein
+     * Auffrischen, sondern ein Verlust.
+     *
+     * Der Stern steht für „jedes Feld"; die Auswertung liest ihn in
+     * `draftAuffrischen`.
+     */
+    beruehrt: ['*'],
+  };
+}
+
 /** Aus einem gelesenen Manuskript wird ein Entwurf. */
 export function draftAus(t: Transcript, type: EntryType): SetzereiDraft {
   return {
@@ -101,13 +163,37 @@ export function draftAuffrischen(
   const neu = draftAus(t, type);
   const behalten = new Set(alt.beruehrt);
 
+  /*
+   * Der Stern: „alles von Hand".
+   *
+   * Er kommt aus `draftLeer` – wer im leeren Bogen angefangen hat, hat jedes
+   * Wort selbst geschrieben, auch die Felder, die er noch gar nicht angefasst
+   * hat. Ohne diese Zeile stünde der Stern zwar in der Liste, hiesse aber
+   * nichts, und ein nachträglich eingelegtes Manuskript überschriebe genau
+   * das, was zu schützen er dasteht.
+   *
+   * Ein leeres Feld gewinnt trotzdem nicht gegen einen gelesenen Wert: Wer
+   * nichts geschrieben hat, will die Zeile aus dem Manuskript. Deshalb zählt
+   * unten nicht `behalten`, sondern `behalten && es steht etwas da`.
+   */
+  const alles = behalten.has('*');
+  const haelt = (schluessel: string, ausAlt: unknown) =>
+    behalten.has(schluessel) ||
+    (alles && ausAlt !== undefined && ausAlt !== '' && !(Array.isArray(ausAlt) && !ausAlt.length));
+
   const stamm = (schluessel: string, ausAlt: string, ausNeu: string) =>
-    behalten.has(schluessel) ? ausAlt : ausNeu;
+    haelt(schluessel, ausAlt) ? ausAlt : ausNeu;
 
   const fields = { ...neu.fields };
   for (const key of alt.beruehrt) {
-    if (key.startsWith('#')) continue;
+    if (key.startsWith('#') || key === '*') continue;
     fields[key] = alt.fields[key];
+  }
+  if (alles) {
+    for (const [key, wert] of Object.entries(alt.fields)) {
+      if (wert === '' || wert === undefined || (Array.isArray(wert) && !wert.length)) continue;
+      fields[key] = wert;
+    }
   }
 
   /* Abgewählte Verbindungen bleiben abgewählt. */
@@ -121,13 +207,13 @@ export function draftAuffrischen(
     description: stamm('#description', alt.description, neu.description),
     beginn: stamm('#beginn', alt.beginn, neu.beginn),
     ende: stamm('#ende', alt.ende, neu.ende),
-    tags: behalten.has('#tags') ? alt.tags : neu.tags,
+    tags: haelt('#tags', alt.tags) ? alt.tags : neu.tags,
     fields,
     /*
      * Blöcke bleiben, wenn welche von Hand dazugekommen sind – etwa ein
      * Zitat. Sonst kämen sie aus dem Text und würden hier überschrieben.
      */
-    blocks: behalten.has('#blocks') ? alt.blocks : neu.blocks,
+    blocks: haelt('#blocks', alt.blocks) ? alt.blocks : neu.blocks,
     verbinden: neu.mentions.map((m) => m.entryId).filter((id) => !abgewaehlt.has(id)),
     beruehrt: alt.beruehrt,
   };
