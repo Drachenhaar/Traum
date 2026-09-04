@@ -827,17 +827,22 @@ function promptZeile(a: Angabe): string {
   return a.hint ? `${a.label}: (${a.hint})` : `${a.label}: `;
 }
 
-/**
- * Das nackte Geruest zum Einsetzen ins Manuskript: nur Namen und
- * Doppelpunkt, ohne Hinweise. Die Hinweise muessen hier fehlen – sonst
- * laese die Setzerei die Klammer als Wert und schriebe „(zwei bis vier
- * Saetze)" als Beschreibung ins Buch.
+/*
+ * Hier stand `blankTemplateFor` – das nackte Gerüst zum Einsetzen ins
+ * Manuskript: `Titel:`, `Untertitel:`, `Kategorie:`, eine Zeile je Angabe.
+ *
+ * Es ist ersatzlos fort, und der Ersatz ist kein Text mehr, sondern ein
+ * Formular: `draftLeer` in `setzerei/draft.ts` öffnet dieselben Angaben als
+ * einzelne Felder. Gemeldet als „Das Gitter im grossen Schriftfeld sollen
+ * schöne separate Felder sein".
+ *
+ * Die Funktion stehenzulassen wäre die schlechtere Hälfte gewesen: Ein
+ * ungenutzter Export, der genau das Muster wieder anbietet, das man gerade
+ * abgeschafft hat, wird beim nächsten Mal wieder eingebaut.
+ *
+ * `angabenFor` bleibt – die Vorlage für ChatGPT braucht dieselbe Liste, und
+ * die ist weiterhin genau eine.
  */
-export function blankTemplateFor(type: EntryType): string {
-  return angabenFor(type)
-    .map((a) => `${a.label}: `)
-    .join('\n');
-}
 
 export function promptTemplateFor(type: EntryType, worldName: string): string {
   const tpl = templateFor(type);

@@ -99,6 +99,8 @@ export function VeredelBlatt({
       onOeffnen={() => setOffen(def.key)}
       onSchliessen={() => setOffen(null)}
       entries={entries}
+      /* Für die wiederkehrenden Werte – siehe `lib/setzerei/wiederkehrend.ts`. */
+      type={draft.type}
       weltbezug={entries.find((e) => e.id === weltbezuege[def.key])}
       onWeltbezug={onWeltbezug}
     />
@@ -205,6 +207,7 @@ export function VeredelBlatt({
         onOeffnen={setOffen}
         onSchliessen={() => setOffen(null)}
         entries={entries}
+        type={draft.type}
         weltbezuege={weltbezuege}
         onWeltbezug={onWeltbezug}
       />
@@ -233,6 +236,7 @@ export function VeredelBlatt({
           onOeffnen={setOffen}
           onSchliessen={() => setOffen(null)}
           entries={entries}
+          type={draft.type}
           weltbezuege={weltbezuege}
           onWeltbezug={onWeltbezug}
         />
@@ -251,6 +255,7 @@ export function VeredelBlatt({
               onOeffnen={setOffen}
               onSchliessen={() => setOffen(null)}
               entries={entries}
+              type={draft.type}
               weltbezuege={weltbezuege}
               onWeltbezug={onWeltbezug}
             />

@@ -238,9 +238,17 @@ pruefe(
 const schritteCode = ohneProsa(schritte);
 pruefe('Die Schrittfolge hängt nicht am Fenster', !/\bfixed\b/.test(schritteCode));
 pruefe('Sie trägt keine Symbole', !/lucide-react/.test(schritteCode));
+/*
+ * Das erste Wort heisst jetzt „Anfang".
+ *
+ * Es hiess „Manuskript", solange es nur einen Weg gab. Seit der Schritt zwei
+ * trägt – die Felder und das Manuskript –, wäre der alte Name eine Auskunft
+ * über den einen und ein Verstecken des anderen. Die *Kennung* der Phase
+ * bleibt `manuskript`; geprüft wird hier das Wort auf dem Bildschirm.
+ */
 pruefe(
   'Sie ist die drei Wörter mit einem Punkt dazwischen',
-  /Manuskript/.test(schritteCode) && /Veredeln/.test(schritteCode) && /Seite/.test(schritteCode),
+  /'Anfang'/.test(schritteCode) && /Veredeln/.test(schritteCode) && /Seite/.test(schritteCode),
 );
 
 /*
@@ -486,7 +494,19 @@ pruefe(
 console.log('11 Was bleiben muss');
 for (const [was, muster] of [
   ['Der Rohtextimport', /transcribe\(text, living, gewaehlterTyp \|\| undefined\)/],
-  ['Gerüst einsetzen', /blankTemplateFor\(typ\)/],
+  /*
+   * Hier stand „Gerüst einsetzen" mit `blankTemplateFor(typ)`.
+   *
+   * Das Gerüst ist bewusst fort – es schrieb die Feldnamen als Fliesstext in
+   * das grosse Schriftfeld, zum Danebentippen. Gemeldet als „Das Gitter im
+   * grossen Schriftfeld sollen schöne separate Felder sein".
+   *
+   * Diese Zeile wird deshalb **ersetzt und nicht gestrichen**: Was bleiben
+   * musste, war der Weg zu den Feldern, nicht der Weg über den Text. Eine
+   * gestrichene Zusicherung wäre eine verlorene; eine ersetzte sagt, wohin
+   * die alte gegangen ist.
+   */
+  ['Der Weg gleich in die Felder', /draftLeer\(typFuerFelder\)/],
   ['Die Vorlage für ChatGPT', /promptTemplateFor\(typ, settings\.worldName\)/],
   ['Die vollständige Typauswahl', /templatesByFamily/],
   ['Die Textblöcke', /blocks: draft\.blocks/],
@@ -513,5 +533,138 @@ pruefe(
 );
 pruefe('Kein Federn, kein Leuchten', !/bounce|glow|sparkle/i.test(css.slice(css.indexOf('dcSetzen'), css.indexOf('dcSetzen') + 400)));
 
+
+/* ======================================== 13 Die Felder statt des Gitters */
+
+/*
+ * Gemeldet als: „Das Gitter im grossen Schriftfeld sollen schöne separate
+ * Felder sein, und das grosse Feld die Option. Die Felder sind zum Ausfüllen,
+ * mit der Option, vorgefertigte und wiederkehrende Einträge wieder
+ * auszuwählen."
+ *
+ * Drei Sachen, drei Abschnitte hier.
+ */
+
+console.log('13 Die Felder statt des Gitters');
+
+const wieder = lies('../src/lib/setzerei/wiederkehrend.ts');
+const wiederCode = ohneProsa(wieder);
+const abschnittQuelle = ohneProsa(lies('../src/components/setzerei/SetzAbschnitt.tsx'));
+const feldCode = ohneProsa(lies('../src/components/setzerei/SetzFeld.tsx'));
+const veredelCode = ohneProsa(veredel);
+const setzCode = ohneProsa(setzerei);
+const draftCode = ohneProsa(lies('../src/lib/setzerei/draft.ts'));
+
+/* -------------------------------------------------- 13a Der leere Bogen */
+
+pruefe('Es gibt einen Weg gleich in die Felder', /draftLeer\(/.test(setzCode) && /draftLeer/.test(draftCode));
+pruefe('Das Gerüst als Text ist fort', !/blankTemplateFor/.test(setzCode));
+pruefe(
+  'Und es gibt es auch nirgends mehr zu holen',
+  !/export function blankTemplateFor/.test(ohneProsa(lies('../src/lib/transcribe.ts'))),
+);
+
+/*
+ * Ohne Text lässt sich der Typ nicht erkennen. Der Bogen geht deshalb auf –
+ * und führt danach von selbst weiter. Ein Knopf, der einen Bogen öffnet, damit
+ * man hinterher denselben Knopf noch einmal drückt, ist ein Umweg.
+ */
+pruefe('Ohne gewählten Typ fragt der Bogen zuerst', /bogenFuehrtWeiter/.test(setzCode));
+pruefe(
+  'Und führt danach ohne zweiten Tipp in die Felder',
+  /if \(bogenFuehrtWeiter\)[\s\S]{0,120}inDieFelder\(t\)/.test(setzCode),
+);
+
+/*
+ * Der leere Bogen gilt als **ganz** von Hand geschrieben.
+ *
+ * Wer im leeren Bogen anfängt und später doch ein Manuskript einlegt, hat
+ * jedes Wort selbst geschrieben. Ohne den Stern überschriebe das Auffrischen
+ * genau das.
+ */
+pruefe('Der leere Bogen merkt sich alles als berührt', /beruehrt: \['\*'\]/.test(draftCode));
+pruefe('Und das Auffrischen versteht den Stern', /behalten\.has\('\*'\)/.test(draftCode));
+/*
+ * Ein leeres Feld gewinnt trotzdem nicht gegen einen gelesenen Wert – sonst
+ * bliebe jede Zeile aus dem Manuskript liegen.
+ */
+pruefe('Ein leeres Feld gewinnt nicht gegen den Text', /alles &&[\s\S]{0,120}!== ''/.test(draftCode));
+
+/* ------------------------------------------- 13b Das Manuskript bleibt */
+
+/*
+ * Es kann etwas, das kein Formular kann: zusammenhängenden Text lesen und
+ * darin die Seiten erkennen, die es im Buch schon gibt. Es zu entfernen wäre
+ * die falsche Lesart der Meldung gewesen.
+ */
+pruefe('Das Manuskriptblatt steht noch da', /ManuskriptBlatt/.test(setzCode));
+pruefe('Und die Vorlage für ChatGPT auch', /promptTemplateFor\(typ, settings\.worldName\)/.test(setzCode));
+pruefe('Es heisst jetzt ausdrücklich „oder"', /Oder ein Manuskript einlegen/.test(setzerei));
+
+/* ------------------------------------- 13c Die wiederkehrenden Werte */
+
+pruefe('Es gibt die wiederkehrenden Werte', /export function wiederkehrende/.test(wiederCode));
+
+/*
+ * **Nicht jedes Feld darf Vorschläge bekommen.**
+ *
+ * Ein Fliesstextfeld mit einer Vorschlagsreihe darunter böte an, den Absatz
+ * einer anderen Seite zu übernehmen. Das ist keine Zeitersparnis, sondern eine
+ * Einladung zum Abschreiben der eigenen Welt.
+ */
+pruefe(
+  'Nur Feldarten, bei denen sich Werte wiederholen',
+  /VORSCHLAGSARTEN = \['text', 'tags', 'select'\]/.test(wiederCode),
+);
+pruefe('Fliesstext bekommt ausdrücklich keine', !/'textarea'/.test(wiederCode));
+
+/* Gezählt wird nur innerhalb desselben Typs – ein Vorschlag aus dem falschen
+   Kapitel ist schlimmer als keiner. */
+pruefe('Gezählt wird nur im selben Typ', /e\.type !== type/.test(wiederCode));
+pruefe('Gelöschtes zählt nicht mit', /e\.deletedAt/.test(wiederCode));
+
+/*
+ * Nach Häufigkeit, nicht alphabetisch: Wer „Haldenvolk" fünfmal geschrieben
+ * hat, meint beim sechsten Mal wahrscheinlich wieder das erste.
+ */
+pruefe('Sortiert nach Häufigkeit, dann nach Namen', /b\.n - a\.n \|\| a\.wert\.localeCompare/.test(wiederCode));
+pruefe('Was schon dasteht, wird nicht angeboten', /belegt\.has\(schluessel\)/.test(wiederCode));
+pruefe('Es gibt eine Obergrenze', /HOECHSTENS = \d+/.test(wiederCode) && /slice\(0, HOECHSTENS\)/.test(wiederCode));
+pruefe('Und eine Längengrenze für die Marke', /HOECHSTENS_ZEICHEN/.test(wiederCode));
+
+/*
+ * ---------------------------------------------------------------------
+ * **Der Fehler, der diesen Abschnitt am meisten wert macht.**
+ *
+ * `SetzFeld` wird von **zwei** Stellen angestrichen: einmal direkt aus
+ * `VeredelBlatt` (die Kennzeichen) und einmal aus `SetzAbschnitt` (alle
+ * übrigen Gruppen). Der Typ wurde zuerst nur der ersten mitgegeben – und die
+ * Vorschläge fehlten auf zwei Dritteln der Felder.
+ *
+ * Am Gerät gemessen: `role|text|character|true`, aber
+ * `volk|text|KEINTYP|true`. Im Quelltext war nichts zu sehen; sichtbar wurde
+ * es erst, als jedes Feld sagen musste, was bei ihm ankommt.
+ *
+ * Deshalb ist `type` in `SetzAbschnitt` **verpflichtend** und nicht optional:
+ * So findet TypeScript die vergessene Stelle, und nicht der Leser. Genau das
+ * ist beim Bauen passiert – die dritte Aufrufstelle fiel dem Übersetzer auf.
+ * --------------------------------------------------------------------- */
+pruefe('Der Typ ist in SetzAbschnitt verpflichtend', /\n  type: string;/.test(abschnittQuelle));
+{
+  const stellen = (veredelCode.match(/<SetzAbschnitt/g) ?? []).length;
+  const mitTyp = (veredelCode.match(/type=\{draft\.type\}/g) ?? []).length;
+  pruefe(`Alle ${stellen} Abschnitte und das Feld bekommen ihn`, stellen > 0 && mitTyp === stellen + 1, `${mitTyp} von ${stellen + 1}`);
+  const feldstellen = (abschnittQuelle.match(/<SetzFeld/g) ?? []).length;
+  const feldMitTyp = (abschnittQuelle.match(/type=\{type\}/g) ?? []).length;
+  pruefe(`Und alle ${feldstellen} Felder im Abschnitt`, feldstellen > 0 && feldMitTyp === feldstellen, `${feldMitTyp} von ${feldstellen}`);
+}
+
+/* Die Reihe steht unter dem Feld und trägt die Zahl nur, wo sie etwas sagt. */
+pruefe('Die Reihe wird angestrichen', /function Wiederkehrendes/.test(feldCode));
+pruefe('Sie erscheint bei Text und bei Marken', (feldCode.match(/<Wiederkehrendes/g) ?? []).length === 2);
+pruefe('Die Zahl nur ab zwei', /v\.wieOft > 1/.test(feldCode));
+pruefe('Marken werden angehängt, nicht ersetzt', /onChange\(\[\.\.\.asList\(wert\), v\]\)/.test(feldCode));
+
 console.log(`\n  ${bestanden} bestanden, ${gescheitert} gescheitert\n`);
+
 process.exit(gescheitert ? 1 : 0);

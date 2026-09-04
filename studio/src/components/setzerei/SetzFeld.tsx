@@ -22,7 +22,7 @@
  * einen neunten zu bauen.
  */
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Check, PenLine, Plus, X } from 'lucide-react';
 import type { Entry, FieldValue } from '../../types';
 import type { FieldDef } from '../../lib/templates';
@@ -33,6 +33,7 @@ import { Thumb } from '../images/Thumb';
 import { ImagePicker } from '../images/ImagePicker';
 import { EntryLinkPicker } from '../entry/EntryLinkPicker';
 import { cx } from '../../lib/utils';
+import { nimmtVorschlaege, wiederkehrende } from '../../lib/setzerei/wiederkehrend';
 
 /* ------------------------------------------------------------------ Marken */
 
@@ -138,6 +139,7 @@ export function SetzFeld({
   onOeffnen,
   onSchliessen,
   entries,
+  type,
   weltbezug,
   onWeltbezug,
   ohneRubrik,
@@ -149,6 +151,16 @@ export function SetzFeld({
   onOeffnen: () => void;
   onSchliessen: () => void;
   entries: Entry[];
+  /**
+   * Zu welchem Typ dieses Feld gehört.
+   *
+   * Nur für die wiederkehrenden Werte, und für die ist er unverzichtbar: Das
+   * „Volk" einer Figur und das „Volk" einer Kreatur tragen denselben
+   * Feldnamen und beantworten nicht dieselbe Frage. Ein Vorschlag aus dem
+   * falschen Kapitel ist schlimmer als keiner – man muss ihn erst als falsch
+   * erkennen.
+   */
+  type?: string;
   /** Mit welcher vorhandenen Seite dieses Feld verbunden werden soll. */
   weltbezug?: Entry;
   onWeltbezug?: (def: FieldDef) => void;
@@ -210,6 +222,7 @@ export function SetzFeld({
             onChange={onChange}
             onFertig={onSchliessen}
             entries={entries}
+            type={type}
           />
         ) : (
           <button
@@ -354,12 +367,14 @@ function Bearbeitung({
   onChange,
   onFertig,
   entries,
+  type,
 }: {
   def: FieldDef;
   wert: FieldValue | undefined;
   onChange: (v: FieldValue) => void;
   onFertig: () => void;
   entries: Entry[];
+  type?: string;
 }) {
   const [wahl, setWahl] = useState(false);
 
@@ -408,7 +423,20 @@ function Bearbeitung({
       );
 
     case 'tags':
-      return <Markenfeld werte={asList(wert)} onChange={onChange} onFertig={onFertig} />;
+      return (
+        <>
+          <Markenfeld werte={asList(wert)} onChange={onChange} onFertig={onFertig} />
+          <Wiederkehrendes
+            def={def}
+            type={type}
+            entries={entries}
+            schon={asList(wert)}
+            /* Marken sammeln sich – hier wird angehängt und nicht ersetzt,
+               und das Feld bleibt offen für die nächste. */
+            onWaehlen={(v) => onChange([...asList(wert), v])}
+          />
+        </>
+      );
 
     case 'palette':
       return <Palettenfeld werte={asList(wert)} onChange={onChange} onFertig={onFertig} />;
@@ -476,8 +504,90 @@ function Bearbeitung({
 
     case 'text':
     default:
-      return <Schreibzeile wert={asText(wert)} onChange={onChange} onFertig={onFertig} />;
+      return (
+        <>
+          <Schreibzeile wert={asText(wert)} onChange={onChange} onFertig={onFertig} />
+          <Wiederkehrendes
+            def={def}
+            type={type}
+            entries={entries}
+            schon={asText(wert) ? [asText(wert)] : []}
+            onWaehlen={(v) => {
+              onChange(v);
+              onFertig();
+            }}
+          />
+        </>
+      );
   }
+}
+
+/**
+ * Was in diesem Buch schon einmal dastand – als Reihe kleiner Marken.
+ *
+ * ---
+ *
+ * **Sie steht unter dem Feld, nicht darüber.**
+ *
+ * Über dem Feld wäre sie ein Vorschlag, den man erst wegsehen muss, um
+ * schreiben zu können. Darunter ist sie das, was sie sein soll: eine Abkürzung
+ * für die, die sie brauchen, und für alle anderen unsichtbar, weil der Blick
+ * beim Tippen oben bleibt.
+ *
+ * **Und sie erscheint nur, wenn es etwas zu wiederholen gibt.** Beim ersten
+ * Eintrag eines Typs ist sie leer und damit weg – eine Überschrift „Schon
+ * verwendet" über nichts wäre ein Versprechen, das die Seite nicht hält.
+ */
+function Wiederkehrendes({
+  def,
+  type,
+  entries,
+  schon,
+  onWaehlen,
+}: {
+  def: FieldDef;
+  type?: string;
+  entries: Entry[];
+  schon: string[];
+  onWaehlen: (wert: string) => void;
+}) {
+  const vorschlaege = useMemo(
+    () => (type && nimmtVorschlaege(def.kind) ? wiederkehrende(entries, type, def.key, schon) : []),
+    /*
+     * `schon` ist bei jedem Anstrich ein neues Feld – als Abhängigkeit würde
+     * es die Rechnung bei jedem Tastendruck erneut anwerfen. Der Inhalt zählt,
+     * nicht die Kennung.
+     */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [entries, type, def.key, def.kind, schon.join('\u0000')],
+  );
+
+  if (!vorschlaege.length) return null;
+
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+      <span className="mr-0.5 font-serif text-[12px] italic text-ink-faint/70">schon im Buch:</span>
+      {vorschlaege.map((v) => (
+        <button
+          key={v.wert}
+          type="button"
+          onClick={() => onWaehlen(v.wert)}
+          className="inline-flex min-h-[30px] items-center gap-1 rounded-full border border-line px-2.5 font-serif text-[13px] text-ink-muted transition-colors hover:border-gild-500/45 hover:text-ink no-tap-highlight"
+        >
+          {v.wert}
+          {/*
+            Die Zahl steht nur da, wo sie etwas sagt.
+
+            „Haldenvolk 5" heisst: Das ist bei dir die Regel. „Talvolk 1" hiesse
+            gar nichts – eine Eins hinter jedem zweiten Wort wäre Rauschen.
+          */}
+          {v.wieOft > 1 && (
+            <span className="tabular-nums text-[11px] text-ink-faint/60">{v.wieOft}</span>
+          )}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 /**

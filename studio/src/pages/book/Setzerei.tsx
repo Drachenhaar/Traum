@@ -30,12 +30,11 @@
 
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Check, ClipboardCopy, Eye, Search, Wand2 } from 'lucide-react';
+import { ArrowLeft, Check, ClipboardCopy, Eye, ListPlus, Search, Wand2 } from 'lucide-react';
 import { useStudio, livingEntries } from '../../store/useStudio';
 import {
   transcribe,
   promptTemplateFor,
-  blankTemplateFor,
   beziehungFuer,
 } from '../../lib/transcribe';
 import { templateFor, asText } from '../../lib/templates';
@@ -47,6 +46,7 @@ import {
   bausteineIn,
   draftAus,
   draftAuffrischen,
+  draftLeer,
   draftBloecke,
   draftSetzen,
   erkanntesInWorten,
@@ -81,6 +81,12 @@ export function Setzerei() {
   const [gewaehlterTyp, setGewaehlterTyp] = useState<string>(params.get('typ') ?? '');
   const [phase, setPhase] = useState<SetzereiPhase>('manuskript');
   const [bogenOffen, setBogenOffen] = useState(false);
+  /*
+   * Der Bogen wird für zwei Fragen benutzt: „Was soll aus diesem Text
+   * werden?" und „Womit fange ich an?". Nur im zweiten Fall geht es danach
+   * gleich in die Felder – deshalb muss der Bogen wissen, warum er offen ist.
+   */
+  const [bogenFuehrtWeiter, setBogenFuehrtWeiter] = useState(false);
   const [busy, setBusy] = useState(false);
 
   /** Der Entwurf. Existiert erst nach „So setzen", und nie in der Datenbank. */
@@ -135,14 +141,43 @@ export function Setzerei() {
     }
   };
 
-  /*
-   * Das Gerüst kommt an den Anfang, der vorhandene Text bleibt darunter
-   * stehen. Nichts geht verloren – auch dann nicht, wenn schon etwas
-   * geschrieben war.
+  /**
+   * Gleich in die Felder – ohne Umweg über das Manuskript.
+   *
+   * ---
+   *
+   * **Was hier verschwunden ist: das Gerüst.**
+   *
+   * An dieser Stelle stand „Gerüst einsetzen". Es schrieb die Feldnamen als
+   * Text in das grosse Schriftfeld – `Titel:`, `Untertitel:`, `Kategorie:` –
+   * und man tippte hinter die Doppelpunkte. Ein Formular, verkleidet als
+   * Fliesstext, das die Setzerei anschliessend wieder auseinandernahm.
+   *
+   * Gemeldet als: „Das Gitter im grossen Schriftfeld sollen schöne separate
+   * Felder sein, und das grosse Feld die Option."
+   *
+   * Die Felder gab es längst, einen Schritt weiter. Es fehlte nur der Weg,
+   * dort anzufangen. Der Umweg über den Text war nie ein Gewinn: Was man
+   * hineinschrieb, musste erst wieder gelesen werden, und jede Zeile konnte
+   * dabei missverstanden werden. Im Feld kann sie das nicht.
+   *
+   * **Der Typ muss vorher feststehen.** Ohne Text gibt es nichts zu erkennen,
+   * und ein stillschweigendes „Seite" wäre die falsche Antwort auf eine Frage,
+   * die niemand gestellt hat. Ist er noch nicht gewählt, geht der Bogen auf –
+   * und führt danach von selbst weiter.
    */
-  const geruestEinsetzen = () => {
-    const geruest = blankTemplateFor(typ);
-    setText((alt) => (alt.trim() ? `${geruest}\n\n${alt}` : `${geruest}\n\n`));
+  const inDieFelder = (typFuerFelder: string) => {
+    setDraft((alt) => (alt ? alt : draftLeer(typFuerFelder)));
+    setPhase('veredeln');
+  };
+
+  const anfangen = () => {
+    if (!gewaehlterTyp) {
+      setBogenFuehrtWeiter(true);
+      setBogenOffen(true);
+      return;
+    }
+    inDieFelder(gewaehlterTyp);
   };
 
   /**
@@ -239,8 +274,11 @@ export function Setzerei() {
           typ={typ}
           gewaehlt={!!gewaehlterTyp}
           onSoSetzen={soSetzen}
-          onAndersSetzen={() => setBogenOffen(true)}
-          onGeruest={geruestEinsetzen}
+          onAndersSetzen={() => {
+            setBogenFuehrtWeiter(false);
+            setBogenOffen(true);
+          }}
+          onAnfangen={anfangen}
           onPrompt={() => void kopierePrompt()}
           hatEntwurf={!!draft}
         />
@@ -249,7 +287,7 @@ export function Setzerei() {
       {phase === 'veredeln' && draft && (
         <div className="lg:grid lg:grid-cols-[minmax(0,1fr),minmax(0,21rem)] lg:gap-12">
           <div>
-            <Zurueck onClick={() => setPhase('manuskript')} label="Zurück zum Manuskript">
+            <Zurueck onClick={() => setPhase('manuskript')} label="Zurück zum Anfang">
               <button
                 type="button"
                 onClick={() => setPhase('seite')}
@@ -328,15 +366,30 @@ export function Setzerei() {
 
       {/* Ohne Entwurf gibt es nichts zu veredeln – und das steht da, statt leer zu bleiben. */}
       {phase !== 'manuskript' && !draft && (
-        <Still was="Noch ist nichts eingelegt. Zurück zum Manuskript, dort beginnt es." />
+        <Still was="Noch ist nichts angefangen. Zurück zum Anfang, dort beginnt es." />
       )}
 
       <TypenBogen
         offen={bogenOffen}
-        onClose={() => setBogenOffen(false)}
+        onClose={() => {
+          setBogenOffen(false);
+          setBogenFuehrtWeiter(false);
+        }}
         gewaehlt={gewaehlterTyp}
         vorschlag={gelesen?.suggestedType}
-        onWaehlen={setGewaehlterTyp}
+        /*
+         * Wurde der Bogen geöffnet, um anzufangen, geht es danach ohne einen
+         * zweiten Tipp weiter. Ein Knopf, der einen Bogen öffnet, damit man
+         * hinterher denselben Knopf noch einmal drückt, ist ein Umweg mit
+         * Zwischenstopp.
+         */
+        onWaehlen={(t) => {
+          setGewaehlterTyp(t);
+          if (bogenFuehrtWeiter) {
+            setBogenFuehrtWeiter(false);
+            inDieFelder(t);
+          }
+        }}
       />
 
       <Weltwahl
@@ -372,7 +425,36 @@ export function Setzerei() {
   );
 }
 
-/* --------------------------------------------------------- 1 · Manuskript */
+/* ------------------------------------------------------------- 1 · Anfang */
+
+/**
+ * Womit man anfängt.
+ *
+ * ---
+ *
+ * **Zwei Wege, und der kürzere steht oben.**
+ *
+ * Bis hierher gab es genau einen: Text einlegen, lesen lassen, veredeln. Wer
+ * keinen Text hatte, bekam ein *Gerüst* – die Feldnamen als Fliesstext ins
+ * grosse Schriftfeld geschrieben, zum Danebentippen. Ein Formular, verkleidet
+ * als Manuskript.
+ *
+ * Gemeldet als: „Das Gitter im grossen Schriftfeld sollen schöne separate
+ * Felder sein, und das grosse Feld die Option."
+ *
+ * Genau so steht es jetzt da. Die Felder sind der Anfang; das Manuskript ist
+ * der andere Weg – der gute Weg für alle, die etwas fertig woanders liegen
+ * haben. Es verschwindet nicht, es steht nur nicht mehr im Weg.
+ *
+ * ---
+ *
+ * **Warum das Manuskript trotzdem bleibt.**
+ *
+ * Es kann etwas, das kein Formular kann: Es liest zusammenhängenden Text und
+ * erkennt darin die Seiten, die es im Buch schon gibt. Wer eine Antwort aus
+ * ChatGPT einsetzt, bekommt zwanzig Felder auf einmal gefüllt. Das wegzunehmen
+ * wäre die falsche Lesart der Meldung gewesen.
+ */
 
 function Manuskriptphase({
   text,
@@ -383,7 +465,7 @@ function Manuskriptphase({
   gewaehlt,
   onSoSetzen,
   onAndersSetzen,
-  onGeruest,
+  onAnfangen,
   onPrompt,
   hatEntwurf,
 }: {
@@ -395,7 +477,7 @@ function Manuskriptphase({
   gewaehlt: boolean;
   onSoSetzen: () => void;
   onAndersSetzen: () => void;
-  onGeruest: () => void;
+  onAnfangen: () => void;
   onPrompt: () => void;
   hatEntwurf: boolean;
 }) {
@@ -403,18 +485,45 @@ function Manuskriptphase({
 
   return (
     <div className="mx-auto max-w-[40rem]">
-      <h2 className="font-serif text-[24px] leading-tight text-ink">Manuskript einlegen</h2>
+      <h2 className="font-serif text-[24px] leading-tight text-ink">Eine neue Seite</h2>
       <p className="mt-1.5 font-serif text-[15px] italic leading-relaxed text-ink-muted">
-        Lege hier deine Worte auf das Blatt.
+        Fang in den Feldern an – oder leg ein Manuskript ein.
       </p>
 
-      <div className="mt-6">
-        <ManuskriptBlatt text={text} onText={onText} />
+      {/* ------------------------------------------------------ Der Anfang */}
+      <div className="mt-7 border-t border-b border-line py-7">
+        <button
+          type="button"
+          onClick={onAnfangen}
+          data-anfangen
+          className="inline-flex min-h-[46px] items-center gap-2 rounded-full border border-gild-500/50 px-5 font-serif text-[16px] text-gold transition-colors hover:border-gild-500/80 hover:text-gold-hell no-tap-highlight"
+        >
+          <ListPlus size={16} /> {hatEntwurf ? 'Weiter in den Feldern' : 'In die Felder'}
+        </button>
+        <p className="mt-3 font-serif text-[13.5px] italic leading-relaxed text-ink-faint">
+          {gewaehlt ? (
+            <>
+              Ein leerer Bogen für {artikelFuer(typ)} {tpl.label}: Titel, Kategorie und jedes Feld,
+              das dieser Typ kennt – einzeln, mit Vorschlägen aus deinem Buch.
+            </>
+          ) : (
+            <>Du wählst zuerst, was es werden soll. Danach stehen die Felder da.</>
+          )}
+        </p>
       </div>
 
-      <p className="mt-3 font-serif text-[12.5px] italic text-ink-faint">
-        Text aus ChatGPT, einer Notiz oder einem Dokument. Nichts verlässt dieses Gerät.
-      </p>
+      {/* --------------------------------------------------- Das Manuskript */}
+      <div className="mt-8">
+        <h3 className="font-serif text-[17px] leading-tight text-ink">Oder ein Manuskript einlegen</h3>
+        <p className="mt-1 font-serif text-[13.5px] italic leading-relaxed text-ink-faint">
+          Text aus ChatGPT, einer Notiz oder einem Dokument. Die Setzerei liest die Felder heraus
+          und erkennt, welche Seiten deines Buches darin vorkommen. Nichts verlässt dieses Gerät.
+        </p>
+
+        <div className="mt-4">
+          <ManuskriptBlatt text={text} onText={onText} />
+        </div>
+      </div>
 
       {leseFehler ? (
         <div className="mt-6 border-l-2 border-mahnung/60 pl-4">
@@ -447,26 +556,17 @@ function Manuskriptphase({
             </p>
           )}
         </>
-      ) : (
-        <p className="mt-6 font-serif text-[15px] italic text-ink-faint">Noch nichts eingelegt.</p>
-      )}
+      ) : null}
 
       {/*
-        Die zwei Helfer stehen unten und leise.
+        Die Vorlage steht unten und leise – sie gehört zum Manuskriptweg und
+        fragt in ChatGPT dieselben Felder ab, die oben als Bogen dastehen.
 
-        Das Gerüst schreibt die Feldnamen ins Manuskript, damit man sie
-        ausfüllen kann; die Vorlage fragt dieselben Felder in ChatGPT ab. Beide
-        bleiben – sie waren nie das Problem. Das Problem war, dass sie die
-        halbe Seite füllten.
+        Das Gerüst, das einmal daneben stand, ist fort: Es schrieb die
+        Feldnamen als Text in das Schriftfeld, und genau dafür gibt es jetzt
+        die Felder selbst.
       */}
       <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-line pt-4">
-        <button
-          type="button"
-          onClick={onGeruest}
-          className="inline-flex min-h-[40px] items-center gap-1.5 font-serif text-[14px] italic text-gold transition-colors hover:text-gold-hell no-tap-highlight"
-        >
-          <Wand2 size={14} /> Gerüst einsetzen
-        </button>
         <button
           type="button"
           onClick={onPrompt}
