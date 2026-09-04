@@ -9,6 +9,8 @@
 
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { INITIALE_AN } from '../../lib/satz';
+import { cx } from '../../lib/utils';
 import { useStudio, livingEntries } from '../../store/useStudio';
 import { useCurrentSpread } from '../../components/book/BookShell';
 import { Spread, Plate } from '../../components/book/Spread';
@@ -68,7 +70,15 @@ export function ForewordSpread() {
           )}
           <span aria-hidden className="rule-gild mt-6 block w-28 opacity-75" />
 
-          <div className="prose-book dropcap mt-7">
+          {/*
+            Auch hier fragt die Seite, statt zu setzen.
+
+            Zwei Stellen, an denen dieselbe Entscheidung getroffen wird, sind
+            eine zu viel: Beim nächsten Umschalten bliebe eine davon stehen
+            und niemand sähe es – auf dem Vorwort sähe eine übriggebliebene
+            Initiale sogar richtig aus.
+          */}
+          <div className={cx('prose-book mt-7', INITIALE_AN && 'dropcap')}>
             {living.length === 0 ? (
               <p>
                 Dieses Buch ist noch leer. Es beginnt mit einer einzigen Seite – einem Ort, einer

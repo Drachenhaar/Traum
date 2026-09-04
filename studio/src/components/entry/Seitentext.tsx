@@ -19,6 +19,7 @@
  */
 
 import { Link } from 'react-router-dom';
+import { Bildnismarke } from './Bildnismarke';
 import type { Entry } from '../../types';
 import { asBool, asList, asText, templateFor } from '../../lib/templates';
 import { gruppiere } from '../../lib/feldgruppen';
@@ -26,6 +27,7 @@ import { leseZeit, schreibeZeit } from '../../lib/chronik/zeit';
 import { FieldNotes } from '../book/Marginalia';
 import { BlockView } from '../blocks/BlockView';
 import { cx } from '../../lib/utils';
+import { traegtInitiale } from '../../lib/satz';
 
 /**
  * Die Zeit, wie sie in einem Buch stünde: „1032 – 1078", „seit 1032",
@@ -111,7 +113,23 @@ export function Seitentext({
 
   return (
     <>
-      <h1 className="font-serif text-[34px] leading-[1.08] text-ink sm:text-[42px]">{entry.title}</h1>
+      {/*
+        Die Bildnismarke steht **im** Titel und nicht daneben.
+
+        Ein eigener Kasten neben der Überschrift bräche, sobald ein langer
+        Name umbricht: Die Marke sässe dann neben der ersten Zeile und der
+        Name ginge unter ihr weiter. Inline steht sie immer hinter dem
+        letzten Wort – neben dem Namen, wo sie hingehört, und nicht neben
+        seinem Anfang.
+
+        Nur bei Figuren, und nur dort, wo Verweise überhaupt erlaubt sind:
+        Die Setzerei zeigt dieselbe Seite als Vorschau, und eine Vorschau
+        kann nirgendwohin führen.
+      */}
+      <h1 className="font-serif text-[34px] leading-[1.08] text-ink sm:text-[42px]">
+        {entry.title}
+        {verweise && entry.type === 'character' && <Bildnismarke entry={entry} />}
+      </h1>
       {entry.subtitle && (
         <p className="mt-1.5 font-serif text-[17px] italic leading-snug text-ink-muted">
           {entry.subtitle}
@@ -139,7 +157,7 @@ export function Seitentext({
       <span aria-hidden className="rule-gild mt-5 block w-24 opacity-70" />
 
       {entry.description && (
-        <div className="prose-book dropcap mt-6">
+        <div className={cx('prose-book mt-6', traegtInitiale(entry.description) && 'dropcap')}>
           {entry.description.split(/\n{2,}/).map((para, i) => (
             <p key={i}>{para}</p>
           ))}

@@ -36,6 +36,7 @@ import { EntdeckungenSheet } from './pages/book/Entdeckungen';
 import { ReiseSheet } from './pages/book/Reise';
 import { DruckSheet } from './pages/book/Druck';
 import { WeltkarteSheet } from './pages/book/Weltkarte';
+import { BlattverzeichnisSheet } from './pages/book/Blattverzeichnis';
 import { CharakterspiegelSheet } from './pages/book/Charakterspiegel';
 import { SpiegelSheet } from './pages/book/Spiegel';
 import { OwnershipSpread } from './pages/book/OwnershipSpread';
@@ -235,6 +236,7 @@ export default function App() {
           <Route path="/karte" element={<FoldOutMap />} />
           <Route path="/weltkarte" element={<WeltkarteSheet />} />
           <Route path="/register" element={<RegisterSheet />} />
+          <Route path="/blaetter" element={<BlattverzeichnisSheet />} />
           <Route path="/tafelteil" element={<PlatesSheet />} />
           <Route path="/zeitstrahl" element={<ZeitstrahlSheet />} />
           <Route path="/entdeckungen" element={<EntdeckungenSheet />} />

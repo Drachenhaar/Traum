@@ -11,7 +11,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { BookOpen, Copy, PenLine, Printer, ScanFace, Star, Trash2, Compass, Music } from 'lucide-react';
+import { BookOpen, Copy, PenLine, Printer, Star, Trash2, Compass, Music } from 'lucide-react';
 import type { Entry } from '../../types';
 import { Atmosphaerenwahl, Atmosphaerenzeichen } from '../../components/entry/Atmosphaere';
 import { useStudio, livingEntries } from '../../store/useStudio';
@@ -181,26 +181,19 @@ export function EntrySpread() {
               */}
               <Atmosphaerenzeichen entry={entry} />
               {/*
-                Der Weg zur Charakterseite.
+                Der Weg zur Charakterseite steht jetzt neben dem Namen.
 
-                Er steht bei den Zeichen und nicht unter „Mehr", weil er kein
-                seltener Handgriff ist, sondern die zweite Art, dieselbe Figur
-                anzusehen: hier der Eintrag im Band, dort das Gesicht mit
-                seiner Umgebung. Und er erscheint nur bei Figuren – ein Ort hat
-                keine Charakterseite, und ein Zeichen, das ins Leere führte,
-                wäre schlimmer als keines.
+                Hier stand ein kleines Gesicht-Zeichen in `text-ink-faint/35`,
+                zwischen Stern, Stift und „Mehr". Das war dieselbe Lautstärke
+                wie „bearbeiten" und „merken" – ein Handgriff unter
+                Handgriffen. Die Charakterseite ist aber kein Handgriff,
+                sondern die zweite Art, dieselbe Figur anzusehen.
+                Siehe `entry/Bildnismarke.tsx`.
+
+                Zwei Türen zur selben Seite in einer Kopfzeile wären eine zu
+                viel: Die eine nähme der anderen das Gewicht, und der Leser
+                fragte sich, worin sie sich unterscheiden.
               */}
-              {entry.type === 'character' && (
-                <button
-                  type="button"
-                  onClick={() => navigate(`/figur/${entry.id}`)}
-                  aria-label="Diese Figur ansehen"
-                  title="Die Figur ansehen"
-                  className="grid h-9 w-9 place-items-center text-ink-faint/35 transition-colors hover:text-gold-hell no-tap-highlight"
-                >
-                  <ScanFace size={15} />
-                </button>
-              )}
               {/*
                 Alles Seltene liegt gefaltet daneben.
 
