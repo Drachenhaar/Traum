@@ -31,6 +31,9 @@ import { Trash2 } from 'lucide-react';
 import { AppendixSheet } from './Appendix';
 import { useStudio, livingEntries } from '../../store/useStudio';
 import { Weltkarte, Werkzeugleiste, type Werkzeug } from '../../components/karte/Weltkarte';
+import { Relief } from '../../components/karte/Relief';
+import { stilImBand } from '../../lib/karte/stil';
+import { useBand } from '../../lib/raum/band';
 import {
   BEDEUTUNGEN,
   neueKarte,
@@ -69,6 +72,17 @@ function Karte() {
   const karte = karten[0] ?? entwurf ?? neueKarte(activeBookId ?? '');
 
   const [werkzeug, setWerkzeug] = useState<Werkzeug>('land');
+  /**
+   * Flach oder erhoben.
+   *
+   * Nicht gespeichert, und das ist Absicht: Die Frage „wie sehe ich sie
+   * gerade an" gehört zu diesem Augenblick, nicht zur Karte. Wer sie
+   * speicherte, bekäme sein Zeichenwerkzeug beim nächsten Aufschlagen unter
+   * einer Ansicht, in der man nicht zeichnen kann.
+   */
+  const [erhoben, setErhoben] = useState(false);
+  const dunkel = useBand();
+  const stil = stilImBand(karte?.styleId, dunkel);
   const [gewaehlt, setGewaehlt] = useState<string | undefined>();
   const [verlauf, setVerlauf] = useState<Kartenfeature[][]>([]);
 
@@ -135,24 +149,64 @@ function Karte() {
         mehr braucht eine Küste nicht, um eine zu sein.
       </p>
 
-      <Weltkarte
-        karte={karte}
-        onChange={aendere}
-        werkzeug={werkzeug}
-        gewaehlt={gewaehlt}
-        onWaehle={setGewaehlt}
-        namen={namen}
+      {erhoben ? (
+        <Relief karte={karte} stil={stil} namen={namen} />
+      ) : (
+        <Weltkarte
+          karte={karte}
+          onChange={aendere}
+          werkzeug={werkzeug}
+          gewaehlt={gewaehlt}
+          onWaehle={setGewaehlt}
+          namen={namen}
+        />
+      )}
+
+      {/*
+        Der Schalter steht **über** der Werkzeugleiste und nicht darin.
+
+        In der Leiste wäre er ein Werkzeug unter Werkzeugen – aber er malt
+        nicht, er ändert nichts, er wechselt die Ansicht. Ein Knopf, der neben
+        „Land", „Wasser" und „Wald" steht und etwas völlig anderes tut, wird
+        genau einmal aus Versehen gedrückt.
+      */}
+      <Blickwechsel
+        erhoben={erhoben}
+        onWechsel={(an) => {
+          setErhoben(an);
+          /*
+           * Beim Erheben die Auswahl fallen lassen.
+           *
+           * Sonst blieb die Karte „Diese Fläche" unter dem Relief stehen –
+           * mit Bedeutung, Seitenzuordnung und „Fläche entfernen", während
+           * oben nichts hervorgehoben war und man auch nichts wählen konnte.
+           * Ein Bedienfeld über einer Auswahl, die man nicht sieht, ist eine
+           * Falle: Der nächste Tipp auf „entfernen" trifft etwas, von dem man
+           * nicht weiss, was es ist.
+           */
+          if (an) setGewaehlt(undefined);
+        }}
       />
 
-      <Werkzeugleiste
-        werkzeug={werkzeug}
-        onWerkzeug={(w) => {
-          setWerkzeug(w);
-          if (w !== 'waehlen') setGewaehlt(undefined);
-        }}
-        kannZurueck={verlauf.length > 0}
-        onZurueck={zurueck}
-      />
+      {/*
+        Gemalt wird nur flach.
+
+        Auf einer isometrischen Ansicht zu zeichnen hiesse, den Finger in einer
+        Ebene zu führen und den Strich in einer anderen entstehen zu sehen. Die
+        Leiste verschwindet deshalb, statt wirkungslos dazustehen – ein
+        Werkzeug, das nichts tut, ist schlimmer als keines.
+      */}
+      {!erhoben && (
+        <Werkzeugleiste
+          werkzeug={werkzeug}
+          onWerkzeug={(w) => {
+            setWerkzeug(w);
+            if (w !== 'waehlen') setGewaehlt(undefined);
+          }}
+          kannZurueck={verlauf.length > 0}
+          onZurueck={zurueck}
+        />
+      )}
 
       {flaeche && (
         <section className="card mt-4 p-4">
@@ -218,6 +272,53 @@ function Karte() {
           </button>
         </section>
       )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------- Der Blickwechsel -- */
+
+/**
+ * Flach oder erhoben.
+ *
+ * Zwei Wörter, eine Linie darunter – dieselbe Bauart wie die Schrittfolge der
+ * Setzerei. Kein Schieberegler und kein Augensymbol: Ein Schieberegler
+ * verspricht ein Dazwischen, das es nicht gibt, und ein Auge sagt „ansehen",
+ * wo „so sehe ich sie gerade" gemeint ist.
+ *
+ * Und beide Wörter stehen immer da, auch das gerade gültige. Ein Knopf, der
+ * nur das *andere* zeigt, zwingt zum Nachdenken darüber, ob er den Zustand
+ * nennt oder das Ziel – die häufigste Art, einen Schalter unlesbar zu machen.
+ */
+function Blickwechsel({
+  erhoben,
+  onWechsel,
+}: {
+  erhoben: boolean;
+  onWechsel: (an: boolean) => void;
+}) {
+  return (
+    <div className="mt-3 flex items-center justify-center gap-1">
+      {[
+        { an: false, wort: 'Flach' },
+        { an: true, wort: 'Erhoben' },
+      ].map(({ an, wort }) => (
+        <button
+          key={wort}
+          type="button"
+          onClick={() => onWechsel(an)}
+          aria-pressed={erhoben === an}
+          data-blick={an ? 'erhoben' : 'flach'}
+          className={cx(
+            'min-h-[40px] border-b px-4 font-serif text-[14.5px] transition-colors no-tap-highlight',
+            erhoben === an
+              ? 'border-gild-500/70 text-gold'
+              : 'border-transparent text-ink-faint hover:text-ink-muted',
+          )}
+        >
+          {wort}
+        </button>
+      ))}
     </div>
   );
 }
