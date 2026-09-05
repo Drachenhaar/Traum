@@ -146,7 +146,8 @@ function Karte() {
     <div className="mx-auto max-w-2xl">
       <p className="mb-4 text-sm text-ink-muted">
         Male grob, was wo ist. Land, Wasser, Wald – mehr Bedeutungen gibt es noch nicht, und
-        mehr braucht eine Küste nicht, um eine zu sein.
+        mehr braucht eine Küste nicht, um eine zu sein. Mit der <em>Bucht</em> nimmst du
+        wieder weg: Sie frisst sich ins Land, wo du sie ziehst.
       </p>
 
       {erhoben ? (

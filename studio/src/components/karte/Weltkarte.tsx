@@ -44,6 +44,7 @@ import {
   type Punkt,
 } from '../../lib/karte/modell';
 import { flaecheAus } from '../../lib/karte/kontur';
+import { buchtZiehen } from '../../lib/karte/bucht';
 import { baeume } from '../../lib/karte/wald';
 import { neuerSeed } from '../../lib/karte/zufall';
 import { EBENEN, stilImBand } from '../../lib/karte/stil';
@@ -51,8 +52,26 @@ import { useBand } from '../../lib/raum/band';
 import { zeichneBaum } from './baumzeichnung';
 import { cx } from '../../lib/utils';
 
-/** Was der Finger gerade tut. `waehlen` schiebt und tippt an, sonst wird gemalt. */
-export type Werkzeug = Bedeutung | 'waehlen';
+/**
+ * Was der Finger gerade tut.
+ *
+ * `waehlen` schiebt und tippt an, eine Bedeutung malt – und `bucht` nimmt weg.
+ *
+ * ---
+ *
+ * **Warum das Wegnehmen ein eigenes Wort ist und keine Bedeutung.**
+ *
+ * Die naheliegende Lösung wäre ein Radiergummi gewesen: ein Werkzeug, das
+ * löscht, was es berührt. Ein Radiergummi kennt aber nur „weg" – er weiss
+ * nicht, ob gerade eine Küste entsteht oder ein Fehler verschwindet, und was
+ * er hinterlässt, ist ein Loch.
+ *
+ * Eine Bucht ist etwas anderes: Sie ist eine **Form**, die jemand zieht, und
+ * sie hinterlässt eine Küste. Deshalb läuft sie durch dieselben fünf Schritte
+ * wie das Malen und kommt als geschlossener Umriss zurück. Der Verfasser
+ * bekommt kein mächtigeres Werkzeug, sondern ein Wort mehr.
+ */
+export type Werkzeug = Bedeutung | 'waehlen' | 'bucht';
 
 interface Sicht {
   x: number;
@@ -271,6 +290,7 @@ export function Weltkarte({ karte, onChange, werkzeug, gewaehlt, onWaehle, namen
     if (!spur) return;
     setSpur(null);
     if (werkzeug === 'waehlen') return;
+    if (werkzeug === 'bucht') return bucht(spur);
 
     /*
      * Der Startwert wird *vor* dem Verfeinern gezogen und dann behalten.
@@ -286,6 +306,28 @@ export function Weltkarte({ karte, onChange, werkzeug, gewaehlt, onWaehle, namen
     const f: Kartenfeature = { ...neuesFeature(werkzeug, punkte), seed };
     onChange({ ...karte, features: [...karte.features, f] });
     onWaehle(f.id);
+  };
+
+  /**
+   * Eine Bucht ziehen.
+   *
+   * Die Regeln – wen sie trifft, wer den Namen behält, woran man erkennt,
+   * dass nichts geschah – stehen in `lib/karte/bucht.ts`. Hier bleibt nur,
+   * was dieses Bauteil angeht: die Pinselbreite aus der Sicht, und der eine
+   * Satz, der nichts durchreicht, wenn der Strich danebenging.
+   *
+   * Ohne Wirkung kein Schritt: Jeder Aufruf von `onChange` legt oben einen
+   * Eintrag im Rückgängig ab. Sonst müsste man dreimal „Zurücknehmen"
+   * drücken, um einen Strich zurückzunehmen, und niemand fände heraus, warum.
+   *
+   * Und nichts wird ausgewählt. Beim Malen zeigt die Auswahl auf das eben
+   * Entstandene – hier ist nichts entstanden, sondern etwas fortgenommen, und
+   * ein Bedienfeld, das danach auf irgendeine Fläche zeigt, sagt nur aus,
+   * welche das Verfahren zufällig zuerst gefunden hat.
+   */
+  const bucht = (gezogen: Punkt[]) => {
+    const features = buchtZiehen(karte.features, gezogen, pinsel(sicht));
+    if (features) onChange({ ...karte, features });
   };
 
   const zurueckSetzen = () => setSicht(GANZ);
@@ -361,13 +403,29 @@ export function Weltkarte({ karte, onChange, werkzeug, gewaehlt, onWaehle, namen
             );
           })}
 
-          {/* Was gerade unter dem Finger entsteht. */}
+          {/*
+            Was gerade unter dem Finger entsteht.
+
+            Die Bucht in Wasserton und nicht in Entwurfsgold – sie ist der
+            einzige Strich, der etwas *wegnimmt*, und der Unterschied muss
+            schon während des Ziehens sichtbar sein. Wer erst beim Loslassen
+            merkt, dass er im falschen Werkzeug war, hat seine Küste verloren
+            und muss sie über „Zurücknehmen" suchen.
+
+            **Aber die Wasserlinie, nicht die Wasserfläche.** Der erste Anlauf
+            nahm `wasser.flaeche` – und das ist ein Ton, der auf einer halben
+            Seite ruhig sein soll. Über Land gerechnet blieben davon 13, 1, 12
+            Farbstufen Unterschied übrig; die Entwurfsfarbe bringt 32, 44, 67.
+            Der Strich war da und man sah ihn kaum. Bedeutung gegen Lesbarkeit
+            zu tauschen ist ein schlechter Tausch, wenn beides zu haben ist:
+            `wasser.linie` ist derselbe kühle Ton, nur kräftig genug.
+          */}
           {spur && spur.length > 1 && (
             <polyline
               points={spur.map(([x, y]) => `${x},${y}`).join(' ')}
               fill="none"
-              stroke={stil.entwurf}
-              strokeOpacity={0.45}
+              stroke={werkzeug === 'bucht' ? stil.wasser.linie : stil.entwurf}
+              strokeOpacity={werkzeug === 'bucht' ? 0.75 : 0.45}
               strokeWidth={pinsel(sicht) * 2}
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -433,7 +491,14 @@ export function Weltkarte({ karte, onChange, werkzeug, gewaehlt, onWaehle, namen
 
         {karte.features.length === 0 && !spur && (
           <p className="pointer-events-none absolute inset-x-6 bottom-6 text-center text-sm text-ink-muted">
-            Mal einen Fleck. Zwei Finger verschieben.
+            {/*
+              Auf der leeren Karte hat die Bucht nichts, worin sie liegen
+              könnte. Das gehört gesagt: Ein Werkzeug, das auf einen Strich
+              schweigt, sieht kaputt aus.
+            */}
+            {werkzeug === 'bucht'
+              ? 'Eine Bucht braucht eine Küste. Male zuerst Land.'
+              : 'Mal einen Fleck. Zwei Finger verschieben.'}
           </p>
         )}
       </div>
@@ -457,6 +522,35 @@ export function Weltkarte({ karte, onChange, werkzeug, gewaehlt, onWaehle, namen
  * Vier Knöpfe und ein Rückgängig – mehr nicht. Jede Erweiterung dieser Leiste
  * ist der Anfang eines Kartenprogramms, und Dragoncore baut kein
  * Kartenprogramm.
+ *
+ * ---
+ *
+ * **Zwei Reihen, und die Trennung ist die Reihe selbst.**
+ *
+ *   oben   ansehen und hinzufügen  – Ansehen, Land, Wasser, Wald
+ *   unten  wegnehmen und zurück    – Bucht, Zurücknehmen
+ *
+ * Ein Knopf, der neben seinen Nachbarn steht und etwas grundsätzlich anderes
+ * tut, wird genau einmal aus Versehen gedrückt – auf einem Telefon liegen sie
+ * acht Punkte auseinander. Und die Bucht ist genau so ein Knopf: Sie sieht aus
+ * wie „Wald", verhält sich aber wie „Zurücknehmen".
+ *
+ * Der erste Versuch setzte einen senkrechten Strich dazwischen und liess die
+ * Leiste weiter umbrechen, wie sie wollte. Auf 390 Punkten Breite brach sie
+ * mitten in der ersten Gruppe um: „Ansehen Land Wasser" / „Wald │ Bucht
+ * Zurücknehmen". Der Strich stand da und trennte nichts – „Wald" war von
+ * seinen eigenen Nachbarn abgeschnitten, und die Trennung, die er anzeigte,
+ * lief quer zur Trennung, die man sah. Gesehen hat das erst der Blick auf das
+ * gerenderte Bild; im Quelltext stand der Strich an der richtigen Stelle.
+ *
+ * Jetzt sind es zwei erklärte Reihen. Der Umbruch ist keine Folge der
+ * Bildschirmbreite mehr, sondern die Aussage selbst.
+ *
+ * **Und deshalb `px-3.5` statt `px-4`.** Gemessen: Die vier Knöpfe der oberen
+ * Reihe sind bei `px-4` zusammen 324 Punkte breit, der Platz beträgt 322. Zwei
+ * Punkte, und die Reihe bräche wieder mitten hinein – die Trennung wäre so
+ * unlesbar wie vorher. Zwei Punkte weniger Polsterung je Seite lösen das mit
+ * vierzehn Punkten Luft.
  */
 export function Werkzeugleiste({
   werkzeug,
@@ -476,7 +570,7 @@ export function Werkzeugleiste({
       onClick={() => onWerkzeug(id)}
       aria-pressed={werkzeug === id}
       className={cx(
-        'touch-target rounded-full border px-4 text-sm',
+        'touch-target rounded-full border px-3.5 text-sm',
         werkzeug === id
           ? 'border-brass-500 bg-brass-500 text-paper-50'
           : 'border-line bg-cream-50 text-ink-muted',
@@ -487,28 +581,33 @@ export function Werkzeugleiste({
   );
 
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-2">
-      {knopf('waehlen', 'Ansehen')}
-      {BEDEUTUNGEN.map((b) => knopf(b.id, b.name))}
-      <button
-        type="button"
-        onClick={onZurueck}
-        disabled={!kannZurueck}
-        className="touch-target ml-auto flex items-center gap-1 rounded-full border border-line bg-cream-50 px-4 text-sm text-ink-muted disabled:opacity-40"
-      >
-        <Undo2 size={16} aria-hidden />
-        {/*
-          „Zurücknehmen" und nicht „Zurück".
+    <div className="mt-3 space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {knopf('waehlen', 'Ansehen')}
+        {BEDEUTUNGEN.map((b) => knopf(b.id, b.name))}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {knopf('bucht', 'Bucht')}
+        <button
+          type="button"
+          onClick={onZurueck}
+          disabled={!kannZurueck}
+          className="touch-target ml-auto flex items-center gap-1 rounded-full border border-line bg-cream-50 px-4 text-sm text-ink-muted disabled:opacity-40"
+        >
+          <Undo2 size={16} aria-hidden />
+          {/*
+            „Zurücknehmen" und nicht „Zurück".
 
-          Auf jedem Anhangsblatt steht unten „Zurück zu den Anhängen". Zwei
-          Knöpfe, die beide mit demselben Wort beginnen und von denen einer die
-          Seite verlässt und der andere einen Strich löscht – das ist keine
-          Kleinigkeit, sondern der Unterschied zwischen „ich nehme das zurück"
-          und „meine Karte ist weg". Gefunden hat es der eigene Testlauf, der
-          nach „Zurück" suchte und beim falschen Knopf landete.
-        */}
-        Zurücknehmen
-      </button>
+            Auf jedem Anhangsblatt steht unten „Zurück zu den Anhängen". Zwei
+            Knöpfe, die beide mit demselben Wort beginnen und von denen einer
+            die Seite verlässt und der andere einen Strich löscht – das ist
+            keine Kleinigkeit, sondern der Unterschied zwischen „ich nehme das
+            zurück" und „meine Karte ist weg". Gefunden hat es der eigene
+            Testlauf, der nach „Zurück" suchte und beim falschen Knopf landete.
+          */}
+          Zurücknehmen
+        </button>
+      </div>
     </div>
   );
 }
