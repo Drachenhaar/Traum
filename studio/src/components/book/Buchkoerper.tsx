@@ -48,7 +48,28 @@ export function Buchkoerper({
   const block = 3 + dicke * 9;
 
   return (
-    <div className={cx('dc-buchkoerper relative flex min-h-0 flex-1', className)}>
+    <div
+      /*
+       * `min-w-0` neben `min-h-0`, und das ist kein Paar aus Symmetrie.
+       *
+       * Ein Flex-Kind hat von sich aus `min-width: auto` – es darf **nie**
+       * schmaler werden als der schmalste Inhalt, den es trägt. Für den
+       * Buchkörper heisst das: Ein einziges Blatt mit einer langen
+       * unumbrechbaren Zeile drückt den ganzen Band auseinander, über den
+       * Bildschirmrand hinaus, und alles darin wird rechts abgeschnitten.
+       *
+       * Gemessen auf der Chronik: Der Buchkörper stand mit 424 Punkten in
+       * einem Fenster von 390, achtundzwanzig Elemente ragten hinaus, und im
+       * Bild fehlten das Ende eines Satzes und ein ganzer Knopf. Mit dieser
+       * einen Angabe: 390 Punkte, nichts hinaus.
+       *
+       * Sie steht hier und nicht auf dem Blatt, weil sie nicht die Chronik
+       * betrifft, sondern jedes Blatt, das je in dieses Buch gelegt wird. Wer
+       * sie am Fundort repariert hätte, hätte einen von fünfzehn Fällen
+       * repariert und die anderen vierzehn auf später vertagt.
+       */
+      className={cx('dc-buchkoerper relative flex min-h-0 min-w-0 flex-1', className)}
+    >
       {/*
         Die Seitenkanten rechts – der Rest des Buches.
 
