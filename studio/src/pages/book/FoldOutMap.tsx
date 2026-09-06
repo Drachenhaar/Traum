@@ -11,7 +11,7 @@
  * bleibt jeder Stern, wo er ist, und nur der Blick geht.
  */
 
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { useStudio, livingEntries } from '../../store/useStudio';
@@ -20,8 +20,11 @@ import {
   achsen,
   anDenHimmel,
   aufDenSchirm,
+  ausgerollt,
   begrenzen,
   brennweite,
+  gedeckelt,
+  nachgleiten,
   imBild,
   milchstrasse,
   nachHelligkeit,
@@ -32,6 +35,7 @@ import {
   SICHTFELD,
   type Blick,
   type Richtung,
+  type Schwung,
 } from '../../lib/himmel';
 import {
   einpassen,
@@ -116,6 +120,15 @@ const LINIE_RUHT = 0.16;
 
 /** Wie weit ein Finger wandern darf, damit es noch ein Antippen ist. */
 const TIPP_WEITE = 7;
+
+/**
+ * Über welche Zeitspanne der Schwung beim Loslassen gemessen wird.
+ *
+ * Wer eine Sekunde lang zieht und am Ende innehält, hat losgelassen und
+ * nicht geschubst. Über den ganzen Zug gemittelt käme trotzdem ein Schwung
+ * heraus, und die Karte liefe einem unter der Hand davon.
+ */
+const SCHWUNGFENSTER = 100;
 
 /** Wie weit eine Pfeiltaste den Blick dreht. */
 const TASTENSCHRITT = (7 * Math.PI) / 180;
@@ -293,10 +306,21 @@ export function FoldOutMap() {
   const [blick, setBlick] = useState<Blick>({ gier: 0, neigung: 0 });
   /** Wo der Blick zuletzt zur Ruhe kam – dort werden die Namen gesetzt. */
   const [ruhe, setRuhe] = useState<Blick>({ gier: 0, neigung: 0 });
-  const [zieht, setZieht] = useState(false);
+  /** Ob der Blick gerade wandert – gezogen oder nachgleitend. */
+  const [wandert, setWandert] = useState(false);
   /** Ob seit dem Aufsetzen des Fingers wirklich gezogen wurde. */
   const gezogen = useRef(false);
   const start = useRef<{ x: number; y: number; blick: Blick } | null>(null);
+  /**
+   * Die letzten Bewegungen, für den Schwung beim Loslassen.
+   *
+   * Nur die letzte Zehntelsekunde zählt. Wer eine Sekunde lang zieht und am
+   * Ende innehält, hat losgelassen und nicht geschubst – über den ganzen Zug
+   * gemittelt käme trotzdem ein Schwung heraus, und die Karte liefe einem
+   * unter der Hand davon.
+   */
+  const spur = useRef<{ t: number; x: number; y: number }[]>([]);
+  const gleitet = useRef<number | null>(null);
 
   /*
    * Wie weit ein Bildpunkt den Blick dreht.
@@ -309,12 +333,79 @@ export function FoldOutMap() {
    */
   const jeSchritt = rahmen ? SICHTFELD / rahmen.hoehe : 0;
 
+  const anhalten = useCallback(() => {
+    if (gleitet.current !== null) {
+      cancelAnimationFrame(gleitet.current);
+      gleitet.current = null;
+    }
+  }, []);
+
+  /* Was noch gleitet, wenn die Seite verlassen wird, soll nicht weiterlaufen. */
+  useEffect(() => anhalten, [anhalten]);
+
   const dreh = useCallback(
     (dGier: number, dNeigung: number) => {
       if (!layout) return;
+      anhalten();
       setBlick((alt) =>
         begrenzen({ gier: alt.gier + dGier, neigung: alt.neigung + dNeigung }, layout.weite),
       );
+    },
+    [layout, anhalten],
+  );
+
+  /**
+   * Das Nachgleiten.
+   *
+   * Der Blick rollt aus, statt beim Loslassen stehenzubleiben – so, wie ein
+   * Ding mit Gewicht sich anfühlt. Drei Dinge machen es brauchbar statt
+   * bloss hübsch:
+   *
+   * Am Anschlag wird der Schwung in *dieser* Achse auf null gesetzt. Sonst
+   * schöbe der Rest des Schwungs weiter gegen eine Wand, und der Blick
+   * stünde sekundenlang still, obwohl er noch »in Bewegung« ist.
+   *
+   * Wer den Himmel anfasst, hält ihn an. Das ist die Bewegung, die man von
+   * jedem Ding erwartet, das man greifen kann.
+   *
+   * Und wer im Betriebssystem weniger Bewegung verlangt hat, bekommt kein
+   * Gleiten. Ziehen ist unmittelbare Handbewegung und bleibt; das
+   * Nachlaufen danach ist es nicht.
+   */
+  const gleiten = useCallback(
+    (schwung0: Schwung) => {
+      if (!layout) return;
+      if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+        setWandert(false);
+        return;
+      }
+      let schwung = gedeckelt(schwung0);
+      if (ausgerollt(schwung)) {
+        setWandert(false);
+        return;
+      }
+      let vorher = performance.now();
+      const schritt = (jetzt: number) => {
+        const dt = Math.min((jetzt - vorher) / 1000, 0.05);
+        vorher = jetzt;
+        setBlick((alt) => {
+          const gewandert = nachgleiten(alt, schwung, dt);
+          const gehalten = begrenzen(gewandert.blick, layout.weite);
+          schwung = {
+            /* Am Anschlag ist der Schwung dieser Achse aufgebraucht. */
+            gier: gehalten.gier === gewandert.blick.gier ? gewandert.schwung.gier : 0,
+            neigung: gehalten.neigung === gewandert.blick.neigung ? gewandert.schwung.neigung : 0,
+          };
+          return gehalten;
+        });
+        if (ausgerollt(schwung)) {
+          gleitet.current = null;
+          setWandert(false);
+          return;
+        }
+        gleitet.current = requestAnimationFrame(schritt);
+      };
+      gleitet.current = requestAnimationFrame(schritt);
     },
     [layout],
   );
@@ -334,8 +425,11 @@ export function FoldOutMap() {
    */
   const aufsetzen = (e: React.PointerEvent<SVGSVGElement>) => {
     if (!layout) return;
+    anhalten();
+    setWandert(false);
     gezogen.current = false;
     start.current = { x: e.clientX, y: e.clientY, blick };
+    spur.current = [{ t: performance.now(), x: e.clientX, y: e.clientY }];
   };
 
   const bewegen = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -343,10 +437,12 @@ export function FoldOutMap() {
     if (!s || !layout) return;
     const dx = e.clientX - s.x;
     const dy = e.clientY - s.y;
+    spur.current.push({ t: performance.now(), x: e.clientX, y: e.clientY });
+    if (spur.current.length > 12) spur.current.shift();
     if (!gezogen.current && Math.hypot(dx, dy) < TIPP_WEITE) return;
     if (!gezogen.current) {
       gezogen.current = true;
-      setZieht(true);
+      setWandert(true);
       /* Ab jetzt gehören die Ereignisse dem Feld, auch ausserhalb davon. */
       e.currentTarget.setPointerCapture(e.pointerId);
     }
@@ -369,10 +465,23 @@ export function FoldOutMap() {
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       e.currentTarget.releasePointerCapture(e.pointerId);
     }
-    if (gezogen.current) {
-      setZieht(false);
-      setRuhe(blick);
-    }
+    if (!gezogen.current) return;
+
+    /* Der Schwung aus der letzten Zehntelsekunde. */
+    const jetzt = performance.now();
+    const frisch = spur.current.filter((p) => jetzt - p.t <= SCHWUNGFENSTER);
+    const a = frisch[0];
+    const b = frisch[frisch.length - 1];
+    const dauer = a && b ? (b.t - a.t) / 1000 : 0;
+    const schwung: Schwung =
+      dauer > 0.008
+        ? {
+            gier: (-(b.x - a.x) / dauer) * jeSchritt,
+            neigung: ((b.y - a.y) / dauer) * jeSchritt,
+          }
+        : { gier: 0, neigung: 0 };
+    spur.current = [];
+    gleiten(schwung);
   };
 
   const taste = (e: React.KeyboardEvent<SVGSVGElement>) => {
@@ -388,10 +497,10 @@ export function FoldOutMap() {
     dreh(s[0], s[1]);
   };
 
-  /* Nach dem Drehen per Taste kommt der Blick sofort zur Ruhe. */
+  /* Sobald der Blick steht – gezogen oder ausgerollt –, werden die Namen gesetzt. */
   useLayoutEffect(() => {
-    if (!zieht) setRuhe(blick);
-  }, [blick, zieht]);
+    if (!wandert) setRuhe(blick);
+  }, [blick, wandert]);
 
   /* -------------------------------------------------------- Projizieren -- */
 
@@ -593,7 +702,7 @@ export function FoldOutMap() {
               className={cx(
                 'h-full w-full touch-none outline-none',
                 'focus-visible:outline focus-visible:outline-1 focus-visible:-outline-offset-2 focus-visible:outline-gild-400/50',
-                zieht ? 'cursor-grabbing' : 'cursor-grab',
+                wandert ? 'cursor-grabbing' : 'cursor-grab',
               )}
               preserveAspectRatio="xMidYMid slice"
               role="application"
@@ -729,7 +838,7 @@ export function FoldOutMap() {
               */}
               <g
                 className="pointer-events-none"
-                opacity={zieht ? 0 : 1}
+                opacity={wandert ? 0 : 1}
                 style={{ transition: 'opacity 220ms ease' }}
               >
                 {imBlick.map((stern) => {

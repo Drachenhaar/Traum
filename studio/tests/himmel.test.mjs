@@ -37,6 +37,10 @@ const {
   aufDenSchirm,
   brennweite,
   begrenzen,
+  nachgleiten,
+  ausgerollt,
+  gedeckelt,
+  GLEITEN,
   sternenhimmel,
   milchstrasse,
   imBild,
@@ -307,6 +311,73 @@ pruefe('am Anschlag steht der äusserste Stern in der Mitte', () => {
 pruefe('innerhalb der Grenzen wird nichts verbogen', () => {
   const weite = { waagerecht: 1, senkrecht: 0.6 };
   assert.deepEqual(begrenzen({ gier: 0.3, neigung: -0.2 }, weite), { gier: 0.3, neigung: -0.2 });
+});
+
+/* ---------------------------------------------------------- Ausrollen -- */
+
+pruefe('der Blick kommt von selbst zur Ruhe', () => {
+  let blick = { gier: 0, neigung: 0 };
+  let schwung = { gier: 2, neigung: -1 };
+  let schritte = 0;
+  while (!ausgerollt(schwung) && schritte < 10000) {
+    ({ blick, schwung } = nachgleiten(blick, schwung, 1 / 60));
+    schritte++;
+  }
+  assert.ok(ausgerollt(schwung), 'es rollt und rollt und rollt');
+  assert.ok(schritte < 60 * 3, `${schritte} Schritte – das sind ${(schritte / 60).toFixed(1)} Sekunden`);
+  assert.ok(schritte > 10, `nach ${schritte} Schritten schon still – das ist kein Gleiten`);
+});
+
+/*
+ * Die Eigenschaft, wegen der mit dem genauen Integral gerechnet wird.
+ *
+ * Ein Abzug je Bild hinge an der Bildrate: Derselbe Schubs trüge auf einem
+ * Gerät mit 120 Bildern in der Sekunde halb so weit wie auf einem mit 60.
+ */
+pruefe('das Gleiten hängt nicht an der Bildrate', () => {
+  const rollen = (bilder) => {
+    let blick = { gier: 0, neigung: 0 };
+    let schwung = { gier: 3, neigung: 1.5 };
+    for (let i = 0; i < bilder * 2; i++) {
+      ({ blick, schwung } = nachgleiten(blick, schwung, 1 / bilder));
+    }
+    return blick;
+  };
+  const bei30 = rollen(30);
+  const bei60 = rollen(60);
+  const bei120 = rollen(120);
+  assert.ok(Math.abs(bei30.gier - bei120.gier) < 1e-12, `${bei30.gier} gegen ${bei120.gier}`);
+  assert.ok(Math.abs(bei60.neigung - bei120.neigung) < 1e-12);
+});
+
+pruefe('die ganze Strecke ist Geschwindigkeit mal Zeitkonstante', () => {
+  /* Damit man ausrechnen kann, wie weit ein Schubs trägt. */
+  let blick = { gier: 0, neigung: 0 };
+  let schwung = { gier: 4, neigung: 0 };
+  for (let i = 0; i < 6000; i++) ({ blick, schwung } = nachgleiten(blick, schwung, 1 / 1000));
+  assert.ok(
+    Math.abs(blick.gier - 4 * GLEITEN.zeit) < 1e-6,
+    `${blick.gier.toFixed(6)} statt ${(4 * GLEITEN.zeit).toFixed(6)}`,
+  );
+});
+
+pruefe('ohne Schwung bewegt sich nichts', () => {
+  const { blick, schwung } = nachgleiten({ gier: 0.3, neigung: -0.2 }, { gier: 0, neigung: 0 }, 1 / 60);
+  assert.deepEqual(blick, { gier: 0.3, neigung: -0.2 });
+  assert.ok(ausgerollt(schwung));
+});
+
+pruefe('ein wilder Schubs wird gedeckelt, seine Richtung bleibt', () => {
+  const wild = { gier: 40, neigung: -30 };
+  const zahm = gedeckelt(wild);
+  assert.ok(Math.abs(Math.hypot(zahm.gier, zahm.neigung) - GLEITEN.hoechstens) < 1e-12);
+  /* Dieselbe Richtung: das Kreuzprodukt verschwindet, das Skalarprodukt ist positiv. */
+  assert.ok(Math.abs(wild.gier * zahm.neigung - wild.neigung * zahm.gier) < 1e-9);
+  assert.ok(wild.gier * zahm.gier + wild.neigung * zahm.neigung > 0);
+  /* Und ein zahmer Schubs bleibt unangetastet. */
+  const sanft = { gier: 0.7, neigung: 0.2 };
+  assert.deepEqual(gedeckelt(sanft), sanft);
+  assert.deepEqual(gedeckelt({ gier: 0, neigung: 0 }), { gier: 0, neigung: 0 });
 });
 
 /* =======================================================================

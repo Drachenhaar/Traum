@@ -223,6 +223,84 @@ export function begrenzen(blick: Blick, weite: { waagerecht: number; senkrecht: 
   };
 }
 
+/* -------------------------------------------------------- Nachgleiten -- */
+
+/** Wie schnell sich der Blick gerade dreht, im Bogenmass je Sekunde. */
+export interface Schwung {
+  gier: number;
+  neigung: number;
+}
+
+export interface Gleitmass {
+  /**
+   * Die Zeitkonstante, in Sekunden.
+   *
+   * Sie sagt zweierlei zugleich, und das ist das Angenehme an einem
+   * Ausrollen dieser Art: Nach `zeit` Sekunden ist noch ein Drittel der
+   * Geschwindigkeit übrig, und die insgesamt noch zurückgelegte Strecke ist
+   * genau `Geschwindigkeit · zeit`. Man kann also ausrechnen, wie weit ein
+   * Schubs trägt, statt es auszuprobieren: Ein zügiger Wisch kommt auf gut
+   * vier Bogenmass je Sekunde, mal 0.18 sind das noch etwa vierzig Grad.
+   */
+  zeit: number;
+  /** Unter dieser Geschwindigkeit steht der Blick still. */
+  ruhe: number;
+  /** Schneller als das wird nicht geschubst. */
+  hoechstens: number;
+}
+
+export const GLEITEN: Gleitmass = { zeit: 0.18, ruhe: 0.02, hoechstens: 6 };
+
+/**
+ * Einen Schritt des Nachgleitens.
+ *
+ * `dt` in Sekunden. Zurück kommt, wo der Blick dann steht und wie schnell
+ * er sich noch dreht.
+ *
+ * Gerechnet wird mit `exp(−dt/zeit)` und dem **genauen** Integral dazu,
+ * nicht mit einem Abzug je Bild. Der Unterschied ist keine Feinheit: Ein
+ * Abzug je Bild hinge an der Bildrate, und derselbe Schubs trüge auf einem
+ * Gerät mit 120 Bildern halb so weit wie auf einem mit 60. So ist das
+ * Ergebnis von der Bildrate unabhängig – zwei halbe Schritte kommen genau
+ * dorthin, wo ein ganzer hinkommt.
+ */
+export function nachgleiten(
+  blick: Blick,
+  schwung: Schwung,
+  dt: number,
+  mass: Gleitmass = GLEITEN,
+): { blick: Blick; schwung: Schwung } {
+  const zerfall = Math.exp(-dt / mass.zeit);
+  const weg = mass.zeit * (1 - zerfall);
+  return {
+    blick: {
+      gier: blick.gier + schwung.gier * weg,
+      neigung: blick.neigung + schwung.neigung * weg,
+    },
+    schwung: { gier: schwung.gier * zerfall, neigung: schwung.neigung * zerfall },
+  };
+}
+
+/** Steht der Blick still genug, dass man aufhören kann zu rechnen? */
+export function ausgerollt(schwung: Schwung, mass: Gleitmass = GLEITEN): boolean {
+  return Math.hypot(schwung.gier, schwung.neigung) < mass.ruhe;
+}
+
+/**
+ * Einen Schubs auf ein vernünftiges Mass bringen.
+ *
+ * Ein sehr schneller Wisch – oder ein Messfehler von zwei Punkten in zwei
+ * Millisekunden – ergäbe sonst einen Schwung, der den Blick quer über den
+ * ganzen Himmel schleudert. Die Richtung bleibt, nur der Betrag wird
+ * gedeckelt.
+ */
+export function gedeckelt(schwung: Schwung, mass: Gleitmass = GLEITEN): Schwung {
+  const betrag = Math.hypot(schwung.gier, schwung.neigung);
+  if (betrag <= mass.hoechstens || betrag === 0) return schwung;
+  const f = mass.hoechstens / betrag;
+  return { gier: schwung.gier * f, neigung: schwung.neigung * f };
+}
+
 /* =======================================================================
  * 3 · DER HIMMEL DAHINTER
  * ==================================================================== */
