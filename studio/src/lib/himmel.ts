@@ -373,6 +373,35 @@ export function imBild(
 }
 
 /**
+ * Wie stark eine Verbindungslinie dieser Länge noch zu sehen ist.
+ *
+ * Das Problem, das damit gemeint ist: Man sieht immer nur einen Ausschnitt
+ * der Kugel. Eine Verbindung zu einem Stern weit ausserhalb des Bildes
+ * durchquert dann das ganze Bild, ohne dass beide Enden zu sehen wären –
+ * sie zeigt keinen Zusammenhang mehr, sie ist nur noch ein Streifen. Die
+ * kurzen Linien dagegen zeigen genau das, wofür die Karte da ist.
+ *
+ * Deshalb verblassen lange Linien. Das ist kein Verstecken: Was verblasst,
+ * kommt beim Antippen des Sterns in voller Stärke zurück, und wie viele
+ * Linien es insgesamt gibt, steht im Kopf der Seite.
+ *
+ * Der weiche Übergang (`3x² − 2x³`) ist nicht Zierde: Beim Umsehen ändert
+ * sich die Länge einer Linie fortwährend. An einer harten Schwelle würden
+ * Linien beim Wischen an- und ausgehen.
+ */
+const NAH = 0.3;
+const FERN = 0.85;
+
+export function verblassen(laenge: number, diagonale: number): number {
+  if (diagonale <= 0) return 1;
+  const t = laenge / diagonale;
+  if (t <= NAH) return 1;
+  if (t >= FERN) return 0;
+  const x = (t - NAH) / (FERN - NAH);
+  return 1 - x * x * (3 - 2 * x);
+}
+
+/**
  * Viele Punkte in **einem** Pfad.
  *
  * Tausend `<circle>` sind tausend Knoten im Dokument, und der Browser muss

@@ -40,6 +40,7 @@ const {
   sternenhimmel,
   milchstrasse,
   imBild,
+  verblassen,
   punktePfad,
   nachHelligkeit,
   saatAus,
@@ -472,6 +473,72 @@ pruefe('wer sich umdreht, sieht andere Sterne', () => {
   const doppelt = dort.filter((p) => gleich.has(`${p.x},${p.y}`)).length;
   assert.equal(doppelt, 0, `${doppelt} Sterne stehen nach dem Umsehen an derselben Stelle`);
   assert.ok(dort.length > 50, `nach dem Umsehen nur ${dort.length} Sterne – da ist ein Loch`);
+});
+
+/*
+ * Lange Linien verblassen.
+ *
+ * Der Grund ist nicht Geschmack: Man sieht immer nur einen Ausschnitt der
+ * Kugel, und eine Verbindung zu einem Stern weit ausserhalb durchquert das
+ * ganze Bild, ohne dass beide Enden zu sehen wären.
+ */
+pruefe('kurze Linien bleiben, lange verschwinden', () => {
+  const d = 700;
+  assert.equal(verblassen(0, d), 1, 'eine Linie ohne Länge ist voll da');
+  assert.equal(verblassen(0.2 * d, d), 1, 'eine kurze Linie wird angetastet');
+  assert.equal(verblassen(0.95 * d, d), 0, 'eine sehr lange Linie ist noch zu sehen');
+  assert.ok(verblassen(0.5 * d, d) > 0 && verblassen(0.5 * d, d) < 1, 'dazwischen liegt nichts');
+});
+
+pruefe('das Verblassen ist stetig und geht nie zurück', () => {
+  const d = 700;
+  let vorher = 1.0001;
+  for (let l = 0; l <= d; l += d / 400) {
+    const jetzt = verblassen(l, d);
+    assert.ok(jetzt <= vorher + 1e-12, `bei ${l.toFixed(0)}: ${jetzt} nach ${vorher}`);
+    /*
+     * Und ohne Sprung: Beim Umsehen ändert sich die Länge einer Linie
+     * fortwährend. An einer harten Schwelle gingen Linien beim Wischen an
+     * und aus. Ein Schritt von einem Vierhundertstel darf höchstens ein
+     * Hundertstel Deckkraft kosten.
+     */
+    assert.ok(vorher - jetzt < 0.011, `Sprung von ${vorher} auf ${jetzt} bei ${l.toFixed(0)}`);
+    vorher = jetzt;
+  }
+  assert.equal(vorher, 0);
+});
+
+/*
+ * Das Verblassen setzt sanft ein und hört sanft auf.
+ *
+ * Eine gerade Rampe wäre auch stetig und ginge auch nie zurück – die beiden
+ * Prüfungen oben schlagen bei ihr nicht an, das wurde ausprobiert. Sie hat
+ * aber an ihrem Anfang und ihrem Ende einen Knick: Das Verblassen beginnt
+ * und endet dort schlagartig, und beim Umsehen sieht man genau das. Was
+ * `3x² − 2x³` besser kann, ist deshalb nicht die Stetigkeit, sondern die
+ * Steigung an den Rändern – und das ist zu messen.
+ */
+pruefe('das Verblassen beginnt und endet sanft', () => {
+  const d = 700;
+  const schritt = d / 600;
+  const stufen = [];
+  for (let l = 0; l < d; l += schritt) {
+    stufen.push({ t: l / d, ab: verblassen(l, d) - verblassen(l + schritt, d) });
+  }
+  const groesste = Math.max(...stufen.map((s) => s.ab));
+  const nahAmAnfang = stufen.filter((s) => s.t > 0.31 && s.t < 0.36);
+  const nahAmEnde = stufen.filter((s) => s.t > 0.79 && s.t < 0.84);
+  for (const [wo, menge] of [['Anfang', nahAmAnfang], ['Ende', nahAmEnde]]) {
+    const dort = Math.max(...menge.map((s) => s.ab));
+    assert.ok(
+      dort < groesste * 0.5,
+      `am ${wo} fällt es mit ${dort.toFixed(5)} fast so steil wie in der Mitte (${groesste.toFixed(5)})`,
+    );
+  }
+});
+
+pruefe('ohne Bildfeld wird nichts verblasst', () => {
+  assert.equal(verblassen(100, 0), 1);
 });
 
 pruefe('der Pfad enthält jeden Punkt und nichts sonst', () => {

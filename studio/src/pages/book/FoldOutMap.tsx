@@ -28,6 +28,7 @@ import {
   punktePfad,
   saatAus,
   sternenhimmel,
+  verblassen,
   SICHTFELD,
   type Blick,
   type Richtung,
@@ -101,6 +102,17 @@ const HIMMELSSTERNE = 9000;
 
 /** Und wie viele davon im Band stehen. */
 const BANDSTERNE = 6000;
+
+/**
+ * Wie stark die Verbindungslinien im Ruhezustand stehen.
+ *
+ * Der Wert ist klein, und er ist es mit Absicht: Im Bild liegen leicht
+ * achtzig Linien, und in voller Stärke bilden sie ein Netz, durch das man
+ * die Sterne nicht mehr sieht. So schwach sind sie ein Gewebe im
+ * Hintergrund – man sieht, *dass* da Ordnung ist, ohne sie lesen zu
+ * müssen. Wer sie lesen will, tippt einen Stern an.
+ */
+const LINIE_RUHT = 0.16;
 
 /** Wie weit ein Finger wandern darf, damit es noch ein Antippen ist. */
 const TIPP_WEITE = 7;
@@ -384,6 +396,8 @@ export function FoldOutMap() {
   /* -------------------------------------------------------- Projizieren -- */
 
   const f = rahmen ? brennweite(rahmen.hoehe / 2) : 1;
+  /* Das Mass, an dem sich »lang« bemisst. */
+  const diagonale = rahmen ? Math.hypot(rahmen.breite, rahmen.hoehe) : 1;
   const sichtachsen = useMemo(() => achsen(blick), [blick]);
 
   /** Die Sterne der Welt, wie sie jetzt im Bild stehen. */
@@ -613,6 +627,19 @@ export function FoldOutMap() {
               {/*
                 Die Verbindungen.
 
+                Sehr zurückhaltend, und das ist der Punkt: Achtundsiebzig
+                Linien in voller Stärke waren ein Netz, durch das man die
+                Sterne nicht mehr sah. Sie ganz wegzulassen wäre die andere
+                Möglichkeit gewesen – dann zeigt die Karte aber keinen
+                Zusammenhang mehr, und genau dafür ist sie da. Also so
+                schwach, dass man sie erst sieht, wenn man hinsieht, und in
+                voller Stärke erst, wenn man einen Stern antippt.
+
+                Lange Linien verblassen zusätzlich: Eine Verbindung zu einem
+                Stern weit ausserhalb des Bildes durchquert das ganze Feld,
+                ohne dass beide Enden zu sehen wären. Sie zeigt dann nichts
+                mehr, sie streift nur.
+
                 Gerade Strecken, und das ist nicht die bequeme Näherung,
                 sondern genau richtig: Die Zentralprojektion bildet einen
                 Grosskreis – und ein Grosskreisbogen *ist* die Verbindung
@@ -629,6 +656,12 @@ export function FoldOutMap() {
                   const aktiv = selected && (kante.source === selected || kante.target === selected);
                   /* Eine Linie gilt im gewählten Jahr – oder sie verblasst. */
                   const zeitlich = !sichtbar || sichtbar.linien.has(kante.id) ? 1 : 0.06;
+                  const deckung = aktiv
+                    ? 0.85
+                    : selected
+                      ? 0
+                      : LINIE_RUHT * verblassen(Math.hypot(lb.x - la.x, lb.y - la.y), diagonale);
+                  if (deckung < 0.005) return null;
                   return (
                     <line
                       key={kante.id}
@@ -637,8 +670,8 @@ export function FoldOutMap() {
                       x2={lb.x}
                       y2={lb.y}
                       stroke={aktiv ? '#E3C878' : '#9FB0CE'}
-                      strokeWidth={aktiv ? 1.6 : 0.9}
-                      opacity={(selected ? (aktiv ? 0.9 : 0.1) : 0.42) * zeitlich}
+                      strokeWidth={aktiv ? 1.5 : 0.7}
+                      opacity={deckung * zeitlich}
                     />
                   );
                 })}
