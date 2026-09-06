@@ -151,18 +151,36 @@ export function Relief({
 
   return (
     <div
-      className="relative w-full overflow-hidden rounded-2xl border border-line"
-      style={{ background: stil.papier }}
       /*
+       * **Derselbe Rahmen wie flach – quadratisch.**
+       *
+       * Hier stand `w-full` mit `h-auto`, also richtete sich die Höhe nach der
+       * Raute: rund halb so hoch wie breit. Beim Umschalten sprang damit die
+       * halbe Seite, und alles darunter rutschte mit.
+       *
+       * Der Rahmen ist aber der Rahmen der Karte und nicht der einer Ansicht.
+       * Er bleibt stehen, und was sich ändert, ist, wie man hineinsieht – das
+       * ist überhaupt erst die Voraussetzung dafür, dass sich das Relief aus
+       * der flachen Karte *heben* kann, statt sie zu ersetzen.
+       *
        * Kein `data-raum="aus"`: Hier wird nichts gemalt, also darf die
        * Raumschicht ihre Randgesten behalten. Auf der flachen Karte war die
        * Sperre nötig, weil sich zwei Gesten um denselben Finger stritten – ein
        * Streit, den es hier nicht gibt.
        */
+      className="relative aspect-square w-full overflow-hidden rounded-2xl border border-line"
+      style={{ background: stil.papier }}
     >
       <svg
-        className="block h-auto w-full"
+        /*
+         * `meet` statt `slice`: Die Raute wird in das Quadrat eingepasst und
+         * bleibt vollständig sichtbar, mit Luft darüber und darunter. Sie
+         * abzuschneiden, um das Quadrat zu füllen, hiesse Land wegzunehmen,
+         * das jemand gemalt hat.
+         */
+        className="block h-full w-full"
         viewBox={`${bild.sicht.x} ${bild.sicht.y} ${bild.sicht.w} ${bild.sicht.h}`}
+        preserveAspectRatio="xMidYMid meet"
         aria-label="Weltkarte als Relief"
       >
         {/*

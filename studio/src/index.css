@@ -859,6 +859,178 @@
     }
   }
 
+
+  /* ------------------------------------------------ Die Karte hebt sich -- */
+
+  /*
+   * Flach ↔ Erhoben, und warum das eine reine CSS-Sache ist.
+   *
+   * Die isometrische Projektion ist eine **lineare Abbildung**:
+   *
+   *     x' = (x − y)·cos30        M   = [[cos30, −cos30], [sin30, sin30]]
+   *     y' = (x + y)·sin30 − h    M⁻¹ = [[0,5774, 1], [−0,5774, 1]]
+   *
+   * Damit lässt sich der Übergang ohne eine einzige neu gerechnete Kurve
+   * zeigen: Das fertige Relief wird mit `M⁻¹` vorgespannt – dann steht es
+   * flach, weil M⁻¹·M die Einheitsmatrix ist – und faltet sich zur Identität
+   * auf. Die flache Karte geht denselben Weg vorwärts und verlässt das Bild
+   * als Raute.
+   *
+   * Der Weg über die Geometrie wäre der andere gewesen: jeden Punkt jeder
+   * Fläche je Bild neu projizieren. Das sind bei einer gewöhnlichen Karte
+   * einige tausend Punkte und ebenso viele Zeichen Pfadtext – sechzigmal in
+   * der Sekunde, auf einem Telefon. Hier bewegt sich stattdessen **ein**
+   * Element, und der Browser rechnet es auf der Grafikeinheit.
+   *
+   * Beide Bewegungen laufen gleich lang und gleich gekrümmt, also liegen die
+   * zwei Bilder in jedem Augenblick an derselben Stelle. Was man sieht, ist
+   * nicht ein Überblenden, sondern eine Karte, die sich aufrichtet.
+   */
+  /* Dieselbe Zahl wie `KARTE_MS` in `pages/book/Weltkarte.tsx`. */
+  .karte-hebt {
+    animation: dcKarteHebt var(--dc-karte-ms, 560ms) cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+  }
+  .karte-legt-sich {
+    animation: dcKarteLegtSich var(--dc-karte-ms, 560ms) cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  }
+  .karte-kehrt-zurueck {
+    animation: dcKarteKehrtZurueck var(--dc-karte-ms, 560ms) cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+  }
+  .karte-senkt-sich {
+    animation: dcKarteSenktSich var(--dc-karte-ms, 560ms) cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  }
+
+  /* Das Relief kommt: aus der Ebene heraus in die Isometrie. */
+  @keyframes dcKarteHebt {
+    from {
+      opacity: 0;
+      transform: matrix(0.5774, -0.5774, 1, 1, 0, 0);
+    }
+    /*
+     * Die Deckkraft ist früher da als die Form.
+     *
+     * Andersherum – erst am Ende sichtbar – sähe man nur den letzten Rest der
+     * Bewegung, und der Rest einer Bewegung ist ein Ruck. So ist das Relief
+     * schon da, während es sich noch aufrichtet.
+     */
+    45% {
+      opacity: 1;
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Die flache Karte geht: sie kippt in dieselbe Ebene und verschwindet. */
+  @keyframes dcKarteLegtSich {
+    from {
+      opacity: 1;
+      transform: none;
+    }
+    55% {
+      opacity: 0;
+    }
+    to {
+      opacity: 0;
+      transform: matrix(0.866, 0.5, -0.866, 0.5, 0, 0);
+    }
+  }
+
+  /* Und zurück: die flache Karte richtet sich aus der Raute wieder auf. */
+  @keyframes dcKarteKehrtZurueck {
+    from {
+      opacity: 0;
+      transform: matrix(0.866, 0.5, -0.866, 0.5, 0, 0);
+    }
+    45% {
+      opacity: 1;
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Das Relief legt sich flach und geht. */
+  @keyframes dcKarteSenktSich {
+    from {
+      opacity: 1;
+      transform: none;
+    }
+    55% {
+      opacity: 0;
+    }
+    to {
+      opacity: 0;
+      transform: matrix(0.5774, -0.5774, 1, 1, 0, 0);
+    }
+  }
+
+
+  /* ------------------------------------------------- Das Buch klappt zu -- */
+
+  /*
+   * Der Gegenweg zum Aufschlagen.
+   *
+   * Aufgeschlagen wird mit einem FLIP vom Umschlag her: Das geschlossene Buch
+   * wächst zur Seite. Zugeklappt wurde bisher gar nicht – gemessen als „keine
+   * Bewegung", und ausgerechnet an der Stelle, für die dieses Buch eine eigene
+   * Geste hat: „Dieses Buch zuklappen."
+   *
+   * Der Rückweg ist **kein** FLIP. Er könnte einer sein, aber dann müsste die
+   * Seite wissen, wo der Band im Regal landen wird – und das weiss erst die
+   * Bibliothek, die es noch nicht gibt. Ein Übergang, der auf eine Auskunft
+   * aus der Zukunft wartet, ist die Sorte Kopplung, die man später nicht mehr
+   * löst.
+   *
+   * Stattdessen: Der Tisch kommt hoch, das Buch legt sich darauf. Und weil die
+   * Bibliothek denselben Tisch als Untergrund hat, ist die Übergabe danach
+   * unsichtbar – man sieht nicht einen Wechsel, sondern ein Buch, das
+   * hingelegt wurde, und ringsum wird das Regal sichtbar.
+   */
+  .dc-zuklapp-tisch {
+    animation: dcZuklappTisch var(--dc-zuklapp-ms, 640ms) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  .dc-zuklapp-buch {
+    animation: dcZuklappBuch var(--dc-zuklapp-ms, 640ms) cubic-bezier(0.34, 1.2, 0.64, 1) backwards;
+  }
+
+  @keyframes dcZuklappTisch {
+    from {
+      opacity: 0;
+    }
+    /*
+     * Der Tisch ist vor dem Buch da. Andersherum schwebte der Band einen
+     * Augenblick über der Buchseite, die er gerade verlässt.
+     */
+    50% {
+      opacity: 1;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes dcZuklappBuch {
+    from {
+      opacity: 0;
+      /*
+       * Von weit oben und zu gross: Das Buch war eben noch die ganze Seite.
+       * Es schrumpft auf seine wahre Grösse zusammen, wie etwas, das man
+       * zuklappt und hinlegt.
+       */
+      transform: scale(1.35) translateY(-6%);
+    }
+    38% {
+      opacity: 1;
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
   /*
    * Wer die Bewegung abgestellt hat, bekommt keine. Das ist keine
    * Barrierefreiheits-Pflichtuebung: Fuer manche Menschen ist eine bewegte
@@ -868,7 +1040,30 @@
     .satz-eintritt,
     .buch-aufschlag,
     .buch-eintritt,
-    .blatt-eintritt {
+    .blatt-eintritt,
+    .karte-hebt,
+    .karte-kehrt-zurueck {
+      animation: none;
+    }
+
+    /*
+     * Die beiden abgehenden Bewegungen werden nicht angehalten, sondern
+     * ausgeblendet – derselbe Grund wie beim Deckel-Ausklang darunter:
+     * `animation: none` liesse die alte Ansicht bei voller Deckkraft stehen,
+     * und dann lägen flache Karte und Relief für immer übereinander.
+     */
+    .karte-legt-sich,
+    .karte-senkt-sich {
+      display: none;
+    }
+
+    /*
+     * Beim Zuklappen bleibt die Hülle stehen, statt zu verschwinden: Sie ist
+     * hier keine Zierde, sondern das, was die Buchseite verdeckt, während
+     * gewechselt wird. Ohne sie sähe man den Wechsel selbst.
+     */
+    .dc-zuklapp-tisch,
+    .dc-zuklapp-buch {
       animation: none;
     }
 
