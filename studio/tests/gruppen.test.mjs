@@ -24,15 +24,42 @@ for (const t of tpls) {
 }
 p('kein Feld geht verloren', verloren, []);
 
+/*
+ * 2. und 3. pruefen jetzt die **Absicht** statt einer Momentaufnahme.
+ *
+ * Beide standen jahrelang auf Rot, ohne dass es jemand sah: Sie verglichen
+ * das Ergebnis mit einer ausgeschriebenen Liste aus einem frueheren
+ * Gruppen-Wortschatz („inneres", „leben"), den es nicht mehr gibt. Der Code
+ * hatte recht, die Pruefung war alt.
+ *
+ * Eine Zusicherung, die eine ganze Aufteilung woertlich festschreibt, geht
+ * bei jeder Umbenennung kaputt und sagt dann nichts ueber den Fehler, den sie
+ * eigentlich fangen soll. Gehalten wird deshalb nur noch das, was wirklich
+ * gilt – und was bei einem echten Fehler auch wirklich bricht.
+ */
+
 // 2. Reihenfolge innerhalb einer Gruppe bleibt die der Vorlage
-p('Reihenfolge in der Gruppe',
-  G.gruppiere(F('personality','goals','face','routine','hair','speech','wishes')).map(g=>g.felder.map(f=>f.key)),
-  [['personality','face','hair'],['goals','routine','speech'],['wishes']]);
+{
+  const rein = ['personality','goals','face','routine','hair','speech','wishes'];
+  const gruppen = G.gruppiere(F(...rein));
+  /* In jeder Gruppe stehen die Felder in der Reihenfolge, in der sie kamen. */
+  const verdreht = gruppen
+    .map(g => g.felder.map(f => rein.indexOf(f.key)))
+    .filter(ix => ix.some((n,i) => i > 0 && n < ix[i-1]));
+  p('Reihenfolge in der Gruppe', verdreht, []);
+}
 
 // 3. Gruppenreihenfolge folgt FELDGRUPPEN, nicht dem Eingang
-p('Gruppenreihenfolge',
-  G.gruppiere(F('prompt','wishes','habitat','personality','goals','light','growth')).map(g=>g.gruppe.id),
-  ['wesen','wirkung','umfeld','leben','sinne','inneres','handwerk']);
+{
+  const ordnung = G.FELDGRUPPEN.map(g => g.id);
+  const ids = G.gruppiere(F('prompt','wishes','habitat','personality','goals','light','growth'))
+    .map(g => g.gruppe.id);
+  const rang = ids.map(id => ordnung.indexOf(id));
+  p('Gruppenreihenfolge folgt FELDGRUPPEN',
+    rang.filter((n,i) => i > 0 && n < rang[i-1]), []);
+  /* Und der Eingang bestimmt sie gerade *nicht*: „wesen" kam als viertes. */
+  p('und nicht dem Eingang', ids[0], 'wesen');
+}
 
 // 4. Leere Gruppen entfallen
 p('keine leeren Gruppen',
@@ -61,7 +88,15 @@ p('Unbekanntes steht hinten',
   'weiteres');
 
 // 9. Zwei Zuordnungen, die aus dem Lesemodus kamen
-p('Vergangenheit ist kein Umfeld', G.gruppeVon('background'), 'inneres');
+/*
+ * Die Absicht steht im Namen der Zusicherung und in `feldgruppen.ts`:
+ * „Das eine ist, woher jemand kommt, das andere, wo er gerade ist."
+ * Geprueft wird deshalb genau das – und nicht, wie die Gruppe heisst.
+ * Vorher stand hier `'inneres'`, eine Gruppe, die es nicht mehr gibt.
+ */
+p('Vergangenheit ist kein Umfeld', G.gruppeVon('background') === 'umfeld', false);
+p('Vergangenheit steht bei der Herkunft',
+  G.gruppeVon('background'), G.gruppeVon('origin'));
 p('Ausdrucksbilder sind Herstellung', G.gruppeVon('expressions'), 'handwerk');
 
 // 10. Jede Gruppe in FELDGRUPPEN wird auch wirklich benutzt
@@ -69,3 +104,13 @@ const benutzt = new Set(tpls.flatMap(t=>t.fields.map(f=>G.gruppeVon(f.key))));
 p('keine tote Gruppe', G.FELDGRUPPEN.filter(g=>!benutzt.has(g.id)).map(g=>g.id), []);
 
 console.log(`\n${ok} bestanden, ${bad} fehlgeschlagen`);
+
+/*
+ * Der Rückgabewert.
+ *
+ * Er fehlte, und damit konnte diese Prüfung den Testlauf nicht rot machen:
+ * `scripts/test.mjs` liest den Ausgangsstatus, und ohne diese Zeile war er
+ * immer 0. Die Zeile „x fehlgeschlagen" stand in der Ausgabe und niemand las
+ * sie – ein Netz, das reisst, ohne ein Geräusch zu machen.
+ */
+process.exit(bad ? 1 : 0);

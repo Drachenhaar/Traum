@@ -2,7 +2,7 @@
  * Einstellungen: Navigation anpassen, Sicherung, Import und Zurücksetzen.
  */
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
   ChevronDown,
@@ -12,6 +12,8 @@ import {
   Eye,
   EyeOff,
   Upload,
+  Shield,
+  ShieldCheck,
   Volume2,
   VolumeX,
 } from 'lucide-react';
@@ -26,6 +28,13 @@ import { DEFAULT_NAV } from '../lib/nav';
 import { backupFileName, buildBookBackup, buildFullBackup, importBackup } from '../lib/portability';
 import { cx, downloadFile, formatDateTime, moveItem } from '../lib/utils';
 import { WEGPUNKTE, leitfadenStand } from '../lib/leitfaden';
+import {
+  alsGroesse,
+  sicherungFaellig,
+  speicherlage,
+  umDauerhaftigkeitBitten,
+  type Speicherlage,
+} from '../lib/speicher';
 
 export function SettingsPage() {
   const settings = useStudio((s) => s.settings);
@@ -48,9 +57,25 @@ export function SettingsPage() {
   const [importName, setImportName] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const backupOverdue =
-    settings.lastBackupAt !== undefined &&
-    Date.now() - settings.lastBackupAt > settings.backupReminderDays * 86_400_000;
+  /*
+   * Die Rechnung steht in `lib/speicher.ts` und wird dort geprüft – samt der
+   * Begründung, warum „noch nie gesichert" der dringendste Fall ist und nicht
+   * der harmloseste. Hier stand einmal die Bedingung selbst, und sie
+   * verschwieg genau diesen Fall.
+   */
+  const lebendeEintraege = entries.filter((e) => !e.deletedAt);
+  const backupOverdue = sicherungFaellig(
+    {
+      letzteSicherung: settings.lastBackupAt,
+      aeltesterEintrag: lebendeEintraege.reduce<number | undefined>(
+        (aelteste, e) => (aelteste === undefined ? e.createdAt : Math.min(aelteste, e.createdAt)),
+        undefined,
+      ),
+      eintraege: lebendeEintraege.length,
+    },
+    settings.backupReminderDays,
+  );
+  const nieGesichert = settings.lastBackupAt === undefined;
 
   /* ------------------------------------------------------------- Sicherung */
 
@@ -200,7 +225,9 @@ export function SettingsPage() {
           <AlertTriangle size={20} className="mt-0.5 shrink-0 text-brass-600" />
           <div>
             <p className="text-[15px] text-ink">
-              Die letzte Sicherung ist länger als {settings.backupReminderDays} Tage her.
+              {nieGesichert
+                ? 'Dieses Buch wurde noch nie gesichert.'
+                : `Die letzte Sicherung ist länger als ${settings.backupReminderDays} Tage her.`}
             </p>
             <button type="button" className="btn-accent mt-2" onClick={() => void exportAll(true)} disabled={busy}>
               Jetzt sichern
@@ -208,6 +235,8 @@ export function SettingsPage() {
           </div>
         </div>
       )}
+
+      <Verwahrung />
 
       {/* -------------------------------------------------- Export / Import */}
       <section className="card p-4 sm:p-5">
@@ -550,5 +579,97 @@ function Stat({ label, value }: { label: string; value: number }) {
       <p className="font-serif text-[24px] leading-none text-ink">{value}</p>
       <p className="mt-1 text-[13px] text-ink-muted">{label}</p>
     </div>
+  );
+}
+
+/**
+ * Die Verwahrung – ob der Browser dieses Buch behalten darf.
+ *
+ * Steht direkt über der Sicherung, weil beide dieselbe Frage beantworten und
+ * **nicht** dasselbe leisten. Dauerhafter Speicher schützt davor, dass der
+ * Browser bei Platznot von sich aus aufräumt oder ein Gerät nach Wochen ohne
+ * Besuch die Web-Daten wegwirft. Er schützt nicht vor einem verlorenen
+ * Telefon. Deshalb steht die Ausfuhr darunter und nicht daneben: Sie ist die
+ * Sicherung, das hier ist nur ein Riegel.
+ *
+ * **Drei Zustände, drei Sätze – und keiner davon geraten.** „Der Browser sagt
+ * dazu nichts" ist etwas anderes als „nein" und muss anders klingen. Ein
+ * privates Fenster oder ein alter Browser beantwortet die Frage gar nicht;
+ * daraus „dein Buch ist ungeschützt" zu machen wäre eine Behauptung über
+ * etwas, das niemand geprüft hat.
+ */
+function Verwahrung() {
+  const [lage, setLage] = useState<Speicherlage | null>(null);
+  const [fragt, setFragt] = useState(false);
+  const notify = useStudio((s) => s.notify);
+
+  useEffect(() => {
+    void speicherlage().then(setLage);
+  }, []);
+
+  if (!lage) return null;
+
+  const platz =
+    alsGroesse(lage.belegt) && alsGroesse(lage.gesamt)
+      ? `${alsGroesse(lage.belegt)} von ${alsGroesse(lage.gesamt)} belegt`
+      : undefined;
+
+  const bitten = async () => {
+    setFragt(true);
+    const jetzt = await umDauerhaftigkeitBitten();
+    setLage(await speicherlage());
+    setFragt(false);
+    /*
+     * Ein Nein ist kein Fehler und wird nicht als solcher gemeldet.
+     *
+     * Die Browser entscheiden nach Verbundenheit mit der Seite – wie oft war
+     * jemand hier, gibt es ein Lesezeichen, ist die Anwendung installiert.
+     * „Noch nicht" ist die wahre Auskunft, „fehlgeschlagen" wäre eine
+     * Schuldzuweisung an jemanden, der nichts falsch gemacht hat.
+     */
+    notify(
+      jetzt
+        ? 'Dieses Gerät bewahrt dein Buch jetzt dauerhaft.'
+        : 'Der Browser hat noch nicht zugestimmt. Ein Lesezeichen auf diese Seite hilft oft – und die Sicherung hilft immer.',
+      jetzt ? 'success' : 'info',
+    );
+  };
+
+  return (
+    <section className="card p-4 sm:p-5">
+      <h2 className="mb-1 flex items-center gap-2 font-serif text-xl text-ink">
+        {lage.dauerhaft ? (
+          <ShieldCheck size={19} className="text-brass-600" />
+        ) : (
+          <Shield size={19} className="text-ink-faint" />
+        )}
+        Verwahrung
+      </h2>
+
+      {lage.dauerhaft === true && (
+        <p className="text-[15px] text-ink-muted">
+          Dieses Gerät bewahrt dein Buch dauerhaft. Der Browser räumt es nicht von sich aus weg –
+          gelöscht wird es nur, wenn du es löschst.
+        </p>
+      )}
+      {lage.dauerhaft === false && (
+        <>
+          <p className="text-[15px] text-ink-muted">
+            Der Browser darf dein Buch wegräumen, wenn der Speicher knapp wird – auf manchen
+            Geräten schon nach ein paar Wochen ohne Besuch. Du kannst ihn bitten, es zu behalten.
+          </p>
+          <button type="button" className="btn-accent mt-3" onClick={() => void bitten()} disabled={fragt}>
+            Dauerhaft bewahren
+          </button>
+        </>
+      )}
+      {lage.dauerhaft === undefined && (
+        <p className="text-[15px] text-ink-muted">
+          Dieser Browser sagt nicht, ob er dein Buch dauerhaft bewahrt. Sichere regelmäßig.
+        </p>
+      )}
+
+      {platz && <p className="mt-3 text-[13px] text-ink-faint">{platz}</p>}
+    </section>
   );
 }

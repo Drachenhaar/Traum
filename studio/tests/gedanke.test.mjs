@@ -48,3 +48,13 @@ p('Drache ist eine Kreatur',         e('Der alte Drache vom Berg')[0],  'creatur
 p('Legende ist Lore',                e('Die Legende vom Fluss'),        ['lore','legende']);
 
 console.log(`\n${ok} bestanden, ${bad} fehlgeschlagen`);
+
+/*
+ * Der Rückgabewert.
+ *
+ * Er fehlte, und damit konnte diese Prüfung den Testlauf nicht rot machen:
+ * `scripts/test.mjs` liest den Ausgangsstatus, und ohne diese Zeile war er
+ * immer 0. Die Zeile „x fehlgeschlagen" stand in der Ausgabe und niemand las
+ * sie – ein Netz, das reisst, ohne ein Geräusch zu machen.
+ */
+process.exit(bad ? 1 : 0);
