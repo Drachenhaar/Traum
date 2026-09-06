@@ -614,3 +614,132 @@ export function abtragen(
       .sort((a, b) => Math.abs(flaechenmass(b)) - Math.abs(flaechenmass(a)))
   );
 }
+
+/* ========================================================================
+ * DAS ANFÜGEN – eine Landzunge an eine Küste
+ *
+ * ---
+ *
+ * **Der Spiegel des Abtragens, Zeile für Zeile.**
+ *
+ * Dieselbe Maske, dasselbe feine Raster, derselbe Weg zurück über
+ * Konturenzieher, Vereinfachen und Glätten. Der einzige Unterschied ist eine
+ * einzige Ziffer: Der Strich setzt Zellen auf 1 statt auf 0.
+ *
+ * Und weil eine Maske nicht weiss, wie viele Flächen sie einmal war, fällt
+ * das **Verschmelzen** dabei umsonst ab: Wer mit einer Landzunge zwei Inseln
+ * verbindet, bekommt eine Insel – nicht zwei, die sich berühren. Genau so,
+ * wie eine Bucht aus einer Landmasse zwei macht.
+ *
+ * ---
+ *
+ * **Warum eine Liste von Flächen und nicht eine.**
+ *
+ * `abtragen` bekommt eine Fläche, weil ein Strich immer nur *aus* etwas
+ * herausnimmt. Anfügen kann dagegen mehrere Flächen zu einer machen, und dann
+ * müssen alle Beteiligten schon im Raster stehen. Eine Fassung, die nachher
+ * prüft, ob zufällig etwas überlappt, hätte dieselbe Frage zweimal
+ * beantwortet – einmal im Raster und einmal danach.
+ * ===================================================================== */
+
+/**
+ * Eine Landzunge an vorhandene Flächen anfügen.
+ *
+ * Zurück kommt, was danach dasteht – im Regelfall **eine** Fläche, denn was
+ * ein Strich verbindet, hängt zusammen. `undefined` heisst wie beim Abtragen:
+ * Es hat sich nichts geändert, der Strich lag daneben.
+ *
+ * Dieselbe Regel wie dort, und aus demselben Grund: Der Strich muss die Fläche
+ * wirklich treffen. Ein Strich, der frei im Wasser liegt, ist keine Landzunge,
+ * sondern eine Insel – und Inseln malt man mit „Land". Ein Werkzeug, das aus
+ * einem danebengegangenen Strich stillschweigend etwas Neues macht, hat für
+ * den Verfasser entschieden.
+ */
+export function anfuegen(
+  polys: Punkt[][],
+  spur: Punkt[],
+  radius: number,
+): Punkt[][] | undefined {
+  const flaechen = polys.filter((p) => p.length >= 3);
+  if (!flaechen.length || spur.length < 2) return undefined;
+
+  const kastenAlle = [...flaechen.map(kasten), kasten(spur)];
+  const rand = radius + ZELLE_FEIN * 4;
+  const x0 = Math.min(...kastenAlle.map((k) => k.x0)) - rand;
+  const y0 = Math.min(...kastenAlle.map((k) => k.y0)) - rand;
+  const x1 = Math.max(...kastenAlle.map((k) => k.x1)) + rand;
+  const y1 = Math.max(...kastenAlle.map((k) => k.y1)) + rand;
+
+  const breite = Math.max(3, Math.ceil((x1 - x0) / ZELLE_FEIN));
+  const hoehe = Math.max(3, Math.ceil((y1 - y0) / ZELLE_FEIN));
+  const zellen = new Uint8Array(breite * hoehe);
+
+  /* Alle beteiligten Flächen einstempeln. */
+  for (let y = 0; y < hoehe; y++) {
+    for (let x = 0; x < breite; x++) {
+      const mx = x0 + (x + 0.5) * ZELLE_FEIN;
+      const my = y0 + (y + 0.5) * ZELLE_FEIN;
+      if (flaechen.some((p) => imPolygon([mx, my], p))) zellen[y * breite + x] = 1;
+    }
+  }
+
+  /* Und den Strich dazu – dieselbe Schleife wie beim Abtragen, nur mit 1. */
+  const r = radius / ZELLE_FEIN;
+  const setze = (cx: number, cy: number) => {
+    const von = Math.max(0, Math.floor(cy - r));
+    const bis = Math.min(hoehe - 1, Math.ceil(cy + r));
+    for (let y = von; y <= bis; y++) {
+      const dy = y - cy;
+      const halb = Math.sqrt(Math.max(0, r * r - dy * dy));
+      const l = Math.max(0, Math.floor(cx - halb));
+      const rr = Math.min(breite - 1, Math.ceil(cx + halb));
+      for (let x = l; x <= rr; x++) zellen[y * breite + x] = 1;
+    }
+  };
+
+  let vorher: Punkt | undefined;
+  let getroffen = false;
+  for (const p of spur) {
+    const cx = (p[0] - x0) / ZELLE_FEIN;
+    const cy = (p[1] - y0) / ZELLE_FEIN;
+    if (flaechen.some((f) => imPolygon(p, f))) getroffen = true;
+    if (vorher) {
+      const vx = (vorher[0] - x0) / ZELLE_FEIN;
+      const vy = (vorher[1] - y0) / ZELLE_FEIN;
+      const schritte = Math.ceil(Math.hypot(cx - vx, cy - vy));
+      for (let i = 1; i <= schritte; i++) {
+        const t = i / schritte;
+        setze(vx + (cx - vx) * t, vy + (cy - vy) * t);
+      }
+    } else {
+      setze(cx, cy);
+    }
+    vorher = p;
+  }
+  if (!getroffen) return undefined;
+
+  const schleifen = konturenAus({ breite, hoehe, x0, y0, zelle: ZELLE_FEIN, zellen });
+  if (!schleifen.length) return [];
+
+  /*
+   * Löcher fallen wieder weg – dieselbe Begründung wie beim Abtragen: Ein
+   * `Kartenfeature` ist genau ein geschlossener Umriss. Hier hat es sogar eine
+   * eigene Bedeutung: Wer mit einer Landzunge einen Ring schliesst, hat eine
+   * Lagune gemacht, und eine Lagune ist Wasser – also eine eigene Fläche, die
+   * er malen kann, und nicht ein Loch in dieser hier.
+   */
+  const richtung = Math.sign(flaechenmass(schleifen[0]));
+  const aussen = schleifen.filter((k) => Math.sign(flaechenmass(k)) === richtung);
+
+  const fertig: Punkt[][] = [];
+  for (const roh of aussen) {
+    const knapp = vereinfache(roh, ZELLE_FEIN * 0.9);
+    if (knapp.length < 3) continue;
+    /* Geglättet, nicht neu verfeinert – siehe `abtragen`. */
+    fertig.push(glaette(knapp));
+  }
+  const schwelle = radius * radius;
+  return fertig
+    .filter((k) => Math.abs(flaechenmass(k)) / 2 > schwelle)
+    .sort((a, b) => Math.abs(flaechenmass(b)) - Math.abs(flaechenmass(a)));
+}

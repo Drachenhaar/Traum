@@ -45,6 +45,7 @@ import {
 } from '../../lib/karte/modell';
 import { flaecheAus } from '../../lib/karte/kontur';
 import { buchtZiehen } from '../../lib/karte/bucht';
+import { landzungeZiehen } from '../../lib/karte/landzunge';
 import { baeume } from '../../lib/karte/wald';
 import { neuerSeed } from '../../lib/karte/zufall';
 import { EBENEN, stilImBand } from '../../lib/karte/stil';
@@ -67,11 +68,12 @@ import { cx } from '../../lib/utils';
  * er hinterlässt, ist ein Loch.
  *
  * Eine Bucht ist etwas anderes: Sie ist eine **Form**, die jemand zieht, und
- * sie hinterlässt eine Küste. Deshalb läuft sie durch dieselben fünf Schritte
+ * sie hinterlässt eine Küste. Die Landzunge ist ihr Spiegelbild: dieselbe Form,
+ * dieselben fünf Schritte, nur wächst sie an, statt wegzunehmen. Deshalb läuft sie durch dieselben fünf Schritte
  * wie das Malen und kommt als geschlossener Umriss zurück. Der Verfasser
  * bekommt kein mächtigeres Werkzeug, sondern ein Wort mehr.
  */
-export type Werkzeug = Bedeutung | 'waehlen' | 'bucht';
+export type Werkzeug = Bedeutung | 'waehlen' | 'bucht' | 'landzunge';
 
 interface Sicht {
   x: number;
@@ -112,9 +114,32 @@ export interface WeltkarteProps {
   onWaehle: (id: string | undefined) => void;
   /** Titel der Einträge, auf die Flächen zeigen. Die Karte hält keine Namen. */
   namen: Map<string, string>;
+  /**
+   * Das Rückgängig – hier und nicht in der Werkzeugleiste.
+   *
+   * Es stand dort, solange die Leiste in eine Zeile passte. Mit der Landzunge
+   * brach sie in eine dritte um, und das war der Anlass, die Frage einmal
+   * richtig zu stellen: „Zurücknehmen" ist **kein Werkzeug**. Die Leiste
+   * beantwortet „welches Wort spreche ich gerade"; das Rückgängig beantwortet
+   * gar keine Frage, es macht etwas mit dem, was schon dasteht.
+   *
+   * Deshalb steht es jetzt an der Karte selbst, neben „Ganze Karte" – beides
+   * Handlungen an dem, was man sieht, und beide dort, wo sie wirken.
+   */
+  kannZurueck: boolean;
+  onZurueck: () => void;
 }
 
-export function Weltkarte({ karte, onChange, werkzeug, gewaehlt, onWaehle, namen }: WeltkarteProps) {
+export function Weltkarte({
+  karte,
+  onChange,
+  werkzeug,
+  gewaehlt,
+  onWaehle,
+  namen,
+  kannZurueck,
+  onZurueck,
+}: WeltkarteProps) {
   /* Die Karte traegt den Band, in dem das Buch gerade gebunden ist. */
   const dunkel = useBand();
   const stil = stilImBand(karte.styleId, dunkel);
@@ -290,7 +315,8 @@ export function Weltkarte({ karte, onChange, werkzeug, gewaehlt, onWaehle, namen
     if (!spur) return;
     setSpur(null);
     if (werkzeug === 'waehlen') return;
-    if (werkzeug === 'bucht') return bucht(spur);
+    if (werkzeug === 'bucht') return formen(buchtZiehen, spur);
+    if (werkzeug === 'landzunge') return formen(landzungeZiehen, spur);
 
     /*
      * Der Startwert wird *vor* dem Verfeinern gezogen und dann behalten.
@@ -309,24 +335,28 @@ export function Weltkarte({ karte, onChange, werkzeug, gewaehlt, onWaehle, namen
   };
 
   /**
-   * Eine Bucht ziehen.
+   * Eine Form ziehen – Bucht oder Landzunge.
    *
-   * Die Regeln – wen sie trifft, wer den Namen behält, woran man erkennt,
-   * dass nichts geschah – stehen in `lib/karte/bucht.ts`. Hier bleibt nur,
-   * was dieses Bauteil angeht: die Pinselbreite aus der Sicht, und der eine
-   * Satz, der nichts durchreicht, wenn der Strich danebenging.
+   * Beide beantworten dieselben drei Fragen und beantworten sie verschieden;
+   * die Antworten stehen in `lib/karte/bucht.ts` und `lib/karte/landzunge.ts`.
+   * Hier bleibt nur, was dieses Bauteil angeht: die Pinselbreite aus der
+   * Sicht, und der eine Satz, der nichts durchreicht, wenn der Strich
+   * danebenging.
    *
    * Ohne Wirkung kein Schritt: Jeder Aufruf von `onChange` legt oben einen
    * Eintrag im Rückgängig ab. Sonst müsste man dreimal „Zurücknehmen"
    * drücken, um einen Strich zurückzunehmen, und niemand fände heraus, warum.
    *
    * Und nichts wird ausgewählt. Beim Malen zeigt die Auswahl auf das eben
-   * Entstandene – hier ist nichts entstanden, sondern etwas fortgenommen, und
-   * ein Bedienfeld, das danach auf irgendeine Fläche zeigt, sagt nur aus,
-   * welche das Verfahren zufällig zuerst gefunden hat.
+   * Entstandene – hier wurde etwas *verändert*, und ein Bedienfeld, das
+   * danach auf irgendeine Fläche zeigt, sagt nur aus, welche das Verfahren
+   * zufällig zuerst gefunden hat.
    */
-  const bucht = (gezogen: Punkt[]) => {
-    const features = buchtZiehen(karte.features, gezogen, pinsel(sicht));
+  const formen = (
+    wort: (f: Kartenfeature[], spur: Punkt[], radius: number) => Kartenfeature[] | undefined,
+    gezogen: Punkt[],
+  ) => {
+    const features = wort(karte.features, gezogen, pinsel(sicht));
     if (features) onChange({ ...karte, features });
   };
 
@@ -411,6 +441,15 @@ export function Weltkarte({ karte, onChange, werkzeug, gewaehlt, onWaehle, namen
             schon während des Ziehens sichtbar sein. Wer erst beim Loslassen
             merkt, dass er im falschen Werkzeug war, hat seine Küste verloren
             und muss sie über „Zurücknehmen" suchen.
+
+            **Und die Landzunge bleibt beim Entwurfsgold.** Der Gedanke lag
+            nahe, ihr die Landfarbe zu geben – dieselbe Spiegelung wie sonst
+            überall. Er ist falsch: Land ist auf dieser Karte fast das Papier
+            selbst („Land ist kein Ding, sondern das, was übrig bleibt"), und
+            eine Vorschau in Papierfarbe auf Papier sieht man nicht. Die Regel
+            ist einfacher als die Spiegelung: **Gold heisst, hier entsteht
+            etwas; Wasser heisst, hier weicht etwas.** Danach steht die
+            Landzunge bei Land, Wasser und Wald – und die Bucht allein.
 
             **Aber die Wasserlinie, nicht die Wasserfläche.** Der erste Anlauf
             nahm `wasser.flaeche` – und das ist ein Ton, der auf einer halben
@@ -503,15 +542,47 @@ export function Weltkarte({ karte, onChange, werkzeug, gewaehlt, onWaehle, namen
         )}
       </div>
 
-      {sicht.w !== FELD && (
-        <button
-          type="button"
-          onClick={zurueckSetzen}
-          className="absolute right-3 top-3 touch-target rounded-full border border-line bg-cream-50 px-3 text-sm text-ink-muted shadow-card"
-        >
-          Ganze Karte
-        </button>
-      )}
+      {/*
+        Die zwei Handlungen an der Karte, oben rechts und beide nur dann da,
+        wenn sie etwas zu tun haben. Ein Knopf, der nichts kann, ist eine
+        Behauptung über das Bild darunter.
+      */}
+      <div className="pointer-events-none absolute right-3 top-3 flex gap-2">
+        {kannZurueck && (
+          <button
+            type="button"
+            onClick={onZurueck}
+            /*
+             * **Hier nur das Zeichen, kein Wort – und das ist die Ausnahme.**
+             *
+             * Dieses Buch schreibt Wörter aus; eine Falte, die verschweigt,
+             * was sie verbirgt, ist eine Wundertüte. Hier liegt der Fall
+             * anders: Der Knopf sitzt **auf** der Karte. Mit Beschriftung ist
+             * er 147 Punkte breit und deckt bei 322 Punkten Kartenbreite fast
+             * die halbe obere Kante – und er erscheint genau dann, wenn dort
+             * etwas steht, das man gerade gezeichnet hat.
+             *
+             * Der Rückpfeil ist das eine Zeichen, das jeder kennt, und er
+             * steht neben dem, was er zurücknimmt. Der Name bleibt trotzdem
+             * da, für alles, was nicht sieht: `aria-label`.
+             */
+            aria-label="Zurücknehmen"
+            title="Zurücknehmen"
+            className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full border border-line bg-cream-50 text-ink-muted shadow-card no-tap-highlight"
+          >
+            <Undo2 size={17} aria-hidden />
+          </button>
+        )}
+        {sicht.w !== FELD && (
+          <button
+            type="button"
+            onClick={zurueckSetzen}
+            className="pointer-events-auto touch-target rounded-full border border-line bg-cream-50 px-3 text-sm text-ink-muted shadow-card"
+          >
+            Ganze Karte
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -527,8 +598,8 @@ export function Weltkarte({ karte, onChange, werkzeug, gewaehlt, onWaehle, namen
  *
  * **Zwei Reihen, und die Trennung ist die Reihe selbst.**
  *
- *   oben   ansehen und hinzufügen  – Ansehen, Land, Wasser, Wald
- *   unten  wegnehmen und zurück    – Bucht, Zurücknehmen
+ *   oben   ansehen und malen       – Ansehen, Land, Wasser, Wald
+ *   unten  umformen und zurück     – Bucht, Landzunge, Zurücknehmen
  *
  * Ein Knopf, der neben seinen Nachbarn steht und etwas grundsätzlich anderes
  * tut, wird genau einmal aus Versehen gedrückt – auf einem Telefon liegen sie
@@ -555,13 +626,9 @@ export function Weltkarte({ karte, onChange, werkzeug, gewaehlt, onWaehle, namen
 export function Werkzeugleiste({
   werkzeug,
   onWerkzeug,
-  kannZurueck,
-  onZurueck,
 }: {
   werkzeug: Werkzeug;
   onWerkzeug: (w: Werkzeug) => void;
-  kannZurueck: boolean;
-  onZurueck: () => void;
 }) {
   const knopf = (id: Werkzeug, name: string) => (
     <button
@@ -588,25 +655,7 @@ export function Werkzeugleiste({
       </div>
       <div className="flex flex-wrap items-center gap-2">
         {knopf('bucht', 'Bucht')}
-        <button
-          type="button"
-          onClick={onZurueck}
-          disabled={!kannZurueck}
-          className="touch-target ml-auto flex items-center gap-1 rounded-full border border-line bg-cream-50 px-4 text-sm text-ink-muted disabled:opacity-40"
-        >
-          <Undo2 size={16} aria-hidden />
-          {/*
-            „Zurücknehmen" und nicht „Zurück".
-
-            Auf jedem Anhangsblatt steht unten „Zurück zu den Anhängen". Zwei
-            Knöpfe, die beide mit demselben Wort beginnen und von denen einer
-            die Seite verlässt und der andere einen Strich löscht – das ist
-            keine Kleinigkeit, sondern der Unterschied zwischen „ich nehme das
-            zurück" und „meine Karte ist weg". Gefunden hat es der eigene
-            Testlauf, der nach „Zurück" suchte und beim falschen Knopf landete.
-          */}
-          Zurücknehmen
-        </button>
+        {knopf('landzunge', 'Landzunge')}
       </div>
     </div>
   );

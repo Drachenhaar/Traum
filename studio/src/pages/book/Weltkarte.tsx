@@ -184,8 +184,9 @@ function Karte() {
     <div className="mx-auto max-w-2xl">
       <p className="mb-4 text-sm text-ink-muted">
         Male grob, was wo ist. Land, Wasser, Wald – mehr Bedeutungen gibt es noch nicht, und
-        mehr braucht eine Küste nicht, um eine zu sein. Mit der <em>Bucht</em> nimmst du
-        wieder weg: Sie frisst sich ins Land, wo du sie ziehst.
+        mehr braucht eine Küste nicht, um eine zu sein. Zwei Wörter formen um, was schon
+        dasteht: Die <em>Bucht</em> frisst sich ins Land, die <em>Landzunge</em> wächst aus
+        der Küste hinaus – beide genau dort, wo du sie ziehst.
       </p>
 
       {/*
@@ -223,6 +224,8 @@ function Karte() {
               gewaehlt={gewaehlt}
               onWaehle={setGewaehlt}
               namen={namen}
+              kannZurueck={verlauf.length > 0}
+              onZurueck={zurueck}
             />
           </div>
         )}
@@ -282,8 +285,6 @@ function Karte() {
             setWerkzeug(w);
             if (w !== 'waehlen') setGewaehlt(undefined);
           }}
-          kannZurueck={verlauf.length > 0}
-          onZurueck={zurueck}
         />
       )}
 
