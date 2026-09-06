@@ -36,7 +36,6 @@ import {
   BEDEUTUNGEN,
   FELD,
   alsPfad,
-  kasten,
   neuesFeature,
   type Bedeutung,
   type Kartendokument,
@@ -47,6 +46,7 @@ import { flaecheAus } from '../../lib/karte/kontur';
 import { buchtZiehen } from '../../lib/karte/bucht';
 import { landzungeZiehen } from '../../lib/karte/landzunge';
 import { baeume } from '../../lib/karte/wald';
+import { kuestensaum, namenslage } from '../../lib/karte/kartografie';
 import { neuerSeed } from '../../lib/karte/zufall';
 import { EBENEN, stilImBand } from '../../lib/karte/stil';
 import { useBand } from '../../lib/raum/band';
@@ -99,11 +99,12 @@ function pinsel(sicht: Sicht): number {
   return sicht.w * 0.028;
 }
 
-/** Der Mittelpunkt einer Fläche – für Marken und Namen. */
-function mitte(punkte: Punkt[]): Punkt {
-  const k = kasten(punkte);
-  return [(k.x0 + k.x1) / 2, (k.y0 + k.y1) / 2];
-}
+/*
+ * Hier stand `mitte()` – die Mitte des umschliessenden Kastens, für den Namen
+ * einer Fläche. Sie ist weg, weil `namenslage` den **Schwerpunkt** liefert,
+ * und der ist für einen Namen der bessere Ort: Bei einer Sichel liegt die
+ * Kastenmitte im Leeren, der Schwerpunkt auf dem Land.
+ */
 
 export interface WeltkarteProps {
   karte: Kartendokument;
@@ -190,6 +191,42 @@ export function Weltkarte({
     }
     return m;
   }, [karte.features]);
+
+  /**
+   * Der Küstensaum.
+   *
+   * Ein bis zwei Linien, die die Küste ins Wasser hinein wiederholen. Sie sind
+   * die Geste, an der man eine gezeichnete Karte erkennt – und sie erfinden
+   * nichts: Es ist derselbe Umriss, zweimal versetzt.
+   *
+   * **Nur Land bekommt ihn.** Ein Saum markiert die Grenze zwischen festem
+   * Grund und Wasser, und auf dieser Karte ist das Papier das Meer. Ein Wald
+   * liegt auf Land, nicht am Wasser; ein See ist selbst Wasser. Beide bekämen
+   * eine Linie, die nichts bedeutet.
+   *
+   * **Und alles Land zusammen, nicht jede Insel für sich.** Je Fläche
+   * gerechnet bekam jede Insel ihren eigenen Ring, und wo zwei einander nahe
+   * kamen, liefen zwei Ringe durcheinander hindurch – im Bild ein Fehler im
+   * Papier. Zwischen zwei Küsten liegt eine Meerenge, und die hat einen Saum.
+   *
+   * Gerechnet wie die Bäume: einmal je Flächenzustand, nicht je Bild. Der
+   * teure Teil ist das Abstandsfeld, und das ändert sich nur, wenn jemand die
+   * Küste anfasst – beim Verschieben und Zoomen also nie.
+   */
+  const saeume = useMemo(
+    () =>
+      /*
+       * Zwei Abstände, deutlich auseinander. Der erste Anlauf nahm drei mit
+       * neun und elf Punkten – sie drängelten sich an der Küste und
+       * verschwammen zu einem Schleier. Zwei mit Abstand lesen sich als
+       * Absicht.
+       */
+      kuestensaum(
+        karte.features.filter((f) => f.art === 'land').map((f) => f.punkte),
+        [16, 42],
+      ),
+    [karte.features],
+  );
 
   /* --------------------------------------------------------- Das Zeichnen -- */
 
@@ -410,6 +447,46 @@ export function Weltkarte({
             stroke={stil.koernung}
             strokeWidth={stil.strich}
           />
+          {/*
+            Der Saum liegt **unter** allen Flächen.
+
+            Er gehört ins Wasser, und Wasser ist hier das Papier. Läge er über
+            den Flächen, zöge er eine Linie quer durch jede Insel, die einer
+            anderen nahe kommt – und über den Wald, der auf ihr steht.
+          */}
+          <g aria-hidden>
+            {saeume.map((linien, i) =>
+              linien.map((linie, k) => (
+                <path
+                  key={`s${i}_${k}`}
+                  d={alsPfad(linie)}
+                  fill="none"
+                  stroke={stil.wasser.linie}
+                  /*
+                   * **Eine Haarlinie, kein mitwachsender Strich.**
+                   *
+                   * `stil.strich` ist im Kartenmass angegeben und wächst mit
+                   * dem Zoom – für eine Küstenlinie richtig, denn sie gehört
+                   * zur Fläche. Für den Saum ist es falsch: Gemessen ergaben
+                   * 1,76 Kartenpunkte bei voller Ansicht **0,57 CSS-Pixel**.
+                   * Der Browser glättet eine Linie unter einem Pixel auf halbe
+                   * Deckung herunter, und genau deshalb war der Saum blass,
+                   * obwohl die Farbe stimmte.
+                   *
+                   * `non-scaling-stroke` gibt ihm eine feste Breite in
+                   * Bildpunkten. Das ist zugleich das ehrlichere Modell: Auf
+                   * einer gezeichneten Karte hat die Feder eine Breite, und
+                   * die ändert sich nicht, wenn man näher herangeht.
+                   */
+                  vectorEffect="non-scaling-stroke"
+                  strokeWidth={i === 0 ? 1.15 : 0.9}
+                  strokeOpacity={i === 0 ? 0.75 : 0.45}
+                  strokeLinejoin="round"
+                />
+              )),
+            )}
+          </g>
+
           {geordnet.map((f) => {
             const c = farben(f.art);
             const d = alsPfad(f.punkte);
@@ -508,15 +585,30 @@ export function Weltkarte({
           {geordnet.map((f) => {
             const name = f.entryId ? namen.get(f.entryId) : undefined;
             if (!name) return null;
-            const [tx, ty] = mitte(f.punkte);
+            /*
+             * Der Name folgt der Fläche, wenn sie eine Richtung hat.
+             *
+             * Vorher stand er waagerecht in der Mitte des Kastens – auf einer
+             * langen Landzunge las sich das wie ein Etikett, das jemand darauf
+             * gelegt hat. Auf einer Karte folgt ein Gebietsname der Gestalt
+             * des Gebiets und ist dabei gesperrt, weil er dessen Länge zeigen
+             * soll.
+             *
+             * Bei einer rundlichen Fläche bleibt er waagerecht – dort gibt es
+             * keine lange Achse, und die gemessene Richtung wäre das Rauschen
+             * der Küste. Siehe `namenslage`.
+             */
+            const lage = namenslage(f.punkte);
             return (
               <text
                 key={`n_${f.id}`}
-                x={tx}
-                y={ty}
+                x={lage.mx}
+                y={lage.my}
                 textAnchor="middle"
                 fill={stil.marke}
                 fontSize={sicht.w * 0.026}
+                letterSpacing={lage.sperrung ? sicht.w * 0.026 * lage.sperrung : undefined}
+                transform={lage.grad ? `rotate(${lage.grad.toFixed(1)} ${lage.mx.toFixed(1)} ${lage.my.toFixed(1)})` : undefined}
                 /* Ein heller Saum, damit der Name auch über dichtem Laub steht. */
                 stroke={stil.papier}
                 strokeWidth={sicht.w * 0.006}
