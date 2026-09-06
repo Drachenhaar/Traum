@@ -27,9 +27,20 @@ const ANFAENGE: { type: EntryType; label: string }[] = [
 
 export function ErsterSchritt({
   onAnlegen,
+  onFuehrung,
   onUeberspringen,
 }: {
   onAnlegen: (titel: string, type: EntryType) => void;
+  /**
+   * „Zeig mir zuerst ein Beispiel."
+   *
+   * Die Führung stand einmal **vor** dieser Seite und war Pflicht. Sie steht
+   * jetzt daneben und ist ein Angebot – hier, weil hier die Stelle ist, an der
+   * jemand ins Stocken gerät. Ein leeres Feld mit der Frage „Was existiert in
+   * deiner Welt zuerst?" ist für den einen eine Einladung und für den anderen
+   * eine Prüfung.
+   */
+  onFuehrung: () => void;
   onUeberspringen: () => void;
 }) {
   const [text, setText] = useState('');
@@ -111,7 +122,32 @@ export function ErsterSchritt({
           </div>
         </div>
 
-        <div className="mt-12 text-center">
+        {/*
+          Zwei stille Auswege, und sie sagen Verschiedenes.
+
+          „Zeig mir zuerst ein Beispiel" ist für den, der nicht weiss, *was*
+          er schreiben soll – er kommt hierher zurück. „Später" ist für den,
+          der nicht jetzt schreiben will – er geht ins Buch.
+
+          **Beide bleiben stehen, auch wenn schon etwas im Feld steht.** Der
+          erste Entwurf blendete sie dann aus – „wer angefangen hat, braucht
+          keinen Ausweg mehr". Das ist falsch, und der eigene Testlauf ist
+          prompt dagegengelaufen: Wer einen Titel tippt und *dann* denkt „was
+          ist das hier eigentlich?", müsste erst sein Feld leeren, um die
+          Führung wiederzubekommen. Ein Ausgang, der wegen einer unverwandten
+          Handlung verschwindet, ist keine Ruhe, sondern eine Falle.
+
+          Die Typenknöpfe darüber erscheinen aus gutem Grund erst beim Tippen –
+          sie sind eine Entscheidung *über das Getippte*. Ein Ausweg ist keine.
+        */}
+        <div className="mt-12 flex flex-col items-center gap-1 text-center">
+          <button
+            type="button"
+            onClick={onFuehrung}
+            className="min-h-[44px] font-serif text-[13.5px] italic text-paper-400/55 transition-colors hover:text-gild-300/80 no-tap-highlight"
+          >
+            Zeig mir zuerst ein Beispiel
+          </button>
           <button
             type="button"
             onClick={onUeberspringen}

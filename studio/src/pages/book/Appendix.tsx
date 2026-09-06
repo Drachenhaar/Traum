@@ -183,15 +183,17 @@ export function anhangWerkzeuge(z: AnhangZahlen): AppendixEntry[] {
 }
 
 /**
- * Und die zwei, die ausserhalb der Ordnung stehen.
+ * Und die drei, die ausserhalb der Ordnung stehen.
  *
  * Sie gehören nicht zum Handwerk: Das eine ist die Rückseite des Buches, das
- * andere sein Gesicht. Ein Profil, das sie wegsortieren dürfte, könnte die
- * Stelle wegsortieren, an der man das Profil ändert.
+ * andere sein Gesicht, das dritte seine Einführung. Ein Profil, das sie
+ * wegsortieren dürfte, könnte die Stelle wegsortieren, an der man das Profil
+ * ändert.
  */
 export function anhangAusserhalb(z: AnhangZahlen): {
   kolophon: AppendixEntry;
   meinBuch: AppendixEntry;
+  fuehrung: AppendixEntry;
 } {
   /*
    * Das Kolophon steht ausserhalb der Ordnung.
@@ -234,7 +236,33 @@ export function anhangAusserhalb(z: AnhangZahlen): {
     note: `Titel, Einband, Drachenzeichen – und der Band, in dem alles steht. Zurzeit: ${z.bandName}.`,
     gewicht: {},
   };
-  return { kolophon, meinBuch };
+  /*
+   * Die Führung – und warum sie ausserhalb der Ordnung steht.
+   *
+   * Sie war die ersten sechs von dreizehn Schritten der Erschaffung: sechs
+   * Buchseiten an einer Beispielwelt, bevor das eigene Buch ein Wort
+   * enthielt. Gut gemacht, aber an der falschen Stelle – was sie zeigt, kann
+   * sich dort an nichts Eigenem festmachen. Jetzt liegt sie hier.
+   *
+   * Der erste Anlauf hängte sie in die gewichtete Werkzeugliste, mit einem
+   * leeren `gewicht`. Das war falsch, und der Gerätelauf hat es sofort
+   * gezeigt: Ein Gewicht von null sortiert immer ganz nach hinten, also stand
+   * sie unter „Weiteres" hinter der Falte – die Einführung ins Buch, versteckt
+   * hinter einer Klappe, die man erst öffnen muss, wenn man schon weiss, was
+   * man sucht.
+   *
+   * Sie ist eben kein Handwerkszeug. Sie erklärt das Buch, so wie das
+   * Kolophon seine Rückseite ist und „Mein Buch" sein Gesicht.
+   */
+  const fuehrung: AppendixEntry = {
+    id: 'fuehrung',
+    to: '/fuehrung',
+    title: 'Die Führung',
+    note: 'Sechs Seiten an einem Beispiel – was dieses Buch mit deiner Welt vorhat.',
+    gewicht: {},
+  };
+
+  return { kolophon, meinBuch, fuehrung };
 }
 
 export function AppendixSpread() {
@@ -284,7 +312,7 @@ export function AppendixSpread() {
 
   const { vorn, weiter } = ordne(werkzeuge, profil);
 
-  const { kolophon, meinBuch } = anhangAusserhalb(zahlen);
+  const { kolophon, meinBuch, fuehrung } = anhangAusserhalb(zahlen);
 
   return (
     <Spread
@@ -351,6 +379,7 @@ export function AppendixSpread() {
             ))}
             <AppendixLine {...meinBuch} />
             <AppendixLine {...kolophon} />
+            <AppendixLine {...fuehrung} />
             {/*
               Das Blattverzeichnis steht zuletzt und leise.
 

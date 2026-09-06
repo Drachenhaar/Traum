@@ -146,8 +146,15 @@ export function BlattverzeichnisSheet() {
     entnommen: entries.filter((e: Entry) => e.deletedAt).length,
     bandName: bandVon(settings.book?.band).name,
   };
-  const { kolophon, meinBuch } = anhangAusserhalb(zahlen);
-  const anhang: Blatt[] = [...anhangWerkzeuge(zahlen), meinBuch, kolophon].map((w) => ({
+  /*
+   * Auch die Führung – dieses Verzeichnis lässt nichts weg.
+   *
+   * Sie kommt aus derselben Quelle wie der Anhang selbst, und das ist der
+   * Grund, warum das hier nur ein Wort mehr ist: Zwei handgeschriebene Listen
+   * derselben Sache sind in diesem Projekt schon mehrfach auseinandergelaufen.
+   */
+  const { kolophon, meinBuch, fuehrung } = anhangAusserhalb(zahlen);
+  const anhang: Blatt[] = [...anhangWerkzeuge(zahlen), meinBuch, kolophon, fuehrung].map((w) => ({
     to: w.to,
     titel: w.title,
     notiz: w.note,
