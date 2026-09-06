@@ -10,11 +10,19 @@
  * während man es betrachtet.
  */
 
-import { useMemo, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { useStudio, livingEntries } from '../../store/useStudio';
 import { GraphSimulation } from '../../lib/graph';
+import {
+  einpassen,
+  kartenbild,
+  FALTKARTE,
+  SPERRUNG,
+  type Rahmen,
+  type Stern,
+} from '../../lib/sternkarte';
 import { relationType } from '../../lib/relations';
 import { templateFor } from '../../lib/templates';
 import { chapterOfType } from '../../lib/book';
@@ -43,6 +51,28 @@ const SETTLE_TICKS = 420;
  */
 const MAX_STERNE = 400;
 
+/**
+ * Wie gross die Namen auf dem Schirm stehen, in Punkten.
+ *
+ * Vorher hing die Zahl an der Breite des Ausschnitts und war auf sieben bis
+ * fünfzehn Karteneinheiten gedeckelt. Auf einem Telefon ergab das jedes Mal
+ * ungefähr vier Punkte – nachgerechnet 4.16 für eine Welt aus fünfzig
+ * Sternen und 3.61 für eine aus vierhundert. Der Text stand da, richtig
+ * gesetzt, und war nicht zu lesen.
+ */
+const SCHRIFT_PUNKTE = 11.5;
+
+/**
+ * In welchen Schritten die Form des Rahmens überhaupt zählt.
+ *
+ * Der Lageplan hängt am Seitenverhältnis des Bildfeldes – aber jede
+ * Handbreite Grössenänderung eine Simulation über vierhundert Schritte neu
+ * zu rechnen wäre unsinnig. Auf ein Zwanzigstel gerundet bleibt die Karte
+ * beim Drehen des Geräts stehen und richtet sich nur dann neu, wenn sich
+ * wirklich die Form geändert hat.
+ */
+const FORM_STUFE = 20;
+
 export function FoldOutMap() {
   const navigate = useNavigate();
   const entries = useStudio((s) => s.entries);
@@ -51,12 +81,67 @@ export function FoldOutMap() {
   const [selected, setSelected] = useState<string | null>(null);
   /** Kein Jahr gewählt: die Karte zeigt alle Zeiten zugleich. */
   const [jahr, setJahr] = useState<number | null>(null);
+  /** Ob die Welt überhaupt Sterne hat – der leere Rahmen sagt es sonst zu früh. */
+  const leer = useMemo(() => livingEntries(entries).length === 0, [entries]);
+
+  /*
+   * Das Bildfeld wird gemessen, nicht geraten.
+   *
+   * Beides hängt daran: die Form, in die sich die Sterne setzen sollen, und
+   * die Schriftgrösse, damit die Namen auf dem Schirm lesbar ankommen. Ohne
+   * die wirkliche Grösse ist beides Rechnen ins Blaue.
+   */
+  const feldRef = useRef<HTMLDivElement>(null);
+  const [rahmen, setRahmen] = useState<Rahmen | null>(null);
+
+  useLayoutEffect(() => {
+    const feld = feldRef.current;
+    if (!feld) return;
+    /*
+     * `offsetWidth` und nicht `getBoundingClientRect`.
+     *
+     * Der Unterschied: Das eine misst den Kasten, das andere das Bild.
+     * Die Faltkarte klappt beim Aufschlagen mit `scale(0.94)` auf, und
+     * `getBoundingClientRect` rechnet diese Verkleinerung mit. Wer während
+     * der Bewegung misst, misst 363 statt 390 Punkte – und weil sich der
+     * Kasten danach nicht ändert, sondern nur die Verkleinerung ausläuft,
+     * meldet sich der Beobachter nie wieder. Die Karte blieb für einen
+     * Rahmen gesetzt, den es nie gab: Die Schrift stand sieben Prozent zu
+     * gross, und der Ausschnitt hatte die falsche Form.
+     *
+     * Ganze Punkte statt Bruchteile ist dabei kein Verlust: Ein Achtel
+     * Punkt ändert weder die Form noch die Schriftgrösse sichtbar, aber es
+     * würde jedes Mal eine neue Rechnung anwerfen.
+     */
+    const messen = () => {
+      const breite = feld.offsetWidth;
+      const hoehe = feld.offsetHeight;
+      if (breite > 0 && hoehe > 0) {
+        setRahmen((alt) =>
+          alt && alt.breite === breite && alt.hoehe === hoehe ? alt : { breite, hoehe },
+        );
+      }
+    };
+    messen();
+    const beobachter = new ResizeObserver(messen);
+    beobachter.observe(feld);
+    return () => beobachter.disconnect();
+  }, []);
+
+  /*
+   * Die Form, in die eingepasst wird – gestuft, damit nicht jeder Pixel
+   * eine neue Simulation auslöst.
+   */
+  const form = rahmen
+    ? Math.round((rahmen.hoehe / rahmen.breite) * FORM_STUFE) / FORM_STUFE
+    : null;
 
   /*
    * Einmal rechnen, dann stehen lassen. Kein Animationsrahmen, kein Nachfedern –
    * deshalb wirkt die Karte gezeichnet statt simuliert.
    */
   const layout = useMemo(() => {
+    if (form === null) return null;
     const alleLebenden = livingEntries(entries);
     if (alleLebenden.length === 0) return null;
 
@@ -82,8 +167,17 @@ export function FoldOutMap() {
      */
     const sichtbar = new Set(living.map((e) => e.id));
 
-    /* Weit auseinander: ein Sternbild braucht Schwarz zwischen den Sternen. */
-    const sim = new GraphSimulation({ linkDistance: 210, charge: 6200, gravity: 0.008 });
+    /*
+     * Weit auseinander: ein Sternbild braucht Schwarz zwischen den Sternen.
+     * Und in der Form des Blattes, nicht rund – `streckung` gibt der Spirale
+     * schon die richtige Gestalt, `einpassen` misst sie hinterher nach.
+     */
+    const sim = new GraphSimulation({
+      linkDistance: 210,
+      charge: 6200,
+      gravity: 0.008,
+      streckung: form,
+    });
     sim.setData(
       living.map((e) => ({
         id: e.id,
@@ -103,30 +197,47 @@ export function FoldOutMap() {
         })),
     );
 
-    for (let i = 0; i < SETTLE_TICKS; i++) sim.tick();
-
-    const b = sim.bounds();
-    /* Knapper Rand – sonst schrumpft das Bild in der Mitte zusammen. */
-    const pad = 60;
-    const viewW = b.maxX - b.minX + pad * 2;
-
-    /*
-     * Schriftgröße an den Ausschnitt koppeln: Ob 12 oder 500 Sterne – die
-     * Namen erscheinen auf dem Schirm immer etwa gleich groß.
-     */
-    const labelSize = Math.max(7, Math.min(15, viewW / 95));
+    einpassen(sim, form, { ...FALTKARTE, setzen: SETTLE_TICKS });
 
     return {
       nodes: sim.nodes,
       edges: sim.edges,
-      labelSize,
-      view: `${b.minX - pad} ${b.minY - pad} ${viewW} ${b.maxY - b.minY + pad * 2}`,
       byId: new Map(sim.nodes.map((n) => [n.id, n])),
+      /* Für das Setzen der Namen: hell heisst hier »gut verbunden«. */
+      sterne: sim.nodes.map(
+        (n): Stern => ({
+          id: n.id,
+          x: n.x,
+          y: n.y,
+          r: n.r,
+          label: n.label,
+          rang: relIndex.neighbours.get(n.id)?.size ?? 0,
+        }),
+      ),
       /* Wurde gekuerzt? Dann muss es dastehen. */
       gezeigt: living.length,
       gesamt: alleLebenden.length,
     };
-  }, [entries, relations, relIndex]);
+  }, [entries, relations, relIndex, form]);
+
+  /*
+   * Ausschnitt, Schriftgrösse und die Namen, die wirklich Platz haben.
+   *
+   * Eigene Rechnung, weil sie an der genauen Grösse des Bildfeldes hängt –
+   * und die ändert sich beim Drehen des Geräts, ohne dass sich der Lageplan
+   * ändern müsste. Sie kostet Millisekunden statt Hunderter.
+   */
+  const bild = useMemo(
+    () =>
+      layout && rahmen
+        ? kartenbild(layout.sterne, rahmen, {
+            schriftPunkte: SCHRIFT_PUNKTE,
+            laenge: 22,
+            luft: 0.14,
+          })
+        : null,
+    [layout, rahmen],
+  );
 
   /*
    * Die Zeit verschiebt keine Sterne.
@@ -246,11 +357,18 @@ export function FoldOutMap() {
           </button>
         </div>
 
-        {/* Die Karte */}
-        {layout ? (
+        {/*
+          Die Karte.
+
+          Der Rahmen steht immer, auch wenn noch nichts darin ist – nur so
+          lässt er sich messen, und ohne sein Mass wüsste weder die Anordnung
+          noch die Schrift, wie gross sie werden darf.
+        */}
+        <div ref={feldRef} className="relative z-10 min-h-0 w-full flex-1">
+          {layout && bild ? (
           <svg
-            viewBox={layout.view}
-            className="relative z-10 min-h-0 w-full flex-1"
+            viewBox={bild.view}
+            className="h-full w-full"
             preserveAspectRatio="xMidYMid meet"
           >
             {/* Linien zuerst – sie liegen hinter den Sternen */}
@@ -281,18 +399,10 @@ export function FoldOutMap() {
 
             {/* Sterne */}
             <g>
-              {layout.nodes.map((node, i) => {
+              {layout.nodes.map((node) => {
                 const active = selected === node.id;
                 const dimmed =
                   selected && !active && !relIndex.neighbours.get(selected)?.has(node.id);
-                /*
-                 * Vier Phasen statt zwei: über, unter, und jeweils seitlich
-                 * versetzt. Benachbarte Namen kommen sich dadurch deutlich
-                 * seltener ins Gehege – wie beim Setzen einer echten Karte.
-                 */
-                const phase = i % 4;
-                const above = phase === 1 || phase === 2;
-                const nudge = phase === 2 || phase === 3 ? layout.labelSize * 1.15 : 0;
                 return (
                   <g
                     key={node.id}
@@ -316,42 +426,82 @@ export function FoldOutMap() {
                       r={node.r}
                       fill={active ? '#F0DFA8' : '#E3C878'}
                     />
-                    <text
-                      x={node.x}
-                      y={
-                        (above
-                          ? node.y - node.r - layout.labelSize * 0.7
-                          : node.y + node.r + layout.labelSize * 1.3) + (above ? -nudge : nudge)
-                      }
-                      textAnchor="middle"
-                      className="pointer-events-none select-none"
-                      style={{
-                        fontFamily: "'Iowan Old Style', Georgia, serif",
-                        fontSize: layout.labelSize,
-                        fill: active ? '#F5EACB' : '#C3CCDE',
-                        letterSpacing: '0.04em',
-                        /* Dunkler Saum, damit Namen auch über Linien lesbar bleiben */
-                        paintOrder: 'stroke',
-                        stroke: '#0d1119',
-                        strokeWidth: layout.labelSize * 0.32,
-                        strokeLinejoin: 'round',
-                      }}
-                    >
-                      {node.label.length > 22 ? `${node.label.slice(0, 21)}…` : node.label}
-                    </text>
                   </g>
                 );
               })}
             </g>
+
+            {/*
+              Die Namen – in einer eigenen Lage über allen Sternen.
+
+              Zwei Dinge stehen dahinter. Erstens trägt nicht jeder Stern
+              einen Namen: Es bekommt ihn, wer am besten verbunden ist und
+              wessen Name noch irgendwo hinpasst. So sind Sternkarten immer
+              gesetzt worden – die hellen sind benannt, die schwachen nicht,
+              und genau deshalb kann man sie lesen. Wer keinen trägt, sagt
+              seinen beim Antippen.
+
+              Zweitens liegt die Lage über allen Sternen und nicht bei
+              jedem einzelnen. Sonst deckte die Scheibe des nächsten Sterns
+              den Namen des vorigen zu.
+            */}
+            <g>
+              {layout.nodes.map((node) => {
+                const active = selected === node.id;
+                const nachbar = selected
+                  ? relIndex.neighbours.get(selected)?.has(node.id) === true
+                  : false;
+                const gesetzt = bild.namen.get(node.id);
+                /* Angetippt sagt auch ein namenloser Stern, wie er heisst. */
+                const zug =
+                  gesetzt ??
+                  (active || nachbar
+                    ? {
+                        x: node.x,
+                        y: node.y + node.r + bild.groesse * 1.1,
+                        anker: 'middle' as const,
+                      }
+                    : null);
+                if (!zug) return null;
+                const dimmed = selected && !active && !nachbar;
+                return (
+                  <text
+                    key={node.id}
+                    x={zug.x}
+                    y={zug.y}
+                    textAnchor={zug.anker}
+                    opacity={(dimmed ? 0.18 : 1) * glanz(node.id)}
+                    className="pointer-events-none select-none"
+                    style={{
+                      fontFamily: "'Iowan Old Style', Georgia, serif",
+                      fontSize: bild.groesse,
+                      fill: active ? '#F5EACB' : '#C3CCDE',
+                      letterSpacing: `${SPERRUNG}em`,
+                      /* Dunkler Saum, damit Namen auch über Linien lesbar bleiben */
+                      paintOrder: 'stroke',
+                      stroke: '#0d1119',
+                      strokeWidth: bild.groesse * 0.32,
+                      strokeLinejoin: 'round',
+                      transition: 'opacity 320ms ease',
+                    }}
+                  >
+                    {node.label.length > 22 ? `${node.label.slice(0, 21)}…` : node.label}
+                  </text>
+                );
+              })}
+            </g>
           </svg>
-        ) : (
-          <div className="relative z-10 grid flex-1 place-items-center px-8">
-            <p className="max-w-[36ch] text-center font-serif text-[15px] italic leading-relaxed text-paper-400/60">
-              Noch keine Sterne. Sobald die Welt Einträge und Verbindungen hat, zeichnet sich hier
-              ihre Ordnung.
-            </p>
-          </div>
-        )}
+          ) : (
+            <div className="grid h-full place-items-center px-8">
+              {leer && (
+                <p className="max-w-[36ch] text-center font-serif text-[15px] italic leading-relaxed text-paper-400/60">
+                  Noch keine Sterne. Sobald die Welt Einträge und Verbindungen hat, zeichnet sich
+                  hier ihre Ordnung.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
 
         {/*
           Die Zeit über der Karte.
@@ -398,15 +548,35 @@ export function FoldOutMap() {
           </div>
         )}
 
-        {/* Legende: die Kapitel als Himmelsregionen */}
-        <div className="relative z-20 flex flex-wrap items-center gap-x-5 gap-y-2 px-6 pb-6 sm:px-9 sm:pb-8">
-          {selected ? (
-            <SelectedNote id={selected} onOpen={() => navigate(`/eintrag/${selected}`)} />
-          ) : (
-            <p className="font-serif text-[12px] italic text-paper-400/45">
-              Einen Stern antippen, um seine Linien zu sehen. Zweimal, um die Seite aufzuschlagen.
-            </p>
-          )}
+        {/*
+          Legende: die Kapitel als Himmelsregionen.
+
+          Die innere Lage hält zwei Zeilen frei, und zwar immer.
+
+          Nicht Kosmetik: Der Hinweis »Einen Stern antippen …« bricht auf
+          einem Telefon auf zwei Zeilen, die Angabe zum gewählten Stern
+          braucht nur eine. Dadurch wuchs das Bildfeld beim Antippen um
+          zehneinhalb Punkte, die Karte rechnete ihren Ausschnitt neu, und
+          das ganze Sternbild sprang leise um knapp zwei Prozent. Gemessen:
+          Fuss 60 → 49.5, Feld 622.25 → 632.75. Oben in dieser Datei steht,
+          dass sich ein Sternbild nicht bewegt, während man es betrachtet –
+          dann darf auch der Fuss darunter seine Höhe nicht ändern.
+
+          Das Mass sitzt auf der *inneren* Lage, nicht auf der äusseren.
+          `min-height` rechnet die Polsterung mit: Aussen angeschrieben war
+          es wirkungslos, weil die Polsterung allein schon höher war als das
+          Mass. Nachgemessen: derselbe Sprung wie vorher.
+        */}
+        <div className="relative z-20 px-6 pb-6 sm:px-9 sm:pb-8">
+          <div className="flex min-h-[36px] flex-wrap items-center gap-x-5 gap-y-2">
+            {selected ? (
+              <SelectedNote id={selected} onOpen={() => navigate(`/eintrag/${selected}`)} />
+            ) : (
+              <p className="font-serif text-[12px] italic text-paper-400/45">
+                Einen Stern antippen, um seine Linien zu sehen. Zweimal, um die Seite aufzuschlagen.
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -37,9 +37,32 @@ interface SimOptions {
   charge: number;
   /** Zug zur Mitte */
   gravity: number;
+  /**
+   * Wie viel höher als breit die Anordnung werden soll. 1 = rund.
+   *
+   * Der Zug zur Mitte ist ohnehin eine erfundene Kraft – es gibt keinen
+   * Grund, warum ein Graph rund sein müsste. Er darf also auch in eine
+   * Richtung stärker ziehen als in die andere, und dann setzt sich die
+   * Anordnung von selbst in die Form, die der Rahmen hat. Das ist ehrlicher
+   * als hinterher in die Breite zu quetschen: Die Abstände zwischen den
+   * Knoten stimmen weiterhin, sie sind nur anders angeordnet.
+   */
+  streckung: number;
 }
 
-const DEFAULTS: SimOptions = { linkDistance: 132, charge: 3200, gravity: 0.010 };
+const DEFAULTS: SimOptions = { linkDistance: 132, charge: 3200, gravity: 0.010, streckung: 1 };
+
+/**
+ * Mit welchem Exponenten die Streckung auf den Zug wirkt.
+ *
+ * Nicht hergeleitet, sondern gemessen: Bei starrem Zug `g` stellt sich eine
+ * Ausdehnung `R ~ g^(-1/3)` ein – zwei Achsen im Verhaeltnis `s` brauchen
+ * ihre Zuege also im Verhaeltnis `s^3`, was je Achse `s^1.5` ergibt. Die
+ * Messung an einer wirklichen Welt bestaetigt das nur ungefaehr, weil die
+ * Federn mitreden; der Wert unten ist der nachgemessene, nicht der
+ * ausgerechnete. `tests/sternkarte.test.mjs` haelt ihn fest.
+ */
+const STRECK_EXPONENT = 1.5;
 
 export class GraphSimulation {
   nodes: GraphNode[] = [];
@@ -82,10 +105,17 @@ export class GraphSimulation {
        */
       const angle = i * 2.399963; // goldener Winkel
       const radius = 30 + 0.55 * this.options.linkDistance * Math.sqrt(i + 1) + count * 0.05;
+      /*
+       * Die Spirale liegt gleich in der Form, in die es hinauslaufen soll.
+       * Das spart nicht nur Schritte – es trifft die Form auch genauer, weil
+       * die Anordnung sie nie erst verlassen muss. Die Wurzel haelt die
+       * Flaeche gleich, damit die Streckung die Streuung nicht mitzieht.
+       */
+      const dehnung = Math.sqrt(this.options.streckung);
       const node: GraphNode = {
         ...n,
-        x: Math.cos(angle) * radius,
-        y: Math.sin(angle) * radius,
+        x: (Math.cos(angle) * radius) / dehnung,
+        y: Math.sin(angle) * radius * dehnung,
         vx: 0,
         vy: 0,
       };
@@ -104,7 +134,13 @@ export class GraphSimulation {
 
   /** Ein Simulationsschritt. Gibt zurück, ob sich noch nennenswert etwas bewegt. */
   tick(): boolean {
-    const { linkDistance, charge, gravity } = this.options;
+    const { linkDistance, charge, gravity, streckung } = this.options;
+    /*
+     * Der Zug ist je Achse verschieden, sein geometrisches Mittel bleibt
+     * `gravity`. So aendert die Streckung die Form, nicht die Groesse.
+     */
+    const zugX = gravity * Math.pow(streckung, STRECK_EXPONENT);
+    const zugY = gravity / Math.pow(streckung, STRECK_EXPONENT);
     const nodes = this.nodes;
     const n = nodes.length;
     if (n === 0) return false;
@@ -199,8 +235,8 @@ export class GraphSimulation {
         node.vy = 0;
         continue;
       }
-      node.vx -= node.x * gravity * alpha;
-      node.vy -= node.y * gravity * alpha;
+      node.vx -= node.x * zugX * alpha;
+      node.vy -= node.y * zugY * alpha;
 
       node.vx *= 0.82;
       node.vy *= 0.82;
@@ -214,6 +250,18 @@ export class GraphSimulation {
     if (this.alpha < 0.005) this.alpha = 0;
 
     return this.alpha > 0 && movement / n > 0.008;
+  }
+
+  /**
+   * Die angestrebte Form ändern, ohne die Anordnung wegzuwerfen.
+   *
+   * Gedacht für das Nachfassen: einmal setzen lassen, nachmessen, korrigieren.
+   * Der Weg über einen ausgerechneten Exponenten allein trifft die Form nur
+   * ungefähr, weil die Federn mitreden und weil ein einzelner Knoten am Rand
+   * das Maß verschiebt. Nachmessen trifft sie.
+   */
+  formen(streckung: number): void {
+    this.options.streckung = streckung;
   }
 
   /** Simulation neu anstoßen (nach Ziehen oder Filterwechsel). */
