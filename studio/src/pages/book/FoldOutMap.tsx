@@ -1,36 +1,43 @@
 /**
  * Die Faltkarte.
  *
- * Der Weltgraph, aber nicht mehr als Werkzeug: als Sternkarte, die hinten im
- * Buch eingeklebt ist. Man klappt sie auf, sieht die Ordnung der Welt, und
- * klappt sie wieder zu.
+ * Der Weltgraph, aber nicht mehr als Werkzeug: als Himmel, in dem man steht.
+ * Die Sterne hängen ringsum, man sieht den Ausschnitt, in den man gerade
+ * schaut, und sieht sich um, indem man wischt.
  *
- * Entscheidend ist, was hier *nicht* passiert: nichts wackelt. Die Anordnung
- * wird einmal berechnet und dann eingefroren. Ein Sternbild bewegt sich nicht,
- * während man es betrachtet.
+ * Entscheidend ist, was hier *nicht* passiert: **die Anordnung wird einmal
+ * berechnet und dann eingefroren.** Ein Sternbild ordnet sich nicht um,
+ * während man es betrachtet. Den Kopf zu drehen ist etwas anderes – dabei
+ * bleibt jeder Stern, wo er ist, und nur der Blick geht.
  */
 
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { useStudio, livingEntries } from '../../store/useStudio';
 import { GraphSimulation } from '../../lib/graph';
 import {
-  aufKuppel,
+  achsen,
+  anDenHimmel,
+  aufDenSchirm,
+  begrenzen,
+  brennweite,
+  imBild,
   milchstrasse,
   nachHelligkeit,
   punktePfad,
-  OEFFNUNG,
   saatAus,
   sternenhimmel,
+  SICHTFELD,
+  type Blick,
+  type Richtung,
 } from '../../lib/himmel';
 import {
   einpassen,
-  kartenbild,
+  namenSetzen,
   FALTKARTE,
   SPERRUNG,
-  type Rahmen,
-  type Stern,
+  type Namenszug,
 } from '../../lib/sternkarte';
 import { relationType } from '../../lib/relations';
 import { templateFor } from '../../lib/templates';
@@ -61,38 +68,45 @@ const SETTLE_TICKS = 420;
 const MAX_STERNE = 400;
 
 /**
- * Wie gross die Namen auf dem Schirm stehen, in Punkten.
+ * Die Schriftgrösse der Namen, in Bildschirmpunkten.
  *
- * Vorher hing die Zahl an der Breite des Ausschnitts und war auf sieben bis
- * fünfzehn Karteneinheiten gedeckelt. Auf einem Telefon ergab das jedes Mal
- * ungefähr vier Punkte – nachgerechnet 4.16 für eine Welt aus fünfzig
- * Sternen und 3.61 für eine aus vierhundert. Der Text stand da, richtig
- * gesetzt, und war nicht zu lesen.
+ * Punkte, nicht Karteneinheiten – und das geht hier auf, weil der Ausschnitt
+ * genauso gross gewählt ist wie das Bildfeld: eine Zeicheneinheit ist ein
+ * Bildpunkt. Vorher war das anders und musste umgerechnet werden; dabei kam
+ * auf einem Telefon jedes Mal etwa vier Punkte heraus, und der Text war
+ * zwar da, aber nicht zu lesen.
  */
-const SCHRIFT_PUNKTE = 11.5;
+const SCHRIFT = 11.5;
 
 /**
- * In welchen Schritten die Form des Rahmens überhaupt zählt.
+ * Wie viele namenlose Sterne hinter den benannten stehen – auf der ganzen
+ * Kugel, nicht im Bild.
  *
- * Der Lageplan hängt am Seitenverhältnis des Bildfeldes – aber jede
- * Handbreite Grössenänderung eine Simulation über vierhundert Schritte neu
- * zu rechnen wäre unsinnig. Auf ein Zwanzigstel gerundet bleibt die Karte
- * beim Drehen des Geräts stehen und richtet sich nur dann neu, wenn sich
- * wirklich die Form geändert hat.
- */
-const FORM_STUFE = 20;
-
-/**
- * Wie viele namenlose Sterne hinter den benannten stehen.
+ * Gezeichnet wird nur, was gerade im Ausschnitt liegt: bei diesen Zahlen
+ * rund 870 Punkte. Die Zahl hier ist also die Dichte des Himmels, nicht die
+ * Zahl der Punkte auf dem Schirm.
  *
- * Weniger als dreihundert und der Himmel wirkt gesprenkelt statt tief;
- * deutlich mehr kostet nur noch Rechenzeit, weil die schwächsten auf einem
- * Telefon ohnehin in einem halben Bildpunkt verschwinden.
+ * Nachgemessen, wie teuer ein Bildwechsel beim Wischen ist:
+ *
+ *     2600 + 1800  →  275 Punkte im Bild  ·  0.3 ms
+ *     9000 + 6000  →  869 Punkte im Bild  ·  0.3 ms
+ *    18000 + 12000 → 1796 Punkte im Bild  ·  0.3 ms, im schlimmsten Fall 12.6
+ *
+ * Das Rechnen über alle Sterne kostet fast nichts – es sind ein paar
+ * Multiplikationen je Stern. Teuer wird erst das Bauen der Pfade für die
+ * sichtbaren, und dort fängt es bei knapp zweitausend an zu zucken. Bei
+ * neuntausend ist der Himmel dicht und die Bewegung ruhig.
  */
-const HIMMELSSTERNE = 420;
+const HIMMELSSTERNE = 9000;
 
 /** Und wie viele davon im Band stehen. */
-const BANDSTERNE = 520;
+const BANDSTERNE = 6000;
+
+/** Wie weit ein Finger wandern darf, damit es noch ein Antippen ist. */
+const TIPP_WEITE = 7;
+
+/** Wie weit eine Pfeiltaste den Blick dreht. */
+const TASTENSCHRITT = (7 * Math.PI) / 180;
 
 export function FoldOutMap() {
   const navigate = useNavigate();
@@ -108,12 +122,11 @@ export function FoldOutMap() {
   /*
    * Das Bildfeld wird gemessen, nicht geraten.
    *
-   * Beides hängt daran: die Form, in die sich die Sterne setzen sollen, und
-   * die Schriftgrösse, damit die Namen auf dem Schirm lesbar ankommen. Ohne
-   * die wirkliche Grösse ist beides Rechnen ins Blaue.
+   * Daran hängt alles: die Form, in die sich die Sterne setzen, die
+   * Brennweite, und wie weit ein Wisch den Blick dreht.
    */
   const feldRef = useRef<HTMLDivElement>(null);
-  const [rahmen, setRahmen] = useState<Rahmen | null>(null);
+  const [rahmen, setRahmen] = useState<{ breite: number; hoehe: number } | null>(null);
 
   useLayoutEffect(() => {
     const feld = feldRef.current;
@@ -127,12 +140,7 @@ export function FoldOutMap() {
      * der Bewegung misst, misst 363 statt 390 Punkte – und weil sich der
      * Kasten danach nicht ändert, sondern nur die Verkleinerung ausläuft,
      * meldet sich der Beobachter nie wieder. Die Karte blieb für einen
-     * Rahmen gesetzt, den es nie gab: Die Schrift stand sieben Prozent zu
-     * gross, und der Ausschnitt hatte die falsche Form.
-     *
-     * Ganze Punkte statt Bruchteile ist dabei kein Verlust: Ein Achtel
-     * Punkt ändert weder die Form noch die Schriftgrösse sichtbar, aber es
-     * würde jedes Mal eine neue Rechnung anwerfen.
+     * Rahmen gesetzt, den es nie gab.
      */
     const messen = () => {
       const breite = feld.offsetWidth;
@@ -150,12 +158,10 @@ export function FoldOutMap() {
   }, []);
 
   /*
-   * Die Form, in die eingepasst wird – gestuft, damit nicht jeder Pixel
-   * eine neue Simulation auslöst.
+   * Die Form, in die die Anordnung eingepasst wird – gestuft, damit nicht
+   * jeder Bildpunkt eine neue Simulation auslöst.
    */
-  const form = rahmen
-    ? Math.round((rahmen.hoehe / rahmen.breite) * FORM_STUFE) / FORM_STUFE
-    : null;
+  const form = rahmen ? Math.round((rahmen.hoehe / rahmen.breite) * 20) / 20 : null;
 
   /*
    * Einmal rechnen, dann stehen lassen. Kein Animationsrahmen, kein Nachfedern –
@@ -186,12 +192,12 @@ export function FoldOutMap() {
      * zweitausend von jedem waren es acht Millionen Vergleiche, nur um
      * festzustellen, dass fast alle Kanten dazugehoeren.
      */
-    const sichtbar = new Set(living.map((e) => e.id));
+    const sichtbarkeit = new Set(living.map((e) => e.id));
 
     /*
      * Weit auseinander: ein Sternbild braucht Schwarz zwischen den Sternen.
-     * Und in der Form des Blattes, nicht rund – `streckung` gibt der Spirale
-     * schon die richtige Gestalt, `einpassen` misst sie hinterher nach.
+     * Und in der Form des Bildfeldes, nicht rund – dann steht die Welt am
+     * Himmel so hoch, wie das Fenster hoch ist.
      */
     const sim = new GraphSimulation({
       linkDistance: 210,
@@ -208,7 +214,7 @@ export function FoldOutMap() {
         type: e.type,
       })),
       relations
-        .filter((r) => sichtbar.has(r.fromId) && sichtbar.has(r.toId))
+        .filter((r) => sichtbarkeit.has(r.fromId) && sichtbarkeit.has(r.toId))
         .map((r) => ({
           id: r.id,
           source: r.fromId,
@@ -221,35 +227,29 @@ export function FoldOutMap() {
     einpassen(sim, form, { ...FALTKARTE, setzen: SETTLE_TICKS });
 
     /*
-     * Und dann auf die Kuppel.
+     * Und dann an den Himmel.
      *
-     * Erst setzen lassen, dann wölben – nicht umgekehrt. Die Simulation
-     * rechnet mit Abständen; auf einer gewölbten Fläche wären das nicht mehr
-     * die Abstände, die sie meint. Die Wölbung ist eine Projektion, die
-     * ganz zum Schluss kommt, so wie ein Kartograf sein Netz zuletzt wählt.
+     * Erst setzen lassen, dann aufhängen – nicht umgekehrt. Die Simulation
+     * rechnet in der Ebene mit Abständen; auf einer Kugel wären das nicht
+     * mehr die Abstände, die sie meint. Das Aufhängen ist eine Projektion,
+     * die ganz zum Schluss kommt, so wie ein Kartograf sein Netz zuletzt
+     * wählt.
      */
-    const { lagen, horizont } = aufKuppel(sim.nodes);
-    sim.nodes.forEach((n, i) => {
-      n.x = lagen[i].x;
-      n.y = lagen[i].y;
-    });
+    const { richtungen, weite } = anDenHimmel(sim.nodes);
+
+    const sterne = sim.nodes.map((n, i) => ({
+      id: n.id,
+      d: richtungen[i],
+      r: n.r,
+      label: n.label,
+      rang: relIndex.neighbours.get(n.id)?.size ?? 0,
+    }));
 
     return {
-      nodes: sim.nodes,
-      edges: sim.edges,
-      horizont,
-      byId: new Map(sim.nodes.map((n) => [n.id, n])),
-      /* Für das Setzen der Namen: hell heisst hier »gut verbunden«. */
-      sterne: sim.nodes.map(
-        (n): Stern => ({
-          id: n.id,
-          x: n.x,
-          y: n.y,
-          r: n.r,
-          label: n.label,
-          rang: relIndex.neighbours.get(n.id)?.size ?? 0,
-        }),
-      ),
+      sterne,
+      kanten: sim.edges,
+      amHimmel: new Map(sterne.map((s) => [s.id, s.d])),
+      weite,
       /* Jede Welt bekommt ihren eigenen Himmel – und zwar immer denselben. */
       saat: saatAus(living[0]?.bookId ?? 'himmel'),
       /* Wurde gekuerzt? Dann muss es dastehen. */
@@ -258,59 +258,186 @@ export function FoldOutMap() {
     };
   }, [entries, relations, relIndex, form]);
 
+  /*
+   * Der Himmel dahinter – einmal je Welt, unabhängig vom Blickwinkel.
+   *
+   * Er hängt an der Kugel, nicht am Ausschnitt: Beim Umsehen werden dieselben
+   * Sterne nur anders projiziert. Deshalb steht er hier und nicht im
+   * Zeichnen.
+   */
+  const himmel = useMemo(
+    () =>
+      layout
+        ? {
+            sterne: sternenhimmel(layout.saat, HIMMELSSTERNE),
+            band: milchstrasse(layout.saat, BANDSTERNE),
+          }
+        : null,
+    [layout],
+  );
+
+  /* ------------------------------------------------------------ Umsehen -- */
+
+  const [blick, setBlick] = useState<Blick>({ gier: 0, neigung: 0 });
+  /** Wo der Blick zuletzt zur Ruhe kam – dort werden die Namen gesetzt. */
+  const [ruhe, setRuhe] = useState<Blick>({ gier: 0, neigung: 0 });
+  const [zieht, setZieht] = useState(false);
+  /** Ob seit dem Aufsetzen des Fingers wirklich gezogen wurde. */
+  const gezogen = useRef(false);
+  const start = useRef<{ x: number; y: number; blick: Blick } | null>(null);
 
   /*
-   * Ausschnitt, Schriftgrösse und die Namen, die wirklich Platz haben.
+   * Wie weit ein Bildpunkt den Blick dreht.
    *
-   * Eigene Rechnung, weil sie an der genauen Grösse des Bildfeldes hängt –
-   * und die ändert sich beim Drehen des Geräts, ohne dass sich der Lageplan
-   * ändern müsste. Sie kostet Millisekunden statt Hunderter.
+   * Ein Wisch über die ganze Höhe des Bildfeldes dreht um genau ein
+   * Sichtfeld. Damit wandert der Stern unter dem Finger mit dem Finger –
+   * in der Mitte des Bildes genau, zum Rand hin etwas gedehnt, weil die
+   * Zentralprojektion dort dehnt. Das ist die Bewegung, die sich anfühlt,
+   * als griffe man in den Himmel und nicht an einen Regler.
    */
-  const bild = useMemo(
-    () =>
-      layout && rahmen
-        ? kartenbild(layout.sterne, rahmen, {
-            schriftPunkte: SCHRIFT_PUNKTE,
-            laenge: 22,
-            luft: 0.14,
-            /* Der Horizont gehört mit ins Bild, sonst wird er angeschnitten. */
-            umschliesst: {
-              l: layout.horizont.mx - layout.horizont.ax,
-              o: layout.horizont.my - layout.horizont.ay,
-              r: layout.horizont.mx + layout.horizont.ax,
-              u: layout.horizont.my + layout.horizont.ay,
-            },
-            /* Und kein Name steht ausserhalb davon. */
-            rund: layout.horizont,
-          })
-        : null,
-    [layout, rahmen],
+  const jeSchritt = rahmen ? SICHTFELD / rahmen.hoehe : 0;
+
+  const dreh = useCallback(
+    (dGier: number, dNeigung: number) => {
+      if (!layout) return;
+      setBlick((alt) =>
+        begrenzen({ gier: alt.gier + dGier, neigung: alt.neigung + dNeigung }, layout.weite),
+      );
+    },
+    [layout],
   );
 
   /*
-   * Der Himmel hinter den Sternen.
+   * Der Zeiger wird **erst beim Ziehen** eingefangen, nicht beim Aufsetzen.
    *
-   * Er hängt nur an der Kuppel, nicht an der Zeit und nicht an der Auswahl –
-   * gerechnet wird er deshalb genau einmal je Anordnung.
+   * Das ist kein Feinschliff, sondern die Antwort auf einen gemessenen
+   * Fehler: `setPointerCapture` leitet auch das darauffolgende `click`
+   * um – nicht mehr an den Stern unter dem Finger, sondern an das Feld,
+   * das eingefangen hat. Beim Aufsetzen eingefangen liess sich deshalb
+   * **kein einziger Stern mehr antippen**. Am Standbild war davon nichts
+   * zu sehen; erst der Lauf, der Wischen und Antippen nacheinander
+   * ausprobiert hat, brachte es heraus.
+   *
+   * Solange nicht gezogen wird, braucht es das Einfangen ohnehin nicht.
    */
-  const himmel = useMemo(() => {
-    if (!layout || !bild) return null;
-    const h = layout.horizont;
+  const aufsetzen = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (!layout) return;
+    gezogen.current = false;
+    start.current = { x: e.clientX, y: e.clientY, blick };
+  };
+
+  const bewegen = (e: React.PointerEvent<SVGSVGElement>) => {
+    const s = start.current;
+    if (!s || !layout) return;
+    const dx = e.clientX - s.x;
+    const dy = e.clientY - s.y;
+    if (!gezogen.current && Math.hypot(dx, dy) < TIPP_WEITE) return;
+    if (!gezogen.current) {
+      gezogen.current = true;
+      setZieht(true);
+      /* Ab jetzt gehören die Ereignisse dem Feld, auch ausserhalb davon. */
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
     /*
-     * Wie viele Karteneinheiten ein Bildschirmpunkt misst.
-     *
-     * Ohne dieses Mass waren die Hintergrundsterne beim ersten Versuch
-     * unsichtbar: Ihre Radien standen in Karteneinheiten, und eine
-     * Karteneinheit ist auf einem Telefon etwa ein Drittel Punkt. Es
-     * standen also Sterne von einem drittel Bildpunkt Durchmesser da, bei
-     * halber Deckkraft. Alles richtig gerechnet, nichts zu sehen.
+     * Die Vorzeichen: Man greift in den Himmel und zieht ihn. Wer einen
+     * Stern von rechts in die Mitte zieht, hat nach rechts geschaut; wer
+     * ihn von oben herunterzieht, hat nach oben geschaut.
      */
-    const einheit = bild.groesse / SCHRIFT_PUNKTE;
-    return {
-      sterne: nachHelligkeit(sternenhimmel(layout.saat, HIMMELSSTERNE, h, OEFFNUNG, einheit), 4),
-      band: nachHelligkeit(milchstrasse(layout.saat, BANDSTERNE, h, OEFFNUNG, einheit), 3),
+    setBlick(
+      begrenzen(
+        { gier: s.blick.gier - dx * jeSchritt, neigung: s.blick.neigung + dy * jeSchritt },
+        layout.weite,
+      ),
+    );
+  };
+
+  const absetzen = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (!start.current) return;
+    start.current = null;
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    if (gezogen.current) {
+      setZieht(false);
+      setRuhe(blick);
+    }
+  };
+
+  const taste = (e: React.KeyboardEvent<SVGSVGElement>) => {
+    const schritt: Record<string, [number, number]> = {
+      ArrowLeft: [-TASTENSCHRITT, 0],
+      ArrowRight: [TASTENSCHRITT, 0],
+      ArrowUp: [0, TASTENSCHRITT],
+      ArrowDown: [0, -TASTENSCHRITT],
     };
-  }, [layout, bild]);
+    const s = schritt[e.key];
+    if (!s) return;
+    e.preventDefault();
+    dreh(s[0], s[1]);
+  };
+
+  /* Nach dem Drehen per Taste kommt der Blick sofort zur Ruhe. */
+  useLayoutEffect(() => {
+    if (!zieht) setRuhe(blick);
+  }, [blick, zieht]);
+
+  /* -------------------------------------------------------- Projizieren -- */
+
+  const f = rahmen ? brennweite(rahmen.hoehe / 2) : 1;
+  const sichtachsen = useMemo(() => achsen(blick), [blick]);
+
+  /** Die Sterne der Welt, wie sie jetzt im Bild stehen. */
+  const imBlick = useMemo(() => {
+    if (!layout || !rahmen) return [];
+    return layout.sterne
+      .map((s) => ({ ...s, lage: aufDenSchirm(s.d, sichtachsen, f) }))
+      .filter((s): s is typeof s & { lage: { x: number; y: number } } => s.lage !== null);
+  }, [layout, rahmen, sichtachsen, f]);
+
+  /** Der gemalte Himmel, für diesen Blickwinkel. */
+  const grund = useMemo(() => {
+    if (!himmel || !rahmen) return null;
+    return {
+      sterne: nachHelligkeit(imBild(himmel.sterne, sichtachsen, f, rahmen), 4),
+      band: nachHelligkeit(imBild(himmel.band, sichtachsen, f, rahmen), 3),
+    };
+  }, [himmel, rahmen, sichtachsen, f]);
+
+  /**
+   * Wer einen Namen trägt – gesetzt für den ruhenden Blick.
+   *
+   * Nicht bei jedem Bildwechsel: Das Setzen wägt jeden Namen gegen jeden
+   * schon gesetzten ab, und das ist zu viel Arbeit für sechzig Bilder in der
+   * Sekunde. Beim Wischen treten die Namen deshalb zurück und kommen
+   * wieder, sobald der Blick steht – so, wie man beim Umsehen auch erst
+   * liest, wenn man hinsieht.
+   */
+  const namen = useMemo(() => {
+    if (!layout || !rahmen) return new Map<string, Namenszug>();
+    const b = achsen(ruhe);
+    const fr = brennweite(rahmen.hoehe / 2);
+    const sichtbare = layout.sterne
+      .map((s) => {
+        const lage = aufDenSchirm(s.d, b, fr);
+        return lage ? { id: s.id, x: lage.x, y: lage.y, r: s.r, label: s.label, rang: s.rang } : null;
+      })
+      .filter((s): s is NonNullable<typeof s> => s !== null);
+    return namenSetzen(sichtbare, {
+      groesse: SCHRIFT,
+      luft: SCHRIFT * 0.14,
+      laenge: 22,
+      feld: {
+        kasten: {
+          l: -rahmen.breite / 2,
+          o: -rahmen.hoehe / 2,
+          r: rahmen.breite / 2,
+          u: rahmen.hoehe / 2,
+        },
+      },
+    });
+  }, [layout, rahmen, ruhe]);
+
+  /* ------------------------------------------------------------- Zeit ---- */
 
   /*
    * Die Zeit verschiebt keine Sterne.
@@ -334,10 +461,7 @@ export function FoldOutMap() {
    * Regler zeigt weiterhin die Jahreszahl. Wer welche angelegt hat, liest
    * beim Ziehen ihren Namen statt einer Zahl, die ihm nichts sagt.
    */
-  const zeitalter = useMemo(
-    () => epochen(weltsicht(entries, relations)),
-    [entries, relations],
-  );
+  const zeitalter = useMemo(() => epochen(weltsicht(entries, relations)), [entries, relations]);
   const jetzigeEpoche = jahr === null ? undefined : epocheBei(zeitalter, jahr);
 
   const sichtbar = useMemo(() => {
@@ -361,6 +485,10 @@ export function FoldOutMap() {
   };
 
   const close = () => navigate('/anhang');
+
+  const sicht = rahmen
+    ? `${-rahmen.breite / 2} ${-rahmen.hoehe / 2} ${rahmen.breite} ${rahmen.hoehe}`
+    : '0 0 1 1';
 
   return (
     <div className="animate-bookOpen flex min-h-0 w-full flex-1 flex-col">
@@ -406,7 +534,7 @@ export function FoldOutMap() {
                 ? jetzigeEpoche
                   ? `${sichtbar.sterne.size} Sterne · ${jetzigeEpoche.entry.title}`
                   : `${sichtbar.sterne.size} Sterne im Jahr ${schreibeJahr(ausOrdnung(jahr!).jahr)}`
-                : `${layout?.nodes.length ?? 0} Sterne · ${layout?.edges.length ?? 0} Linien`}
+                : `${layout?.sterne.length ?? 0} Sterne · ${layout?.kanten.length ?? 0} Linien`}
             </p>
             {/*
               Wenn gekürzt wurde, steht es hier. Eine Karte, die schweigend
@@ -431,195 +559,190 @@ export function FoldOutMap() {
         </div>
 
         {/*
-          Die Karte.
+          Der Himmel.
 
           Der Rahmen steht immer, auch wenn noch nichts darin ist – nur so
-          lässt er sich messen, und ohne sein Mass wüsste weder die Anordnung
-          noch die Schrift, wie gross sie werden darf.
+          lässt er sich messen, und ohne sein Mass wüsste weder die
+          Anordnung noch die Brennweite, wie gross sie werden darf.
         */}
         <div ref={feldRef} className="relative z-10 min-h-0 w-full flex-1">
-          {layout && bild ? (
-          <svg
-            viewBox={bild.view}
-            className="h-full w-full"
-            preserveAspectRatio="xMidYMid meet"
-          >
-            {/*
-              Die Kuppel und der Himmel darin.
+          {layout && rahmen ? (
+            <svg
+              viewBox={sicht}
+              /*
+                `outline-none` mit `focus-visible` daneben, nicht ohne.
+                Das Feld ist mit der Tastatur bedienbar und braucht dafür eine
+                sichtbare Marke – aber nur dann. Ohne die Unterscheidung legte
+                sich beim ersten Wischen ein Rahmen um den ganzen Himmel und
+                blieb dort stehen; das war am Gerät deutlich zu sehen.
+              */
+              className={cx(
+                'h-full w-full touch-none outline-none',
+                'focus-visible:outline focus-visible:outline-1 focus-visible:-outline-offset-2 focus-visible:outline-gild-400/50',
+                zieht ? 'cursor-grabbing' : 'cursor-grab',
+              )}
+              preserveAspectRatio="xMidYMid slice"
+              role="application"
+              aria-label="Der Himmel dieser Welt. Wischen oder Pfeiltasten, um sich umzusehen."
+              tabIndex={0}
+              onPointerDown={aufsetzen}
+              onPointerMove={bewegen}
+              onPointerUp={absetzen}
+              onPointerCancel={absetzen}
+              onKeyDown={taste}
+            >
+              {/*
+                Der gemalte Himmel.
 
-              Alles hier bedeutet nichts: Es ist gemalt, nicht gemessen. Es
-              ist deshalb `aria-hidden`, nicht antippbar und trägt keine
-              Namen. Wer auf dieser Seite einen Punkt antippen kann, tippt
-              einen Eintrag an – ohne Ausnahme.
-            */}
-            {himmel && (
-              <g aria-hidden className="pointer-events-none">
-                <defs>
-                  <radialGradient id="dc-kuppel">
-                    <stop offset="0%" stopColor="#26314a" />
-                    <stop offset="55%" stopColor="#171f31" />
-                    <stop offset="100%" stopColor="#090c14" />
-                  </radialGradient>
-                </defs>
-                <ellipse
-                  cx={layout.horizont.mx}
-                  cy={layout.horizont.my}
-                  rx={layout.horizont.ax}
-                  ry={layout.horizont.ay}
-                  fill="url(#dc-kuppel)"
-                />
-                {/* Das Band zuerst: Es liegt hinter allem, was einzeln zu sehen ist. */}
-                {himmel.band.map((lage, i) => (
-                  <path
-                    key={`b${i}`}
-                    d={punktePfad(lage.punkte)}
-                    fill="#C6D2EA"
-                    opacity={lage.helle}
-                  />
-                ))}
-                {himmel.sterne.map((lage, i) => (
-                  <path
-                    key={`h${i}`}
-                    d={punktePfad(lage.punkte)}
-                    fill="#DCE4F5"
-                    opacity={lage.helle}
-                  />
-                ))}
-                {/* Der Horizont – die einzige Linie, die die Kuppel selbst zeichnet. */}
-                <ellipse
-                  cx={layout.horizont.mx}
-                  cy={layout.horizont.my}
-                  rx={layout.horizont.ax}
-                  ry={layout.horizont.ay}
-                  fill="none"
-                  stroke="#D4AF37"
-                  strokeOpacity={0.2}
-                  strokeWidth={1}
-                  vectorEffect="non-scaling-stroke"
-                />
+                Er bedeutet nichts – nicht antippbar, ohne Namen, ohne
+                Reaktion auf das Jahr. Wer auf dieser Seite einen Punkt
+                antippen kann, tippt einen Eintrag an.
+              */}
+              {grund && (
+                <g aria-hidden className="pointer-events-none">
+                  {/* Das Band zuerst: Es liegt hinter allem Einzelnen. */}
+                  {grund.band.map((lage, i) => (
+                    <path key={`b${i}`} d={punktePfad(lage.punkte)} fill="#C6D2EA" opacity={lage.helle} />
+                  ))}
+                  {grund.sterne.map((lage, i) => (
+                    <path key={`h${i}`} d={punktePfad(lage.punkte)} fill="#DCE4F5" opacity={lage.helle} />
+                  ))}
+                </g>
+              )}
+
+              {/*
+                Die Verbindungen.
+
+                Gerade Strecken, und das ist nicht die bequeme Näherung,
+                sondern genau richtig: Die Zentralprojektion bildet einen
+                Grosskreis – und ein Grosskreisbogen *ist* die Verbindung
+                zweier Sterne am Himmel – auf eine Gerade ab.
+              */}
+              <g className="pointer-events-none">
+                {layout.kanten.map((kante) => {
+                  const a = layout.amHimmel.get(kante.source);
+                  const b = layout.amHimmel.get(kante.target);
+                  if (!a || !b) return null;
+                  const la = aufDenSchirm(a as Richtung, sichtachsen, f);
+                  const lb = aufDenSchirm(b as Richtung, sichtachsen, f);
+                  if (!la || !lb) return null;
+                  const aktiv = selected && (kante.source === selected || kante.target === selected);
+                  /* Eine Linie gilt im gewählten Jahr – oder sie verblasst. */
+                  const zeitlich = !sichtbar || sichtbar.linien.has(kante.id) ? 1 : 0.06;
+                  return (
+                    <line
+                      key={kante.id}
+                      x1={la.x}
+                      y1={la.y}
+                      x2={lb.x}
+                      y2={lb.y}
+                      stroke={aktiv ? '#E3C878' : '#9FB0CE'}
+                      strokeWidth={aktiv ? 1.6 : 0.9}
+                      opacity={(selected ? (aktiv ? 0.9 : 0.1) : 0.42) * zeitlich}
+                    />
+                  );
+                })}
               </g>
-            )}
 
-            {/* Linien zuerst – sie liegen hinter den Sternen */}
-            <g>
-              {layout.edges.map((edge) => {
-                const a = layout.byId.get(edge.source);
-                const b = layout.byId.get(edge.target);
-                if (!a || !b) return null;
-                const active =
-                  selected && (edge.source === selected || edge.target === selected);
-                /* Eine Linie gilt im gewählten Jahr – oder sie verblasst. */
-                const zeitlich = !sichtbar || sichtbar.linien.has(edge.id) ? 1 : 0.06;
-                return (
-                  <line
-                    key={edge.id}
-                    x1={a.x}
-                    y1={a.y}
-                    x2={b.x}
-                    y2={b.y}
-                    stroke={active ? '#E3C878' : '#9FB0CE'}
-                    strokeWidth={active ? 1.6 : 0.9}
-                    opacity={(selected ? (active ? 0.9 : 0.1) : 0.42) * zeitlich}
-                    style={{ transition: 'opacity 320ms ease' }}
-                  />
-                );
-              })}
-            </g>
+              {/* Die Sterne der Welt */}
+              <g>
+                {imBlick.map((stern) => {
+                  const aktiv = selected === stern.id;
+                  const matt =
+                    selected && !aktiv && !relIndex.neighbours.get(selected)?.has(stern.id);
+                  return (
+                    <g
+                      key={stern.id}
+                      opacity={(matt ? 0.22 : 1) * glanz(stern.id)}
+                      className="cursor-pointer"
+                      onClick={() => {
+                        /* Ein Wisch ist kein Antippen. */
+                        if (gezogen.current) return;
+                        setSelected(aktiv ? null : stern.id);
+                      }}
+                      onDoubleClick={() => navigate(`/eintrag/${stern.id}`)}
+                    >
+                      {/* Der Schein um helle Sterne */}
+                      <circle
+                        cx={stern.lage.x}
+                        cy={stern.lage.y}
+                        r={stern.r * 2.6}
+                        fill="#D4AF37"
+                        opacity={aktiv ? 0.22 : 0.09}
+                      />
+                      <circle
+                        cx={stern.lage.x}
+                        cy={stern.lage.y}
+                        r={stern.r}
+                        fill={aktiv ? '#F0DFA8' : '#E3C878'}
+                      />
+                    </g>
+                  );
+                })}
+              </g>
 
-            {/* Sterne */}
-            <g>
-              {layout.nodes.map((node) => {
-                const active = selected === node.id;
-                const dimmed =
-                  selected && !active && !relIndex.neighbours.get(selected)?.has(node.id);
-                return (
-                  <g
-                    key={node.id}
-                    opacity={(dimmed ? 0.22 : 1) * glanz(node.id)}
-                    style={{ transition: 'opacity 320ms ease' }}
-                    className="cursor-pointer transition-opacity duration-500"
-                    onClick={() => setSelected(active ? null : node.id)}
-                    onDoubleClick={() => navigate(`/eintrag/${node.id}`)}
-                  >
-                    {/* Der Schein um helle Sterne */}
-                    <circle
-                      cx={node.x}
-                      cy={node.y}
-                      r={node.r * 2.6}
-                      fill="#D4AF37"
-                      opacity={active ? 0.22 : 0.09}
-                    />
-                    <circle
-                      cx={node.x}
-                      cy={node.y}
-                      r={node.r}
-                      fill={active ? '#F0DFA8' : '#E3C878'}
-                    />
-                  </g>
-                );
-              })}
-            </g>
+              {/*
+                Die Namen – in einer eigenen Lage über allen Sternen.
 
-            {/*
-              Die Namen – in einer eigenen Lage über allen Sternen.
+                Nicht jeder Stern trägt einen: Es bekommt ihn, wer am besten
+                verbunden ist und wessen Name noch irgendwo hinpasst. So sind
+                Sternkarten immer gesetzt worden – die hellen sind benannt,
+                die schwachen nicht, und genau deshalb kann man sie lesen.
+                Wer keinen trägt, sagt seinen beim Antippen.
 
-              Zwei Dinge stehen dahinter. Erstens trägt nicht jeder Stern
-              einen Namen: Es bekommt ihn, wer am besten verbunden ist und
-              wessen Name noch irgendwo hinpasst. So sind Sternkarten immer
-              gesetzt worden – die hellen sind benannt, die schwachen nicht,
-              und genau deshalb kann man sie lesen. Wer keinen trägt, sagt
-              seinen beim Antippen.
-
-              Zweitens liegt die Lage über allen Sternen und nicht bei
-              jedem einzelnen. Sonst deckte die Scheibe des nächsten Sterns
-              den Namen des vorigen zu.
-            */}
-            <g>
-              {layout.nodes.map((node) => {
-                const active = selected === node.id;
-                const nachbar = selected
-                  ? relIndex.neighbours.get(selected)?.has(node.id) === true
-                  : false;
-                const gesetzt = bild.namen.get(node.id);
-                /* Angetippt sagt auch ein namenloser Stern, wie er heisst. */
-                const zug =
-                  gesetzt ??
-                  (active || nachbar
-                    ? {
-                        x: node.x,
-                        y: node.y + node.r + bild.groesse * 1.1,
-                        anker: 'middle' as const,
-                      }
-                    : null);
-                if (!zug) return null;
-                const dimmed = selected && !active && !nachbar;
-                return (
-                  <text
-                    key={node.id}
-                    x={zug.x}
-                    y={zug.y}
-                    textAnchor={zug.anker}
-                    opacity={(dimmed ? 0.18 : 1) * glanz(node.id)}
-                    className="pointer-events-none select-none"
-                    style={{
-                      fontFamily: "'Iowan Old Style', Georgia, serif",
-                      fontSize: bild.groesse,
-                      fill: active ? '#F5EACB' : '#C3CCDE',
-                      letterSpacing: `${SPERRUNG}em`,
-                      /* Dunkler Saum, damit Namen auch über Linien lesbar bleiben */
-                      paintOrder: 'stroke',
-                      stroke: '#0d1119',
-                      strokeWidth: bild.groesse * 0.32,
-                      strokeLinejoin: 'round',
-                      transition: 'opacity 320ms ease',
-                    }}
-                  >
-                    {node.label.length > 22 ? `${node.label.slice(0, 21)}…` : node.label}
-                  </text>
-                );
-              })}
-            </g>
-          </svg>
+                Beim Wischen treten sie zurück: Ihre Lagen gelten für den
+                ruhenden Blick, und sie jedem Bildwechsel neu abzuwägen wäre
+                zu viel Arbeit für eine flüssige Bewegung.
+              */}
+              <g
+                className="pointer-events-none"
+                opacity={zieht ? 0 : 1}
+                style={{ transition: 'opacity 220ms ease' }}
+              >
+                {imBlick.map((stern) => {
+                  const aktiv = selected === stern.id;
+                  const nachbar = selected
+                    ? relIndex.neighbours.get(selected)?.has(stern.id) === true
+                    : false;
+                  const gesetzt = namen.get(stern.id);
+                  /* Angetippt sagt auch ein namenloser Stern, wie er heisst. */
+                  const zug =
+                    gesetzt ??
+                    (aktiv || nachbar
+                      ? {
+                          x: stern.lage.x,
+                          y: stern.lage.y + stern.r + SCHRIFT * 1.1,
+                          anker: 'middle' as const,
+                        }
+                      : null);
+                  if (!zug) return null;
+                  const matt = selected && !aktiv && !nachbar;
+                  return (
+                    <text
+                      key={stern.id}
+                      x={zug.x}
+                      y={zug.y}
+                      textAnchor={zug.anker}
+                      opacity={(matt ? 0.18 : 1) * glanz(stern.id)}
+                      className="select-none"
+                      style={{
+                        fontFamily: "'Iowan Old Style', Georgia, serif",
+                        fontSize: SCHRIFT,
+                        fill: aktiv ? '#F5EACB' : '#C3CCDE',
+                        letterSpacing: `${SPERRUNG}em`,
+                        /* Dunkler Saum, damit Namen auch über Linien lesbar bleiben */
+                        paintOrder: 'stroke',
+                        stroke: '#0d1119',
+                        strokeWidth: SCHRIFT * 0.32,
+                        strokeLinejoin: 'round',
+                      }}
+                    >
+                      {stern.label.length > 22 ? `${stern.label.slice(0, 21)}…` : stern.label}
+                    </text>
+                  );
+                })}
+              </g>
+            </svg>
           ) : (
             <div className="grid h-full place-items-center px-8">
               {leer && (
@@ -678,31 +801,33 @@ export function FoldOutMap() {
         )}
 
         {/*
-          Legende: die Kapitel als Himmelsregionen.
+          Legende und Hinweis.
 
-          Die innere Lage hält zwei Zeilen frei, und zwar immer.
+          Die innere Lage hält zwei Zeilen frei, und zwar immer. Nicht
+          Kosmetik: Der Hinweis bricht auf einem Telefon auf zwei Zeilen, die
+          Angabe zum gewählten Stern braucht nur eine. Dadurch wuchs das
+          Bildfeld beim Antippen um zehneinhalb Punkte, und das ganze
+          Sternbild sprang leise um knapp zwei Prozent. Gemessen: Fuss 60 →
+          49.5, Feld 622.25 → 632.75.
 
-          Nicht Kosmetik: Der Hinweis »Einen Stern antippen …« bricht auf
-          einem Telefon auf zwei Zeilen, die Angabe zum gewählten Stern
-          braucht nur eine. Dadurch wuchs das Bildfeld beim Antippen um
-          zehneinhalb Punkte, die Karte rechnete ihren Ausschnitt neu, und
-          das ganze Sternbild sprang leise um knapp zwei Prozent. Gemessen:
-          Fuss 60 → 49.5, Feld 622.25 → 632.75. Oben in dieser Datei steht,
-          dass sich ein Sternbild nicht bewegt, während man es betrachtet –
-          dann darf auch der Fuss darunter seine Höhe nicht ändern.
-
-          Das Mass sitzt auf der *inneren* Lage, nicht auf der äusseren.
-          `min-height` rechnet die Polsterung mit: Aussen angeschrieben war
-          es wirkungslos, weil die Polsterung allein schon höher war als das
-          Mass. Nachgemessen: derselbe Sprung wie vorher.
+          Das Mass sitzt auf der *inneren* Lage, nicht auf der äusseren:
+          `min-height` rechnet die Polsterung mit, und aussen angeschrieben
+          war es wirkungslos, weil die Polsterung allein schon höher war.
         */}
         <div className="relative z-20 px-6 pb-6 sm:px-9 sm:pb-8">
           <div className="flex min-h-[36px] flex-wrap items-center gap-x-5 gap-y-2">
             {selected ? (
               <SelectedNote id={selected} onOpen={() => navigate(`/eintrag/${selected}`)} />
             ) : (
+              /*
+                Der Hinweis sagt nur, was auch geht. Bei einem einzigen Stern
+                spannt die Welt keinen Winkel auf, der Blick ist auf der
+                Stelle festgeklemmt – und dann wäre »Wischen, um sich
+                umzusehen« eine Aufforderung ins Leere.
+              */
               <p className="font-serif text-[12px] italic text-paper-400/45">
-                Einen Stern antippen, um seine Linien zu sehen. Zweimal, um die Seite aufzuschlagen.
+                {layout && layout.weite.waagerecht > 0.05 ? 'Wischen, um sich umzusehen. Einen' : 'Einen'}{' '}
+                Stern antippen für seine Linien, zweimal für die Seite.
               </p>
             )}
           </div>

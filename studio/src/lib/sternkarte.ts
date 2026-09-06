@@ -5,11 +5,18 @@
  * jede gedruckte Sternkarte kann:
  *
  * 1. **Den Rahmen füllen.** Eine Simulation mit Zug zur Mitte wird rund.
- *    Ein Blatt ist es nie. Rund in hochkant heisst: oben und unten bleibt
- *    Schwarz, und die Sterne drängen sich in der Mitte.
+ *    Ein Blatt ist es nie – und ein Himmel, der über einem hochkanten
+ *    Bildfeld steht, auch nicht.
  * 2. **Nicht alles benennen.** Auf einer Sternkarte tragen die hellen Sterne
  *    Namen und die schwachen nicht. Das ist keine Notlösung – es ist der
  *    Grund, warum man eine Sternkarte lesen kann.
+ *
+ * Was hier einmal stand und wieder verschwunden ist: `kartenbild`, das aus
+ * den Sternen einen Ausschnitt rechnete. Seit die Karte eine Kugel ist, in
+ * der man steht, gibt es keinen Ausschnitt mehr zu rechnen – das Bildfeld
+ * ist der Ausschnitt, und wie weit man sieht, entscheidet das Sichtfeld in
+ * `himmel.ts`. Die Namen werden weiterhin hier gesetzt, jetzt auf den
+ * Lagen, die die Projektion liefert.
  */
 
 import type { GraphSimulation } from './graph';
@@ -257,6 +264,20 @@ function kastenFuer(
   };
 }
 
+/**
+ * Der Kasten, den ein gesetzter Name einnimmt.
+ *
+ * Ausgeführt, damit die Prüfungen dieselbe Rechnung benutzen wie der Satz –
+ * eine zweite, nachgebaute Rechnung im Test würde irgendwann abweichen und
+ * dann das Falsche bestätigen.
+ */
+export function namenskasten(zug: Namenszug, text: string, groesse: number): Kasten {
+  const breite = schriftbreite(text, groesse);
+  const l =
+    zug.anker === 'middle' ? zug.x - breite / 2 : zug.anker === 'start' ? zug.x : zug.x - breite;
+  return { l, r: l + breite, o: zug.y - groesse * 0.82, u: zug.y + groesse * 0.26 };
+}
+
 function stossen(a: Kasten, b: Kasten): boolean {
   return !(a.r <= b.l || b.r <= a.l || a.u <= b.o || b.u <= a.o);
 }
@@ -267,43 +288,18 @@ function enthalten(aussen: Kasten, innen: Kasten): boolean {
 }
 
 /**
- * Der Ausschnitt, in dem ein Name stehen darf – wahlweise mit einem Rund.
+ * Der Ausschnitt, in dem ein Name stehen darf.
  *
- * Ein Rechteck allein reicht für die Kuppel nicht: Deren Ecken liegen
- * ausserhalb des Horizonts, und ein Name, der dort steht, schwebt neben dem
- * Himmel statt darin.
+ * Er ist der Grund, warum es die seitlichen und schrägen Lagen gibt: Ein
+ * Stern am rechten Rand bekommt seinen Namen nach links, weil nach rechts
+ * kein Blatt mehr ist. Genau so werden Karten gesetzt.
  */
 export interface Feld {
   kasten: Kasten;
-  /** Wenn gesetzt: der Name muss zusätzlich ganz hierin liegen. */
-  rund?: { mx: number; my: number; ax: number; ay: number };
-}
-
-/**
- * Liegt der Kasten ganz in der Ellipse?
- *
- * Es genügt, die vier Ecken zu prüfen: Beide Formen sind konvex, und ein
- * Rechteck ist die konvexe Hülle seiner Ecken – liegen alle vier drin, liegt
- * jeder Punkt dazwischen auch drin.
- */
-function imRund(rund: NonNullable<Feld['rund']>, k: Kasten): boolean {
-  for (const [x, y] of [
-    [k.l, k.o],
-    [k.r, k.o],
-    [k.l, k.u],
-    [k.r, k.u],
-  ]) {
-    const u = (x - rund.mx) / rund.ax;
-    const v = (y - rund.my) / rund.ay;
-    if (u * u + v * v > 1) return false;
-  }
-  return true;
 }
 
 function darfDaStehen(feld: Feld | undefined, kasten: Kasten): boolean {
-  if (!feld) return true;
-  if (!enthalten(feld.kasten, kasten)) return false;
-  return !feld.rund || imRund(feld.rund, kasten);
+  return !feld || enthalten(feld.kasten, kasten);
 }
 
 export interface NamenMass {
@@ -378,207 +374,4 @@ export function namenSetzen(sterne: Stern[], mass: NamenMass): Map<string, Namen
   }
 
   return gesetzt;
-}
-
-/* =======================================================================
- * 3 · DAS BILD
- * ==================================================================== */
-
-export interface Rahmen {
-  /** Breite des Bildfeldes in Bildschirmpunkten. */
-  breite: number;
-  /** Höhe des Bildfeldes in Bildschirmpunkten. */
-  hoehe: number;
-}
-
-export interface Bildmass {
-  /** Wie gross die Namen auf dem Schirm stehen sollen, in Punkten. */
-  schriftPunkte: number;
-  /** Nach wie vielen Zeichen ein Name gekürzt wird. */
-  laenge: number;
-  /** Luft um einen Namen, als Vielfaches der Schriftgrösse. */
-  luft: number;
-  /**
-   * Ein Bereich, den der Ausschnitt mit umfassen muss.
-   *
-   * Für die Kuppel: Der Horizont reicht weiter als die Sterne, die auf ihm
-   * liegen – er ist ja die Ellipse *durch* den äussersten. Ohne diesen
-   * Hinweis schnitte der Ausschnitt ihn an drei Seiten ab.
-   */
-  umschliesst?: Kasten;
-  /**
-   * Wenn gesetzt: Namen dürfen nur innerhalb dieses Rundes stehen.
-   *
-   * Für die Kuppel der Horizont. Ohne ihn standen die Namen der äussersten
-   * Sterne in den Ecken des Bildfeldes – also neben dem Himmel statt darin.
-   * Ein Stern am Rand legt seinen Namen dann nach innen; geht auch das
-   * nicht, trägt er eben keinen. Genau so ist eine Sternkarte gesetzt.
-   */
-  rund?: { mx: number; my: number; ax: number; ay: number };
-}
-
-export interface Kartenbild {
-  /** Für `viewBox`. */
-  view: string;
-  /** Schriftgrösse in Karteneinheiten – so gewählt, dass sie auf dem Schirm passt. */
-  groesse: number;
-  namen: Map<string, Namenszug>;
-  /** Wie gross die Namen tatsächlich auf dem Schirm stehen. Zum Nachmessen. */
-  schriftPunkte: number;
-}
-
-const kleinerKasten = (s: Stern): Kasten => ({
-  l: s.x - s.r,
-  o: s.y - s.r,
-  r: s.x + s.r,
-  u: s.y + s.r,
-});
-
-function umfassen(kaesten: Kasten[]): Kasten {
-  const alles = { l: Infinity, o: Infinity, r: -Infinity, u: -Infinity };
-  for (const k of kaesten) {
-    alles.l = Math.min(alles.l, k.l);
-    alles.o = Math.min(alles.o, k.o);
-    alles.r = Math.max(alles.r, k.r);
-    alles.u = Math.max(alles.u, k.u);
-  }
-  return alles;
-}
-
-/**
- * Der Kasten, den ein gesetzter Name einnimmt.
- *
- * Ausgeführt, damit die Prüfungen dieselbe Rechnung benutzen wie der Satz –
- * eine zweite, nachgebaute Rechnung im Test würde irgendwann abweichen und
- * dann das Falsche bestätigen.
- */
-export function namenskasten(zug: Namenszug, text: string, groesse: number): Kasten {
-  const breite = schriftbreite(text, groesse);
-  const l =
-    zug.anker === 'middle' ? zug.x - breite / 2 : zug.anker === 'start' ? zug.x : zug.x - breite;
-  return { l, r: l + breite, o: zug.y - groesse * 0.82, u: zug.y + groesse * 0.26 };
-}
-
-/**
- * Ausschnitt, Schriftgrösse und Namen in einem Zug.
- *
- * Die drei hängen zusammen, und zwar im Kreis: Wie gross die Schrift in
- * Karteneinheiten sein muss, hängt vom Ausschnitt ab (der Maßstab macht sie
- * ja kleiner); welche Namen gesetzt werden können, hängt von der Schrift ab;
- * und wie gross der Ausschnitt sein muss, hängt davon ab, wie weit die
- * gesetzten Namen über die Sterne hinausragen.
- *
- * Deshalb wird zweimal geschätzt und einmal endgültig gesetzt. Das
- * Verfahren läuft zusammen – `tests/sternkarte.test.mjs` misst nach, dass
- * die Schrift am Ende wirklich in der verlangten Grösse auf dem Schirm
- * steht und dass kein Name über den Rand hinausragt.
- *
- * Warum das überhaupt sein muss: Vorher hing die Schriftgrösse an der
- * Breite des Ausschnitts und war nach oben und unten begrenzt. Auf einem
- * Telefon kam dabei jedes Mal dasselbe heraus – rund vier Punkte. Der Text
- * war da, er war richtig gesetzt, und man konnte ihn nicht lesen.
- */
-export function kartenbild(sterne: Stern[], rahmen: Rahmen, mass: Bildmass): Kartenbild {
-  const scheiben = sterne.map(kleinerKasten);
-  const leer: Kartenbild = {
-    view: '-100 -100 200 200',
-    groesse: mass.schriftPunkte,
-    namen: new Map(),
-    schriftPunkte: mass.schriftPunkte,
-  };
-  if (sterne.length === 0 || rahmen.breite <= 0 || rahmen.hoehe <= 0) return leer;
-
-  /** Wieviel eine Karteneinheit auf dem Schirm misst, wenn `k` der Ausschnitt ist. */
-  const massstab = (k: Kasten) =>
-    Math.min(rahmen.breite / Math.max(k.r - k.l, 1e-6), rahmen.hoehe / Math.max(k.u - k.o, 1e-6));
-
-  const kern = umfassen(mass.umschliesst ? [...scheiben, mass.umschliesst] : scheiben);
-
-  /**
-   * Der Ausschnitt: die Sterne, ein Saum für die Namen, und dann auf die
-   * Form des Rahmens gebracht.
-   *
-   * Der letzte Schritt ist der, auf den es ankommt. `preserveAspectRatio`
-   * legt sonst schwarze Streifen an die Seiten, an denen der Ausschnitt
-   * nicht zum Rahmen passt – und genau die sollten ja verschwinden. Weil
-   * die Anordnung schon in der Form des Rahmens liegt, ist die Dehnung
-   * hier nur noch klein.
-   */
-  const ausschnitt = (saum: number): Kasten => {
-    let k = { l: kern.l - saum, o: kern.o - saum, r: kern.r + saum, u: kern.u + saum };
-    const breite = k.r - k.l;
-    const hoehe = k.u - k.o;
-    const soll = rahmen.hoehe / rahmen.breite;
-    if (hoehe / breite < soll) {
-      const fehlt = (breite * soll - hoehe) / 2;
-      k = { ...k, o: k.o - fehlt, u: k.u + fehlt };
-    } else {
-      const fehlt = (hoehe / soll - breite) / 2;
-      k = { ...k, l: k.l - fehlt, r: k.r + fehlt };
-    }
-    return k;
-  };
-
-  /*
-   * Erste Schätzung, ohne dass die Schriftgrösse schon bekannt wäre: ein
-   * Zwanzigstel der Ausdehnung als Saum.
-   */
-  let bild = ausschnitt(0.05 * Math.max(kern.r - kern.l, kern.u - kern.o));
-  let groesse = mass.schriftPunkte / massstab(bild);
-  let namen = new Map<string, Namenszug>();
-
-  /*
-   * `versuch` und nicht `groesse`: Am Ende müssen Ausschnitt, Namen und
-   * Schriftgrösse *zueinander* passen. Würde die Grösse nach der letzten
-   * Setzung noch einmal nachgezogen, gälten die Kästen nicht mehr, mit
-   * denen die Namen gegeneinander abgewogen wurden.
-   */
-  /*
-   * Zwölf Runden und ein Tausendstel Genauigkeit – das kostet nichts.
-   *
-   * Früher standen hier drei, und in der Schleife wurden auch noch die
-   * Namen gesetzt. Am Gerät kam die Schrift dann fünf Prozent zu gross
-   * heraus: Die Runden gingen aus, bevor es zusammengelaufen war. Seit die
-   * Namen erst danach gesetzt werden, ist eine Runde nur noch etwas
-   * Rechnen mit vier Zahlen, und man kann so lange laufen lassen, bis es
-   * wirklich stimmt.
-   */
-  const RUNDEN = 12;
-  for (let runde = 0; runde < RUNDEN; runde++) {
-    const versuch = groesse;
-    /* Saum: eine Zeile Schrift über oder unter dem äussersten Stern. */
-    bild = ausschnitt(versuch * 1.6);
-    const naechste = mass.schriftPunkte / massstab(bild);
-    if (runde === RUNDEN - 1 || Math.abs(naechste / versuch - 1) < 0.001) {
-      groesse = versuch;
-      break;
-    }
-    groesse = naechste;
-  }
-
-  /*
-   * Die Namen zuletzt, und im Ausschnitt eingeschlossen.
-   *
-   * Der erste Versuch machte es umgekehrt: erst setzen, dann den Ausschnitt
-   * so weit aufziehen, dass alle Namen hineinpassen. Am Gerät gemessen war
-   * das Bild dann doppelt so breit wie das Sternfeld – ein einziger Name
-   * von zweiundzwanzig Zeichen am linken Rand zog es auf –, und die Sterne
-   * füllten wieder nur die Hälfte. Herum ist es richtig: Das Blatt steht
-   * fest, und wer seinen Namen nicht mehr daraufbekommt, trägt eben keinen.
-   * Die seitlichen Lagen sorgen dafür, dass die Sterne am Rand ihren Namen
-   * nach innen legen statt ihn zu verlieren.
-   */
-  namen = namenSetzen(sterne, {
-    groesse,
-    luft: groesse * mass.luft,
-    laenge: mass.laenge,
-    feld: { kasten: bild, rund: mass.rund },
-  });
-
-  return {
-    view: `${bild.l} ${bild.o} ${bild.r - bild.l} ${bild.u - bild.o}`,
-    groesse,
-    namen,
-    schriftPunkte: groesse * massstab(bild),
-  };
 }

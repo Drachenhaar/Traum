@@ -1,6 +1,10 @@
 /**
  * Die Sternkarte: den Rahmen füllen, und nicht alles benennen.
  *
+ * Was `kartenbild` hier einmal geprüft hat – Ausschnitt und Schriftgrösse
+ * aus den Sternen zu rechnen – ist mit der Himmelskugel weggefallen: Das
+ * Bildfeld *ist* jetzt der Ausschnitt. Geblieben ist, was weiterhin gilt.
+ *
  * Beide Regeln sind messbar, also werden sie gemessen. Jede Prüfung wurde
  * gegengeprüft – der Fehler, den sie fangen soll, wurde absichtlich wieder
  * eingebaut, bis sie ausschlug.
@@ -24,7 +28,7 @@ const buendeln = (quelle, ziel) =>
 buendeln('src/lib/sternkarte.ts', 'sternkarte.mjs');
 buendeln('src/lib/graph.ts', 'graph.mjs');
 
-const { einpassen, namenSetzen, schriftbreite, namenskasten, kartenbild, FALTKARTE } = await import(
+const { einpassen, namenSetzen, schriftbreite, namenskasten, FALTKARTE } = await import(
   join(bau, 'sternkarte.mjs')
 );
 const { GraphSimulation } = await import(join(bau, 'graph.mjs'));
@@ -162,8 +166,8 @@ pruefe('ohne Einpassen ist die Anordnung in jedem Rahmen dieselbe', () => {
 
 /*
  * Wie viel vom Rahmen das Sternfeld einnimmt – die Zahl, um die es geht.
- * Hier nur die Form der Anordnung; was am Ende wirklich auf dem Schirm
- * ankommt, misst Abschnitt 4 mit `kartenbild`.
+ * Hier nur die Form der Anordnung; wie sie am Himmel hängt und was davon
+ * im Bild landet, prüft `tests/himmel.test.mjs`.
  */
 pruefe('die eingepasste Anordnung hat die Form des Rahmens, die runde nicht', () => {
   const [rw, rh] = [390, 560];
@@ -448,219 +452,6 @@ pruefe('ein Stern ohne Namen bekommt keinen leeren Zug', () => {
 
 pruefe('keine Sterne, keine Namen', () => {
   assert.equal(namenSetzen([], MASS).size, 0);
-});
-
-/* =======================================================================
- * 4 · Das Bild
- * ==================================================================== */
-
-console.log('\n4 · Das Bild');
-
-const TELEFON = { breite: 390, hoehe: 560 };
-const BILDMASS = { schriftPunkte: 11.5, laenge: 22, luft: 0.14 };
-
-/** Eine eingepasste Welt, wie sie die Faltkarte wirklich zeichnet. */
-function karte(n, rahmen = TELEFON) {
-  const w = welt(n);
-  const ziel = rahmen.hoehe / rahmen.breite;
-  const sim = simulation(w, ziel);
-  einpassen(sim, ziel);
-  return sim.nodes.map((k) => ({
-    id: k.id,
-    x: k.x,
-    y: k.y,
-    r: k.r,
-    label: k.label,
-    rang: k.r,
-  }));
-}
-
-/*
- * Die Zahl, um die es hier ging.
- *
- * Die alte Rechnung koppelte die Schriftgrösse an die Breite des
- * Ausschnitts und begrenzte sie auf sieben bis fünfzehn Karteneinheiten.
- * Auf einem Telefon kam dabei jedes Mal ungefähr dasselbe heraus: vier
- * Punkte. Nachgerechnet für eine Welt aus fünfzig Sternen: 4.16 Punkte,
- * für eine aus vierhundert: 3.61.
- */
-pruefe('die Namen stehen in der verlangten Grösse auf dem Schirm', () => {
-  for (const n of GROESSEN) {
-    const bild = kartenbild(karte(n), TELEFON, BILDMASS);
-    assert.ok(
-      Math.abs(bild.schriftPunkte / BILDMASS.schriftPunkte - 1) < 0.005,
-      `${n} Sterne: ${bild.schriftPunkte.toFixed(2)} statt ${BILDMASS.schriftPunkte} Punkte`,
-    );
-    /* Und zwar deutlich mehr als die vier Punkte von vorher. */
-    assert.ok(bild.schriftPunkte > 9, `${n} Sterne: ${bild.schriftPunkte.toFixed(2)} Punkte`);
-  }
-});
-
-pruefe('die Grösse folgt dem Rahmen und nicht der Zahl der Sterne', () => {
-  /* Ein kleines und ein grosses Bildfeld: die Schrift bleibt gleich gross. */
-  for (const rahmen of [TELEFON, { breite: 740, hoehe: 500 }, { breite: 300, hoehe: 300 }]) {
-    for (const n of GROESSEN) {
-      const bild = kartenbild(karte(n, rahmen), rahmen, BILDMASS);
-      assert.ok(
-        Math.abs(bild.schriftPunkte / BILDMASS.schriftPunkte - 1) < 0.005,
-        `${rahmen.breite}x${rahmen.hoehe}, ${n} Sterne: ${bild.schriftPunkte.toFixed(2)} Punkte`,
-      );
-    }
-  }
-});
-
-/*
- * Der Ausschnitt hat die Form des Rahmens – sonst legt
- * `preserveAspectRatio` schwarze Streifen daneben, und die ganze Mühe des
- * Einpassens wäre vertan.
- *
- * Am Gerät gemessen war genau das der Fehler: Der Ausschnitt wurde so weit
- * aufgezogen, dass jeder gesetzte Name hineinpasste, und ein einziger
- * langer Name am Rand machte ihn doppelt so breit wie das Sternfeld. Die
- * Sterne füllten wieder nur die Hälfte.
- */
-pruefe('der Ausschnitt hat die Form des Rahmens, und die Sterne füllen ihn', () => {
-  for (const rahmen of [TELEFON, { breite: 740, hoehe: 500 }]) {
-    const soll = rahmen.hoehe / rahmen.breite;
-    for (const n of GROESSEN) {
-      const sterne = karte(n, rahmen);
-      const bild = kartenbild(sterne, rahmen, BILDMASS);
-      const [, , vw, vh] = bild.view.split(' ').map(Number);
-      assert.ok(
-        Math.abs(vh / vw / soll - 1) < 0.001,
-        `${n} Sterne: Ausschnitt ${(vh / vw).toFixed(3)} statt ${soll.toFixed(3)}`,
-      );
-      /* Und das Sternfeld selbst nimmt den grössten Teil davon ein. */
-      let l = Infinity, o = Infinity, r = -Infinity, u = -Infinity;
-      for (const s of sterne) {
-        l = Math.min(l, s.x - s.r); o = Math.min(o, s.y - s.r);
-        r = Math.max(r, s.x + s.r); u = Math.max(u, s.y + s.r);
-      }
-      const anteil = Math.min((r - l) / vw, (u - o) / vh);
-      assert.ok(anteil > 0.72, `${n} Sterne: das Sternfeld füllt nur ${(anteil * 100) | 0} %`);
-    }
-  }
-});
-
-pruefe('kein Name ragt über den Ausschnitt hinaus', () => {
-  for (const n of GROESSEN) {
-    const sterne = karte(n);
-    const bild = kartenbild(sterne, TELEFON, BILDMASS);
-    const [vx, vy, vw, vh] = bild.view.split(' ').map(Number);
-    for (const [id, zug] of bild.namen) {
-      const s = sterne.find((x) => x.id === id);
-      const text = s.label.length > 22 ? `${s.label.slice(0, 21)}…` : s.label;
-      const b = schriftbreite(text, bild.groesse);
-      const l = zug.anker === 'middle' ? zug.x - b / 2 : zug.anker === 'start' ? zug.x : zug.x - b;
-      assert.ok(l >= vx - 1e-6, `${n} Sterne: ${id} steht links draussen`);
-      assert.ok(l + b <= vx + vw + 1e-6, `${n} Sterne: ${id} steht rechts draussen`);
-      assert.ok(zug.y - bild.groesse * 0.82 >= vy - 1e-6, `${n} Sterne: ${id} steht oben draussen`);
-      assert.ok(
-        zug.y + bild.groesse * 0.26 <= vy + vh + 1e-6,
-        `${n} Sterne: ${id} steht unten draussen`,
-      );
-    }
-    /* Und die Sterne selbst auch nicht. */
-    for (const s of sterne) {
-      assert.ok(s.x - s.r >= vx - 1e-6 && s.x + s.r <= vx + vw + 1e-6, `${s.id} liegt seitlich draussen`);
-      assert.ok(s.y - s.r >= vy - 1e-6 && s.y + s.r <= vy + vh + 1e-6, `${s.id} liegt oben/unten draussen`);
-    }
-  }
-});
-
-/*
- * Ausschnitt, Grösse und Namen müssen *zueinander* passen.
- *
- * Die Namen werden mit einer Schriftgrösse gegeneinander abgewogen und mit
- * einer zurückgegeben. Wären das zwei verschiedene, gälten die Kästen
- * nicht mehr, mit denen abgewogen wurde – und die Namen lägen wieder
- * übereinander, obwohl das Setzen selbst richtig gerechnet hat.
- */
-pruefe('mit der zurückgegebenen Grösse liegt kein Name auf einem anderen', () => {
-  for (const n of GROESSEN) {
-    const sterne = karte(n);
-    const bild = kartenbild(sterne, TELEFON, BILDMASS);
-    const kaesten = [...bild.namen].map(([id, zug]) =>
-      namenskasten(zug, kuerzen(sterne.find((x) => x.id === id).label), bild.groesse),
-    );
-    for (let i = 0; i < kaesten.length; i++) {
-      for (let j = i + 1; j < kaesten.length; j++) {
-        assert.ok(!stossen(kaesten[i], kaesten[j]), `${n} Sterne: zwei Namen überlappen`);
-      }
-    }
-  }
-});
-
-/*
- * Das Rund.
- *
- * Für die Kuppel reicht ein Rechteck nicht: Deren Ecken liegen ausserhalb
- * des Horizonts, und ein Name, der dort steht, schwebt neben dem Himmel
- * statt darin. Am Gerät war das deutlich zu sehen – drei Namen standen über
- * und neben der Kuppel.
- */
-pruefe('mit einem Rund steht kein Name ausserhalb davon', () => {
-  for (const n of GROESSEN) {
-    const sterne = karte(n);
-    let l = Infinity, o = Infinity, r = -Infinity, u = -Infinity;
-    for (const s of sterne) {
-      l = Math.min(l, s.x); o = Math.min(o, s.y);
-      r = Math.max(r, s.x); u = Math.max(u, s.y);
-    }
-    /* Ein Rund, das alle Sterne gerade noch fasst – wie der Horizont. */
-    const rund = { mx: (l + r) / 2, my: (o + u) / 2, ax: (r - l) / 2, ay: (u - o) / 2 };
-    let weiteste = 0;
-    for (const s of sterne) {
-      weiteste = Math.max(weiteste, Math.hypot((s.x - rund.mx) / rund.ax, (s.y - rund.my) / rund.ay));
-    }
-    rund.ax *= weiteste;
-    rund.ay *= weiteste;
-
-    const drin = (kasten) =>
-      [[kasten.l, kasten.o], [kasten.r, kasten.o], [kasten.l, kasten.u], [kasten.r, kasten.u]].every(
-        ([x, y]) => ((x - rund.mx) / rund.ax) ** 2 + ((y - rund.my) / rund.ay) ** 2 <= 1 + 1e-9,
-      );
-    const kaesten = (bild) =>
-      [...bild.namen].map(([id, zug]) =>
-        namenskasten(zug, kuerzen(sterne.find((x) => x.id === id).label), bild.groesse),
-      );
-
-    const mit = kartenbild(sterne, TELEFON, { ...BILDMASS, rund });
-    for (const k of kaesten(mit)) {
-      assert.ok(drin(k), `${n} Sterne: ein Name steht ausserhalb des Rundes`);
-    }
-    assert.ok(mit.namen.size > 3, `${n} Sterne: nur ${mit.namen.size} Namen im Rund`);
-
-    /* Ohne das Rund stehen welche draussen – sonst prüfte das hier nichts. */
-    if (n >= 50) {
-      const ohne = kartenbild(sterne, TELEFON, BILDMASS);
-      assert.ok(
-        kaesten(ohne).some((k) => !drin(k)),
-        `${n} Sterne: auch ohne Rund steht keiner draussen – die Prüfung taugt dann nicht`,
-      );
-    }
-  }
-});
-
-pruefe('auf einer dichten Karte bekommt nicht jeder Stern seinen Namen', () => {
-  const sterne = karte(400);
-  const bild = kartenbild(sterne, TELEFON, BILDMASS);
-  assert.ok(
-    bild.namen.size < sterne.length * 0.6,
-    `${bild.namen.size} von ${sterne.length} Namen – da wurde kaum ausgewählt`,
-  );
-  assert.ok(bild.namen.size > 5, `nur ${bild.namen.size} Namen – das ist zu wenig`);
-});
-
-pruefe('auf einer leeren Karte gibt es kein Bild, aber auch keinen Absturz', () => {
-  const bild = kartenbild([], TELEFON, BILDMASS);
-  assert.equal(bild.namen.size, 0);
-  assert.ok(bild.view.split(' ').every((z) => Number.isFinite(Number(z))));
-});
-
-pruefe('ein Rahmen ohne Ausdehnung wirft nichts um', () => {
-  const bild = kartenbild(karte(12), { breite: 0, hoehe: 0 }, BILDMASS);
-  assert.ok(bild.view.split(' ').every((z) => Number.isFinite(Number(z))));
 });
 
 console.log(`\n${geprueft} Prüfungen bestanden.\n`);
