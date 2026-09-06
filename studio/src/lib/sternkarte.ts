@@ -148,7 +148,7 @@ export interface Namenszug {
   anker: Anker;
 }
 
-interface Kasten {
+export interface Kasten {
   l: number;
   o: number;
   r: number;
@@ -197,8 +197,31 @@ export function schriftbreite(text: string, groesse: number): number {
   return em * groesse;
 }
 
-/** Die vier Lagen, die eine Karte für einen Namen kennt – in dieser Reihenfolge. */
-const LAGEN: Anker[] = ['middle', 'middle', 'start', 'end'];
+/**
+ * Die Lagen, die eine Karte für einen Namen kennt – in dieser Reihenfolge.
+ *
+ * Erst die vier geraden, dann die vier schrägen. Kartografen setzen seit
+ * jeher nach so einer Liste, und die Reihenfolge ist die Rangfolge: Ein
+ * Name gerade unter seinem Punkt ist am leichtesten zuzuordnen, einer
+ * schräg darüber am schwersten – aber immer noch besser als keiner.
+ *
+ * Vier waren es zuerst. Als die Namen zusätzlich in den Horizont passen
+ * mussten, fielen davon ein Drittel weg: dreissig gesetzte Namen wurden
+ * zwanzig. Die vier schrägen holen den grössten Teil zurück, weil ein Stern
+ * am Rand fast immer *irgendeine* Richtung nach innen hat.
+ *
+ * `hin` ist die Richtung vom Stern weg, `anker` die Ausrichtung der Schrift.
+ */
+const LAGEN: { hx: number; hy: number; anker: Anker }[] = [
+  { hx: 0, hy: 1, anker: 'middle' }, // darunter
+  { hx: 0, hy: -1, anker: 'middle' }, // darüber
+  { hx: 1, hy: 0, anker: 'start' }, // rechts
+  { hx: -1, hy: 0, anker: 'end' }, // links
+  { hx: 0.72, hy: -0.72, anker: 'start' }, // rechts oben
+  { hx: 0.72, hy: 0.72, anker: 'start' }, // rechts unten
+  { hx: -0.72, hy: -0.72, anker: 'end' }, // links oben
+  { hx: -0.72, hy: 0.72, anker: 'end' }, // links unten
+];
 
 function kastenFuer(
   stern: Stern,
@@ -211,18 +234,21 @@ function kastenFuer(
   const ueber = groesse * 0.82;
   const unter = groesse * 0.26;
   const abstand = stern.r + groesse * 0.45;
+  const { hx, hy, anker } = LAGEN[lage];
 
-  let x = stern.x;
-  let y: number;
-  const anker = LAGEN[lage];
-
-  if (lage === 0) y = stern.y + abstand + ueber; // darunter
-  else if (lage === 1) y = stern.y - abstand - unter; // darüber
-  else {
-    /* Seitlich: auf halber Höhe der Schrift, damit es neben dem Stern sitzt. */
-    y = stern.y + groesse * 0.3;
-    x = lage === 2 ? stern.x + abstand : stern.x - abstand;
-  }
+  const x = stern.x + hx * abstand;
+  /*
+   * Senkrecht muss die Grundlinie um die halbe Schrifthöhe versetzt werden,
+   * damit die Zeile *neben* dem Stern sitzt und nicht mit der Grundlinie auf
+   * seiner Höhe. Nach unten kommt die Oberlänge dazu, nach oben die
+   * Unterlänge – der Kasten soll den Stern ja gerade freilassen.
+   */
+  const y =
+    hy > 0
+      ? stern.y + hy * abstand + ueber
+      : hy < 0
+        ? stern.y + hy * abstand - unter
+        : stern.y + groesse * 0.3;
 
   const l = anker === 'middle' ? x - breite / 2 : anker === 'start' ? x : x - breite;
   return {
@@ -240,6 +266,46 @@ function enthalten(aussen: Kasten, innen: Kasten): boolean {
   return innen.l >= aussen.l && innen.r <= aussen.r && innen.o >= aussen.o && innen.u <= aussen.u;
 }
 
+/**
+ * Der Ausschnitt, in dem ein Name stehen darf – wahlweise mit einem Rund.
+ *
+ * Ein Rechteck allein reicht für die Kuppel nicht: Deren Ecken liegen
+ * ausserhalb des Horizonts, und ein Name, der dort steht, schwebt neben dem
+ * Himmel statt darin.
+ */
+export interface Feld {
+  kasten: Kasten;
+  /** Wenn gesetzt: der Name muss zusätzlich ganz hierin liegen. */
+  rund?: { mx: number; my: number; ax: number; ay: number };
+}
+
+/**
+ * Liegt der Kasten ganz in der Ellipse?
+ *
+ * Es genügt, die vier Ecken zu prüfen: Beide Formen sind konvex, und ein
+ * Rechteck ist die konvexe Hülle seiner Ecken – liegen alle vier drin, liegt
+ * jeder Punkt dazwischen auch drin.
+ */
+function imRund(rund: NonNullable<Feld['rund']>, k: Kasten): boolean {
+  for (const [x, y] of [
+    [k.l, k.o],
+    [k.r, k.o],
+    [k.l, k.u],
+    [k.r, k.u],
+  ]) {
+    const u = (x - rund.mx) / rund.ax;
+    const v = (y - rund.my) / rund.ay;
+    if (u * u + v * v > 1) return false;
+  }
+  return true;
+}
+
+function darfDaStehen(feld: Feld | undefined, kasten: Kasten): boolean {
+  if (!feld) return true;
+  if (!enthalten(feld.kasten, kasten)) return false;
+  return !feld.rund || imRund(feld.rund, kasten);
+}
+
 export interface NamenMass {
   /** Schriftgrösse in denselben Einheiten wie die Sternlagen. */
   groesse: number;
@@ -255,7 +321,7 @@ export interface NamenMass {
    * rechten Rand bekommt seinen Namen nach links, weil nach rechts kein
    * Blatt mehr ist. Genau so werden Karten gesetzt.
    */
-  feld?: Kasten;
+  feld?: Feld;
 }
 
 /**
@@ -303,7 +369,7 @@ export function namenSetzen(sterne: Stern[], mass: NamenMass): Map<string, Namen
 
     for (let lage = 0; lage < LAGEN.length; lage++) {
       const { zug, kasten } = kastenFuer(stern, lage, breite, mass.groesse, mass.luft);
-      if (mass.feld && !enthalten(mass.feld, kasten)) continue;
+      if (!darfDaStehen(mass.feld, kasten)) continue;
       if (belegt.some((k) => stossen(kasten, k))) continue;
       gesetzt.set(stern.id, zug);
       belegt.push(kasten);
@@ -332,6 +398,23 @@ export interface Bildmass {
   laenge: number;
   /** Luft um einen Namen, als Vielfaches der Schriftgrösse. */
   luft: number;
+  /**
+   * Ein Bereich, den der Ausschnitt mit umfassen muss.
+   *
+   * Für die Kuppel: Der Horizont reicht weiter als die Sterne, die auf ihm
+   * liegen – er ist ja die Ellipse *durch* den äussersten. Ohne diesen
+   * Hinweis schnitte der Ausschnitt ihn an drei Seiten ab.
+   */
+  umschliesst?: Kasten;
+  /**
+   * Wenn gesetzt: Namen dürfen nur innerhalb dieses Rundes stehen.
+   *
+   * Für die Kuppel der Horizont. Ohne ihn standen die Namen der äussersten
+   * Sterne in den Ecken des Bildfeldes – also neben dem Himmel statt darin.
+   * Ein Stern am Rand legt seinen Namen dann nach innen; geht auch das
+   * nicht, trägt er eben keinen. Genau so ist eine Sternkarte gesetzt.
+   */
+  rund?: { mx: number; my: number; ax: number; ay: number };
 }
 
 export interface Kartenbild {
@@ -409,7 +492,7 @@ export function kartenbild(sterne: Stern[], rahmen: Rahmen, mass: Bildmass): Kar
   const massstab = (k: Kasten) =>
     Math.min(rahmen.breite / Math.max(k.r - k.l, 1e-6), rahmen.hoehe / Math.max(k.u - k.o, 1e-6));
 
-  const kern = umfassen(scheiben);
+  const kern = umfassen(mass.umschliesst ? [...scheiben, mass.umschliesst] : scheiben);
 
   /**
    * Der Ausschnitt: die Sterne, ein Saum für die Namen, und dann auf die
@@ -489,7 +572,7 @@ export function kartenbild(sterne: Stern[], rahmen: Rahmen, mass: Bildmass): Kar
     groesse,
     luft: groesse * mass.luft,
     laenge: mass.laenge,
-    feld: bild,
+    feld: { kasten: bild, rund: mass.rund },
   });
 
   return {

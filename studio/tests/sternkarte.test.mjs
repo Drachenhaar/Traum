@@ -291,27 +291,66 @@ pruefe('wo kein Platz ist, bleiben Sterne namenlos', () => {
  */
 pruefe('der hellste Stern bekommt den Vortritt', () => {
   /*
-   * Fünf Sterne auf demselben Punkt. Es gibt vier Lagen – darunter,
-   * darüber, rechts, links –, also können vier ihren Namen bekommen und
-   * einer nicht. Wer leer ausgeht, muss der schwächste sein, und wenn man
-   * die Helligkeit umdreht, muss es ein anderer sein.
+   * Eine Wolke aus zwölf Sternen auf einem Punkt. Es gibt acht Lagen, also
+   * können nicht alle einen Namen bekommen – und wer leer ausgeht, muss der
+   * schwächste sein. Dreht man die Helligkeit um, muss ein anderer leer
+   * ausgehen.
    *
-   * Ein weniger scharfer Versuch stand hier zuerst: eine enge Wolke aus
-   * vierzehn Sternen. Da fielen zwar Namen weg, aber bei umgedrehter
-   * Helligkeit dieselben – die Lagen, die überhaupt frei blieben, gehörten
-   * immer denselben Sternen. Die Prüfung schlug an und hatte recht: Sie
-   * prüfte die Wolke, nicht die Regel.
+   * Zwei frühere Fassungen dieser Prüfung waren untauglich:
+   *
+   * Die erste setzte zwei Sterne dicht nebeneinander und erwartete, dass
+   * nur einer seinen Namen bekommt. Beide bekamen ihn – zu Recht, der eine
+   * steht darunter, der andere darüber. Die Prüfung hatte unrecht.
+   *
+   * Die zweite zählte auf »fünf Sterne, vier Lagen, vier Namen«. Als aus
+   * vier Lagen acht wurden, blieb sie grün – aber nur noch aus Zufall, weil
+   * die längeren Namen sich in den schrägen Lagen gegenseitig im Weg lagen.
+   * Eine Prüfung, die an einer festen Zahl von Lagen hängt, prüft die Zahl
+   * und nicht die Regel.
    */
-  const fuenf = (rang) =>
-    [0, 1, 2, 3, 4].map((i) => stern(`s${i}`, 0, 0, rang(i), `Haldensteg ${i}`));
+  const wolke = (rang) =>
+    Array.from({ length: 12 }, (_, i) => stern(`s${i}`, 0, 0, rang(i), `Haldensteg ${i}`));
 
-  const vorne = namenSetzen(fuenf((i) => 5 - i), MASS);
-  const hinten = namenSetzen(fuenf((i) => i), MASS);
+  const vorne = namenSetzen(wolke((i) => 12 - i), MASS);
+  const hinten = namenSetzen(wolke((i) => i), MASS);
 
-  assert.equal(vorne.size, 4, `${vorne.size} Namen auf einem Punkt – es gibt vier Lagen`);
-  assert.equal(hinten.size, 4);
-  assert.ok(!vorne.has('s4'), 'der schwächste Stern bekam den Namen');
+  assert.ok(vorne.size < 12, `${vorne.size} von 12 Namen auf einem Punkt – da fiel keiner weg`);
+  assert.ok(vorne.size >= 4, `nur ${vorne.size} Namen – das ist zu wenig`);
+  assert.equal(hinten.size, vorne.size, 'die Zahl darf nicht von der Helligkeit abhängen');
+
+  assert.ok(vorne.has('s0'), 'der hellste Stern der einen Gewichtung ging leer aus');
+  assert.ok(!vorne.has('s11'), 'der schwächste bekam einen Namen');
+  assert.ok(hinten.has('s11'), 'der hellste Stern der anderen Gewichtung ging leer aus');
   assert.ok(!hinten.has('s0'), 'bei umgedrehter Helligkeit ging derselbe leer aus');
+});
+
+/*
+ * Wozu die vier schrägen Lagen da sind.
+ *
+ * Ein Stern, dem oben, unten, rechts und links der Weg verstellt ist, hat
+ * mit vier Lagen keinen Namen mehr – mit acht schon. Am Gerät war das der
+ * Unterschied zwischen zwanzig und vierundzwanzig gesetzten Namen, seit
+ * die Namen zusätzlich in den Horizont passen müssen.
+ */
+pruefe('ist gerade kein Platz, geht der Name schräg', () => {
+  const g = MASS.groesse;
+  const mitte = { id: 'mitte', x: 0, y: 0, r: 4, rang: 10, label: 'Aa' };
+  /* Vier Scheiben, die genau die vier geraden Lagen zustellen. */
+  const sperren = [
+    { id: 'unten', x: 0, y: g, r: 3 },
+    { id: 'oben', x: 0, y: -g * 0.92, r: 2.5 },
+    { id: 'rechts', x: g * 1.17, y: 0, r: 3 },
+    { id: 'links', x: -g * 1.17, y: 0, r: 3 },
+  ].map((s) => ({ ...s, rang: 0, label: 'x' }));
+
+  const namen = namenSetzen([mitte, ...sperren], MASS);
+  const zug = namen.get('mitte');
+  assert.ok(zug, 'der Stern in der Mitte bekam gar keinen Namen');
+  assert.notEqual(zug.anker, 'middle', 'der Name steht gerade darüber oder darunter');
+  assert.ok(
+    Math.abs(zug.y - mitte.y - g * 0.3) > 1e-9,
+    'der Name steht genau seitlich – dann war eine gerade Lage doch frei',
+  );
 });
 
 pruefe('kein Name liegt auf einem anderen', () => {
@@ -548,6 +587,57 @@ pruefe('mit der zurückgegebenen Grösse liegt kein Name auf einem anderen', () 
       for (let j = i + 1; j < kaesten.length; j++) {
         assert.ok(!stossen(kaesten[i], kaesten[j]), `${n} Sterne: zwei Namen überlappen`);
       }
+    }
+  }
+});
+
+/*
+ * Das Rund.
+ *
+ * Für die Kuppel reicht ein Rechteck nicht: Deren Ecken liegen ausserhalb
+ * des Horizonts, und ein Name, der dort steht, schwebt neben dem Himmel
+ * statt darin. Am Gerät war das deutlich zu sehen – drei Namen standen über
+ * und neben der Kuppel.
+ */
+pruefe('mit einem Rund steht kein Name ausserhalb davon', () => {
+  for (const n of GROESSEN) {
+    const sterne = karte(n);
+    let l = Infinity, o = Infinity, r = -Infinity, u = -Infinity;
+    for (const s of sterne) {
+      l = Math.min(l, s.x); o = Math.min(o, s.y);
+      r = Math.max(r, s.x); u = Math.max(u, s.y);
+    }
+    /* Ein Rund, das alle Sterne gerade noch fasst – wie der Horizont. */
+    const rund = { mx: (l + r) / 2, my: (o + u) / 2, ax: (r - l) / 2, ay: (u - o) / 2 };
+    let weiteste = 0;
+    for (const s of sterne) {
+      weiteste = Math.max(weiteste, Math.hypot((s.x - rund.mx) / rund.ax, (s.y - rund.my) / rund.ay));
+    }
+    rund.ax *= weiteste;
+    rund.ay *= weiteste;
+
+    const drin = (kasten) =>
+      [[kasten.l, kasten.o], [kasten.r, kasten.o], [kasten.l, kasten.u], [kasten.r, kasten.u]].every(
+        ([x, y]) => ((x - rund.mx) / rund.ax) ** 2 + ((y - rund.my) / rund.ay) ** 2 <= 1 + 1e-9,
+      );
+    const kaesten = (bild) =>
+      [...bild.namen].map(([id, zug]) =>
+        namenskasten(zug, kuerzen(sterne.find((x) => x.id === id).label), bild.groesse),
+      );
+
+    const mit = kartenbild(sterne, TELEFON, { ...BILDMASS, rund });
+    for (const k of kaesten(mit)) {
+      assert.ok(drin(k), `${n} Sterne: ein Name steht ausserhalb des Rundes`);
+    }
+    assert.ok(mit.namen.size > 3, `${n} Sterne: nur ${mit.namen.size} Namen im Rund`);
+
+    /* Ohne das Rund stehen welche draussen – sonst prüfte das hier nichts. */
+    if (n >= 50) {
+      const ohne = kartenbild(sterne, TELEFON, BILDMASS);
+      assert.ok(
+        kaesten(ohne).some((k) => !drin(k)),
+        `${n} Sterne: auch ohne Rund steht keiner draussen – die Prüfung taugt dann nicht`,
+      );
     }
   }
 });

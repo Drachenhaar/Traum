@@ -16,6 +16,15 @@ import { X } from 'lucide-react';
 import { useStudio, livingEntries } from '../../store/useStudio';
 import { GraphSimulation } from '../../lib/graph';
 import {
+  aufKuppel,
+  milchstrasse,
+  nachHelligkeit,
+  punktePfad,
+  OEFFNUNG,
+  saatAus,
+  sternenhimmel,
+} from '../../lib/himmel';
+import {
   einpassen,
   kartenbild,
   FALTKARTE,
@@ -72,6 +81,18 @@ const SCHRIFT_PUNKTE = 11.5;
  * wirklich die Form geändert hat.
  */
 const FORM_STUFE = 20;
+
+/**
+ * Wie viele namenlose Sterne hinter den benannten stehen.
+ *
+ * Weniger als dreihundert und der Himmel wirkt gesprenkelt statt tief;
+ * deutlich mehr kostet nur noch Rechenzeit, weil die schwächsten auf einem
+ * Telefon ohnehin in einem halben Bildpunkt verschwinden.
+ */
+const HIMMELSSTERNE = 420;
+
+/** Und wie viele davon im Band stehen. */
+const BANDSTERNE = 520;
 
 export function FoldOutMap() {
   const navigate = useNavigate();
@@ -199,9 +220,24 @@ export function FoldOutMap() {
 
     einpassen(sim, form, { ...FALTKARTE, setzen: SETTLE_TICKS });
 
+    /*
+     * Und dann auf die Kuppel.
+     *
+     * Erst setzen lassen, dann wölben – nicht umgekehrt. Die Simulation
+     * rechnet mit Abständen; auf einer gewölbten Fläche wären das nicht mehr
+     * die Abstände, die sie meint. Die Wölbung ist eine Projektion, die
+     * ganz zum Schluss kommt, so wie ein Kartograf sein Netz zuletzt wählt.
+     */
+    const { lagen, horizont } = aufKuppel(sim.nodes);
+    sim.nodes.forEach((n, i) => {
+      n.x = lagen[i].x;
+      n.y = lagen[i].y;
+    });
+
     return {
       nodes: sim.nodes,
       edges: sim.edges,
+      horizont,
       byId: new Map(sim.nodes.map((n) => [n.id, n])),
       /* Für das Setzen der Namen: hell heisst hier »gut verbunden«. */
       sterne: sim.nodes.map(
@@ -214,11 +250,14 @@ export function FoldOutMap() {
           rang: relIndex.neighbours.get(n.id)?.size ?? 0,
         }),
       ),
+      /* Jede Welt bekommt ihren eigenen Himmel – und zwar immer denselben. */
+      saat: saatAus(living[0]?.bookId ?? 'himmel'),
       /* Wurde gekuerzt? Dann muss es dastehen. */
       gezeigt: living.length,
       gesamt: alleLebenden.length,
     };
   }, [entries, relations, relIndex, form]);
+
 
   /*
    * Ausschnitt, Schriftgrösse und die Namen, die wirklich Platz haben.
@@ -234,10 +273,44 @@ export function FoldOutMap() {
             schriftPunkte: SCHRIFT_PUNKTE,
             laenge: 22,
             luft: 0.14,
+            /* Der Horizont gehört mit ins Bild, sonst wird er angeschnitten. */
+            umschliesst: {
+              l: layout.horizont.mx - layout.horizont.ax,
+              o: layout.horizont.my - layout.horizont.ay,
+              r: layout.horizont.mx + layout.horizont.ax,
+              u: layout.horizont.my + layout.horizont.ay,
+            },
+            /* Und kein Name steht ausserhalb davon. */
+            rund: layout.horizont,
           })
         : null,
     [layout, rahmen],
   );
+
+  /*
+   * Der Himmel hinter den Sternen.
+   *
+   * Er hängt nur an der Kuppel, nicht an der Zeit und nicht an der Auswahl –
+   * gerechnet wird er deshalb genau einmal je Anordnung.
+   */
+  const himmel = useMemo(() => {
+    if (!layout || !bild) return null;
+    const h = layout.horizont;
+    /*
+     * Wie viele Karteneinheiten ein Bildschirmpunkt misst.
+     *
+     * Ohne dieses Mass waren die Hintergrundsterne beim ersten Versuch
+     * unsichtbar: Ihre Radien standen in Karteneinheiten, und eine
+     * Karteneinheit ist auf einem Telefon etwa ein Drittel Punkt. Es
+     * standen also Sterne von einem drittel Bildpunkt Durchmesser da, bei
+     * halber Deckkraft. Alles richtig gerechnet, nichts zu sehen.
+     */
+    const einheit = bild.groesse / SCHRIFT_PUNKTE;
+    return {
+      sterne: nachHelligkeit(sternenhimmel(layout.saat, HIMMELSSTERNE, h, OEFFNUNG, einheit), 4),
+      band: nachHelligkeit(milchstrasse(layout.saat, BANDSTERNE, h, OEFFNUNG, einheit), 3),
+    };
+  }, [layout, bild]);
 
   /*
    * Die Zeit verschiebt keine Sterne.
@@ -371,6 +444,62 @@ export function FoldOutMap() {
             className="h-full w-full"
             preserveAspectRatio="xMidYMid meet"
           >
+            {/*
+              Die Kuppel und der Himmel darin.
+
+              Alles hier bedeutet nichts: Es ist gemalt, nicht gemessen. Es
+              ist deshalb `aria-hidden`, nicht antippbar und trägt keine
+              Namen. Wer auf dieser Seite einen Punkt antippen kann, tippt
+              einen Eintrag an – ohne Ausnahme.
+            */}
+            {himmel && (
+              <g aria-hidden className="pointer-events-none">
+                <defs>
+                  <radialGradient id="dc-kuppel">
+                    <stop offset="0%" stopColor="#26314a" />
+                    <stop offset="55%" stopColor="#171f31" />
+                    <stop offset="100%" stopColor="#090c14" />
+                  </radialGradient>
+                </defs>
+                <ellipse
+                  cx={layout.horizont.mx}
+                  cy={layout.horizont.my}
+                  rx={layout.horizont.ax}
+                  ry={layout.horizont.ay}
+                  fill="url(#dc-kuppel)"
+                />
+                {/* Das Band zuerst: Es liegt hinter allem, was einzeln zu sehen ist. */}
+                {himmel.band.map((lage, i) => (
+                  <path
+                    key={`b${i}`}
+                    d={punktePfad(lage.punkte)}
+                    fill="#C6D2EA"
+                    opacity={lage.helle}
+                  />
+                ))}
+                {himmel.sterne.map((lage, i) => (
+                  <path
+                    key={`h${i}`}
+                    d={punktePfad(lage.punkte)}
+                    fill="#DCE4F5"
+                    opacity={lage.helle}
+                  />
+                ))}
+                {/* Der Horizont – die einzige Linie, die die Kuppel selbst zeichnet. */}
+                <ellipse
+                  cx={layout.horizont.mx}
+                  cy={layout.horizont.my}
+                  rx={layout.horizont.ax}
+                  ry={layout.horizont.ay}
+                  fill="none"
+                  stroke="#D4AF37"
+                  strokeOpacity={0.2}
+                  strokeWidth={1}
+                  vectorEffect="non-scaling-stroke"
+                />
+              </g>
+            )}
+
             {/* Linien zuerst – sie liegen hinter den Sternen */}
             <g>
               {layout.edges.map((edge) => {
