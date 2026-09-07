@@ -67,9 +67,25 @@ jobs:
 
       # Vier Schritte, und jeder sagt etwas anderes.
       #
-      # Die Reihenfolge ist die des kürzesten Weges zur Antwort: Typen sind in
-      # Sekunden da, der Bau dauert am längsten. Wer einen Tippfehler im Typ
-      # hat, soll nicht drei Minuten auf diese Auskunft warten.
+      # Die Reihenfolge war einmal die des kürzesten Weges zur Antwort: Typen
+      # sind in Sekunden da, der Bau dauert am längsten, also stand der Bau
+      # zuletzt. Der Gedanke war richtig und die Reihenfolge trotzdem falsch:
+      #
+      # **`klassen` liest den Bau.** Die Prüfung vergleicht das erzeugte
+      # Stilblatt mit den Klassen im Quelltext – ohne `dist/` hat sie nichts zu
+      # lesen und bricht mit „Kein Build gefunden" ab. Auf einem frischen
+      # Checkout gibt es kein `dist/`. Der Lauf war deshalb rot, seit es ihn
+      # gibt, und zwar an einer Stelle, die mit dem geprüften Stand nichts zu
+      # tun hatte.
+      #
+      # Aufgefallen ist es lange nicht, weil `npm run klassen` **auf dem
+      # eigenen Rechner immer durchlief** – dort liegt vom letzten `npm run
+      # build` noch ein `dist/`. Dieselbe Sorte Fehler wie die sieben
+      # Prüfdateien ohne `process.exit` weiter oben, nur andersherum: nicht ein
+      # grüner Haken ohne Prüfung, sondern ein roter ohne Fehler.
+      #
+      # Der Bau steht jetzt vor den Klassen. Die drei schnellen Schritte davor
+      # sagen weiterhin früh Bescheid.
       #
       # `if: always()` an den späteren Schritten, damit ein Fehlschlag nicht
       # die übrigen verschluckt. Wer drei Dinge kaputt gemacht hat, will alle
@@ -83,12 +99,13 @@ jobs:
         working-directory: studio
         run: npm test
 
-      - name: Klassen
-        if: always()
-        working-directory: studio
-        run: npm run klassen
-
       - name: Bau
         if: always()
         working-directory: studio
         run: npm run build
+
+      # Braucht das Ergebnis des Baus – siehe oben.
+      - name: Klassen
+        if: always()
+        working-directory: studio
+        run: npm run klassen
