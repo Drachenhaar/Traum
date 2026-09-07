@@ -12,6 +12,7 @@
 
 import type { Profil } from '../lib/profil';
 import type { Notiz } from '../lib/anerbieten/gedaechtnis';
+import type { Bildbau, SchichtName, Quelle } from '../lib/baukasten';
 
 /** Typ-Kennung eines Eintrags. Eingebaute Typen siehe `lib/types-registry.ts`. */
 export type EntryType = string;
@@ -175,6 +176,14 @@ export interface Entry {
    * er versteckt hat, versteckt nichts, sondern verliert es.
    */
   geheim?: EntryGeheim;
+  /**
+   * Wie das Bildnis dieser Figur zusammengesetzt ist.
+   *
+   * Eine Menge von Entscheidungen – welches Teil in welcher Schicht, in
+   * welcher Farbe – und ausdrücklich **kein Bild**. Fehlt ein Teil später,
+   * fällt eine Schicht weg und der Rest steht weiter; siehe `lib/baukasten.ts`.
+   */
+  bildbau?: Bildbau;
   /**
    * Weltzeit: wann das hier begann und endete.
    *
@@ -793,3 +802,22 @@ export const EMPTY_FILTER: EntryFilter = {
   animatableOnly: false,
   orientation: '',
 };
+
+/**
+ * Ein Teil des Charakterbaukastens, so wie es in der Ablage liegt.
+ *
+ * Es gehört zu einem Buch, nicht zum Gerät: Ein Band, den man weitergibt,
+ * nimmt seine Zeichnungen mit. Das Bild selbst liegt in `images`; hier steht
+ * nur, wo es hingehört und was es bedeutet.
+ */
+export interface StoredTeil {
+  id: string;
+  bookId?: string;
+  schicht: SchichtName;
+  name: string;
+  quelle: Quelle;
+  toenbar?: boolean;
+  bedeutung?: string;
+  createdAt: number;
+  updatedAt: number;
+}

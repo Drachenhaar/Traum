@@ -45,6 +45,21 @@ const bestand = () => ({
       linkedEntryIds: ['e_mira'],
       atmosphaere: { klangId: 'k_1', lautstaerke: 0.5, schleife: true, einblenden: 1, ausblenden: 1, vonSelbst: true },
       fields: { places: ['Mooshalde'] },
+      /*
+       * Ein gebautes Bildnis. Es zeigt auf Teile, die Teile zeigen auf
+       * Bilder – die laengste Verweiskette im ganzen Bestand.
+       *
+       * Die dritte Lage zeigt auf ein Teil, das es im Bestand nicht gibt.
+       * Sie muss verschwinden und darf nicht mit alter Kennung ueberleben.
+       */
+      bildbau: {
+        lagen: {
+          kopf: { teilId: 't_kopf', farbe: '#C8A24C' },
+          haar: { teilId: 't_haar', spiegel: true, versatzY: 2 },
+          male: { teilId: 't_fremd' },
+          grund: { farbe: '#2B2622' },
+        },
+      },
       blocks: [
         {
           id: 'b_1',
@@ -96,6 +111,13 @@ const bestand = () => ({
       ],
     },
   ],
+  teile: [
+    { id: 't_haar', bookId: 'A', schicht: 'haar', name: 'Locken', quelle: { art: 'bild', bildId: 'img_2' },
+      toenbar: true, bedeutung: 'Von der Mutter geerbt.', createdAt: j, updatedAt: j },
+    /* Eine eingebaute Grundform – sie traegt keine Bildkennung. */
+    { id: 't_kopf', bookId: 'A', schicht: 'kopf', name: 'Kopf, rund',
+      quelle: { art: 'grundform', form: 'kopf-rund' }, toenbar: true, createdAt: j, updatedAt: j },
+  ],
 });
 
 const quelle = bestand();
@@ -117,6 +139,7 @@ const alteKennungen = [
   ...quelle.klaenge.map((x) => x.id),
   ...quelle.karten.map((x) => x.id),
   ...quelle.karten.flatMap((x) => x.features.map((f) => f.id)),
+  ...quelle.teile.map((x) => x.id),
 ];
 const alsText = JSON.stringify({ ...ab, images: ab.images.map(({ blobId, ...r }) => r) });
 const durchgerutscht = alteKennungen.filter((k) => alsText.includes(`"${k}"`));
@@ -183,6 +206,40 @@ wahr('  der Verweis zeigt auf die kopierte Seite',
   neueEintragIds.has(kopieKarte.features[0].entryId));
 p('  eine namenlose Flaeche bleibt namenlos', kopieKarte.features[1].entryId, undefined);
 
+/* ------------------------------------------- 3c. Der Charakterbaukasten -- */
+
+/*
+ * Die laengste Verweiskette des Bestandes, und deshalb die interessanteste:
+ *
+ *     Eintrag ─ bildbau.teilId ─→ Teil ─ quelle.bildId ─→ Bilddatensatz
+ *
+ * Reisst sie an *irgendeiner* Stelle, sieht man davon nichts – bis jemand das
+ * Originalbuch loescht und die Abschrift ihre Gesichter verliert. Genau der
+ * Schaden, den der Kopf dieser Datei fuer die Bilder beschreibt.
+ */
+const kopieTeile = ab.teile;
+p('3c beide Teile kommen mit', kopieTeile.length, 2);
+p('  im neuen Buch', [...new Set(kopieTeile.map((t) => t.bookId))], ['B']);
+
+const neueTeilIds = new Set(kopieTeile.map((t) => t.id));
+const kopieHaar = kopieTeile.find((t) => t.name === 'Locken');
+wahr('  das Teil zeigt auf den kopierten Bilddatensatz',
+  neueBildIds.has(kopieHaar.quelle.bildId));
+p('  und nicht mehr auf den des Originals', kopieHaar.quelle.bildId === 'img_2', false);
+p('  die Bedeutung kommt mit', kopieHaar.bedeutung, 'Von der Mutter geerbt.');
+
+const kopieGrund = kopieTeile.find((t) => t.quelle.art === 'grundform');
+p('  eine Grundform bleibt eine Grundform', kopieGrund.quelle, { art: 'grundform', form: 'kopf-rund' });
+
+const kopieBau = kopieArin.bildbau;
+wahr('  das Bildnis zeigt auf die kopierten Teile',
+  neueTeilIds.has(kopieBau.lagen.kopf.teilId) && neueTeilIds.has(kopieBau.lagen.haar.teilId));
+p('  Farbe und Versatz bleiben stehen',
+  [kopieBau.lagen.kopf.farbe, kopieBau.lagen.haar.spiegel, kopieBau.lagen.haar.versatzY],
+  ['#C8A24C', true, 2]);
+p('  eine Lage ins Nichts faellt weg', kopieBau.lagen.male, undefined);
+p('  eine Lage ganz ohne Teil bleibt', kopieBau.lagen.grund, { farbe: '#2B2622' });
+
 /* -------------------------------------- 4. Kanten ins Nichts fallen weg */
 
 p('4 nur vollstaendige Kanten', ab.relations.length, 2);
@@ -201,7 +258,7 @@ wahr('  aber das Zeichen zeigt auf das kopierte Bild',
 
 /* --------------------------------------------------- 6. Randfaelle */
 
-const leer = { entries: [], relations: [], images: [], boards: [], klaenge: [], karten: [] };
+const leer = { entries: [], relations: [], images: [], boards: [], klaenge: [], karten: [], teile: [] };
 p('6 ein leeres Buch bleibt leer', K.schreibeAb(leer, 'B'), leer);
 const ohneBloecke = {
   ...leer,

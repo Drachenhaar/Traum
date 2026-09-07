@@ -9,6 +9,7 @@
  *  - revisions    → Zeitleiste: jede Fassung bleibt zurückholbar
  *  - boards       → Concept-Art-Flächen
  *  - karten       → Weltkarten: Geometrie und Bedeutung, nie ein Bild
+ *  - teile        → Charakterbaukasten: welches Bild in welche Schicht gehört
  *  - settings     → Navigation, eigene Typen, Ziele
  *
  * Bilder liegen als Blob vor – kein Base64, kein localStorage.
@@ -26,6 +27,7 @@ import type {
   StoredImageMeta,
   StoredKlang,
   StoredKlangBlob,
+  StoredTeil,
 } from '../types';
 import type { Kartendokument } from '../lib/karte/modell';
 import { DEFAULT_NAV } from '../lib/nav';
@@ -49,6 +51,8 @@ export class StudioDatabase extends Dexie {
   klaenge!: Table<StoredKlang, string>;
   klangBlobs!: Table<StoredKlangBlob, string>;
   karten!: Table<Kartendokument, string>;
+  /** Die Teile des Charakterbaukastens – wo ein Bild hingehört, nicht das Bild. */
+  teile!: Table<StoredTeil, string>;
 
   constructor() {
     super('dragoncore-studio');
@@ -188,6 +192,21 @@ export class StudioDatabase extends Dexie {
     this.version(5).stores({
       karten: 'id, bookId, updatedAt',
     });
+
+    /*
+     * Fassung 6: die Teile des Charakterbaukastens.
+     *
+     * Wieder nur eine Tabelle und kein Umschreiben. Ein Buch ohne Teile hat
+     * danach keine Teile, und das ist richtig – ein leerer Baukasten ist kein
+     * Mangel, sondern der Anfang.
+     *
+     * `schicht` ist indiziert, weil die Auswahl immer schichtweise fragt
+     * („was habe ich für Haare?"), und `bookId`, weil Teile einem Band
+     * gehören und mit ihm weitergegeben werden.
+     */
+    this.version(6).stores({
+      teile: 'id, bookId, schicht, updatedAt, [bookId+schicht]',
+    });
   }
 }
 
@@ -235,6 +254,7 @@ export async function wipeDatabase(): Promise<void> {
       db.klaenge,
       db.klangBlobs,
       db.karten,
+      db.teile,
     ],
     async () => {
       await Promise.all([
@@ -249,6 +269,7 @@ export async function wipeDatabase(): Promise<void> {
         db.klaenge.clear(),
         db.klangBlobs.clear(),
         db.karten.clear(),
+        db.teile.clear(),
       ]);
       await db.settings.put({ ...FRESH_SETTINGS });
     },

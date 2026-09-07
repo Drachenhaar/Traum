@@ -240,6 +240,20 @@ export const backupSchema = z.object({
    * eine Sicherung wegen einer kaputten Küstenlinie unbrauchbar machen.
    */
   karten: z.array(z.record(z.unknown())).optional(),
+
+  /**
+   * Die Teile des Charakterbaukastens.
+   *
+   * `optional`, weil jede Sicherung von vor dem Baukasten sie nicht hat – und
+   * eine solche Datei muss weiter einlesbar sein.
+   *
+   * Aber sie muss **hier stehen**, und zwar unabhängig davon, wie streng
+   * geprüft wird: Ein Zod-Objekt wirft unbekannte Schlüssel beim Prüfen weg.
+   * Ohne diese Zeile käme jede Sicherung ohne Baukasten zurück, ohne eine
+   * Meldung, ohne einen Fehler – die Datei enthielte alles, und eingelesen
+   * wäre nichts davon da.
+   */
+  teile: z.array(z.record(z.unknown())).optional(),
 });
 
 export type BackupFile = z.infer<typeof backupSchema>;

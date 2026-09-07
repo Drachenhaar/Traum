@@ -31,7 +31,9 @@ import type {
   Settings,
   StoredImageMeta,
   StoredKlang,
+  StoredTeil,
 } from '../types';
+import { bauUmschreiben } from './baukasten';
 import { heileKarte, type Kartendokument } from './karte/modell';
 import { escapeHtml, fileStamp, newId } from './utils';
 import { blockDef, blockImageIds } from './blocks';
@@ -90,7 +92,7 @@ function auslassen<T extends object, K extends keyof T>(wert: T, schluessel: K[]
  * lässt. Wer nur einen Band weitergeben will, nimmt `buildBookBackup`.
  */
 export async function buildFullBackup(withImages: boolean): Promise<string> {
-  const [entries, relations, boards, images, settings, books, karten] = await Promise.all([
+  const [entries, relations, boards, images, settings, books, karten, teile] = await Promise.all([
     db.entries.toArray(),
     db.relations.toArray(),
     db.boards.toArray(),
@@ -98,6 +100,7 @@ export async function buildFullBackup(withImages: boolean): Promise<string> {
     db.settings.get('settings'),
     db.books.toArray(),
     db.karten.toArray(),
+    db.teile.toArray(),
   ]);
   const payload = {
     app: 'dragoncore-studio' as const,
@@ -119,6 +122,16 @@ export async function buildFullBackup(withImages: boolean): Promise<string> {
      * wird.
      */
     karten,
+    /*
+     * Die Teile des Charakterbaukastens.
+     *
+     * Auch sie ohne `pack`: Ein Teil ist ein Vermerk – Schicht, Name,
+     * Bildkennung, Bedeutung –, keine Datei. Die Zeichnung dahinter liegt
+     * unter `images` und wird dort mitgesichert oder eben nicht, je nachdem,
+     * ob die Sicherung Bilder mitnimmt. Ein Teil ohne seine Zeichnung ist
+     * kein Schaden: Es kommt zurueck, sobald das Bild wieder da ist.
+     */
+    teile,
     images: await packImages(images, withImages),
     /*
      * Alles ausser dem Schluessel der Zeile.
@@ -146,13 +159,14 @@ export async function buildFullBackup(withImages: boolean): Promise<string> {
  * vorhandenen stellen.
  */
 export async function buildBookBackup(bookId: string, withImages: boolean): Promise<string> {
-  const [buch, entries, relations, boards, images, karten] = await Promise.all([
+  const [buch, entries, relations, boards, images, karten, teile] = await Promise.all([
     db.books.get(bookId),
     db.entries.where('bookId').equals(bookId).toArray(),
     db.relations.where('bookId').equals(bookId).toArray(),
     db.boards.where('bookId').equals(bookId).toArray(),
     db.images.where('bookId').equals(bookId).toArray(),
     db.karten.where('bookId').equals(bookId).toArray(),
+    db.teile.where('bookId').equals(bookId).toArray(),
   ]);
   if (!buch) throw new Error('Dieses Buch steht nicht in der Bibliothek.');
 
@@ -167,6 +181,7 @@ export async function buildBookBackup(bookId: string, withImages: boolean): Prom
     relations,
     boards,
     karten,
+    teile,
     images: await packImages(images, withImages),
     /*
      * Keine Einstellungen. Was diesem Buch gehoert, steht im Band selbst;
@@ -306,6 +321,7 @@ export async function importBackup(
   let karten = ((data.karten ?? []) as unknown[])
     .map((k) => heileKarte(k))
     .filter((k): k is Kartendokument => !!k);
+  let teile = (data.teile ?? []) as unknown as StoredTeil[];
 
   /*
    * Eine Bibliothekssicherung braucht mehr als einen Band. Wer eine
@@ -394,6 +410,27 @@ export async function importBackup(
       }));
     }
 
+    /*
+     * Die Teile bekommen ihre eigene Pruefung, nicht die der Eintraege.
+     *
+     * Sie liegen in einer eigenen Tabelle mit eigenen Kennungen, und beide
+     * Mengen kollidieren unabhaengig voneinander. An die Eintragspruefung
+     * gehaengt waere der Fall „gleiche Teile, andere Seiten" still falsch:
+     * `bulkPut` auf eine vorhandene Teilkennung ist kein Anlegen, sondern ein
+     * Ueberschreiben – das Teil bekaeme die neue `bookId` und waere aus dem
+     * Buch, in dem es lag, **verschwunden**. Genau der Schaden, den
+     * `lib/kopie.ts` oben fuer die Bilder beschreibt.
+     *
+     * Wird umgeschrieben, muessen die Bildnisse mit: Sie zeigen auf Teile.
+     */
+    const vorhandeneTeile = new Set(await db.teile.toCollection().primaryKeys());
+    if (teile.some((t) => vorhandeneTeile.has(t.id))) {
+      const neueTeile = new Map(teile.map((t) => [t.id, newId('teil')]));
+      teile = teile.map((t) => ({ ...t, id: neueTeile.get(t.id)! }));
+      entries = entries.map((e) => ({ ...e, bildbau: bauUmschreiben(e.bildbau, neueTeile) }));
+    }
+    teile = teile.map((t) => ({ ...t, bookId }));
+
     entries = entries.map((e) => ({ ...e, bookId }));
     relations = relations.map((r) => ({ ...r, bookId }));
     boards = boards.map((b) => ({ ...b, bookId }));
@@ -412,6 +449,7 @@ export async function importBackup(
       m.bookId = aktivesBuch;
     });
     karten = karten.map((k) => ({ ...k, bookId: aktivesBuch }));
+    teile = teile.map((t) => ({ ...t, bookId: aktivesBuch }));
   }
 
   // Beziehungen, deren Gegenstück fehlt, würden im Graphen ins Leere zeigen.
@@ -425,7 +463,7 @@ export async function importBackup(
   try {
     await db.transaction(
       'rw',
-      [db.entries, db.relations, db.boards, db.images, db.imageBlobs, db.settings, db.books, db.klaenge, db.klangBlobs, db.karten],
+      [db.entries, db.relations, db.boards, db.images, db.imageBlobs, db.settings, db.books, db.klaenge, db.klangBlobs, db.karten, db.teile],
       async () => {
       if (mode === 'bibliothek') {
         await Promise.all([
@@ -438,6 +476,7 @@ export async function importBackup(
           db.klaenge.clear(),
           db.klangBlobs.clear(),
           db.karten.clear(),
+          db.teile.clear(),
         ]);
       }
       if (buecher.length && mode !== 'merge') {
@@ -451,6 +490,7 @@ export async function importBackup(
       if (usableRelations.length) await db.relations.bulkPut(usableRelations);
       if (boards.length) await db.boards.bulkPut(boards);
       if (karten.length) await db.karten.bulkPut(karten);
+      if (teile.length) await db.teile.bulkPut(teile);
 
       for (const k of klaenge) {
         const { dataUrl, ...angaben } = k;

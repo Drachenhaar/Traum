@@ -43,7 +43,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { BookmarkIcon, BookOpen, ChevronLeft, ListTree, Star } from 'lucide-react';
+import { Blocks, BookmarkIcon, BookOpen, ChevronLeft, ListTree, Star } from 'lucide-react';
 import { useStudio, livingEntries } from '../../store/useStudio';
 import { relationsOf } from '../../lib/relations';
 import { useRaum } from '../../lib/raum/useRaum';
@@ -405,6 +405,11 @@ export function Charakterseite() {
                 label: 'Zur Buchseite',
                 icon: <BookOpen size={14} />,
                 onClick: () => navigate(`/eintrag/${entry.id}`),
+              },
+              {
+                label: 'Bildnis bauen',
+                icon: <Blocks size={14} />,
+                onClick: () => navigate(`/baukasten/${entry.id}`),
               },
               {
                 label: 'Inhaltsverzeichnis',
