@@ -50,18 +50,59 @@ export type SchichtName =
   | 'hinterhaar'
   | 'koerper'
   | 'gewand'
+  | 'schmuck'
   | 'kopf'
+  | 'ohren'
   | 'augen'
+  | 'brauen'
+  | 'nase'
   | 'mund'
+  | 'bart'
   | 'male'
   | 'haar'
   | 'kopfschmuck'
+  | 'ausruestung'
   | 'beiwerk';
+
+/**
+ * In welchem Feld eine Schicht gezeichnet wird.
+ *
+ * ---
+ *
+ * **Zwei Felder, ein Bildnis – und warum das keine Umständlichkeit ist.**
+ *
+ * Eine Ganzfigur in ein Quadrat von 1024 Punkten gezeichnet hat einen Kopf von
+ * etwa 130 Punkten Höhe. Ein Auge als eigene Schicht wäre darin zwanzig Punkte
+ * breit: zu grob, um es zu zeichnen, und viel zu grob, um es zu verschieben.
+ * Ein Baukasten, der Gesichter bauen soll, kann so nicht arbeiten.
+ *
+ * Andersherum – alles im Kopffeld – gibt es keine Kleidung, keine Haltung,
+ * keine Ausrüstung. Beides zusammen geht nicht in einem Feld.
+ *
+ * Also zwei, und die App setzt sie zusammen:
+ *
+ *     KOPFFELD     Kopf, Augen, Brauen, Nase, Mund, Bart, Male, Haar.
+ *                  Jedes füllt sein eigenes Quadrat – volle Auflösung.
+ *
+ *     KÖRPERFELD   Grund, Körper, Gewand, Schmuck, Ausrüstung, Beiwerk.
+ *                  Die Ganzfigur, ebenfalls in ihrem eigenen Quadrat.
+ *
+ * Das Kopffeld wird auf das Körperfeld gesetzt und dabei verkleinert – siehe
+ * `KOPF_AUF_KOERPER`. Der Gewinn ist doppelt: Das Gesicht bleibt scharf, weil
+ * es nie klein gezeichnet wurde, und dieselbe Zeichnung dient als **grosses
+ * Portrait** (Kopffeld allein) wie als **Ganzfigur** (beide zusammen). Ein
+ * Satz Zeichnungen, zwei Darstellungen.
+ *
+ * Und der eigentliche Gewinn ist der dritte: Köpfe und Körper werden
+ * unabhängig voneinander. Zehn Köpfe und zehn Körper sind hundert Figuren.
+ */
+export type Feld = 'kopf' | 'koerper';
 
 export interface Schicht {
   name: SchichtName;
   label: string;
   hinweis: string;
+  feld: Feld;
 }
 
 /**
@@ -75,19 +116,49 @@ export interface Schicht {
  * `hinterhaar` und `haar` sind zwei Schichten und nicht eine. Ohne die
  * hintere gäbe es keine Frisur, die hinter den Schultern liegt, und alle
  * Figuren trügen die Haare vorn.
+ *
+ * ---
+ *
+ * **Die Felder wechseln mitten in der Liste, und das ist Absicht.**
+ *
+ * `hinterhaar` gehört ins Kopffeld – es ist Haar und muss dem Kopf folgen –,
+ * liegt aber **hinter** dem Körper. Dadurch zerfällt der Stapel in Bahnen:
+ * Grund, dann hinteres Haar (verkleinert), dann der Körper, dann das ganze
+ * Gesicht (verkleinert), dann Ausrüstung und Beiwerk.
+ *
+ * Genau deshalb steht das Feld an der Schicht und nicht an einer eigenen
+ * Liste: Die Reihenfolge bleibt eine einzige, von hinten nach vorn lesbare
+ * Aufzählung, und die Bahnen ergeben sich von selbst aus ihr (siehe `bahnen`).
+ *
+ * Warum siebzehn Schichten und nicht elf: Der Baukasten multipliziert. Eine
+ * Schicht mehr ist billiger als vier Zeichnungen mehr – und Brauen getrennt
+ * von Augen, Nase getrennt vom Kopf ist genau das, was ein Gesicht aus
+ * wenigen Teilen unverwechselbar macht.
  */
 export const SCHICHTEN: Schicht[] = [
-  { name: 'grund', label: 'Grund', hinweis: 'Was hinter allem liegt – Dunst, Wappen, Landschaft.' },
-  { name: 'hinterhaar', label: 'Haar hinten', hinweis: 'Was hinter den Schultern fällt.' },
-  { name: 'koerper', label: 'Körper', hinweis: 'Schultern und Hals.' },
-  { name: 'gewand', label: 'Gewand', hinweis: 'Was getragen wird.' },
-  { name: 'kopf', label: 'Kopf', hinweis: 'Die Form des Gesichts.' },
-  { name: 'augen', label: 'Augen', hinweis: 'Der Blick.' },
-  { name: 'mund', label: 'Mund', hinweis: 'Der Zug um den Mund.' },
-  { name: 'male', label: 'Male', hinweis: 'Narben, Zeichen, Tätowierungen – was eine Geschichte hat.' },
-  { name: 'haar', label: 'Haar vorn', hinweis: 'Was ins Gesicht fällt.' },
-  { name: 'kopfschmuck', label: 'Kopfschmuck', hinweis: 'Band, Kranz, Kapuze, Helm.' },
-  { name: 'beiwerk', label: 'Beiwerk', hinweis: 'Was vor allem anderen liegt.' },
+  { name: 'grund', label: 'Grund', hinweis: 'Was hinter allem liegt – Dunst, Wappen, Landschaft.', feld: 'koerper' },
+  { name: 'hinterhaar', label: 'Haar hinten', hinweis: 'Was hinter den Schultern fällt.', feld: 'kopf' },
+  { name: 'koerper', label: 'Körper', hinweis: 'Die Gestalt – Haltung, Statur, Haut.', feld: 'koerper' },
+  { name: 'gewand', label: 'Gewand', hinweis: 'Was getragen wird.', feld: 'koerper' },
+  { name: 'schmuck', label: 'Halsschmuck', hinweis: 'Kette, Amulett, Kragen.', feld: 'koerper' },
+  { name: 'kopf', label: 'Kopf', hinweis: 'Die Form des Gesichts.', feld: 'kopf' },
+  { name: 'ohren', label: 'Ohren', hinweis: 'Rund, spitz, gekerbt.', feld: 'kopf' },
+  { name: 'augen', label: 'Augen', hinweis: 'Der Blick.', feld: 'kopf' },
+  { name: 'brauen', label: 'Brauen', hinweis: 'Was der Blick sagt, bevor der Mund es tut.', feld: 'kopf' },
+  { name: 'nase', label: 'Nase', hinweis: 'Die Mitte des Gesichts.', feld: 'kopf' },
+  { name: 'mund', label: 'Mund', hinweis: 'Der Zug um den Mund.', feld: 'kopf' },
+  { name: 'bart', label: 'Bart', hinweis: 'Was am Kinn wächst.', feld: 'kopf' },
+  { name: 'male', label: 'Male', hinweis: 'Narben, Zeichen, Tätowierungen – was eine Geschichte hat.', feld: 'kopf' },
+  { name: 'haar', label: 'Haar vorn', hinweis: 'Was ins Gesicht fällt.', feld: 'kopf' },
+  { name: 'kopfschmuck', label: 'Kopfschmuck', hinweis: 'Band, Kranz, Kapuze, Helm.', feld: 'kopf' },
+  { name: 'ausruestung', label: 'Ausrüstung', hinweis: 'Was sie trägt und führt – Gurt, Tasche, Klinge.', feld: 'koerper' },
+  { name: 'beiwerk', label: 'Beiwerk', hinweis: 'Was vor allem anderen liegt.', feld: 'koerper' },
+];
+
+/** Die Felder mit ihren Namen – für die Oberfläche. */
+export const FELDER: { name: Feld; label: string; hinweis: string }[] = [
+  { name: 'kopf', label: 'Kopf', hinweis: 'Füllt sein eigenes Quadrat. Wird auf den Körper gesetzt.' },
+  { name: 'koerper', label: 'Körper', hinweis: 'Die Ganzfigur in ihrem eigenen Quadrat.' },
 ];
 
 const SCHICHT_RANG = new Map(SCHICHTEN.map((s, i) => [s.name, i]));
@@ -174,6 +245,8 @@ export type Grundform =
   | 'kopf-profil'
   | 'schultern'
   | 'schultern-seite'
+  | 'ganzfigur'
+  | 'ganzfigur-seite'
   | 'scheibe';
 
 /**
@@ -187,7 +260,30 @@ export type Grundform =
  * eingebauter Vektor wäre derselbe Fehler noch einmal, nur grösser.
  */
 export type Quelle =
-  | { art: 'bild'; bildId: string }
+  | {
+      art: 'bild';
+      /**
+       * Die **Fläche** – das, was eingefärbt wird.
+       *
+       * Sie heisst weiter `bildId` und nicht `flaecheId`: Bei einem Teil ohne
+       * Linie ist sie schlicht die Zeichnung, und jede bestehende Angabe
+       * bleibt gültig, ohne dass ein einziger Datensatz angefasst wird.
+       */
+      bildId: string;
+      /**
+       * Die **Linie** – die Tusche, die niemals eingefärbt wird.
+       *
+       * Der ganze Unterschied zwischen Spielgrafik und Artbook. Ohne sie färbt
+       * die Maske die gesamte Zeichnung ein: Was hell ist, wird durchsichtig,
+       * was dunkel ist, wird bunt, und aus einer Frisur mit Schraffur wird ein
+       * Fleck. Mit ihr ist jedes Haar in jeder Farbe möglich *und* behält
+       * seine Striche.
+       *
+       * Fehlt sie, ist das kein Mangel: Ein fertig ausgemaltes Teil braucht
+       * keine – es wird ohnehin nicht getönt.
+       */
+      linieId?: string;
+    }
   | { art: 'grundform'; form: Grundform };
 
 export interface Teil {
@@ -293,6 +389,52 @@ export interface Lage {
   groesse?: number;
 }
 
+/**
+ * Wo der Kopf auf dem Körper sitzt.
+ *
+ * Der Anker. Ohne ihn liegt jede Schicht für sich, und wer den Kopf
+ * verschiebt, lässt Augen, Mund und Haar stehen – ein Klebebogen, kein
+ * Gesicht. Mit ihm wandert das ganze Kopffeld als ein Stück.
+ *
+ * Gedreht und verkleinert wird um den **Halspunkt** und nicht um die Mitte:
+ * Ein Kopf, der sich um seine Mitte neigt, hebt sich dabei vom Hals ab. Um den
+ * Hals gedreht neigt er sich, wie ein Kopf sich neigt.
+ */
+export interface Kopflage {
+  /** Wie gross das Kopffeld auf dem Körperfeld erscheint. */
+  groesse: number;
+  /** Verschiebung des Halspunkts, in Einheiten des Körperfeldes. */
+  versatzX: number;
+  versatzY: number;
+  /** Neigung um den Halspunkt, in Grad. */
+  drehung: number;
+}
+
+/**
+ * Wo der Kopf sitzt, wenn niemand etwas anderes sagt.
+ *
+ * Ausgerechnet und nicht geschätzt. Im Kopffeld liegt der Scheitel bei 10 und
+ * das Kinn bei 66 – ein Kopf von 56 Einheiten. Eine Figur von siebeneinhalb
+ * Kopflängen hat in einem Feld von 100 einen Kopf von 13,3 Einheiten, der
+ * oben bei 2 beginnt. Daraus folgt beides:
+ *
+ *     groesse  = 13,3 / 56          = 0,2375
+ *     Kinn     = 2 + 13,3           = 15,3   (der Halspunkt)
+ *     versatzY = 15,3 − 66          = −50,7
+ *
+ * Die Zahlen stehen hier ausgeschrieben, weil sie sonst wie willkürliche
+ * Konstanten aussähen, die niemand mehr anzufassen wagt.
+ */
+export const KOPF_AUF_KOERPER: Kopflage = {
+  groesse: 0.2375,
+  versatzX: 0,
+  versatzY: -50.7,
+  drehung: 0,
+};
+
+/** Der Punkt im Kopffeld, um den gedreht und verkleinert wird: das Kinn. */
+export const HALSPUNKT = { x: 50, y: 66 };
+
 export interface Bildbau {
   /**
    * Aus welcher Richtung diese Figur zu sehen ist.
@@ -302,8 +444,22 @@ export interface Bildbau {
    * Fehlt sie, gilt `vorn`; damit bleibt jeder Bildbau von vorher gültig.
    */
   ansicht?: Ansicht;
+  /** Wo der Kopf sitzt. Fehlt sie, gilt `KOPF_AUF_KOERPER`. */
+  kopf?: Kopflage;
   lagen: Partial<Record<SchichtName, Lage>>;
 }
+
+export const kopflageVon = (bau: Bildbau): Kopflage => bau.kopf ?? KOPF_AUF_KOERPER;
+
+/**
+ * Was gezeigt wird: die ganze Figur oder nur der Kopf.
+ *
+ * Dieselben Daten, zwei Darstellungen. Die Ganzfigur setzt beide Felder
+ * zusammen; das Portrait zeigt das Kopffeld allein, in voller Grösse – und
+ * genau deshalb ist es scharf, obwohl dieselben Zeichnungen in der Ganzfigur
+ * nur ein Achtel hoch sind.
+ */
+export type Darstellung = 'ganzfigur' | 'kopf';
 
 export const LEERER_BAU: Bildbau = { lagen: {} };
 
@@ -355,6 +511,41 @@ export function zeichenfolge(bau: Bildbau, vorrat: readonly Teil[]): Gezeichnet[
   }
 
   return folge;
+}
+
+/** Ein zusammenhängender Lauf gleichen Feldes im Stapel. */
+export interface Bahn {
+  feld: Feld;
+  stuecke: Gezeichnet[];
+}
+
+/**
+ * Den Stapel in Bahnen zerlegen.
+ *
+ * Aufeinanderfolgende Schichten desselben Feldes bilden eine Bahn. Beim
+ * Zeichnen bekommt jede Kopfbahn dieselbe Verkleinerung aufs Körperfeld, jede
+ * Körperbahn keine – und die Reihenfolge bleibt genau die von `SCHICHTEN`.
+ *
+ * Das ist der Grund, warum das Feld an der Schicht steht und nicht in einer
+ * zweiten Liste: Hinteres Haar gehört zum Kopf und liegt trotzdem hinter dem
+ * Körper. Eine Liste „erst alles Körperliche, dann alles Kopfartige" könnte
+ * das nicht ausdrücken; eine Reihenfolge mit wechselnden Feldern schon, und
+ * die Bahnen fallen von selbst heraus.
+ *
+ * Bei `darstellung: 'kopf'` bleiben nur die Kopfschichten übrig – dann ist es
+ * das grosse Portrait und keine Verkleinerung nötig.
+ */
+export function bahnen(folge: Gezeichnet[], darstellung: Darstellung = 'ganzfigur'): Bahn[] {
+  const gefiltert =
+    darstellung === 'kopf' ? folge.filter((g) => g.schicht.feld === 'kopf') : folge;
+
+  const laeufe: Bahn[] = [];
+  for (const stueck of gefiltert) {
+    const letzte = laeufe[laeufe.length - 1];
+    if (letzte && letzte.feld === stueck.schicht.feld) letzte.stuecke.push(stueck);
+    else laeufe.push({ feld: stueck.schicht.feld, stuecke: [stueck] });
+  }
+  return laeufe;
 }
 
 /** Wie eine Lage gezeichnet wird, mit allen Vorgaben eingesetzt. */
@@ -471,9 +662,21 @@ export function wuerfle(
   return { ansicht, lagen };
 }
 
-/** Trägt dieser Bildbau überhaupt etwas? */
-export function istLeer(bau: Bildbau, vorrat: readonly Teil[]): boolean {
-  return zeichenfolge(bau, vorrat).length === 0;
+/**
+ * Trägt dieser Bildbau überhaupt etwas – in **dieser** Darstellung?
+ *
+ * Die Darstellung gehört dazu, und zwar aus einem Fall, der sonst lautlos
+ * danebengeht: Eine Figur mit Körper und Gewand, aber ohne Kopf ist als
+ * Ganzfigur nicht leer und als Portrait sehr wohl. Ohne die Unterscheidung
+ * zeigte der grosse Rahmen der Figurenseite ein leeres Viereck – statt der
+ * Platte mit dem Namenszeichen, die genau für diesen Fall da ist.
+ */
+export function istLeer(
+  bau: Bildbau,
+  vorrat: readonly Teil[],
+  darstellung: Darstellung = 'ganzfigur',
+): boolean {
+  return bahnen(zeichenfolge(bau, vorrat), darstellung).length === 0;
 }
 
 /* =======================================================================
@@ -640,6 +843,8 @@ const GRUNDFORMEN_NAMEN = new Set<string>([
   'kopf-profil',
   'schultern',
   'schultern-seite',
+  'ganzfigur',
+  'ganzfigur-seite',
   'scheibe',
 ]);
 
@@ -647,7 +852,10 @@ function heileQuelle(roh: unknown): Quelle | null {
   if (!roh || typeof roh !== 'object') return null;
   const q = roh as Record<string, unknown>;
   if (q.art === 'bild' && typeof q.bildId === 'string' && q.bildId) {
-    return { art: 'bild', bildId: q.bildId };
+    /* Die Linie kommt mit, wenn eine da ist – sonst gar nicht erst gesetzt. */
+    return typeof q.linieId === 'string' && q.linieId
+      ? { art: 'bild', bildId: q.bildId, linieId: q.linieId }
+      : { art: 'bild', bildId: q.bildId };
   }
   if (q.art === 'grundform' && typeof q.form === 'string' && GRUNDFORMEN_NAMEN.has(q.form)) {
     return { art: 'grundform', form: q.form as Grundform };
@@ -655,11 +863,20 @@ function heileQuelle(roh: unknown): Quelle | null {
   return null;
 }
 
-/** Alle Bildkennungen, die dieses Teil benutzt – über alle Ansichten. */
+/**
+ * Alle Bildkennungen, die dieses Teil benutzt – über alle Ansichten.
+ *
+ * Fläche **und** Linie. Wer hier nur die Fläche zählt, hält beim Löschen eines
+ * Buches jede Linienzeichnung für unbenutzt.
+ */
 export function bildkennungen(teil: Teil): string[] {
-  return Object.values(teil.ansichten)
-    .filter((q): q is Extract<Quelle, { art: 'bild' }> => q.art === 'bild')
-    .map((q) => q.bildId);
+  const ids: string[] = [];
+  for (const quelle of Object.values(teil.ansichten)) {
+    if (quelle.art !== 'bild') continue;
+    ids.push(quelle.bildId);
+    if (quelle.linieId) ids.push(quelle.linieId);
+  }
+  return ids;
 }
 
 export { SCHICHT_RANG };

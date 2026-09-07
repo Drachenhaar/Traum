@@ -45,6 +45,10 @@ const {
   ansichtenVon,
   hatEigeneZeichnung,
   heileTeil,
+  bahnen,
+  kopflageVon,
+  bildkennungen,
+  KOPF_AUF_KOERPER,
   WURF,
 } = await import(join(bau, 'baukasten.mjs'));
 
@@ -569,7 +573,158 @@ pruefe('unbrauchbares fällt weg, brauchbares bleibt', () => {
   assert.deepEqual(Object.keys(gemischt.ansichten).sort(), ['rechts', 'vorn']);
 });
 
-console.log('\n10 · Umschreiben');
+/* =======================================================================
+ * 10 · DIE ZWEI FELDER
+ *
+ * Kopf und Körper werden getrennt gezeichnet und hier zusammengesetzt. Was
+ * geprüft wird: dass der Stapel in Bahnen zerfällt, dass hinteres Haar hinter
+ * dem Körper bleibt, obwohl es zum Kopf gehört, und dass das Portrait
+ * dieselben Daten aus dem Kopffeld allein zieht.
+ * ==================================================================== */
+
+console.log('\n10 · Die zwei Felder');
+
+const FELDVORRAT = [
+  teil('grund1', 'grund'),
+  teil('hinterhaar1', 'hinterhaar'),
+  teil('koerper1', 'koerper'),
+  teil('gewand1', 'gewand'),
+  teil('kopf1', 'kopf'),
+  teil('augen1', 'augen'),
+  teil('haar1', 'haar'),
+  teil('beiwerk1', 'beiwerk'),
+];
+const VOLLES_BILDNIS = {
+  lagen: Object.fromEntries(FELDVORRAT.map((t) => [t.schicht, { teilId: t.id }])),
+};
+
+pruefe('jede Schicht weiss, in welchem Feld sie liegt', () => {
+  const feldVon = Object.fromEntries(SCHICHTEN.map((s) => [s.name, s.feld]));
+  assert.equal(feldVon.koerper, 'koerper');
+  assert.equal(feldVon.gewand, 'koerper');
+  assert.equal(feldVon.kopf, 'kopf');
+  assert.equal(feldVon.augen, 'kopf');
+  /* Hinteres Haar gehört zum Kopf – es muss dem Kopf folgen. */
+  assert.equal(feldVon.hinterhaar, 'kopf');
+});
+
+pruefe('der Stapel zerfällt in Bahnen, ohne die Reihenfolge zu ändern', () => {
+  const laeufe = bahnen(zeichenfolge(VOLLES_BILDNIS, FELDVORRAT));
+  assert.deepEqual(
+    laeufe.map((b) => [b.feld, b.stuecke.map((s) => s.schicht.name)]),
+    [
+      ['koerper', ['grund']],
+      ['kopf', ['hinterhaar']],
+      ['koerper', ['koerper', 'gewand']],
+      ['kopf', ['kopf', 'augen', 'haar']],
+      ['koerper', ['beiwerk']],
+    ],
+  );
+});
+
+pruefe('hinteres Haar bleibt hinter dem Körper', () => {
+  /*
+   * Die Probe darauf, dass die Bahnen wirklich aus der Reihenfolge fallen und
+   * nicht aus einer zweiten Liste: Das hintere Haar gehört zum Kopffeld,
+   * liegt aber vor dem Körper im Stapel. Wer nach Feldern gruppierte statt
+   * nach Läufen, zöge es hinter alles oder vor alles.
+   */
+  const flach = bahnen(zeichenfolge(VOLLES_BILDNIS, FELDVORRAT)).flatMap((b) =>
+    b.stuecke.map((s) => s.schicht.name),
+  );
+  assert.ok(flach.indexOf('hinterhaar') < flach.indexOf('koerper'));
+  assert.ok(flach.indexOf('haar') > flach.indexOf('koerper'));
+});
+
+pruefe('das Portrait zeigt das Kopffeld allein', () => {
+  const laeufe = bahnen(zeichenfolge(VOLLES_BILDNIS, FELDVORRAT), 'kopf');
+  assert.deepEqual(
+    laeufe.map((b) => [b.feld, b.stuecke.map((s) => s.schicht.name)]),
+    [['kopf', ['hinterhaar', 'kopf', 'augen', 'haar']]],
+    'im Portrait steht etwas, das nicht zum Kopf gehört',
+  );
+});
+
+pruefe('eine Figur ohne Kopf ist als Portrait leer, als Ganzfigur nicht', () => {
+  const nurKoerper = { lagen: { koerper: { teilId: 'koerper1' }, gewand: { teilId: 'gewand1' } } };
+  assert.equal(istLeer(nurKoerper, FELDVORRAT, 'ganzfigur'), false);
+  assert.equal(istLeer(nurKoerper, FELDVORRAT, 'kopf'), true);
+});
+
+pruefe('die Vorgabe der Kopflage ist ausgerechnet, nicht geraten', () => {
+  /*
+   * Scheitel 10 und Kinn 66 im Kopffeld; eine Figur von siebeneinhalb
+   * Kopflängen hat einen Kopf von 13,3 Einheiten, der oben bei 2 beginnt.
+   * Beides muss aus der Vorgabe wieder herauskommen – sonst sitzt der Kopf
+   * neben dem Hals und niemand weiss, warum.
+   */
+  const k = KOPF_AUF_KOERPER;
+  const aufKoerper = (y) => k.versatzY + 66 + (y - 66) * k.groesse;
+  assert.ok(Math.abs(aufKoerper(66) - 15.3) < 0.05, 'das Kinn landet nicht am Halspunkt');
+  assert.ok(Math.abs(aufKoerper(10) - 2.0) < 0.05, 'der Scheitel landet nicht am oberen Rand');
+});
+
+pruefe('ohne Angabe gilt die Vorgabe', () => {
+  assert.deepEqual(kopflageVon({ lagen: {} }), KOPF_AUF_KOERPER);
+  const eigen = { groesse: 0.4, versatzX: 2, versatzY: -40, drehung: 3 };
+  assert.deepEqual(kopflageVon({ lagen: {}, kopf: eigen }), eigen);
+});
+
+/* =======================================================================
+ * 11 · LINIE UND FLÄCHE
+ * ==================================================================== */
+
+console.log('\n11 · Linie und Fläche');
+
+pruefe('ein Teil ohne Linie bleibt gültig', () => {
+  const q = teil('a', 'haar').ansichten.vorn;
+  assert.equal(q.bildId, 'b_a');
+  assert.equal(q.linieId, undefined);
+});
+
+pruefe('die Linie überlebt die Heilung', () => {
+  const geheilt = heileTeil({
+    id: 't1',
+    schicht: 'haar',
+    name: 'Locken',
+    ansichten: { vorn: { art: 'bild', bildId: 'flaeche', linieId: 'tusche' } },
+  });
+  assert.deepEqual(geheilt.ansichten.vorn, {
+    art: 'bild',
+    bildId: 'flaeche',
+    linieId: 'tusche',
+  });
+});
+
+pruefe('eine unbrauchbare Linie fällt weg, die Fläche bleibt', () => {
+  const geheilt = heileTeil({
+    id: 't1',
+    schicht: 'haar',
+    name: 'Locken',
+    ansichten: { vorn: { art: 'bild', bildId: 'flaeche', linieId: 42 } },
+  });
+  assert.deepEqual(geheilt.ansichten.vorn, { art: 'bild', bildId: 'flaeche' });
+});
+
+pruefe('beide Bildkennungen werden gezählt', () => {
+  /*
+   * Wer hier nur die Fläche zählt, hält beim Löschen eines Buches jede
+   * Linienzeichnung für unbenutzt – und wirft sie weg.
+   */
+  const mitLinie = {
+    id: 'x',
+    schicht: 'haar',
+    name: 'x',
+    ansichten: {
+      vorn: { art: 'bild', bildId: 'f1', linieId: 'l1' },
+      links: { art: 'bild', bildId: 'f2' },
+      rechts: { art: 'grundform', form: 'scheibe' },
+    },
+  };
+  assert.deepEqual(bildkennungen(mitLinie).sort(), ['f1', 'f2', 'l1']);
+});
+
+console.log('\n12 · Umschreiben');
 
 pruefe('umgeschrieben wird die Kennung, sonst nichts', () => {
   const karte = new Map([['alt', 'neu']]);

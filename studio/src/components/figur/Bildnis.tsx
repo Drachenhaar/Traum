@@ -190,7 +190,7 @@ export function Bildnis({
    */
   const vorrat = useVorrat();
   const bau = entry?.bildbau;
-  const gebautesBildnis = bau && !istLeer(bau, vorrat) ? bau : undefined;
+  const gebautesBildnis = bau && !istLeer(bau, vorrat, 'kopf') ? bau : undefined;
   const z = zuschnitt ?? zuschnittVon(entry);
   const lage = bildlage(z);
   const name = titel ?? entry?.title ?? '';
@@ -245,7 +245,19 @@ export function Bildnis({
         <>
           <Bildnisplatte titel={name} gross={gross} zeichen={false} />
           <div className="absolute inset-0 grid place-items-center">
-            <Bildniswerk bau={gebautesBildnis} vorrat={vorrat} className="h-full max-w-full" />
+            {/*
+              Das grosse Bildnis zeigt das **Kopffeld allein**.
+              Es ist gezeichnet, als füllte es das ganze Blatt – deshalb ist es
+              hier scharf, während dieselben Zeichnungen in der Ganzfigur nur
+              ein Achtel hoch wären. Ein Rahmen für ein Gesicht bekommt das
+              Gesicht, nicht die Figur in Briefmarkengrösse.
+            */}
+            <Bildniswerk
+              bau={gebautesBildnis}
+              vorrat={vorrat}
+              darstellung="kopf"
+              className="h-full max-w-full"
+            />
           </div>
         </>
       ) : (

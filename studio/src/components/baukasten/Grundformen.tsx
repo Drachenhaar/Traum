@@ -111,6 +111,21 @@ export function grundformPfad(form: Grundform): string {
        * vorn, als der Rücken nach hinten reicht.
        */
       return 'M52 56C47 56 45 60 46 67L28 75C16 81 9 90 8 100L86 100C87 85 83 75 74 71L64 66C65 60 60 56 56 56Z';
+    case 'ganzfigur':
+      /*
+       * Die Ganzfigur – **ohne Kopf**, und das ist der springende Punkt.
+       *
+       * Der Kopf kommt aus dem Kopffeld und wird darüber gesetzt; wäre er hier
+       * mitgezeichnet, sässen zwei Köpfe übereinander. Was bleibt, ist ein
+       * Halsstumpf, der genau am Halspunkt endet: y = 15,3, dort wo das Kinn
+       * des verkleinerten Kopffeldes landet (siehe `KOPF_AUF_KOERPER`).
+       *
+       * Die Figur läuft unten aus dem Bild, wie die Büste es tat.
+       */
+      return 'M45 13L55 13L55 21C64 23 70 29 71 37L74 57L69 58L66 42L65 56L67 76L66 100L57 100L56 76L53 58L50 54L47 58L44 76L43 100L34 100L33 76L35 56L34 42L31 58L26 57L29 37C30 29 36 23 45 21Z';
+    case 'ganzfigur-seite':
+      /* Dieselbe Gestalt, seitlich – nach links, wie alle Seitenformen. */
+      return 'M46 13L54 13L54 21C61 23 66 29 67 37L70 56L65 57L62 43L61 57L64 76L63 100L54 100L54 76L51 58L47 62L44 76L43 100L34 100L34 74L37 56L36 42L33 57L28 56L31 37C32 29 39 23 46 21Z';
     case 'scheibe':
       /* Für den Grund: eine Fläche, vor der etwas stehen kann. */
       return 'M50 6a44 44 0 110 88 44 44 0 010-88z';

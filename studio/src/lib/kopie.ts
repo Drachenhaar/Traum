@@ -297,14 +297,25 @@ export function schreibeAb(
             Object.entries(t.ansichten).map(([ansicht, quelle]) => [
               ansicht,
               quelle.art === 'bild'
-                ? { art: 'bild' as const, bildId: um(u.images, quelle.bildId)! }
+                ? {
+                    art: 'bild' as const,
+                    bildId: um(u.images, quelle.bildId)!,
+                    /* Die Linie ist ein eigener Bilddatensatz und wird eigens
+                       umgeschrieben – sonst zeigt die Tusche der Abschrift
+                       weiter ins Originalbuch. */
+                    ...(quelle.linieId ? { linieId: um(u.images, quelle.linieId)! } : {}),
+                  }
                 : quelle,
             ]),
           ) as StoredTeil['ansichten'] }
         : {}),
       ...(t.quelle
         ? { quelle: t.quelle.art === 'bild'
-            ? { art: 'bild' as const, bildId: um(u.images, t.quelle.bildId)! }
+            ? {
+                art: 'bild' as const,
+                bildId: um(u.images, t.quelle.bildId)!,
+                ...(t.quelle.linieId ? { linieId: um(u.images, t.quelle.linieId)! } : {}),
+              }
             : t.quelle }
         : {}),
     })),

@@ -42,8 +42,10 @@ import { useVorrat } from '../../components/baukasten/vorrat';
 import { importImageFiles } from '../../lib/images';
 import {
   ANSICHTEN,
+  KOPF_AUF_KOERPER,
   SCHICHTEN,
   ansichtVon,
+  kopflageVon,
   ansichtenVon,
   hatEigeneZeichnung,
   moeglichkeiten,
@@ -55,6 +57,8 @@ import {
   WURF,
   type Ansicht,
   type Bildbau,
+  type Darstellung,
+  type Kopflage,
   type Lage,
   type SchichtName,
   type Teil,
@@ -103,8 +107,21 @@ export function Baukasten() {
 
   const bau: Bildbau = entry?.bildbau ?? LEERER_BAU;
   const ansicht = ansichtVon(bau);
+  const kopf = kopflageVon(bau);
   const gefaecher = useMemo(() => nachSchichten(vorrat), [vorrat]);
   const [offeneSchicht, setOffeneSchicht] = useState<SchichtName | null>('kopf');
+
+  /*
+   * Woran gerade gearbeitet wird.
+   *
+   * Am Gesicht arbeitet man im Kopffeld – dort ist es gross genug, um ein Auge
+   * um eine Kleinigkeit zu verschieben. Die Ganzfigur zeigt, ob es zusammen
+   * passt. Beides ist dasselbe Bildnis, nur anders angesehen; deshalb ist es
+   * ein Umschalter der Ansicht und keine Angabe am Bildbau.
+   */
+  const [darstellung, setDarstellung] = useState<Darstellung>('ganzfigur');
+
+  const setzeKopf = (patch: Partial<Kopflage>) => setzeBau({ ...bau, kopf: { ...kopf, ...patch } });
 
   /** Ob ein Teil aus der Ablage kommt – nur solche lassen sich ändern und löschen. */
   const istEigenes = (teilId: string) => eigeneTeile.some((t) => t.id === teilId);
@@ -216,6 +233,56 @@ export function Baukasten() {
     }
   };
 
+  /*
+   * Die Linie zu einer vorhandenen Fläche legen.
+   *
+   * Sie hängt an *dieser* Ansicht, nicht am Teil: Ein Kopf von vorn und
+   * derselbe Kopf von der Seite haben verschiedene Tusche. Die Fläche muss
+   * schon da sein – eine Linie ohne Fläche wäre eine Zeichnung, die sich
+   * nicht einfärben lässt, und dafür braucht es die Trennung gar nicht.
+   */
+  const linieRef = useRef<HTMLInputElement>(null);
+  const [linienziel, setLinienziel] = useState<{ teilId: string; ansicht: Ansicht } | null>(null);
+
+  const linieNachtragen = async (dateien: FileList | null) => {
+    const ziel = linienziel;
+    if (!dateien?.length || !ziel) return;
+    setLaedt(true);
+    try {
+      const { metas, errors } = await importImageFiles([dateien[0]]);
+      addImages(metas);
+      for (const fehler of errors) notify(fehler, 'error');
+      const meta = metas[0];
+      if (!meta) return;
+      const teil = eigeneTeile.find((t) => t.id === ziel.teilId);
+      const vorhanden = teil?.ansichten?.[ziel.ansicht];
+      if (!teil || vorhanden?.art !== 'bild') return;
+      await teilAendern(teil.id, {
+        ansichten: {
+          ...(teil.ansichten ?? {}),
+          [ziel.ansicht]: { ...vorhanden, linieId: meta.id },
+        },
+      });
+      notify(`„${teil.name}“ hat jetzt eine Linie.`, 'success');
+    } finally {
+      setLaedt(false);
+      setLinienziel(null);
+      if (linieRef.current) linieRef.current.value = '';
+    }
+  };
+
+  /** Die Linie wieder abnehmen – dann färbt die Maske wieder alles. */
+  const linieAbnehmen = async (teilId: string, fuer: Ansicht) => {
+    const teil = eigeneTeile.find((t) => t.id === teilId);
+    const vorhanden = teil?.ansichten?.[fuer];
+    if (!teil || vorhanden?.art !== 'bild') return;
+    const { linieId: _weg, ...ohneLinie } = vorhanden;
+    void _weg;
+    await teilAendern(teil.id, {
+      ansichten: { ...(teil.ansichten ?? {}), [fuer]: ohneLinie },
+    });
+  };
+
   /** Dieselbe Zeichnung in allen Ansichten gelten lassen – für Grund und Beiwerk. */
   const fuerAlleAnsichten = async (teilId: string, von: Ansicht) => {
     const teil = eigeneTeile.find((t) => t.id === teilId);
@@ -261,7 +328,37 @@ export function Baukasten() {
             Fläche und keine Folie.
           */}
           <div className="relative overflow-hidden rounded-[3px] border border-line bg-paper-200 text-ink-faint">
-            <Bildniswerk bau={bau} vorrat={vorrat} className="w-full" />
+            <Bildniswerk bau={bau} vorrat={vorrat} darstellung={darstellung} className="w-full" />
+          </div>
+
+          {/*
+            Ganzfigur oder Kopf.
+
+            Kein Bearbeitungsmodus, sondern ein Blick: Dieselben Daten, einmal
+            zusammengesetzt und einmal das Kopffeld allein. Am Gesicht arbeitet
+            man im Kopffeld, weil ein Auge dort gross genug ist, um es um eine
+            Kleinigkeit zu verschieben – in der Ganzfigur wäre es zwanzig
+            Punkte breit.
+          */}
+          <div className="mt-3 flex rounded-full border border-line p-0.5">
+            {(
+              [
+                ['ganzfigur', 'Ganze Figur'],
+                ['kopf', 'Nur der Kopf'],
+              ] as const
+            ).map(([wert, label]) => (
+              <button
+                key={wert}
+                type="button"
+                onClick={() => setDarstellung(wert)}
+                className={cx(
+                  'min-h-[34px] flex-1 rounded-full px-2 font-serif text-[13px] transition-colors no-tap-highlight',
+                  darstellung === wert ? 'bg-gild-400/15 text-gold' : 'text-ink-faint hover:text-gold',
+                )}
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
           {/*
@@ -323,6 +420,64 @@ export function Baukasten() {
                   wege.toLocaleString('de')
                 } davon in dieser Ansicht.`}
           </p>
+
+          {/*
+            Wo der Kopf sitzt.
+
+            Der Anker in Reglerform – und der Grund, warum das hier steht und
+            nicht bei den Schichten: Es ist keine Eigenschaft einer Schicht,
+            sondern die Naht zwischen den beiden Feldern. Wer daran zieht,
+            bewegt Augen, Mund und Haar mit, denn sie hängen am Kopffeld.
+
+            Nur bei der Ganzfigur zu sehen: Im Kopffeld allein hat die Naht
+            keine Wirkung, und ein Regler ohne Wirkung ist ein Regler, der lügt.
+          */}
+          {darstellung === 'ganzfigur' && (
+            <div className="mt-5 border-t border-line pt-4">
+              <p className="rubric text-gild-400/70">Wo der Kopf sitzt</p>
+              <div className="mt-2 grid grid-cols-2 gap-3">
+                <Schieber
+                  label="Grösse"
+                  wert={kopf.groesse}
+                  min={0.12}
+                  max={0.6}
+                  schritt={0.005}
+                  onWert={(v) => setzeKopf({ groesse: v })}
+                />
+                <Schieber
+                  label="Neigung"
+                  wert={kopf.drehung}
+                  min={-15}
+                  max={15}
+                  schritt={0.5}
+                  onWert={(v) => setzeKopf({ drehung: v })}
+                />
+                <Schieber
+                  label="Nach rechts"
+                  wert={kopf.versatzX}
+                  min={-25}
+                  max={25}
+                  schritt={0.5}
+                  onWert={(v) => setzeKopf({ versatzX: v })}
+                />
+                <Schieber
+                  label="Nach unten"
+                  wert={kopf.versatzY}
+                  min={-75}
+                  max={-25}
+                  schritt={0.5}
+                  onWert={(v) => setzeKopf({ versatzY: v })}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setzeBau({ ...bau, kopf: { ...KOPF_AUF_KOERPER } })}
+                className="mt-2 font-serif text-[12.5px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
+              >
+                Auf das übliche Mass zurück
+              </button>
+            </div>
+          )}
 
           {traegtBedeutung.length > 0 && (
             <div className="mt-4 border-t border-line pt-3">
@@ -408,6 +563,11 @@ export function Baukasten() {
                             nachtragRef.current?.click();
                           }}
                           onUeberall={() => void fuerAlleAnsichten(gewaehlt.id, ansicht)}
+                          onLinie={() => {
+                            setLinienziel({ teilId: gewaehlt.id, ansicht });
+                            linieRef.current?.click();
+                          }}
+                          onLinieWeg={() => void linieAbnehmen(gewaehlt.id, ansicht)}
                           onLoeschen={
                             istEigenes(gewaehlt.id)
                               ? () => {
@@ -491,6 +651,13 @@ export function Baukasten() {
                 className="hidden"
                 onChange={(e) => void zeichnungNachtragen(e.target.files)}
               />
+              <input
+                ref={linieRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => void linieNachtragen(e.target.files)}
+              />
             </div>
           </div>
         </div>
@@ -561,6 +728,8 @@ function Regler({
   onBedeutung,
   onZeichnung,
   onUeberall,
+  onLinie,
+  onLinieWeg,
   onLoeschen,
 }: {
   teil: Teil;
@@ -573,10 +742,14 @@ function Regler({
   onBedeutung: (text: string) => void;
   onZeichnung: (fuer: Ansicht) => void;
   onUeberall: () => void;
+  onLinie: () => void;
+  onLinieWeg: () => void;
   onLoeschen?: () => void;
 }) {
   const vorhanden = ansichtenVon(teil);
   const eigen = hatEigeneZeichnung(teil, ansicht);
+  const hier = teil.ansichten[ansicht];
+  const hatLinie = hier?.art === 'bild' && !!hier.linieId;
 
   return (
     <div className="mt-4 space-y-3 border-l-2 border-gild-500/25 pl-4">
@@ -637,6 +810,51 @@ function Regler({
               Diese Zeichnung für jede Ansicht gelten lassen
             </button>
           )}
+        </div>
+      )}
+
+      {/*
+        Linie und Fläche.
+
+        Der Unterschied zwischen Spielgrafik und Artbook, und er steht hier
+        neben der Farbwahl, weil er nur dort etwas bedeutet: Ohne Tönung
+        liegt die Zeichnung ohnehin unverändert da, mit Tönung entscheidet
+        die Linie darüber, ob eine Frisur eine Frisur bleibt oder ein Fleck
+        wird.
+
+        Nur bei eigenen Teilen und nur, wo für diese Ansicht eine eigene
+        Fläche liegt – eine Linie zu einer geliehenen Gegenseite wäre eine
+        Angabe am falschen Ort.
+      */}
+      {eigenes && eigen && hier?.art === 'bild' && (
+        <div>
+          <p className="rubric text-gild-400/70">Tusche</p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={onLinie}
+              className={cx(
+                'inline-flex min-h-[30px] items-center gap-1.5 rounded-full border px-3 font-serif text-[12.5px] transition-colors no-tap-highlight',
+                hatLinie ? 'border-gild-500/50 text-gold' : 'border-dashed border-line text-ink-faint',
+              )}
+            >
+              {hatLinie ? 'Linie ersetzen' : 'Linie hinzufügen'}
+            </button>
+            {hatLinie && (
+              <button
+                type="button"
+                onClick={onLinieWeg}
+                className="font-serif text-[12.5px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
+              >
+                Linie abnehmen
+              </button>
+            )}
+          </div>
+          <p className="mt-1.5 font-serif text-[12px] italic text-ink-faint/80">
+            {hatLinie
+              ? 'Die Fläche wird eingefärbt, die Tusche bleibt darüber stehen.'
+              : 'Ohne Linie färbt die Farbe die ganze Zeichnung ein – gut für flache Teile, schlecht für schraffierte.'}
+          </p>
         </div>
       )}
 

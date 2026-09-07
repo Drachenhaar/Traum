@@ -25,10 +25,12 @@
 import type { Block, Entry, EntryAtmosphaere, EntryGeheim, Relation } from '../types';
 import { ENTRY_STATUSES } from '../types';
 import {
+  KOPF_AUF_KOERPER,
   SCHICHTEN,
   istAnsicht,
   type Ansicht,
   type Bildbau,
+  type Kopflage,
   type Lage,
   type SchichtName,
 } from './baukasten';
@@ -212,15 +214,45 @@ function heileBildbau(roh: unknown): Bildbau | undefined {
     : undefined;
 
   /*
+   * Und die Kopflage – aus demselben Grund, und diesmal von vornherein.
+   *
+   * Zweimal ist an dieser Stelle schon etwas lautlos verschwunden, weil diese
+   * Datei Feld fuer Feld neu aufbaut: erst der `bildbau` selbst, dann die
+   * `ansicht`. Beim dritten Mal habe ich es nicht abgewartet.
+   *
+   * `groesse` muss groesser als null sein: Bei null verschwaende der ganze
+   * Kopf, und niemand kaeme darauf, dass eine Zahl daran schuld ist.
+   */
+  const kopf = heileKopflage((roh as Record<string, unknown>).kopf);
+
+  /*
    * Nichts uebrig heisst: kein Bildbau. Eine gewaehlte Ansicht zaehlt dabei
    * ausdruecklich als etwas – wer sein Bildnis leert und die Figur dabei nach
    * rechts gedreht stehen laesst, hat eine Entscheidung getroffen, und sie
    * beim Neuladen zurueckzudrehen waere dieselbe stille Ruecknahme wie oben,
    * nur kleiner.
    */
-  if (Object.keys(lagen).length === 0 && !ansicht) return undefined;
+  if (Object.keys(lagen).length === 0 && !ansicht && !kopf) return undefined;
 
-  return ansicht ? { ansicht, lagen } : { lagen };
+  return {
+    ...(ansicht ? { ansicht } : {}),
+    ...(kopf ? { kopf } : {}),
+    lagen,
+  };
+}
+
+/** Wo der Kopf sitzt – oder nichts, dann gilt die Vorgabe. */
+function heileKopflage(roh: unknown): Kopflage | undefined {
+  if (!roh || typeof roh !== 'object' || istListe(roh)) return undefined;
+  const k = roh as Record<string, unknown>;
+  const groesse = k.groesse;
+  if (typeof groesse !== 'number' || !Number.isFinite(groesse) || groesse <= 0) return undefined;
+  return {
+    groesse,
+    versatzX: zahl(k.versatzX, KOPF_AUF_KOERPER.versatzX),
+    versatzY: zahl(k.versatzY, KOPF_AUF_KOERPER.versatzY),
+    drehung: zahl(k.drehung, 0),
+  };
 }
 
 /** Die Atmosphaere einer Seite – oder nichts, wenn sie keinen Klang nennt. */

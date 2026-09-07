@@ -73,9 +73,29 @@ const EINGEBAUT: Teil[] = [
     toenbar: true,
   },
   {
+    /*
+     * Die Ganzfigur ist die Vorgabe für den Körper, seit es zwei Felder gibt.
+     * Sie ist **kopflos** – der Kopf kommt aus dem Kopffeld und wird darüber
+     * gesetzt.
+     */
+    id: 'grundform:ganzfigur',
+    schicht: 'koerper',
+    name: 'Ganzfigur',
+    ansichten: {
+      vorn: { art: 'grundform', form: 'ganzfigur' },
+      links: { art: 'grundform', form: 'ganzfigur-seite' },
+    },
+    toenbar: true,
+  },
+  {
+    /*
+     * Die Büste bleibt wählbar. Wer ein Brustbild will statt einer Gestalt,
+     * nimmt sie und stellt den Kopf entsprechend gross – ein Bildnis wie im
+     * Buch, mit demselben Baukasten.
+     */
     id: 'grundform:schultern',
     schicht: 'koerper',
-    name: 'Schultern',
+    name: 'Büste',
     ansichten: {
       vorn: { art: 'grundform', form: 'schultern' },
       links: { art: 'grundform', form: 'schultern-seite' },

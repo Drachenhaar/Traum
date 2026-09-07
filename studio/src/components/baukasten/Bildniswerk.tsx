@@ -18,14 +18,44 @@
  * ergibt jede Zeichnung jede Farbe, und zwar die richtige – nicht eine
  * verschobene.
  *
- * Der Preis: Was in der Zeichnung hell ist, wird durchsichtig. Deshalb
- * gehören tönbare Teile in einem Ton gezeichnet, und deshalb sagt das Teil
- * selbst, ob es tönbar ist.
+ * ---
+ *
+ * **Linie und Fläche – der Unterschied zwischen Spielgrafik und Artbook.**
+ *
+ * Der Preis der Maske: Was in der Zeichnung hell ist, wird durchsichtig. Eine
+ * Frisur mit Strichen und Schraffur wird dabei zu einem Fleck.
+ *
+ * Deshalb trägt ein Teil zwei Bilder. Die **Fläche** wird eingefärbt – flach,
+ * ohne Binnenzeichnung. Die **Linie** liegt darüber, unverändert, in ihrer
+ * eigenen Tusche. Beide in derselben Lage, mit demselben Versatz, derselben
+ * Grösse, derselben Spiegelung: Sie sind eine Zeichnung, die nur in zwei
+ * Dateien liegt, und dürfen nie auseinanderlaufen.
+ *
+ * Ein Teil ohne Linie bleibt gültig und wird gezeichnet wie bisher.
+ *
+ * ---
+ *
+ * **Die zwei Felder.**
+ *
+ * Kopf und Körper sind getrennt gezeichnet und werden hier zusammengesetzt:
+ * Jede Kopfbahn liegt in einem eigenen Kasten, der um den Halspunkt
+ * verkleinert und geneigt wird. Dadurch folgt das ganze Gesicht dem Kopf –
+ * wer ihn verschiebt, verschiebt Augen, Mund und Haar mit.
  */
 
 import { useEffect, useState } from 'react';
 import { getImageUrl } from '../../lib/images';
-import { anweisung, zeichenfolge, type Bildbau, type Teil } from '../../lib/baukasten';
+import {
+  HALSPUNKT,
+  anweisung,
+  bahnen,
+  kopflageVon,
+  zeichenfolge,
+  type Bildbau,
+  type Darstellung,
+  type Gezeichnet,
+  type Teil,
+} from '../../lib/baukasten';
 import { grundformPfad, FELD } from './Grundformen';
 import { cx } from '../../lib/utils';
 
@@ -61,81 +91,57 @@ function useBildadressen(ids: string[]): Map<string, string> | null {
   return adressen;
 }
 
-export function Bildniswerk({
-  bau,
-  vorrat,
-  className,
+/** Ein einzelnes Stück des Stapels – Fläche, gegebenenfalls mit Linie darüber. */
+function Stueck({
+  gezeichnet,
+  adressen,
 }: {
-  bau: Bildbau;
-  vorrat: readonly Teil[];
-  className?: string;
+  gezeichnet: Gezeichnet;
+  adressen: Map<string, string> | null;
 }) {
-  const folge = zeichenfolge(bau, vorrat);
+  const a = anweisung(gezeichnet);
+  const quelle = gezeichnet.zeichnung.quelle;
+
   /*
-   * Nur die Bilder dieser Ansicht.
-   *
-   * Ein Teil kann drei Zeichnungen tragen; zu laden sind die, die jetzt
-   * gebraucht werden. Alle zu holen hiesse, beim Aufschlagen einer Figur das
-   * Dreifache zu laden, um zwei Drittel davon nicht zu zeigen.
+   * Versatz in Prozent, Grösse als Faktor, Spiegelung als Skalierung.
+   * Alles in einem `transform` – drei Angaben, ein Rechenschritt.
    */
-  const bildIds = folge
-    .map((g) => (g.zeichnung.quelle.art === 'bild' ? g.zeichnung.quelle.bildId : null))
-    .filter((id): id is string => id !== null);
-  const adressen = useBildadressen(bildIds);
+  const stil: React.CSSProperties = {
+    transform: `translate(${a.versatzX}%, ${a.versatzY}%) scale(${a.spiegel ? -a.groesse : a.groesse}, ${a.groesse})`,
+  };
+
+  if (quelle.art === 'grundform') {
+    return (
+      <svg
+        viewBox={`0 0 ${FELD} ${FELD}`}
+        className="absolute inset-0 h-full w-full"
+        style={stil}
+        aria-hidden
+      >
+        <path d={grundformPfad(quelle.form)} fill={a.farbe ?? 'currentColor'} />
+      </svg>
+    );
+  }
+
+  const flaeche = adressen?.get(quelle.bildId);
+  const linie = quelle.linieId ? adressen?.get(quelle.linieId) : undefined;
+  if (!flaeche && !linie) return null;
 
   return (
-    /*
-     * Quadratisch, aber ohne eigene Breite.
-     *
-     * Die Breite gibt an, wer es einsetzt: Im Baukasten füllt es die Spalte
-     * (`w-full`), im Rahmen der Figurenseite die Höhe (`h-full`). Stünde hier
-     * `w-full`, müsste die Figurenseite es mit `!w-auto` wieder aufheben – und
-     * ein Ausrufezeichen im Klassennamen ist immer das Eingeständnis, dass an
-     * dieser Stelle jemand etwas Falsches vorgegeben hat.
-     */
-    <div className={cx('relative aspect-square overflow-hidden', className)}>
-      {folge.map((g) => {
-        const a = anweisung(g);
-        const quelle = g.zeichnung.quelle;
-        /*
-         * Versatz in Prozent, Grösse als Faktor, Spiegelung als Skalierung.
-         * Alles in einem `transform` – drei Angaben, ein Rechenschritt.
-         */
-        const stil: React.CSSProperties = {
-          transform: `translate(${a.versatzX}%, ${a.versatzY}%) scale(${a.spiegel ? -a.groesse : a.groesse}, ${a.groesse})`,
-        };
-
-        if (quelle.art === 'grundform') {
-          return (
-            <svg
-              key={g.schicht.name}
-              viewBox={`0 0 ${FELD} ${FELD}`}
-              className="absolute inset-0 h-full w-full"
-              style={stil}
-              aria-hidden
-            >
-              <path d={grundformPfad(quelle.form)} fill={a.farbe ?? 'currentColor'} />
-            </svg>
-          );
-        }
-
-        const adresse = adressen?.get(quelle.bildId);
-        if (!adresse) return null;
-
-        /*
-         * Eingefärbt: die Zeichnung als Maske vor einer farbigen Fläche.
-         * Ungefärbt: schlicht das Bild.
-         */
-        return a.farbe ? (
+    <>
+      {/*
+        Die Fläche: eingefärbt als Maske, sonst schlicht das Bild.
+      */}
+      {flaeche &&
+        (a.farbe ? (
           <div
-            key={g.schicht.name}
             aria-hidden
             className="absolute inset-0"
             style={{
               ...stil,
               backgroundColor: a.farbe,
-              maskImage: `url(${adresse})`,
-              WebkitMaskImage: `url(${adresse})`,
+              maskImage: `url(${flaeche})`,
+              WebkitMaskImage: `url(${flaeche})`,
               maskSize: 'contain',
               WebkitMaskSize: 'contain',
               maskRepeat: 'no-repeat',
@@ -146,15 +152,99 @@ export function Bildniswerk({
           />
         ) : (
           <img
-            key={g.schicht.name}
-            src={adresse}
+            src={flaeche}
             alt=""
             aria-hidden
             className="absolute inset-0 h-full w-full object-contain"
             style={stil}
           />
-        );
-      })}
+        ))}
+      {/*
+        Die Linie – niemals eingefärbt, immer obenauf, in **derselben** Lage.
+        Derselbe `stil` und nicht ein zweiter, sonst laufen Fläche und Tusche
+        beim ersten Versatz auseinander.
+      */}
+      {linie && (
+        <img
+          src={linie}
+          alt=""
+          aria-hidden
+          className="absolute inset-0 h-full w-full object-contain"
+          style={stil}
+        />
+      )}
+    </>
+  );
+}
+
+export function Bildniswerk({
+  bau,
+  vorrat,
+  darstellung = 'ganzfigur',
+  className,
+}: {
+  bau: Bildbau;
+  vorrat: readonly Teil[];
+  /** Ganze Figur oder nur der Kopf – dieselben Daten, zwei Darstellungen. */
+  darstellung?: Darstellung;
+  className?: string;
+}) {
+  const folge = zeichenfolge(bau, vorrat);
+  const laeufe = bahnen(folge, darstellung);
+  const kopf = kopflageVon(bau);
+
+  /*
+   * Nur die Bilder, die jetzt gebraucht werden – Fläche und Linie.
+   *
+   * Ein Teil kann drei Ansichten mit je zwei Dateien tragen; alle zu holen
+   * hiesse, beim Aufschlagen einer Figur das Sechsfache zu laden, um fünf
+   * Sechstel davon nicht zu zeigen.
+   */
+  const bildIds: string[] = [];
+  for (const lauf of laeufe) {
+    for (const stueck of lauf.stuecke) {
+      const q = stueck.zeichnung.quelle;
+      if (q.art !== 'bild') continue;
+      bildIds.push(q.bildId);
+      if (q.linieId) bildIds.push(q.linieId);
+    }
+  }
+  const adressen = useBildadressen(bildIds);
+
+  /*
+   * Der Kasten einer Kopfbahn.
+   *
+   * Gedreht und verkleinert wird um den Halspunkt: `transform-origin` sitzt
+   * dort, `scale` hält ihn damit fest, und `translate` setzt ihn an seinen
+   * Platz auf dem Körper. Um die Mitte gedreht hübe sich der Kopf beim Neigen
+   * vom Hals ab.
+   *
+   * Bei `darstellung: 'kopf'` bleibt der Kasten unverändert – dann ist das
+   * Kopffeld das ganze Bild, und genau daher kommt die Schärfe des Portraits.
+   */
+  const kopfstil: React.CSSProperties =
+    darstellung === 'kopf'
+      ? {}
+      : {
+          transformOrigin: `${HALSPUNKT.x}% ${HALSPUNKT.y}%`,
+          transform: `translate(${kopf.versatzX}%, ${kopf.versatzY}%) scale(${kopf.groesse}) rotate(${kopf.drehung}deg)`,
+        };
+
+  return (
+    <div className={cx('relative aspect-square overflow-hidden', className)}>
+      {laeufe.map((lauf, i) =>
+        lauf.feld === 'kopf' ? (
+          <div key={i} className="absolute inset-0" style={kopfstil}>
+            {lauf.stuecke.map((stueck) => (
+              <Stueck key={stueck.schicht.name} gezeichnet={stueck} adressen={adressen} />
+            ))}
+          </div>
+        ) : (
+          lauf.stuecke.map((stueck) => (
+            <Stueck key={stueck.schicht.name} gezeichnet={stueck} adressen={adressen} />
+          ))
+        ),
+      )}
     </div>
   );
 }
