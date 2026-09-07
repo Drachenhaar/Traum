@@ -12,7 +12,7 @@
 
 import type { Profil } from '../lib/profil';
 import type { Notiz } from '../lib/anerbieten/gedaechtnis';
-import type { Bildbau, SchichtName, Quelle } from '../lib/baukasten';
+import type { Ansicht, Bildbau, SchichtName, Quelle } from '../lib/baukasten';
 
 /** Typ-Kennung eines Eintrags. Eingebaute Typen siehe `lib/types-registry.ts`. */
 export type EntryType = string;
@@ -815,7 +815,18 @@ export interface StoredTeil {
   bookId?: string;
   schicht: SchichtName;
   name: string;
-  quelle: Quelle;
+  /**
+   * Die Zeichnungen dieses Teils, je Ansicht eine.
+   *
+   * `quelle` darunter ist die erste Fassung und steht nur noch zum Lesen da:
+   * Ein Teil von damals kannte keine Ansichten, und seine eine Zeichnung gilt
+   * von vorn. Umgeschrieben wird beim Lesen (`heileTeil`) und nicht in einer
+   * Datenbankwanderung – Teile kommen auch aus eingelesenen Sicherungen
+   * herein, und die erreicht eine Wanderung nie.
+   */
+  ansichten?: Partial<Record<Ansicht, Quelle>>;
+  /** @deprecated Die erste Fassung: eine Zeichnung, die von vorn galt. */
+  quelle?: Quelle;
   toenbar?: boolean;
   bedeutung?: string;
   createdAt: number;

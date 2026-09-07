@@ -24,7 +24,14 @@
 
 import type { Block, Entry, EntryAtmosphaere, EntryGeheim, Relation } from '../types';
 import { ENTRY_STATUSES } from '../types';
-import { SCHICHTEN, type Bildbau, type Lage, type SchichtName } from './baukasten';
+import {
+  SCHICHTEN,
+  istAnsicht,
+  type Ansicht,
+  type Bildbau,
+  type Lage,
+  type SchichtName,
+} from './baukasten';
 
 const istListe = (v: unknown): v is unknown[] => Array.isArray(v);
 
@@ -190,7 +197,30 @@ function heileBildbau(roh: unknown): Bildbau | undefined {
     if (Object.keys(lage).length > 0) lagen[name as SchichtName] = lage;
   }
 
-  return Object.keys(lagen).length > 0 ? { lagen } : undefined;
+  /*
+   * Und die Ansicht.
+   *
+   * Sie stand hier zuerst nicht, und der Fehler war derselbe wie eine Runde
+   * zuvor beim `bildbau` selbst: Diese Datei baut Feld fuer Feld neu auf, und
+   * was nicht aufgezaehlt ist, faellt beim naechsten Speichern weg. Gemessen
+   * war es eindeutig – die Figur nach rechts gedreht, neu geladen, und sie sah
+   * den Betrachter wieder an. Keine Meldung, kein Fehler; die Drehung war
+   * einfach fort.
+   */
+  const ansicht = istAnsicht((roh as Record<string, unknown>).ansicht)
+    ? ((roh as Record<string, unknown>).ansicht as Ansicht)
+    : undefined;
+
+  /*
+   * Nichts uebrig heisst: kein Bildbau. Eine gewaehlte Ansicht zaehlt dabei
+   * ausdruecklich als etwas – wer sein Bildnis leert und die Figur dabei nach
+   * rechts gedreht stehen laesst, hat eine Entscheidung getroffen, und sie
+   * beim Neuladen zurueckzudrehen waere dieselbe stille Ruecknahme wie oben,
+   * nur kleiner.
+   */
+  if (Object.keys(lagen).length === 0 && !ansicht) return undefined;
+
+  return ansicht ? { ansicht, lagen } : { lagen };
 }
 
 /** Die Atmosphaere einer Seite – oder nichts, wenn sie keinen Klang nennt. */

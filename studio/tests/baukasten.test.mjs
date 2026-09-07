@@ -41,6 +41,10 @@ const {
   nachSchichten,
   moeglichkeiten,
   bauUmschreiben,
+  zeichnungFuer,
+  ansichtenVon,
+  hatEigeneZeichnung,
+  heileTeil,
   WURF,
 } = await import(join(bau, 'baukasten.mjs'));
 
@@ -51,11 +55,39 @@ const pruefe = (was, fn) => {
   console.log(`  ✓ ${was}`);
 };
 
+/**
+ * Ein Teil mit einer Zeichnung von vorn – der häufigste Fall.
+ *
+ * `ansichten` statt `quelle`: Ein Teil ist eine Sache, die es aus mehreren
+ * Richtungen gibt, und nicht ein Bild. Wer nur von vorn zeichnet, bekommt ein
+ * Teil, das eben nur von vorn etwas zeigt.
+ */
 const teil = (id, schicht, zusatz = {}) => ({
   id,
   schicht,
   name: id,
-  quelle: { art: 'bild', bildId: `b_${id}` },
+  ansichten: { vorn: { art: 'bild', bildId: `b_${id}` } },
+  ...zusatz,
+});
+
+/**
+ * Eine Anweisung, ohne den Umweg über ein ganzes Bildnis.
+ *
+ * `anweisung` nimmt jetzt das Gezeichnete und nicht mehr Teil und Lage
+ * einzeln: Sie muss beide Gründe zu spiegeln kennen – den des Verfassers und
+ * den der Ansicht –, und der zweite steckt in der aufgelösten Zeichnung.
+ */
+const anw = (teil, lage, gespiegelt = false) =>
+  anweisung({ schicht: { name: teil.schicht }, teil, lage, zeichnung: { quelle: { art: 'bild', bildId: 'x' }, gespiegelt } });
+
+/** Dieselbe Sache, aus mehreren Richtungen gezeichnet. */
+const teilMit = (id, schicht, ansichten, zusatz = {}) => ({
+  id,
+  schicht,
+  name: id,
+  ansichten: Object.fromEntries(
+    Object.entries(ansichten).map(([a, b]) => [a, { art: 'bild', bildId: b }]),
+  ),
   ...zusatz,
 });
 
@@ -166,16 +198,16 @@ console.log('\n4 · Farbe nur, wo sie hingehört');
 pruefe('ein nicht tönbares Teil bekommt keine Farbe', () => {
   const bunt = teil('bunt', 'haar');
   const grau = teil('grau', 'haar', { toenbar: true });
-  assert.equal(anweisung(bunt, { farbe: '#c00' }).farbe, undefined);
-  assert.equal(anweisung(grau, { farbe: '#c00' }).farbe, '#c00');
+  assert.equal(anw(bunt, { farbe: '#c00' }).farbe, undefined);
+  assert.equal(anw(grau, { farbe: '#c00' }).farbe, '#c00');
   /* Und ohne gewählte Farbe bleibt auch das tönbare Teil ungefärbt. */
-  assert.equal(anweisung(grau, {}).farbe, undefined);
+  assert.equal(anw(grau, {}).farbe, undefined);
 });
 
 pruefe('die Vorgaben einer Lage stehen fest', () => {
-  const a = anweisung(teil('x', 'haar'), {});
+  const a = anw(teil('x', 'haar'), {});
   assert.deepEqual(a, { spiegel: false, versatzX: 0, versatzY: 0, groesse: 1 });
-  const b = anweisung(teil('y', 'haar'), { spiegel: true, versatzX: -3, groesse: 1.2 });
+  const b = anw(teil('y', 'haar'), { spiegel: true, versatzX: -3, groesse: 1.2 });
   assert.equal(b.spiegel, true);
   assert.equal(b.versatzX, -3);
   assert.equal(b.versatzY, 0);
@@ -261,7 +293,9 @@ pruefe('ohne Palette wird nichts eingefärbt', () => {
 });
 
 pruefe('ein leerer Vorrat ergibt ein leeres Bildnis', () => {
-  assert.deepEqual(wuerfle(1, []), { lagen: {} });
+  /* Die Ansicht steht trotzdem darin: Auch ein leeres Bildnis wird aus einer
+     Richtung angesehen, und der Wurf hat sich für eine entschieden. */
+  assert.deepEqual(wuerfle(1, []), { ansicht: 'vorn', lagen: {} });
 });
 
 /* =======================================================================
@@ -334,7 +368,208 @@ pruefe('die Bedeutungen stehen in der Reihenfolge der Schichten', () => {
  * die Randfälle, die dort nicht vorkommen.
  * ==================================================================== */
 
-console.log('\n8 · Umschreiben');
+/* =======================================================================
+ * 8 · DIE ANSICHTEN
+ *
+ * Die zweite tragende Achse: Ein Teil ist eine Sache, die es aus mehreren
+ * Richtungen gibt. Was hier geprüft wird, ist genau das – dass beim Drehen
+ * dieselbe Figur stehenbleibt und nur ihre Zeichnungen wechseln.
+ * ==================================================================== */
+
+console.log('\n8 · Die Ansichten');
+
+pruefe('jede Ansicht holt ihre eigene Zeichnung', () => {
+  const locken = teilMit('locken', 'haar', { vorn: 'b_vorn', links: 'b_links' });
+  assert.deepEqual(zeichnungFuer(locken, 'vorn'), {
+    quelle: { art: 'bild', bildId: 'b_vorn' },
+    gespiegelt: false,
+  });
+  assert.deepEqual(zeichnungFuer(locken, 'links'), {
+    quelle: { art: 'bild', bildId: 'b_links' },
+    gespiegelt: false,
+  });
+});
+
+pruefe('die Gegenseite wird gespiegelt geliehen', () => {
+  const locken = teilMit('locken', 'haar', { links: 'b_links' });
+  const rechts = zeichnungFuer(locken, 'rechts');
+  assert.equal(rechts.quelle.bildId, 'b_links');
+  assert.equal(rechts.gespiegelt, true);
+});
+
+pruefe('eine eigene Zeichnung schlägt die geliehene', () => {
+  /*
+   * Der Fall, für den beide Seiten überhaupt getrennt sind: eine Frisur mit
+   * Scheitel. Gespiegelt läge er auf der falschen Seite.
+   */
+  const locken = teilMit('locken', 'haar', { links: 'b_links', rechts: 'b_rechts' });
+  const rechts = zeichnungFuer(locken, 'rechts');
+  assert.equal(rechts.quelle.bildId, 'b_rechts');
+  assert.equal(rechts.gespiegelt, false);
+});
+
+pruefe('von vorn wird nichts geliehen', () => {
+  /*
+   * Ein frontales Gesicht aus einer Seitenansicht herzuleiten ergäbe kein
+   * unfertiges Bildnis, sondern ein falsches. Lieber eine Schicht weniger.
+   */
+  const nurSeite = teilMit('profil', 'kopf', { links: 'b_links', rechts: 'b_rechts' });
+  assert.equal(zeichnungFuer(nurSeite, 'vorn'), null);
+  const nurVorn = teilMit('frontal', 'kopf', { vorn: 'b_vorn' });
+  assert.equal(zeichnungFuer(nurVorn, 'links'), null);
+  assert.equal(zeichnungFuer(nurVorn, 'rechts'), null);
+});
+
+pruefe('ein Teil ohne Zeichnung für die Ansicht fällt aus dem Bildnis', () => {
+  const vorrat = [
+    teilMit('kopf1', 'kopf', { vorn: 'b_k', links: 'b_kl' }),
+    teilMit('haar1', 'haar', { vorn: 'b_h' }),
+  ];
+  const bauwerk = { lagen: { kopf: { teilId: 'kopf1' }, haar: { teilId: 'haar1' } } };
+  assert.deepEqual(
+    zeichenfolge({ ...bauwerk, ansicht: 'vorn' }, vorrat).map((g) => g.schicht.name),
+    ['kopf', 'haar'],
+  );
+  /* Von der Seite gibt es kein Haar – der Kopf bleibt trotzdem stehen. */
+  assert.deepEqual(
+    zeichenfolge({ ...bauwerk, ansicht: 'links' }, vorrat).map((g) => g.schicht.name),
+    ['kopf'],
+  );
+});
+
+pruefe('die Wahl bleibt beim Drehen stehen', () => {
+  /*
+   * Die eigentliche Zusage. Wer die Figur dreht, soll dieselbe Figur sehen –
+   * nicht eine, bei der er jede Schicht neu wählen muss. Deshalb ist die
+   * Ansicht eine Angabe am Bildnis und nicht am Teil.
+   */
+  const vorrat = [teilMit('haar1', 'haar', { vorn: 'b_h' })];
+  const bauwerk = { ansicht: 'links', lagen: { haar: { teilId: 'haar1', farbe: '#c00' } } };
+  assert.equal(zeichenfolge(bauwerk, vorrat).length, 0);
+  /* Zurückgedreht ist alles wieder da, samt Farbe. */
+  const zurueck = zeichenfolge({ ...bauwerk, ansicht: 'vorn' }, vorrat);
+  assert.equal(zurueck.length, 1);
+  assert.equal(zurueck[0].lage.farbe, '#c00');
+});
+
+pruefe('ohne Angabe wird von vorn gesehen', () => {
+  const vorrat = [teilMit('haar1', 'haar', { vorn: 'b_h' })];
+  assert.equal(zeichenfolge({ lagen: { haar: { teilId: 'haar1' } } }, vorrat).length, 1);
+});
+
+pruefe('die beiden Gründe zu spiegeln heben einander auf', () => {
+  /*
+   * Der Verfasser will das Teil umgedreht; die Ansicht dreht es ohnehin schon
+   * um. Zusammen ist es wieder herum wie gezeichnet. Mit einem Oder wäre das
+   * Häkchen in der einen Ansicht wirkungslos gewesen – und der Fehler wäre
+   * erst beim Umschalten aufgefallen.
+   */
+  assert.equal(anw(teil('a', 'haar'), {}, false).spiegel, false);
+  assert.equal(anw(teil('a', 'haar'), { spiegel: true }, false).spiegel, true);
+  assert.equal(anw(teil('a', 'haar'), {}, true).spiegel, true);
+  assert.equal(anw(teil('a', 'haar'), { spiegel: true }, true).spiegel, false);
+});
+
+pruefe('gewürfelt wird nur, was in dieser Ansicht zu sehen ist', () => {
+  /*
+   * Sonst stünden Teile im Bildbau, die beim Zeichnen wieder herausfallen –
+   * der Wurf sähe je nach Richtung verschieden gut aus, ohne dass jemand
+   * sagen könnte, warum.
+   */
+  const vorrat = [
+    teilMit('kopf-v', 'kopf', { vorn: 'b1' }),
+    teilMit('koerper-v', 'koerper', { vorn: 'b2' }),
+    teilMit('kopf-s', 'kopf', { links: 'b3' }),
+  ];
+  const seitlich = wuerfle(7, vorrat, [], WURF, 'links');
+  for (const g of zeichenfolge(seitlich, vorrat)) {
+    assert.ok(zeichnungFuer(g.teil, 'links') !== null);
+  }
+  /* Und was gewürfelt wurde, wird auch wirklich gezeichnet. */
+  const gesetzt = Object.values(seitlich.lagen).filter((l) => l.teilId).length;
+  assert.equal(zeichenfolge(seitlich, vorrat).length, gesetzt);
+});
+
+pruefe('die Zahl der Bildnisse zählt je Ansicht und schmeichelt nicht', () => {
+  /*
+   * Ein Vorrat, der nur von vorn gezeichnet ist, gibt seitlich nichts her.
+   * Ihn trotzdem mal drei zu nehmen wäre eine Zahl, die Arbeit vortäuscht.
+   */
+  const nurVorn = [teilMit('a', 'kopf', { vorn: 'b1' }), teilMit('b', 'kopf', { vorn: 'b2' })];
+  assert.equal(moeglichkeiten(nurVorn, 'vorn'), 2);
+  assert.equal(moeglichkeiten(nurVorn, 'links'), 0);
+  assert.equal(moeglichkeiten(nurVorn), 2);
+
+  /* Eine Seitenzeichnung bringt die Gegenseite gleich mit. */
+  const mitSeite = [...nurVorn, teilMit('c', 'kopf', { links: 'b3' })];
+  assert.equal(moeglichkeiten(mitSeite, 'links'), 1);
+  assert.equal(moeglichkeiten(mitSeite, 'rechts'), 1);
+  assert.equal(moeglichkeiten(mitSeite), 2 + 1 + 1);
+});
+
+pruefe('ansichtenVon nennt geliehene Ansichten mit', () => {
+  const nurLinks = teilMit('x', 'haar', { links: 'b1' });
+  assert.deepEqual(ansichtenVon(nurLinks), ['links', 'rechts']);
+  assert.equal(hatEigeneZeichnung(nurLinks, 'links'), true);
+  assert.equal(hatEigeneZeichnung(nurLinks, 'rechts'), false);
+});
+
+/* =======================================================================
+ * 9 · WANDERUNG UND HEILUNG
+ * ==================================================================== */
+
+console.log('\n9 · Wanderung und Heilung');
+
+pruefe('ein Teil der ersten Fassung gilt von vorn', () => {
+  /*
+   * Die Wanderung. Damals war ein Teil eine Zeichnung; sie als Vorderansicht
+   * zu lesen ist die einzige Auslegung, die nichts erfindet.
+   */
+  const alt = { id: 't1', schicht: 'haar', name: 'Locken', quelle: { art: 'bild', bildId: 'b1' } };
+  const neu = heileTeil(alt);
+  assert.deepEqual(neu.ansichten, { vorn: { art: 'bild', bildId: 'b1' } });
+  assert.equal(neu.name, 'Locken');
+});
+
+pruefe('eine neue Fassung schlägt die alte Angabe', () => {
+  const beides = {
+    id: 't1',
+    schicht: 'haar',
+    name: 'Locken',
+    quelle: { art: 'bild', bildId: 'alt' },
+    ansichten: { vorn: { art: 'bild', bildId: 'neu' } },
+  };
+  assert.equal(heileTeil(beides).ansichten.vorn.bildId, 'neu');
+});
+
+pruefe('was kein Teil sein kann, wird keines', () => {
+  assert.equal(heileTeil(null), null);
+  assert.equal(heileTeil({ schicht: 'haar' }), null, 'ohne Kennung');
+  assert.equal(heileTeil({ id: 'x', schicht: 'gibtsnicht' }), null, 'unbekannte Schicht');
+  assert.equal(heileTeil({ id: 'x', schicht: 'haar' }), null, 'ohne jede Zeichnung');
+  assert.equal(
+    heileTeil({ id: 'x', schicht: 'haar', ansichten: { vorn: { art: 'unfug' } } }),
+    null,
+    'nur unbrauchbare Quellen',
+  );
+});
+
+pruefe('unbrauchbares fällt weg, brauchbares bleibt', () => {
+  const gemischt = heileTeil({
+    id: 'x',
+    schicht: 'haar',
+    name: 'Locken',
+    ansichten: {
+      vorn: { art: 'bild', bildId: 'b1' },
+      links: { art: 'bild' },
+      seitlich: { art: 'bild', bildId: 'b2' },
+      rechts: { art: 'grundform', form: 'scheibe' },
+    },
+  });
+  assert.deepEqual(Object.keys(gemischt.ansichten).sort(), ['rechts', 'vorn']);
+});
+
+console.log('\n10 · Umschreiben');
 
 pruefe('umgeschrieben wird die Kennung, sonst nichts', () => {
   const karte = new Map([['alt', 'neu']]);

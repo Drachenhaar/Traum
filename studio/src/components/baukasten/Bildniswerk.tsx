@@ -71,8 +71,15 @@ export function Bildniswerk({
   className?: string;
 }) {
   const folge = zeichenfolge(bau, vorrat);
+  /*
+   * Nur die Bilder dieser Ansicht.
+   *
+   * Ein Teil kann drei Zeichnungen tragen; zu laden sind die, die jetzt
+   * gebraucht werden. Alle zu holen hiesse, beim Aufschlagen einer Figur das
+   * Dreifache zu laden, um zwei Drittel davon nicht zu zeigen.
+   */
   const bildIds = folge
-    .map((g) => (g.teil.quelle.art === 'bild' ? g.teil.quelle.bildId : null))
+    .map((g) => (g.zeichnung.quelle.art === 'bild' ? g.zeichnung.quelle.bildId : null))
     .filter((id): id is string => id !== null);
   const adressen = useBildadressen(bildIds);
 
@@ -88,7 +95,8 @@ export function Bildniswerk({
      */
     <div className={cx('relative aspect-square overflow-hidden', className)}>
       {folge.map((g) => {
-        const a = anweisung(g.teil, g.lage);
+        const a = anweisung(g);
+        const quelle = g.zeichnung.quelle;
         /*
          * Versatz in Prozent, Grösse als Faktor, Spiegelung als Skalierung.
          * Alles in einem `transform` – drei Angaben, ein Rechenschritt.
@@ -97,7 +105,7 @@ export function Bildniswerk({
           transform: `translate(${a.versatzX}%, ${a.versatzY}%) scale(${a.spiegel ? -a.groesse : a.groesse}, ${a.groesse})`,
         };
 
-        if (g.teil.quelle.art === 'grundform') {
+        if (quelle.art === 'grundform') {
           return (
             <svg
               key={g.schicht.name}
@@ -106,12 +114,12 @@ export function Bildniswerk({
               style={stil}
               aria-hidden
             >
-              <path d={grundformPfad(g.teil.quelle.form)} fill={a.farbe ?? 'currentColor'} />
+              <path d={grundformPfad(quelle.form)} fill={a.farbe ?? 'currentColor'} />
             </svg>
           );
         }
 
-        const adresse = adressen?.get(g.teil.quelle.bildId);
+        const adresse = adressen?.get(quelle.bildId);
         if (!adresse) return null;
 
         /*

@@ -35,7 +35,9 @@ export const GRUNDFORMEN: { form: Grundform; name: string }[] = [
   { form: 'kopf-rund', name: 'Kopf, rund' },
   { form: 'kopf-schmal', name: 'Kopf, schmal' },
   { form: 'kopf-kantig', name: 'Kopf, kantig' },
+  { form: 'kopf-profil', name: 'Kopf, im Profil' },
   { form: 'schultern', name: 'Schultern' },
+  { form: 'schultern-seite', name: 'Schultern, von der Seite' },
   { form: 'scheibe', name: 'Scheibe' },
 ];
 
@@ -75,9 +77,40 @@ export function grundformPfad(form: Grundform): string {
     case 'kopf-kantig':
       /* Eckige Kiefer: gerade Kanten statt Bögen, sonst ist es wieder das Ei. */
       return 'M50 10c13 0 22 9 22 22l-2 17-7 13-13 5-13-5-7-13-2-17c0-13 9-22 22-22z';
+    case 'kopf-profil':
+      /*
+       * Der Kopf von der Seite – nach links gewandt, wie alle Seitenformen.
+       *
+       * Nach *links*, weil die Spiegelregel dann die rechte Ansicht umsonst
+       * mitliefert. Welche der beiden Seiten man zeichnet, ist eine
+       * Verabredung; sie überhaupt zu treffen ist der Punkt, sonst zeigen
+       * eingebaute Formen und eigene Zeichnungen in verschiedene Richtungen.
+       *
+       * Die Nase ist der ganze Unterschied zwischen einem Profil und einem
+       * Ei. Ohne sie sähe man nicht, dass die Figur sich abgewandt hat.
+       *
+       * Sie zeigt nach links, und das ist keine Kleinigkeit: Im ersten Anlauf
+       * lag sie rechts. Die Zeichnung war für sich in Ordnung, hiess „nach
+       * links" und blickte nach rechts – gesehen hat man es sofort, gerechnet
+       * hätte man es nie.
+       */
+      return 'M46 11C33 11 28 22 30 34C31 36 32 37 32 39L26 48C26 50 30 51 34 51C33 53 32 54 32 56C33 57 34 57 34 58C32 59 32 60 33 62C34 65 38 66 43 66L58 66C67 66 72 60 74 50C76 42 77 32 74 25C70 15 58 11 46 11Z';
     case 'schultern':
       /* Hals und zwei Schultern, unten offen – sie laufen aus dem Bild. */
       return 'M50 56c7 0 11 4 11 12l14 6c10 4 16 12 18 20l2 6H5l2-6c2-8 8-16 18-20l14-6c0-8 4-12 11-12z';
+    case 'schultern-seite':
+      /*
+       * Dieselbe Büste, seitlich: die Brust nach vorn, der Rücken dahinter.
+       * Ebenfalls nach links – siehe oben.
+       *
+       * Sie musste dreimal gezeichnet werden, und zweimal war der Fehler
+       * derselbe: Ich hatte die Vorderansicht gespiegelt statt eine
+       * Seitenansicht gebaut. Gespiegelt ist eine Büste aber immer noch
+       * symmetrisch – am Bild sah man eine Glocke, keinen Menschen. Eine
+       * Seitenansicht ist **unsymmetrisch**: Die Brust reicht weiter nach
+       * vorn, als der Rücken nach hinten reicht.
+       */
+      return 'M52 56C47 56 45 60 46 67L28 75C16 81 9 90 8 100L86 100C87 85 83 75 74 71L64 66C65 60 60 56 56 56Z';
     case 'scheibe':
       /* Für den Grund: eine Fläche, vor der etwas stehen kann. */
       return 'M50 6a44 44 0 110 88 44 44 0 010-88z';

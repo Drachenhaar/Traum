@@ -112,11 +112,29 @@ const bestand = () => ({
     },
   ],
   teile: [
-    { id: 't_haar', bookId: 'A', schicht: 'haar', name: 'Locken', quelle: { art: 'bild', bildId: 'img_2' },
+    /*
+     * Ein Teil mit *zwei* Zeichnungen – der Fall, in dem eine Abschrift still
+     * halb richtig wird. Wer nur die Vorderansicht umschreibt, bekommt eine
+     * Kopie, die von vorn stimmt und von der Seite ins Originalbuch zeigt;
+     * gemerkt wird das erst von dem, der die Abschrift dreht.
+     */
+    { id: 't_haar', bookId: 'A', schicht: 'haar', name: 'Locken',
+      ansichten: {
+        vorn: { art: 'bild', bildId: 'img_2' },
+        links: { art: 'bild', bildId: 'img_1' },
+      },
       toenbar: true, bedeutung: 'Von der Mutter geerbt.', createdAt: j, updatedAt: j },
     /* Eine eingebaute Grundform – sie traegt keine Bildkennung. */
     { id: 't_kopf', bookId: 'A', schicht: 'kopf', name: 'Kopf, rund',
-      quelle: { art: 'grundform', form: 'kopf-rund' }, toenbar: true, createdAt: j, updatedAt: j },
+      ansichten: { vorn: { art: 'grundform', form: 'kopf-rund' } },
+      toenbar: true, createdAt: j, updatedAt: j },
+    /*
+     * Und eines in der alten Fassung, mit einem einzelnen `quelle`. Es liegt
+     * so in jeder Datenbank, die vor den Ansichten angelegt wurde, und muss
+     * sich abschreiben lassen, ohne vorher gewandert zu sein.
+     */
+    { id: 't_alt', bookId: 'A', schicht: 'male', name: 'Narbe',
+      quelle: { art: 'bild', bildId: 'img_1' }, createdAt: j, updatedAt: j },
   ],
 });
 
@@ -218,18 +236,29 @@ p('  eine namenlose Flaeche bleibt namenlos', kopieKarte.features[1].entryId, un
  * Schaden, den der Kopf dieser Datei fuer die Bilder beschreibt.
  */
 const kopieTeile = ab.teile;
-p('3c beide Teile kommen mit', kopieTeile.length, 2);
+p('3c alle Teile kommen mit', kopieTeile.length, 3);
 p('  im neuen Buch', [...new Set(kopieTeile.map((t) => t.bookId))], ['B']);
 
 const neueTeilIds = new Set(kopieTeile.map((t) => t.id));
 const kopieHaar = kopieTeile.find((t) => t.name === 'Locken');
-wahr('  das Teil zeigt auf den kopierten Bilddatensatz',
-  neueBildIds.has(kopieHaar.quelle.bildId));
-p('  und nicht mehr auf den des Originals', kopieHaar.quelle.bildId === 'img_2', false);
+wahr('  die Vorderansicht zeigt auf den kopierten Bilddatensatz',
+  neueBildIds.has(kopieHaar.ansichten.vorn.bildId));
+wahr('  und die Seitenansicht ebenso',
+  neueBildIds.has(kopieHaar.ansichten.links.bildId));
+p('  keine Ansicht zeigt mehr ins Original',
+  Object.values(kopieHaar.ansichten).filter((q) => ['img_1', 'img_2'].includes(q.bildId)).length, 0);
+p('  die beiden Ansichten bleiben verschieden',
+  kopieHaar.ansichten.vorn.bildId === kopieHaar.ansichten.links.bildId, false);
 p('  die Bedeutung kommt mit', kopieHaar.bedeutung, 'Von der Mutter geerbt.');
 
-const kopieGrund = kopieTeile.find((t) => t.quelle.art === 'grundform');
-p('  eine Grundform bleibt eine Grundform', kopieGrund.quelle, { art: 'grundform', form: 'kopf-rund' });
+const kopieGrund = kopieTeile.find((t) => t.name === 'Kopf, rund');
+p('  eine Grundform bleibt eine Grundform',
+  kopieGrund.ansichten.vorn, { art: 'grundform', form: 'kopf-rund' });
+
+/* Die alte Fassung wird abgeschrieben, ohne vorher gewandert zu sein. */
+const kopieAlt = kopieTeile.find((t) => t.name === 'Narbe');
+wahr('  ein Teil der ersten Fassung wird ebenfalls umgeschrieben',
+  neueBildIds.has(kopieAlt.quelle.bildId));
 
 const kopieBau = kopieArin.bildbau;
 wahr('  das Bildnis zeigt auf die kopierten Teile',

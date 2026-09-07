@@ -283,10 +283,30 @@ export function schreibeAb(
       ...t,
       id: u.teile.get(t.id)!,
       bookId,
-      quelle:
-        t.quelle.art === 'bild'
-          ? { art: 'bild' as const, bildId: um(u.images, t.quelle.bildId)! }
-          : t.quelle,
+      /*
+       * Jede Ansicht trägt ihre eigene Bildkennung, und jede muss mit.
+       *
+       * Hier stand einmal ein einzelnes `quelle`. Als aus einem Teil mehrere
+       * Zeichnungen wurden, wäre genau das der Ort gewesen, an dem die
+       * Abschrift still halb richtig wird: Die Vorderansicht zeigte auf die
+       * Kopie, die Seitenansichten weiter auf das Original – und aufgefallen
+       * wäre es erst dem, der die Abschrift dreht.
+       */
+      ...(t.ansichten
+        ? { ansichten: Object.fromEntries(
+            Object.entries(t.ansichten).map(([ansicht, quelle]) => [
+              ansicht,
+              quelle.art === 'bild'
+                ? { art: 'bild' as const, bildId: um(u.images, quelle.bildId)! }
+                : quelle,
+            ]),
+          ) as StoredTeil['ansichten'] }
+        : {}),
+      ...(t.quelle
+        ? { quelle: t.quelle.art === 'bild'
+            ? { art: 'bild' as const, bildId: um(u.images, t.quelle.bildId)! }
+            : t.quelle }
+        : {}),
     })),
   };
 }
