@@ -9,8 +9,39 @@
  * wirkt und ein Bildschirm nicht.
  */
 
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { cx } from '../../lib/utils';
+
+/**
+ * Ab wo zwei Seiten nebeneinander liegen – dieselbe Grenze wie Tailwinds `lg`.
+ *
+ * Die Zahl steht hier, weil hier entschieden wird, und sie muss mit `lg`
+ * übereinstimmen: 1024. `tailwind.config.js` setzt keine eigenen
+ * Haltepunkte, also gilt die Voreinstellung.
+ */
+const SCHREIBTISCH = '(min-width: 1024px)';
+
+/**
+ * Liegt das Buch auf einem Schreibtisch?
+ *
+ * Der Anfangswert wird **sofort** gelesen, nicht erst im Effekt. Sonst
+ * stünde im ersten Bild die falsche Seitenzahl, und der ganze Seiteninhalt
+ * würde einmal aufgebaut und gleich wieder weggeworfen – mitsamt allem, was
+ * in einem Feld steht.
+ */
+function amSchreibtisch(): boolean {
+  const [breit, setBreit] = useState(() =>
+    typeof window === 'undefined' ? true : window.matchMedia(SCHREIBTISCH).matches,
+  );
+  useEffect(() => {
+    const messgerät = window.matchMedia(SCHREIBTISCH);
+    const merken = () => setBreit(messgerät.matches);
+    merken();
+    messgerät.addEventListener('change', merken);
+    return () => messgerät.removeEventListener('change', merken);
+  }, []);
+  return breit;
+}
 
 export function Spread({
   left,
@@ -24,21 +55,51 @@ export function Spread({
   /** 0 = frisches Papier, 1 = oft gelesen */
   wear?: number;
 }) {
+  /*
+   * **Einmal zeichnen, nicht zweimal.**
+   *
+   * Hier standen beide Fassungen zugleich im Dokument – die zweiseitige und
+   * die einseitige – und eine davon war mit `hidden` weggeblendet. Das sieht
+   * richtig aus und ist es nicht: *Weggeblendet* heisst nicht *nicht da*.
+   *
+   * Was daran zerbrach: Jedes Eingabefeld des Buches stand doppelt im
+   * Dokument. `react-hook-form` reicht jedem Feld denselben `ref` und behält
+   * das **zuletzt** angemeldete. Am Schreibtisch ist das sichtbare Feld das
+   * erste und das unsichtbare das zweite – das Formular hörte also dem
+   * unsichtbaren zu. Wer den Titel einer Figur änderte, tippte in ein Feld,
+   * von dem das Formular nichts wusste: Gespeichert wurde der alte Wert, und
+   * beim nächsten Zeichnen schrieb das Formular ihn ins sichtbare Feld
+   * zurück. Es sprang auf den Vertipper zurück.
+   *
+   * In der Hand fiel es nicht auf, weil dort das sichtbare Feld zufällig das
+   * letzte ist. Deshalb war es ein Fehler, den es nur am Laptop gab.
+   *
+   * Der Wechsel beim Ändern der Fensterbreite baut die Seite neu auf. Das
+   * ist der Preis und er ist klein: Wer mitten im Schreiben die Fensterbreite
+   * über 1024 Punkte zieht, tut etwas Seltenes – wer in ein Feld tippt, tut
+   * das Häufigste überhaupt.
+   */
+  const zweiseitig = amSchreibtisch();
+
   return (
     <div className="mx-auto flex w-full max-w-[1500px] flex-1 justify-center">
-      {/* Am Schreibtisch: zwei Seiten nebeneinander. */}
-      <Leaf side="left" page={pageLeft} wear={wear} className="hidden lg:flex">
-        {left}
-      </Leaf>
-      <Leaf side="right" page={pageLeft + 1} wear={wear} className="hidden lg:flex">
-        {right}
-      </Leaf>
-
-      {/* In der Hand: eine Seite, beide Hälften untereinander gelesen. */}
-      <Leaf side="single" page={pageLeft} wear={wear} className="flex lg:hidden">
-        {left}
-        {right}
-      </Leaf>
+      {zweiseitig ? (
+        /* Am Schreibtisch: zwei Seiten nebeneinander. */
+        <>
+          <Leaf side="left" page={pageLeft} wear={wear}>
+            {left}
+          </Leaf>
+          <Leaf side="right" page={pageLeft + 1} wear={wear}>
+            {right}
+          </Leaf>
+        </>
+      ) : (
+        /* In der Hand: eine Seite, beide Hälften untereinander gelesen. */
+        <Leaf side="single" page={pageLeft} wear={wear}>
+          {left}
+          {right}
+        </Leaf>
+      )}
     </div>
   );
 }
