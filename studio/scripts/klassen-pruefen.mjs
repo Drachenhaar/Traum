@@ -278,3 +278,62 @@ if (falscheKanaele.size) {
 }
 
 console.log('Keine Farbe wird als Farbkanal gelesen.');
+
+/* ==========================================================================
+ * DIESELBE ZAHL AN ZWEI ORTEN
+ *
+ * Dritter Anlass, dieselbe Falle in einer neuen Gestalt.
+ *
+ * Ein Übergang braucht seine Dauer zweimal: einmal im Stilblatt, das ihn
+ * zeichnet, und einmal in TypeScript, das zählt, wann er vorbei ist. Laufen
+ * die beiden auseinander, gibt es keinen Fehler – es gibt ein Zucken. Bei zu
+ * kurzem Zähler verschwindet die abgehende Ansicht mitten in der Bewegung;
+ * bei zu langem steht eine unsichtbare Fläche über der Seite und fängt
+ * Finger ab. Beides sieht am Schreibtisch nach „hakelt manchmal" aus und
+ * nach nichts, was man suchen könnte.
+ *
+ * Geprüft wird deshalb, dass die Vorgabe der CSS-Variablen und die Konstante
+ * daneben dieselbe Zahl nennen. Wer eine Dauer ändert, ändert beide – oder
+ * erfährt es hier.
+ * ======================================================================= */
+
+/** CSS-Variable → die TypeScript-Konstante, die dieselbe Zahl trägt. */
+const GEKOPPELTE_DAUERN = [
+  { variable: '--dc-karte-ms', datei: 'src/pages/book/Weltkarte.tsx', konstante: 'KARTE_MS' },
+  { variable: '--dc-zuklapp-ms', datei: 'src/pages/book/Appendix.tsx', konstante: 'ZUKLAPP_MS' },
+];
+
+const quelltext = readFileSync('src/index.css', 'utf8');
+const abweichend = [];
+
+for (const { variable, datei, konstante } of GEKOPPELTE_DAUERN) {
+  /* `var(--dc-karte-ms, 560ms)` – die Vorgabe hinter dem Komma. */
+  const imStil = quelltext.match(
+    new RegExp(`var\\(\\s*${variable}\\s*,\\s*(\\d+)ms\\s*\\)`),
+  );
+  const imCode = ohneProsa(readFileSync(datei, 'utf8')).match(
+    new RegExp(`const\\s+${konstante}\\s*=\\s*(\\d+)`),
+  );
+  if (!imStil || !imCode) {
+    abweichend.push(
+      `  ${variable} / ${konstante}: ${!imStil ? 'im Stilblatt' : `in ${datei}`} nicht gefunden`,
+    );
+    continue;
+  }
+  if (imStil[1] !== imCode[1]) {
+    abweichend.push(`  ${variable} = ${imStil[1]}ms, aber ${konstante} = ${imCode[1]} in ${datei}`);
+  }
+}
+
+if (abweichend.length) {
+  console.error('\nDiese Dauern stehen an zwei Orten und sagen Verschiedenes:\n');
+  console.error(abweichend.join('\n'));
+  console.error(
+    '\nDas Stilblatt zeichnet die Bewegung, der Zähler daneben beendet sie.\n' +
+      'Laufen sie auseinander, bricht die Bewegung ab oder eine unsichtbare\n' +
+      'Fläche bleibt über der Seite liegen und faengt Finger ab.',
+  );
+  process.exit(1);
+}
+
+console.log('Jede Übergangsdauer steht im Stilblatt und im Code auf derselben Zahl.');

@@ -45,6 +45,8 @@ import { Geburt } from './pages/geburt/Geburt';
 import { Onboarding } from './pages/onboarding/Onboarding';
 import { Bibliothek } from './pages/bibliothek/Bibliothek';
 import { useStudio } from './store/useStudio';
+import { profilVon } from './lib/profil';
+import { Schauseiten } from './pages/onboarding/Schauseiten';
 import { InteractionLab } from './components/raum/InteractionLab';
 import { ladeKonfig } from './lib/raum/konfig';
 import { buildBook } from './lib/book';
@@ -266,6 +268,19 @@ export default function App() {
         */}
         <Route path="/schreiben/:id" element={<Schreibraum />} />
 
+        {/*
+          Die Führung – ebenfalls ausserhalb des Buchblocks.
+
+          Aus demselben Grund wie der Schreibraum: Sie nimmt den Bildschirm
+          ganz. Ihre sechs Seiten sind selbst Buchseiten, die man umblättert –
+          in einen Buchkörper gelegt wäre es Papier auf Papier, mit zwei
+          Falzen und zwei Blätterrichtungen übereinander.
+
+          Sie stand einmal mitten in der Erschaffung und war Pflicht. Jetzt
+          liegt sie im Anhang und lässt sich lesen, wann man will.
+        */}
+        <Route path="/fuehrung" element={<Fuehrung />} />
+
         {/* Frühere Adressen bleiben gültig – niemand soll ins Leere greifen. */}
         <Route path="/graph" element={<Navigate to="/karte" replace />} />
         <Route path="/zeitleiste" element={<Navigate to="/chronik" replace />} />
@@ -308,6 +323,29 @@ export default function App() {
  * begonnen, er hat es umgebunden, und danach will man sehen, was daraus
  * geworden ist.
  */
+/**
+ * Die Führung, aufgerufen aus dem Anhang.
+ *
+ * Sie braucht die Absicht, um die richtigen Beispiele zu zeigen – und die
+ * steht im Profil, das beim ersten Schritt gesetzt wurde. `Profil` trägt sie
+ * ausdrücklich mit: „Hier ist die Absicht die Wahrheit und die Schwerpunkte
+ * ihre Auslegung."
+ *
+ * Am Ende geht es zurück in den Anhang, aus dem man kam – nicht auf den
+ * Umschlag. Wer nachgeschlagen hat, will dorthin zurück, wo er nachschlug.
+ */
+function Fuehrung() {
+  const navigate = useNavigate();
+  const settings = useStudio((s) => s.settings);
+  return (
+    <Schauseiten
+      absicht={profilVon(settings).absicht}
+      anlass="nachschlagen"
+      onFertig={() => navigate('/anhang')}
+    />
+  );
+}
+
 function NeuBinden() {
   const navigate = useNavigate();
   return <Geburt modus="neubinden" onFertig={() => navigate('/mein-buch')} />;

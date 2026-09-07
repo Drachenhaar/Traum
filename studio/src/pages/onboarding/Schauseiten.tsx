@@ -35,12 +35,29 @@ import { leseZeit, ordnung, schreibeJahr } from '../../lib/chronik/zeit';
 import { datiere, weltzustand } from '../../lib/chronik/zustand';
 import { cx } from '../../lib/utils';
 
+/**
+ * Aus welchem Anlass die Führung gelesen wird.
+ *
+ * `erschaffung` – jemand hat sein Buch gerade gebunden und weiss noch nicht,
+ * was er hineinschreiben soll. `nachschlagen` – jemand liest sie später
+ * noch einmal, aus dem Anhang heraus.
+ *
+ * Der Unterschied ist nicht Kosmetik. Die letzte Seite fragt „Lust, deine
+ * eigene Welt zu entdecken?" und bietet „Meine Welt beginnen" an. Wer seine
+ * Welt seit einem halben Jahr schreibt und im Anhang nachschlägt, bekäme dort
+ * eine Einladung zu etwas, das er längst getan hat – und einen Knopf, von dem
+ * er nicht wissen kann, dass er nichts zurücksetzt.
+ */
+export type Anlass = 'erschaffung' | 'nachschlagen';
+
 export function Schauseiten({
   absicht,
   onFertig,
+  anlass = 'erschaffung',
 }: {
   absicht: Absicht;
   onFertig: () => void;
+  anlass?: Anlass;
 }) {
   const [seite, setSeite] = useState(0);
   const seiten = [Figur, Zusammenhaenge, Zeit, Folgen, WegSeite, Uebergabe];
@@ -64,7 +81,7 @@ export function Schauseiten({
             onClick={onFertig}
             className="shrink-0 font-serif text-[13px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
           >
-            Überspringen
+            {anlass === 'nachschlagen' ? 'Schliessen' : 'Überspringen'}
           </button>
         </div>
 
@@ -73,7 +90,7 @@ export function Schauseiten({
          * blendet jede für sich auf, statt dass Text unter Text wechselt.
          */}
         <div key={seite} className="animate-fadeIn flex-1 py-6">
-          <Inhalt absicht={absicht} onFertig={onFertig} />
+          <Inhalt absicht={absicht} onFertig={onFertig} anlass={anlass} />
         </div>
 
         {/*
@@ -126,7 +143,7 @@ export function Schauseiten({
   );
 }
 
-type SeitenProps = { absicht: Absicht; onFertig: () => void };
+type SeitenProps = { absicht: Absicht; onFertig: () => void; anlass: Anlass };
 
 /* ------------------------------------------------------------- Bausteine */
 
@@ -421,15 +438,24 @@ function WegSeite({ absicht }: SeitenProps) {
 
 /* --------------------------------------------------------------- Seite 6 */
 
-function Uebergabe({ onFertig }: SeitenProps) {
+function Uebergabe({ onFertig, anlass }: SeitenProps) {
+  /*
+   * Zwei Anlässe, zwei Schlusssätze.
+   *
+   * „Meine Welt beginnen" ist richtig für den, der noch keine hat. Für den,
+   * der im Anhang nachgeschlagen hat, wäre es eine Einladung zu etwas, das er
+   * längst tut – und ein Knopf, dem man nicht ansieht, dass er nichts
+   * zurücksetzt.
+   */
+  const nachschlagen = anlass === 'nachschlagen';
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
       <p className="font-serif text-[19px] leading-relaxed text-ink-muted">
-        Das könnte dein Weg sein.
+        {nachschlagen ? 'So weit das Beispiel.' : 'Das könnte dein Weg sein.'}
       </p>
 
       <p className="mt-14 font-serif text-[16px] italic text-ink-faint">
-        Lust, deine eigene Welt zu entdecken?
+        {nachschlagen ? 'Zurück in dein eigenes Buch?' : 'Lust, deine eigene Welt zu entdecken?'}
       </p>
 
       <button
@@ -437,7 +463,7 @@ function Uebergabe({ onFertig }: SeitenProps) {
         onClick={onFertig}
         className="mt-7 inline-flex min-h-[48px] items-center rounded-full border border-gild-500/45 px-8 font-serif text-[16px] text-gold transition-colors hover:bg-gild-400/10 no-tap-highlight"
       >
-        Meine Welt beginnen
+        {nachschlagen ? 'Zurück zu den Anhängen' : 'Meine Welt beginnen'}
       </button>
     </div>
   );

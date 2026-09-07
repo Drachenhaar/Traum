@@ -132,3 +132,13 @@ p('unlesbare Szenenzeit schweigt', R.pruefeZeit('irgendwann',[welt[4]]), []);
 p('zeitloser Bezug schweigt', R.pruefeZeit('1047',[welt[0]]), []);
 
 console.log(`\n${ok} bestanden, ${bad} fehlgeschlagen`);
+
+/*
+ * Der Rückgabewert.
+ *
+ * Er fehlte, und damit konnte diese Prüfung den Testlauf nicht rot machen:
+ * `scripts/test.mjs` liest den Ausgangsstatus, und ohne diese Zeile war er
+ * immer 0. Die Zeile „x fehlgeschlagen" stand in der Ausgabe und niemand las
+ * sie – ein Netz, das reisst, ohne ein Geräusch zu machen.
+ */
+process.exit(bad ? 1 : 0);

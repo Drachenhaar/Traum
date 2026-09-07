@@ -49,10 +49,54 @@ print('XML maskiert   :', '&amp;' in d and '&lt;XML&gt;' in d)
 print('Kapitelumbruch :', d.count('pageBreakBefore'))
 print('Absaetze       :', d.count('<w:p>'))
 `;
-console.log(execSync(`python3 -c "${py.replace(/"/g,'\\"')}"`).toString().trim());
+const bericht = execSync(`python3 -c "${py.replace(/"/g,'\\"')}"`).toString().trim();
+console.log(bericht);
 
-// 2. Text und Markdown
-console.log('--- TEXT ---'); console.log(A.alsText(baum));
-console.log('--- MARKDOWN ---'); console.log(A.alsMarkdown(baum));
-console.log('Umfang:', A.umfang(baum));
-console.log('Dateiname:', A.dateiname(baum.roman.title,'docx'));
+/*
+ * Und jetzt wird das Gedruckte auch behauptet.
+ *
+ * Diese Datei hat lange nur *ausgegeben*: „Umlaut erhalten: True", „XML
+ * maskiert: True". Wären daraus False geworden, hätte niemand es bemerkt –
+ * Python wirft nur bei kaputtem XML, und eine Datei mit „frueh" statt „früh"
+ * ist tadellos wohlgeformt. Ein Test, der beschreibt statt zu prüfen, ist ein
+ * Bericht, den niemand liest.
+ */
+let ok = 0, bad = 0;
+const p = (was, bedingung, hinweis = '') => {
+  if (bedingung) ok++; else { bad++; console.error(`  ✗ ${was}${hinweis ? ` – ${hinweis}` : ''}`); }
+};
+const zeile = (schluessel) =>
+  bericht.split('\n').find((z) => z.startsWith(schluessel))?.split(':').slice(1).join(':').trim() ?? '';
+
+p('ZIP ist heil', zeile('ZIP-Pruefsumme') === 'OK');
+p('alle Teile wohlgeformt', /alle \d+ Teile wohlgeformt/.test(bericht));
+p('Umlaut überlebt die Ausgabe', zeile('Umlaut erhalten') === 'True', 'aus „früh" wurde etwas anderes');
+p('XML-Sonderzeichen sind maskiert', zeile('XML maskiert') === 'True', '& und < im Titel müssen maskiert sein');
+p('jedes Kapitel beginnt auf neuer Seite', Number(zeile('Kapitelumbruch')) === 2);
+p('es stehen Absätze darin', Number(zeile('Absaetze')) > 5);
+
+/* 2. Text und Markdown – dieselben Inhalte, andere Form. */
+const text = A.alsText(baum);
+const md = A.alsMarkdown(baum);
+p('der Text trägt den Romantitel', text.includes('Die Chroniken von Mooshalde'));
+p('und den Titel des ersten Kapitels', text.includes('Ankunft in Arven'));
+/*
+ * Geprüft wird der **Text der Szenen**, nicht die Kapitelüberschrift des
+ * zweiten Kapitels: `kapitelKopf` schreibt die Zählung aus („Zweites
+ * Kapitel"), sodass die Zeichenfolge „Kapitel 2" gar nicht vorkommt. Der
+ * erste Anlauf suchte danach und beschuldigte damit richtigen Code.
+ */
+p('und die Prosa aus beiden Kapiteln', text.includes('Mara wartete') && text.includes('Der Fall von Arven'));
+p('Markdown setzt Überschriften', /^#\s/m.test(md) && /^##\s/m.test(md));
+/* `umfang` liefert eine fertige Zeile für Menschen, kein Objekt. */
+p(`der Umfang zählt richtig (${A.umfang(baum)})`, A.umfang(baum) === '2 Kapitel · 3 Szenen · 22 Wörter');
+/*
+ * Der Dateiname muss durch ein Dateisystem passen: keine Umlaute, keine
+ * spitzen Klammern, kein Kaufmanns-Und. Der Titel hier enthält absichtlich
+ * alle drei.
+ */
+const name = A.dateiname(baum.roman.title, 'docx');
+p(`der Dateiname ist unverfänglich (${name})`, /^[A-Za-z0-9._-]+\.docx$/.test(name));
+
+console.log(`\n  ${ok} bestanden, ${bad} gescheitert\n`);
+process.exit(bad ? 1 : 0);

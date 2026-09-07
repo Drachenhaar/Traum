@@ -10,6 +10,7 @@
  */
 
 import { useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, Eye, EyeOff, Library } from 'lucide-react';
 import { useStudio } from '../../store/useStudio';
@@ -19,6 +20,18 @@ import { geheimZeile } from '../../lib/geheim';
 import { cx } from '../../lib/utils';
 import { useCurrentSpread } from '../../components/book/BookShell';
 import { Spread, stege } from '../../components/book/Spread';
+import { ClosedBook } from '../../components/book/CoverBoard';
+import { deskStyle } from '../../lib/textures';
+
+/**
+ * Wie lange das Zuklappen dauert.
+ *
+ * **Dieselbe Zahl steht in `index.css` als `--dc-zuklapp-ms`.** Hier wird
+ * gezählt, wann gewechselt werden darf; dort wird gezeichnet. Wechselt es zu
+ * früh, sieht man den Wechsel; zu spät, und der Band liegt einen Augenblick
+ * still herum, bevor die Bibliothek erscheint.
+ */
+const ZUKLAPP_MS = 640;
 
 /**
  * Ein Anhang – und zugleich ein Werkzeug im Sinne von `lib/profil.ts`.
@@ -183,15 +196,17 @@ export function anhangWerkzeuge(z: AnhangZahlen): AppendixEntry[] {
 }
 
 /**
- * Und die zwei, die ausserhalb der Ordnung stehen.
+ * Und die drei, die ausserhalb der Ordnung stehen.
  *
  * Sie gehören nicht zum Handwerk: Das eine ist die Rückseite des Buches, das
- * andere sein Gesicht. Ein Profil, das sie wegsortieren dürfte, könnte die
- * Stelle wegsortieren, an der man das Profil ändert.
+ * andere sein Gesicht, das dritte seine Einführung. Ein Profil, das sie
+ * wegsortieren dürfte, könnte die Stelle wegsortieren, an der man das Profil
+ * ändert.
  */
 export function anhangAusserhalb(z: AnhangZahlen): {
   kolophon: AppendixEntry;
   meinBuch: AppendixEntry;
+  fuehrung: AppendixEntry;
 } {
   /*
    * Das Kolophon steht ausserhalb der Ordnung.
@@ -234,7 +249,33 @@ export function anhangAusserhalb(z: AnhangZahlen): {
     note: `Titel, Einband, Drachenzeichen – und der Band, in dem alles steht. Zurzeit: ${z.bandName}.`,
     gewicht: {},
   };
-  return { kolophon, meinBuch };
+  /*
+   * Die Führung – und warum sie ausserhalb der Ordnung steht.
+   *
+   * Sie war die ersten sechs von dreizehn Schritten der Erschaffung: sechs
+   * Buchseiten an einer Beispielwelt, bevor das eigene Buch ein Wort
+   * enthielt. Gut gemacht, aber an der falschen Stelle – was sie zeigt, kann
+   * sich dort an nichts Eigenem festmachen. Jetzt liegt sie hier.
+   *
+   * Der erste Anlauf hängte sie in die gewichtete Werkzeugliste, mit einem
+   * leeren `gewicht`. Das war falsch, und der Gerätelauf hat es sofort
+   * gezeigt: Ein Gewicht von null sortiert immer ganz nach hinten, also stand
+   * sie unter „Weiteres" hinter der Falte – die Einführung ins Buch, versteckt
+   * hinter einer Klappe, die man erst öffnen muss, wenn man schon weiss, was
+   * man sucht.
+   *
+   * Sie ist eben kein Handwerkszeug. Sie erklärt das Buch, so wie das
+   * Kolophon seine Rückseite ist und „Mein Buch" sein Gesicht.
+   */
+  const fuehrung: AppendixEntry = {
+    id: 'fuehrung',
+    to: '/fuehrung',
+    title: 'Die Führung',
+    note: 'Sechs Seiten an einem Beispiel – was dieses Buch mit deiner Welt vorhat.',
+    gewicht: {},
+  };
+
+  return { kolophon, meinBuch, fuehrung };
 }
 
 export function AppendixSpread() {
@@ -268,6 +309,34 @@ export function AppendixSpread() {
     bandName: bandVon(einband?.band).name,
   };
   const [offen, setOffen] = useState(false);
+  /**
+   * Das Buch klappt gerade zu.
+   *
+   * Bis hierher wurde beim „Zuklappen" unmittelbar in die Bibliothek
+   * gewechselt – gemessen als **keine Bewegung**, und das ausgerechnet an der
+   * einen Stelle, für die dieses Buch eine eigene Geste hat. Jetzt kommt der
+   * Tisch hoch, der Band legt sich darauf, und *dann* wird gewechselt.
+   *
+   * Der Wechsel steht am Ende und nicht am Anfang: Die Hülle liegt in diesem
+   * Baum, und wer zuerst navigiert, hängt sie im selben Bild aus, in dem sie
+   * erscheinen soll.
+   */
+  const [zuklappend, setZuklappend] = useState(false);
+
+  const klappeZu = () => {
+    if (zuklappend) return;
+    setZuklappend(true);
+    /*
+     * Wer die Bewegung abgestellt hat, wartet trotzdem – aber kürzer.
+     * Ganz ohne Verzögerung stünde die Hülle für einen Bruchteil da und wäre
+     * wieder weg; das ist ein Zucken, kein Weglassen.
+     */
+    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    window.setTimeout(() => {
+      schliesseBuch();
+      navigate('/bibliothek');
+    }, still ? 90 : ZUKLAPP_MS);
+  };
   const verborgen = geheimZeile(entries);
 
   /*
@@ -284,9 +353,46 @@ export function AppendixSpread() {
 
   const { vorn, weiter } = ordne(werkzeuge, profil);
 
-  const { kolophon, meinBuch } = anhangAusserhalb(zahlen);
+  const { kolophon, meinBuch, fuehrung } = anhangAusserhalb(zahlen);
 
   return (
+    <>
+      {/*
+        Die Hülle, hinter der gewechselt wird.
+
+        `fixed` und über allem: Sie muss die ganze Buchseite verdecken, auch
+        die Ränder des Buchkörpers. Und `pointer-events-none` ist hier falsch –
+        sie *soll* die Seite darunter sperren, solange sie zugeht. Ein zweiter
+        Griff in ein Buch, das sich gerade schliesst, führt sonst irgendwohin.
+      */}
+      {zuklappend &&
+        /*
+         * **An `document.body` und nicht hier im Baum.**
+         *
+         * `position: fixed` bezieht sich nicht auf das Fenster, sobald
+         * irgendein Vorfahr `transform`, `filter` oder `perspective` trägt –
+         * und der Buchkörper trägt alle drei. Gemessen: Die Hülle deckte
+         * 390×784 bei (0,48) statt 390×844. Die Kopfzeile blieb stehen, und
+         * ein offener Hinweis schwebte darüber, während sich das Buch schloss.
+         *
+         * Ein Portal nimmt sie aus dieser Einfassung heraus. Sie deckt dann,
+         * was sie decken soll – und das ist hier keine Kosmetik: Hinter ihr
+         * wird die Adresse gewechselt.
+         */
+        createPortal(
+          <div
+            aria-hidden
+            className="dc-zuklapp-tisch fixed inset-0 z-[70] grid place-items-center"
+            style={deskStyle}
+          >
+            {einband && (
+              <div className="dc-zuklapp-buch">
+                <ClosedBook identity={einband} width={196} height={268} />
+              </div>
+            )}
+          </div>,
+          document.body,
+        )}
     <Spread
       pageLeft={spread?.page ?? 6}
       wear={wear}
@@ -351,6 +457,7 @@ export function AppendixSpread() {
             ))}
             <AppendixLine {...meinBuch} />
             <AppendixLine {...kolophon} />
+            <AppendixLine {...fuehrung} />
             {/*
               Das Blattverzeichnis steht zuletzt und leise.
 
@@ -427,10 +534,8 @@ export function AppendixSpread() {
           <section className="mt-12 border-t border-line pt-6">
             <button
               type="button"
-              onClick={() => {
-                schliesseBuch();
-                navigate('/bibliothek');
-              }}
+              onClick={klappeZu}
+              disabled={zuklappend}
               className="group flex min-h-[44px] w-full items-center gap-2.5 text-left no-tap-highlight"
               data-leitfaden="regal"
             >
@@ -463,6 +568,7 @@ export function AppendixSpread() {
         </div>
       }
     />
+    </>
   );
 }
 

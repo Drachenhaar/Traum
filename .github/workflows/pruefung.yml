@@ -1,0 +1,111 @@
+# Die Prüfung.
+#
+# ---
+#
+# **Warum es sie gibt.**
+#
+# Bis hierher lief jede Prüfung von Hand: Typen, Tests, Bau, Klassen. Das
+# funktioniert, solange jemand daran denkt – und es funktioniert genau so lange.
+# `pages.yml` reagiert erst auf `push` nach `main`, also erst, wenn ein Fehler
+# schon veröffentlicht ist. Zwischen „geschrieben" und „steht online" stand
+# nichts.
+#
+# Dieser Lauf steht dazwischen. Er baut nichts und veröffentlicht nichts; er
+# sagt nur, ob der Stand hält.
+#
+# ---
+#
+# **Er ist erst seit Kurzem etwas wert.**
+#
+# Vorher hätte er auf Grün gestanden, während `npm test` rot war: Sieben
+# Prüfdateien endeten ohne `process.exit` und konnten den Lauf gar nicht rot
+# machen. Ihre Fehlschläge standen in der Ausgabe und niemand las sie. Ein
+# Wächter vor einem Netz mit Löchern ist schlimmer als keiner, weil er
+# Sicherheit behauptet.
+#
+# Deshalb gehören beide zusammen und kamen zusammen.
+
+name: Prüfung
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Ein neuer Anlauf macht den vorigen überflüssig.
+#
+# Anders als bei der Veröffentlichung ist das Abbrechen hier richtig: Ein
+# Prüflauf hinterlässt nichts, was hängenbleiben könnte, und wer zweimal
+# hintereinander schiebt, will die Antwort auf den zweiten Stand.
+concurrency:
+  group: pruefung-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  studio:
+    name: Dragoncore Studio
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: studio/package-lock.json
+
+      - name: Abhängigkeiten
+        working-directory: studio
+        run: npm ci
+
+      # Vier Schritte, und jeder sagt etwas anderes.
+      #
+      # Die Reihenfolge war einmal die des kürzesten Weges zur Antwort: Typen
+      # sind in Sekunden da, der Bau dauert am längsten, also stand der Bau
+      # zuletzt. Der Gedanke war richtig und die Reihenfolge trotzdem falsch:
+      #
+      # **`klassen` liest den Bau.** Die Prüfung vergleicht das erzeugte
+      # Stilblatt mit den Klassen im Quelltext – ohne `dist/` hat sie nichts zu
+      # lesen und bricht mit „Kein Build gefunden" ab. Auf einem frischen
+      # Checkout gibt es kein `dist/`. Der Lauf war deshalb rot, seit es ihn
+      # gibt, und zwar an einer Stelle, die mit dem geprüften Stand nichts zu
+      # tun hatte.
+      #
+      # Aufgefallen ist es lange nicht, weil `npm run klassen` **auf dem
+      # eigenen Rechner immer durchlief** – dort liegt vom letzten `npm run
+      # build` noch ein `dist/`. Dieselbe Sorte Fehler wie die sieben
+      # Prüfdateien ohne `process.exit` weiter oben, nur andersherum: nicht ein
+      # grüner Haken ohne Prüfung, sondern ein roter ohne Fehler.
+      #
+      # Der Bau steht jetzt vor den Klassen. Die drei schnellen Schritte davor
+      # sagen weiterhin früh Bescheid.
+      #
+      # `if: always()` an den späteren Schritten, damit ein Fehlschlag nicht
+      # die übrigen verschluckt. Wer drei Dinge kaputt gemacht hat, will alle
+      # drei in einem Bericht sehen und nicht dreimal hintereinander schieben.
+      - name: Typen
+        working-directory: studio
+        run: npx tsc --noEmit
+
+      - name: Prüfungen
+        if: always()
+        working-directory: studio
+        run: npm test
+
+      - name: Bau
+        if: always()
+        working-directory: studio
+        run: npm run build
+
+      # Braucht das Ergebnis des Baus – siehe oben.
+      - name: Klassen
+        if: always()
+        working-directory: studio
+        run: npm run klassen

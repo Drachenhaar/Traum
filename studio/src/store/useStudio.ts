@@ -48,6 +48,7 @@ import { frischeBuchdaten, schreibeAb, umschriftFuer } from '../lib/kopie';
 import { heileKarte, type Kartendokument } from '../lib/karte/modell';
 import { DEFAULT_STAGE } from '../lib/pipeline';
 import { MAX_KLANG_BYTES, alleStill, dauerVon } from '../lib/atmosphaere';
+import { umDauerhaftigkeitBitten } from '../lib/speicher';
 
 export interface Toast {
   id: string;
@@ -634,6 +635,20 @@ export const useStudio = create<StudioState>((set, get) => {
       const buch = neuesBuch(patch);
       await db.books.put(buch);
       set((s) => ({ books: [...s.books, buch] }));
+      /*
+       * Jetzt gibt es etwas zu verlieren – jetzt wird gefragt.
+       *
+       * Der Browser darf lokale Daten von sich aus wegräumen; dagegen hilft
+       * nur, den Speicher als dauerhaft anzumelden. Entschieden wird das nach
+       * Verbundenheit mit der Seite, weshalb eine Bitte beim allerersten
+       * Aufschlagen fast sicher abgelehnt würde. Hier steht sie richtig: Es
+       * ist der erste Augenblick, in dem sie eine Bedeutung hat.
+       *
+       * Ohne `await` und ohne Meldung. Ein Nein ist keine Störung, sondern
+       * heisst nur „noch nicht" – und niemand soll auf eine Browser-Heuristik
+       * warten, während sein Buch entsteht. Siehe `lib/speicher.ts`.
+       */
+      void umDauerhaftigkeitBitten();
       return buch;
     },
 

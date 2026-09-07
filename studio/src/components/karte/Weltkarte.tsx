@@ -36,7 +36,6 @@ import {
   BEDEUTUNGEN,
   FELD,
   alsPfad,
-  kasten,
   neuesFeature,
   type Bedeutung,
   type Kartendokument,
@@ -44,15 +43,37 @@ import {
   type Punkt,
 } from '../../lib/karte/modell';
 import { flaecheAus } from '../../lib/karte/kontur';
+import { buchtZiehen } from '../../lib/karte/bucht';
+import { landzungeZiehen } from '../../lib/karte/landzunge';
 import { baeume } from '../../lib/karte/wald';
+import { kuestensaum, namenslage } from '../../lib/karte/kartografie';
 import { neuerSeed } from '../../lib/karte/zufall';
 import { EBENEN, stilImBand } from '../../lib/karte/stil';
 import { useBand } from '../../lib/raum/band';
 import { zeichneBaum } from './baumzeichnung';
 import { cx } from '../../lib/utils';
 
-/** Was der Finger gerade tut. `waehlen` schiebt und tippt an, sonst wird gemalt. */
-export type Werkzeug = Bedeutung | 'waehlen';
+/**
+ * Was der Finger gerade tut.
+ *
+ * `waehlen` schiebt und tippt an, eine Bedeutung malt – und `bucht` nimmt weg.
+ *
+ * ---
+ *
+ * **Warum das Wegnehmen ein eigenes Wort ist und keine Bedeutung.**
+ *
+ * Die naheliegende Lösung wäre ein Radiergummi gewesen: ein Werkzeug, das
+ * löscht, was es berührt. Ein Radiergummi kennt aber nur „weg" – er weiss
+ * nicht, ob gerade eine Küste entsteht oder ein Fehler verschwindet, und was
+ * er hinterlässt, ist ein Loch.
+ *
+ * Eine Bucht ist etwas anderes: Sie ist eine **Form**, die jemand zieht, und
+ * sie hinterlässt eine Küste. Die Landzunge ist ihr Spiegelbild: dieselbe Form,
+ * dieselben fünf Schritte, nur wächst sie an, statt wegzunehmen. Deshalb läuft sie durch dieselben fünf Schritte
+ * wie das Malen und kommt als geschlossener Umriss zurück. Der Verfasser
+ * bekommt kein mächtigeres Werkzeug, sondern ein Wort mehr.
+ */
+export type Werkzeug = Bedeutung | 'waehlen' | 'bucht' | 'landzunge';
 
 interface Sicht {
   x: number;
@@ -78,11 +99,12 @@ function pinsel(sicht: Sicht): number {
   return sicht.w * 0.028;
 }
 
-/** Der Mittelpunkt einer Fläche – für Marken und Namen. */
-function mitte(punkte: Punkt[]): Punkt {
-  const k = kasten(punkte);
-  return [(k.x0 + k.x1) / 2, (k.y0 + k.y1) / 2];
-}
+/*
+ * Hier stand `mitte()` – die Mitte des umschliessenden Kastens, für den Namen
+ * einer Fläche. Sie ist weg, weil `namenslage` den **Schwerpunkt** liefert,
+ * und der ist für einen Namen der bessere Ort: Bei einer Sichel liegt die
+ * Kastenmitte im Leeren, der Schwerpunkt auf dem Land.
+ */
 
 export interface WeltkarteProps {
   karte: Kartendokument;
@@ -93,9 +115,32 @@ export interface WeltkarteProps {
   onWaehle: (id: string | undefined) => void;
   /** Titel der Einträge, auf die Flächen zeigen. Die Karte hält keine Namen. */
   namen: Map<string, string>;
+  /**
+   * Das Rückgängig – hier und nicht in der Werkzeugleiste.
+   *
+   * Es stand dort, solange die Leiste in eine Zeile passte. Mit der Landzunge
+   * brach sie in eine dritte um, und das war der Anlass, die Frage einmal
+   * richtig zu stellen: „Zurücknehmen" ist **kein Werkzeug**. Die Leiste
+   * beantwortet „welches Wort spreche ich gerade"; das Rückgängig beantwortet
+   * gar keine Frage, es macht etwas mit dem, was schon dasteht.
+   *
+   * Deshalb steht es jetzt an der Karte selbst, neben „Ganze Karte" – beides
+   * Handlungen an dem, was man sieht, und beide dort, wo sie wirken.
+   */
+  kannZurueck: boolean;
+  onZurueck: () => void;
 }
 
-export function Weltkarte({ karte, onChange, werkzeug, gewaehlt, onWaehle, namen }: WeltkarteProps) {
+export function Weltkarte({
+  karte,
+  onChange,
+  werkzeug,
+  gewaehlt,
+  onWaehle,
+  namen,
+  kannZurueck,
+  onZurueck,
+}: WeltkarteProps) {
   /* Die Karte traegt den Band, in dem das Buch gerade gebunden ist. */
   const dunkel = useBand();
   const stil = stilImBand(karte.styleId, dunkel);
@@ -146,6 +191,42 @@ export function Weltkarte({ karte, onChange, werkzeug, gewaehlt, onWaehle, namen
     }
     return m;
   }, [karte.features]);
+
+  /**
+   * Der Küstensaum.
+   *
+   * Ein bis zwei Linien, die die Küste ins Wasser hinein wiederholen. Sie sind
+   * die Geste, an der man eine gezeichnete Karte erkennt – und sie erfinden
+   * nichts: Es ist derselbe Umriss, zweimal versetzt.
+   *
+   * **Nur Land bekommt ihn.** Ein Saum markiert die Grenze zwischen festem
+   * Grund und Wasser, und auf dieser Karte ist das Papier das Meer. Ein Wald
+   * liegt auf Land, nicht am Wasser; ein See ist selbst Wasser. Beide bekämen
+   * eine Linie, die nichts bedeutet.
+   *
+   * **Und alles Land zusammen, nicht jede Insel für sich.** Je Fläche
+   * gerechnet bekam jede Insel ihren eigenen Ring, und wo zwei einander nahe
+   * kamen, liefen zwei Ringe durcheinander hindurch – im Bild ein Fehler im
+   * Papier. Zwischen zwei Küsten liegt eine Meerenge, und die hat einen Saum.
+   *
+   * Gerechnet wie die Bäume: einmal je Flächenzustand, nicht je Bild. Der
+   * teure Teil ist das Abstandsfeld, und das ändert sich nur, wenn jemand die
+   * Küste anfasst – beim Verschieben und Zoomen also nie.
+   */
+  const saeume = useMemo(
+    () =>
+      /*
+       * Zwei Abstände, deutlich auseinander. Der erste Anlauf nahm drei mit
+       * neun und elf Punkten – sie drängelten sich an der Küste und
+       * verschwammen zu einem Schleier. Zwei mit Abstand lesen sich als
+       * Absicht.
+       */
+      kuestensaum(
+        karte.features.filter((f) => f.art === 'land').map((f) => f.punkte),
+        [16, 42],
+      ),
+    [karte.features],
+  );
 
   /* --------------------------------------------------------- Das Zeichnen -- */
 
@@ -271,6 +352,8 @@ export function Weltkarte({ karte, onChange, werkzeug, gewaehlt, onWaehle, namen
     if (!spur) return;
     setSpur(null);
     if (werkzeug === 'waehlen') return;
+    if (werkzeug === 'bucht') return formen(buchtZiehen, spur);
+    if (werkzeug === 'landzunge') return formen(landzungeZiehen, spur);
 
     /*
      * Der Startwert wird *vor* dem Verfeinern gezogen und dann behalten.
@@ -286,6 +369,32 @@ export function Weltkarte({ karte, onChange, werkzeug, gewaehlt, onWaehle, namen
     const f: Kartenfeature = { ...neuesFeature(werkzeug, punkte), seed };
     onChange({ ...karte, features: [...karte.features, f] });
     onWaehle(f.id);
+  };
+
+  /**
+   * Eine Form ziehen – Bucht oder Landzunge.
+   *
+   * Beide beantworten dieselben drei Fragen und beantworten sie verschieden;
+   * die Antworten stehen in `lib/karte/bucht.ts` und `lib/karte/landzunge.ts`.
+   * Hier bleibt nur, was dieses Bauteil angeht: die Pinselbreite aus der
+   * Sicht, und der eine Satz, der nichts durchreicht, wenn der Strich
+   * danebenging.
+   *
+   * Ohne Wirkung kein Schritt: Jeder Aufruf von `onChange` legt oben einen
+   * Eintrag im Rückgängig ab. Sonst müsste man dreimal „Zurücknehmen"
+   * drücken, um einen Strich zurückzunehmen, und niemand fände heraus, warum.
+   *
+   * Und nichts wird ausgewählt. Beim Malen zeigt die Auswahl auf das eben
+   * Entstandene – hier wurde etwas *verändert*, und ein Bedienfeld, das
+   * danach auf irgendeine Fläche zeigt, sagt nur aus, welche das Verfahren
+   * zufällig zuerst gefunden hat.
+   */
+  const formen = (
+    wort: (f: Kartenfeature[], spur: Punkt[], radius: number) => Kartenfeature[] | undefined,
+    gezogen: Punkt[],
+  ) => {
+    const features = wort(karte.features, gezogen, pinsel(sicht));
+    if (features) onChange({ ...karte, features });
   };
 
   const zurueckSetzen = () => setSicht(GANZ);
@@ -338,6 +447,46 @@ export function Weltkarte({ karte, onChange, werkzeug, gewaehlt, onWaehle, namen
             stroke={stil.koernung}
             strokeWidth={stil.strich}
           />
+          {/*
+            Der Saum liegt **unter** allen Flächen.
+
+            Er gehört ins Wasser, und Wasser ist hier das Papier. Läge er über
+            den Flächen, zöge er eine Linie quer durch jede Insel, die einer
+            anderen nahe kommt – und über den Wald, der auf ihr steht.
+          */}
+          <g aria-hidden>
+            {saeume.map((linien, i) =>
+              linien.map((linie, k) => (
+                <path
+                  key={`s${i}_${k}`}
+                  d={alsPfad(linie)}
+                  fill="none"
+                  stroke={stil.wasser.linie}
+                  /*
+                   * **Eine Haarlinie, kein mitwachsender Strich.**
+                   *
+                   * `stil.strich` ist im Kartenmass angegeben und wächst mit
+                   * dem Zoom – für eine Küstenlinie richtig, denn sie gehört
+                   * zur Fläche. Für den Saum ist es falsch: Gemessen ergaben
+                   * 1,76 Kartenpunkte bei voller Ansicht **0,57 CSS-Pixel**.
+                   * Der Browser glättet eine Linie unter einem Pixel auf halbe
+                   * Deckung herunter, und genau deshalb war der Saum blass,
+                   * obwohl die Farbe stimmte.
+                   *
+                   * `non-scaling-stroke` gibt ihm eine feste Breite in
+                   * Bildpunkten. Das ist zugleich das ehrlichere Modell: Auf
+                   * einer gezeichneten Karte hat die Feder eine Breite, und
+                   * die ändert sich nicht, wenn man näher herangeht.
+                   */
+                  vectorEffect="non-scaling-stroke"
+                  strokeWidth={i === 0 ? 1.15 : 0.9}
+                  strokeOpacity={i === 0 ? 0.75 : 0.45}
+                  strokeLinejoin="round"
+                />
+              )),
+            )}
+          </g>
+
           {geordnet.map((f) => {
             const c = farben(f.art);
             const d = alsPfad(f.punkte);
@@ -361,13 +510,38 @@ export function Weltkarte({ karte, onChange, werkzeug, gewaehlt, onWaehle, namen
             );
           })}
 
-          {/* Was gerade unter dem Finger entsteht. */}
+          {/*
+            Was gerade unter dem Finger entsteht.
+
+            Die Bucht in Wasserton und nicht in Entwurfsgold – sie ist der
+            einzige Strich, der etwas *wegnimmt*, und der Unterschied muss
+            schon während des Ziehens sichtbar sein. Wer erst beim Loslassen
+            merkt, dass er im falschen Werkzeug war, hat seine Küste verloren
+            und muss sie über „Zurücknehmen" suchen.
+
+            **Und die Landzunge bleibt beim Entwurfsgold.** Der Gedanke lag
+            nahe, ihr die Landfarbe zu geben – dieselbe Spiegelung wie sonst
+            überall. Er ist falsch: Land ist auf dieser Karte fast das Papier
+            selbst („Land ist kein Ding, sondern das, was übrig bleibt"), und
+            eine Vorschau in Papierfarbe auf Papier sieht man nicht. Die Regel
+            ist einfacher als die Spiegelung: **Gold heisst, hier entsteht
+            etwas; Wasser heisst, hier weicht etwas.** Danach steht die
+            Landzunge bei Land, Wasser und Wald – und die Bucht allein.
+
+            **Aber die Wasserlinie, nicht die Wasserfläche.** Der erste Anlauf
+            nahm `wasser.flaeche` – und das ist ein Ton, der auf einer halben
+            Seite ruhig sein soll. Über Land gerechnet blieben davon 13, 1, 12
+            Farbstufen Unterschied übrig; die Entwurfsfarbe bringt 32, 44, 67.
+            Der Strich war da und man sah ihn kaum. Bedeutung gegen Lesbarkeit
+            zu tauschen ist ein schlechter Tausch, wenn beides zu haben ist:
+            `wasser.linie` ist derselbe kühle Ton, nur kräftig genug.
+          */}
           {spur && spur.length > 1 && (
             <polyline
               points={spur.map(([x, y]) => `${x},${y}`).join(' ')}
               fill="none"
-              stroke={stil.entwurf}
-              strokeOpacity={0.45}
+              stroke={werkzeug === 'bucht' ? stil.wasser.linie : stil.entwurf}
+              strokeOpacity={werkzeug === 'bucht' ? 0.75 : 0.45}
               strokeWidth={pinsel(sicht) * 2}
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -411,15 +585,30 @@ export function Weltkarte({ karte, onChange, werkzeug, gewaehlt, onWaehle, namen
           {geordnet.map((f) => {
             const name = f.entryId ? namen.get(f.entryId) : undefined;
             if (!name) return null;
-            const [tx, ty] = mitte(f.punkte);
+            /*
+             * Der Name folgt der Fläche, wenn sie eine Richtung hat.
+             *
+             * Vorher stand er waagerecht in der Mitte des Kastens – auf einer
+             * langen Landzunge las sich das wie ein Etikett, das jemand darauf
+             * gelegt hat. Auf einer Karte folgt ein Gebietsname der Gestalt
+             * des Gebiets und ist dabei gesperrt, weil er dessen Länge zeigen
+             * soll.
+             *
+             * Bei einer rundlichen Fläche bleibt er waagerecht – dort gibt es
+             * keine lange Achse, und die gemessene Richtung wäre das Rauschen
+             * der Küste. Siehe `namenslage`.
+             */
+            const lage = namenslage(f.punkte);
             return (
               <text
                 key={`n_${f.id}`}
-                x={tx}
-                y={ty}
+                x={lage.mx}
+                y={lage.my}
                 textAnchor="middle"
                 fill={stil.marke}
                 fontSize={sicht.w * 0.026}
+                letterSpacing={lage.sperrung ? sicht.w * 0.026 * lage.sperrung : undefined}
+                transform={lage.grad ? `rotate(${lage.grad.toFixed(1)} ${lage.mx.toFixed(1)} ${lage.my.toFixed(1)})` : undefined}
                 /* Ein heller Saum, damit der Name auch über dichtem Laub steht. */
                 stroke={stil.papier}
                 strokeWidth={sicht.w * 0.006}
@@ -433,20 +622,59 @@ export function Weltkarte({ karte, onChange, werkzeug, gewaehlt, onWaehle, namen
 
         {karte.features.length === 0 && !spur && (
           <p className="pointer-events-none absolute inset-x-6 bottom-6 text-center text-sm text-ink-muted">
-            Mal einen Fleck. Zwei Finger verschieben.
+            {/*
+              Auf der leeren Karte hat die Bucht nichts, worin sie liegen
+              könnte. Das gehört gesagt: Ein Werkzeug, das auf einen Strich
+              schweigt, sieht kaputt aus.
+            */}
+            {werkzeug === 'bucht'
+              ? 'Eine Bucht braucht eine Küste. Male zuerst Land.'
+              : 'Mal einen Fleck. Zwei Finger verschieben.'}
           </p>
         )}
       </div>
 
-      {sicht.w !== FELD && (
-        <button
-          type="button"
-          onClick={zurueckSetzen}
-          className="absolute right-3 top-3 touch-target rounded-full border border-line bg-cream-50 px-3 text-sm text-ink-muted shadow-card"
-        >
-          Ganze Karte
-        </button>
-      )}
+      {/*
+        Die zwei Handlungen an der Karte, oben rechts und beide nur dann da,
+        wenn sie etwas zu tun haben. Ein Knopf, der nichts kann, ist eine
+        Behauptung über das Bild darunter.
+      */}
+      <div className="pointer-events-none absolute right-3 top-3 flex gap-2">
+        {kannZurueck && (
+          <button
+            type="button"
+            onClick={onZurueck}
+            /*
+             * **Hier nur das Zeichen, kein Wort – und das ist die Ausnahme.**
+             *
+             * Dieses Buch schreibt Wörter aus; eine Falte, die verschweigt,
+             * was sie verbirgt, ist eine Wundertüte. Hier liegt der Fall
+             * anders: Der Knopf sitzt **auf** der Karte. Mit Beschriftung ist
+             * er 147 Punkte breit und deckt bei 322 Punkten Kartenbreite fast
+             * die halbe obere Kante – und er erscheint genau dann, wenn dort
+             * etwas steht, das man gerade gezeichnet hat.
+             *
+             * Der Rückpfeil ist das eine Zeichen, das jeder kennt, und er
+             * steht neben dem, was er zurücknimmt. Der Name bleibt trotzdem
+             * da, für alles, was nicht sieht: `aria-label`.
+             */
+            aria-label="Zurücknehmen"
+            title="Zurücknehmen"
+            className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full border border-line bg-cream-50 text-ink-muted shadow-card no-tap-highlight"
+          >
+            <Undo2 size={17} aria-hidden />
+          </button>
+        )}
+        {sicht.w !== FELD && (
+          <button
+            type="button"
+            onClick={zurueckSetzen}
+            className="pointer-events-auto touch-target rounded-full border border-line bg-cream-50 px-3 text-sm text-ink-muted shadow-card"
+          >
+            Ganze Karte
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -457,17 +685,42 @@ export function Weltkarte({ karte, onChange, werkzeug, gewaehlt, onWaehle, namen
  * Vier Knöpfe und ein Rückgängig – mehr nicht. Jede Erweiterung dieser Leiste
  * ist der Anfang eines Kartenprogramms, und Dragoncore baut kein
  * Kartenprogramm.
+ *
+ * ---
+ *
+ * **Zwei Reihen, und die Trennung ist die Reihe selbst.**
+ *
+ *   oben   ansehen und malen       – Ansehen, Land, Wasser, Wald
+ *   unten  umformen und zurück     – Bucht, Landzunge, Zurücknehmen
+ *
+ * Ein Knopf, der neben seinen Nachbarn steht und etwas grundsätzlich anderes
+ * tut, wird genau einmal aus Versehen gedrückt – auf einem Telefon liegen sie
+ * acht Punkte auseinander. Und die Bucht ist genau so ein Knopf: Sie sieht aus
+ * wie „Wald", verhält sich aber wie „Zurücknehmen".
+ *
+ * Der erste Versuch setzte einen senkrechten Strich dazwischen und liess die
+ * Leiste weiter umbrechen, wie sie wollte. Auf 390 Punkten Breite brach sie
+ * mitten in der ersten Gruppe um: „Ansehen Land Wasser" / „Wald │ Bucht
+ * Zurücknehmen". Der Strich stand da und trennte nichts – „Wald" war von
+ * seinen eigenen Nachbarn abgeschnitten, und die Trennung, die er anzeigte,
+ * lief quer zur Trennung, die man sah. Gesehen hat das erst der Blick auf das
+ * gerenderte Bild; im Quelltext stand der Strich an der richtigen Stelle.
+ *
+ * Jetzt sind es zwei erklärte Reihen. Der Umbruch ist keine Folge der
+ * Bildschirmbreite mehr, sondern die Aussage selbst.
+ *
+ * **Und deshalb `px-3.5` statt `px-4`.** Gemessen: Die vier Knöpfe der oberen
+ * Reihe sind bei `px-4` zusammen 324 Punkte breit, der Platz beträgt 322. Zwei
+ * Punkte, und die Reihe bräche wieder mitten hinein – die Trennung wäre so
+ * unlesbar wie vorher. Zwei Punkte weniger Polsterung je Seite lösen das mit
+ * vierzehn Punkten Luft.
  */
 export function Werkzeugleiste({
   werkzeug,
   onWerkzeug,
-  kannZurueck,
-  onZurueck,
 }: {
   werkzeug: Werkzeug;
   onWerkzeug: (w: Werkzeug) => void;
-  kannZurueck: boolean;
-  onZurueck: () => void;
 }) {
   const knopf = (id: Werkzeug, name: string) => (
     <button
@@ -476,7 +729,7 @@ export function Werkzeugleiste({
       onClick={() => onWerkzeug(id)}
       aria-pressed={werkzeug === id}
       className={cx(
-        'touch-target rounded-full border px-4 text-sm',
+        'touch-target rounded-full border px-3.5 text-sm',
         werkzeug === id
           ? 'border-brass-500 bg-brass-500 text-paper-50'
           : 'border-line bg-cream-50 text-ink-muted',
@@ -487,28 +740,15 @@ export function Werkzeugleiste({
   );
 
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-2">
-      {knopf('waehlen', 'Ansehen')}
-      {BEDEUTUNGEN.map((b) => knopf(b.id, b.name))}
-      <button
-        type="button"
-        onClick={onZurueck}
-        disabled={!kannZurueck}
-        className="touch-target ml-auto flex items-center gap-1 rounded-full border border-line bg-cream-50 px-4 text-sm text-ink-muted disabled:opacity-40"
-      >
-        <Undo2 size={16} aria-hidden />
-        {/*
-          „Zurücknehmen" und nicht „Zurück".
-
-          Auf jedem Anhangsblatt steht unten „Zurück zu den Anhängen". Zwei
-          Knöpfe, die beide mit demselben Wort beginnen und von denen einer die
-          Seite verlässt und der andere einen Strich löscht – das ist keine
-          Kleinigkeit, sondern der Unterschied zwischen „ich nehme das zurück"
-          und „meine Karte ist weg". Gefunden hat es der eigene Testlauf, der
-          nach „Zurück" suchte und beim falschen Knopf landete.
-        */}
-        Zurücknehmen
-      </button>
+    <div className="mt-3 space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {knopf('waehlen', 'Ansehen')}
+        {BEDEUTUNGEN.map((b) => knopf(b.id, b.name))}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {knopf('bucht', 'Bucht')}
+        {knopf('landzunge', 'Landzunge')}
+      </div>
     </div>
   );
 }
