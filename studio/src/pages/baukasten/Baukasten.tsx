@@ -57,6 +57,7 @@ import { useStudio } from '../../store/useStudio';
 import { AppendixSheet } from '../book/Appendix';
 import { Bildniswerk } from '../../components/baukasten/Bildniswerk';
 import { useVorrat } from '../../components/baukasten/vorrat';
+import { Stapelaufnahme } from '../../components/baukasten/Stapelaufnahme';
 import { GRUPPEN, type Gruppe, type Gruppenzeichen } from '../../components/baukasten/gruppen';
 import { importImageFiles } from '../../lib/images';
 import {
@@ -712,6 +713,14 @@ export function Baukasten() {
               <input ref={linieRef} type="file" accept="image/*" className="hidden"
                 onChange={(e) => void linieNachtragen(e.target.files)} />
             </div>
+
+            {/*
+              Der Stapel steht unter dem einzelnen Hochladen und nicht daneben:
+              Wer eine Zeichnung nachlegt, sucht das obere; wer zweihundert
+              einräumt, sucht das untere. Beides gleich laut zu machen hiesse,
+              den häufigen Fall dem seltenen zu opfern.
+            */}
+            <Stapelaufnahme />
           </div>
         </div>
       </div>
