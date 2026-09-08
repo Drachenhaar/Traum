@@ -17,6 +17,7 @@ import { ChapterSpread } from './pages/book/ChapterSpread';
 import { EntrySpread } from './pages/book/EntrySpread';
 import { Charakterseite } from './pages/figur/Charakterseite';
 import { Baukasten } from './pages/baukasten/Baukasten';
+import { Baukastenwahl } from './pages/baukasten/Baukastenwahl';
 import { AppendixSpread } from './pages/book/Appendix';
 import { FoldOutMap } from './pages/book/FoldOutMap';
 import { RegisterSheet, PlatesSpread, PlatesSheet } from './pages/book/RegisterSpread';
@@ -229,6 +230,13 @@ export default function App() {
             Arbeit schlägt sich danach auf der Figurenseite auf, die weiter
             der Ort ist, an dem man eine Figur *ansieht*.
           */}
+          {/*
+            Ohne Figur die Wahl, mit Figur der Baukasten selbst. Die Wahlseite
+            ist der sichtbare Weg aus dem Anhang – die Raute am Titel und das
+            Menü der Charakterseite bleiben die schnellen für den, der sie
+            kennt.
+          */}
+          <Route path="/baukasten" element={<Baukastenwahl />} />
           <Route path="/baukasten/:id" element={<Baukasten />} />
           <Route path="/tafeln" element={<PlatesSpread />} />
           <Route path="/anhang" element={<AppendixSpread />} />
