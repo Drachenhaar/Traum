@@ -16,6 +16,7 @@ import { ContentsSpread } from './pages/book/ContentsSpread';
 import { ChapterSpread } from './pages/book/ChapterSpread';
 import { EntrySpread } from './pages/book/EntrySpread';
 import { Charakterseite } from './pages/figur/Charakterseite';
+import { Baukasten } from './pages/baukasten/Baukasten';
 import { AppendixSpread } from './pages/book/Appendix';
 import { FoldOutMap } from './pages/book/FoldOutMap';
 import { RegisterSheet, PlatesSpread, PlatesSheet } from './pages/book/RegisterSpread';
@@ -220,6 +221,15 @@ export default function App() {
             das Charakterformular, das der Auftrag ausdrücklich nicht will.
           */}
           <Route path="/figur/:id" element={<Charakterseite />} />
+          {/*
+            Der Baukasten – ein Blatt im Anhang, keine dritte Figurenansicht.
+
+            Er zeigt keine Figur, er baut ein Bildnis. Das ist eine Werkbank
+            und gehört dorthin, wo die anderen Werkbänke liegen; die fertige
+            Arbeit schlägt sich danach auf der Figurenseite auf, die weiter
+            der Ort ist, an dem man eine Figur *ansieht*.
+          */}
+          <Route path="/baukasten/:id" element={<Baukasten />} />
           <Route path="/tafeln" element={<PlatesSpread />} />
           <Route path="/anhang" element={<AppendixSpread />} />
 

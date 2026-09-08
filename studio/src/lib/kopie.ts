@@ -52,8 +52,10 @@ import type {
   Relation,
   StoredImageMeta,
   StoredKlang,
+  StoredTeil,
 } from '../types';
 import type { Kartendokument } from './karte/modell';
+import { bauUmschreiben } from './baukasten';
 import { newId } from './utils';
 import { templateFor } from './templates';
 
@@ -64,6 +66,8 @@ export interface Bestand {
   boards: CanvasBoard[];
   klaenge: StoredKlang[];
   karten: Kartendokument[];
+  /** Die Teile des Charakterbaukastens. */
+  teile: StoredTeil[];
 }
 
 /**
@@ -80,6 +84,7 @@ export interface Umschrift {
   boards: Map<string, string>;
   klaenge: Map<string, string>;
   karten: Map<string, string>;
+  teile: Map<string, string>;
 }
 
 /** Ein Wert wird nur ersetzt, wenn er wirklich zur Kopie gehört. */
@@ -114,6 +119,7 @@ export function umschriftFuer(bestand: Bestand): Umschrift {
     boards: new Map(bestand.boards.map((b) => [b.id, newId('board')])),
     klaenge: new Map(bestand.klaenge.map((k) => [k.id, newId('klang')])),
     karten: new Map(bestand.karten.map((k) => [k.id, newId('karte')])),
+    teile: new Map(bestand.teile.map((t) => [t.id, newId('teil')])),
   };
 }
 
@@ -145,6 +151,12 @@ function schreibeEintrag(e: Entry, u: Umschrift, bookId: string): Entry {
     bookId,
     coverImage: um(u.images, e.coverImage),
     linkedEntryIds: umListe(u.entries, e.linkedEntryIds) ?? [],
+    /*
+     * Das gebaute Bildnis zeigt auf Teile, und die Teile bekommen neue
+     * Kennungen. Ohne diese Zeile trüge die Abschrift die Gesichter des
+     * Originals – bis jemand das Original löscht.
+     */
+    bildbau: bauUmschreiben(e.bildbau, u.teile),
     atmosphaere: e.atmosphaere
       ? { ...e.atmosphaere, klangId: um(u.klaenge, e.atmosphaere.klangId) ?? e.atmosphaere.klangId }
       : undefined,
@@ -253,6 +265,59 @@ export function schreibeAb(
         id: newId('f'),
         entryId: f.entryId ? u.entries.get(f.entryId) : undefined,
       })),
+    })),
+
+    /*
+     * Die Teile des Baukastens.
+     *
+     * Neue Kennung, neue Buchzugehörigkeit – und die Bildkennung mit
+     * umgeschrieben, denn das Bild ist in der Abschrift ein anderer
+     * *Datensatz* (bei derselben Datei; siehe oben). Bliebe sie stehen, zeigte
+     * das Teil auf einen Datensatz des Originalbuchs, und das Löschen des
+     * Originals nähme der Abschrift die Zeichnung.
+     *
+     * Die Bedeutung kommt mit. Sie ist kein Verweis, sondern das, was das Teil
+     * in dieser Welt erzählt – und die Abschrift ist dieselbe Welt.
+     */
+    teile: bestand.teile.map((t) => ({
+      ...t,
+      id: u.teile.get(t.id)!,
+      bookId,
+      /*
+       * Jede Ansicht trägt ihre eigene Bildkennung, und jede muss mit.
+       *
+       * Hier stand einmal ein einzelnes `quelle`. Als aus einem Teil mehrere
+       * Zeichnungen wurden, wäre genau das der Ort gewesen, an dem die
+       * Abschrift still halb richtig wird: Die Vorderansicht zeigte auf die
+       * Kopie, die Seitenansichten weiter auf das Original – und aufgefallen
+       * wäre es erst dem, der die Abschrift dreht.
+       */
+      ...(t.ansichten
+        ? { ansichten: Object.fromEntries(
+            Object.entries(t.ansichten).map(([ansicht, quelle]) => [
+              ansicht,
+              quelle.art === 'bild'
+                ? {
+                    art: 'bild' as const,
+                    bildId: um(u.images, quelle.bildId)!,
+                    /* Die Linie ist ein eigener Bilddatensatz und wird eigens
+                       umgeschrieben – sonst zeigt die Tusche der Abschrift
+                       weiter ins Originalbuch. */
+                    ...(quelle.linieId ? { linieId: um(u.images, quelle.linieId)! } : {}),
+                  }
+                : quelle,
+            ]),
+          ) as StoredTeil['ansichten'] }
+        : {}),
+      ...(t.quelle
+        ? { quelle: t.quelle.art === 'bild'
+            ? {
+                art: 'bild' as const,
+                bildId: um(u.images, t.quelle.bildId)!,
+                ...(t.quelle.linieId ? { linieId: um(u.images, t.quelle.linieId)! } : {}),
+              }
+            : t.quelle }
+        : {}),
     })),
   };
 }

@@ -31,6 +31,9 @@ import {
   type Zuschnitt,
 } from '../../lib/bildnis';
 import { Rahmenecke } from '../../lib/zeichen/zeichen';
+import { istLeer } from '../../lib/baukasten';
+import { Bildniswerk } from '../baukasten/Bildniswerk';
+import { useVorrat } from '../baukasten/vorrat';
 import { cx } from '../../lib/utils';
 import type { Entry } from '../../types';
 
@@ -72,7 +75,16 @@ function useSchachtbild(id: string | undefined, schacht: Schacht) {
  * Bildsymbol, keine gestrichelte Linie. Alles davon sagt „Fehler". Ein
  * Namenszeichen in einer Raute sagt „noch nicht".
  */
-function Bildnisplatte({ titel, gross }: { titel: string; gross: boolean }) {
+function Bildnisplatte({
+  titel,
+  gross,
+  /** Ob das Namenszeichen mitkommt. Ohne es bleibt der blosse Grund. */
+  zeichen: mitZeichen = true,
+}: {
+  titel: string;
+  gross: boolean;
+  zeichen?: boolean;
+}) {
   const zeichen = namenszeichen(titel);
   return (
     <div
@@ -105,7 +117,7 @@ function Bildnisplatte({ titel, gross }: { titel: string; gross: boolean }) {
         }}
         aria-hidden
       />
-      <div className="relative flex flex-col items-center">
+      <div className={cx('relative flex flex-col items-center', !mitZeichen && 'hidden')}>
         <div className="relative grid place-items-center">
           {/* Die Raute, in der das Namenszeichen sitzt. */}
           <svg
@@ -163,6 +175,22 @@ export function Bildnis({
 }) {
   const id = bildId ?? entry?.coverImage ?? undefined;
   const url = useSchachtbild(id, schacht);
+  /*
+   * Das gebaute Bildnis – der Rückfall vor dem Rückfall.
+   *
+   * Die Reihenfolge ist ausdrücklich: eine eingelegte Zeichnung schlägt ein
+   * gebautes Bildnis, und ein gebautes schlägt die leere Platte. Wer ein
+   * Porträt malt, will es sehen; wer eines gebaut hat, hat damit gesagt, dass
+   * die Figur so aussehen soll.
+   *
+   * `istLeer` und nicht bloss „hat einen Bildbau": Ein Bildbau, dessen Teile
+   * alle fehlen – nach einer Sicherung ohne Bilder etwa –, zeichnet nichts.
+   * Dann ist die Platte mit dem Namenszeichen die richtige Antwort und nicht
+   * ein leeres Viereck.
+   */
+  const vorrat = useVorrat();
+  const bau = entry?.bildbau;
+  const gebautesBildnis = bau && !istLeer(bau, vorrat, 'kopf') ? bau : undefined;
   const z = zuschnitt ?? zuschnittVon(entry);
   const lage = bildlage(z);
   const name = titel ?? entry?.title ?? '';
@@ -203,6 +231,34 @@ export function Bildnis({
             }}
             aria-hidden
           />
+        </>
+      ) : gebautesBildnis ? (
+        /*
+         * Kein Bild, aber ein gebautes Bildnis.
+         *
+         * Es steht **vor** der Platte, nicht an ihrer Stelle: Der Grund macht
+         * aus der Fläche einen Raum, und ein Bildnis aus drei Silhouetten,
+         * das frei im Nichts schwebt, sähe aus wie ein Fehler. Das
+         * Namenszeichen dagegen weicht – wo ein Gesicht steht, braucht es
+         * keinen Platzhalter mehr.
+         */
+        <>
+          <Bildnisplatte titel={name} gross={gross} zeichen={false} />
+          <div className="absolute inset-0 grid place-items-center">
+            {/*
+              Das grosse Bildnis zeigt das **Kopffeld allein**.
+              Es ist gezeichnet, als füllte es das ganze Blatt – deshalb ist es
+              hier scharf, während dieselben Zeichnungen in der Ganzfigur nur
+              ein Achtel hoch wären. Ein Rahmen für ein Gesicht bekommt das
+              Gesicht, nicht die Figur in Briefmarkengrösse.
+            */}
+            <Bildniswerk
+              bau={gebautesBildnis}
+              vorrat={vorrat}
+              darstellung="kopf"
+              className="h-full max-w-full"
+            />
+          </div>
         </>
       ) : (
         <Bildnisplatte titel={name} gross={gross} />

@@ -24,6 +24,16 @@
 
 import type { Block, Entry, EntryAtmosphaere, EntryGeheim, Relation } from '../types';
 import { ENTRY_STATUSES } from '../types';
+import {
+  KOPF_AUF_KOERPER,
+  SCHICHTEN,
+  istAnsicht,
+  type Ansicht,
+  type Bildbau,
+  type Kopflage,
+  type Lage,
+  type SchichtName,
+} from './baukasten';
 
 const istListe = (v: unknown): v is unknown[] => Array.isArray(v);
 
@@ -131,7 +141,117 @@ export function heileEintrag(roh: unknown): Entry | null {
      * wird es am Spieltisch, wenn er fehlt.
      */
     geheim: heileGeheimnis(e.geheim),
+    /*
+     * Das gebaute Bildnis – aus demselben Grund wie das Geheimnis darueber.
+     *
+     * Ohne diese Zeile ueberlebt der Baukasten kein Neuladen: Die Teile
+     * blieben in ihrer Tabelle stehen, aber *was aus ihnen gebaut wurde*
+     * faellt hier durch und ist beim naechsten Speichern auch in der
+     * Datenbank fort. Die Figur haette wieder kein Gesicht, und die Teile
+     * lagen daneben, als waere nie etwas gewesen.
+     */
+    bildbau: heileBildbau(e.bildbau),
     deletedAt: typeof e.deletedAt === 'number' ? e.deletedAt : undefined,
+  };
+}
+
+const SCHICHTNAMEN = new Set<string>(SCHICHTEN.map((s) => s.name));
+
+/**
+ * Ein gebautes Bildnis – oder nichts, wenn nichts Brauchbares darin steht.
+ *
+ * Geprueft wird die *Form*, nicht der Inhalt: ob eine Schicht existiert, ob
+ * eine Zahl eine Zahl ist. Ob das genannte Teil noch da ist, wird hier
+ * ausdruecklich **nicht** gefragt – das entscheidet `zeichenfolge` beim
+ * Zeichnen, und zwar bei jedem Zeichnen neu. Ein Teil kann heute fehlen, weil
+ * eine Sicherung ohne Bilder eingelesen wurde, und morgen wieder da sein. Wer
+ * den Verweis hier wegwirft, macht das Fehlen dauerhaft.
+ *
+ * Nicht beschnitten werden Versatz und Groesse. Die Regler haben Grenzen, die
+ * Daten haben keine: Ein Wert von Hand ausserhalb des Reglerbereichs ist
+ * ungewoehnlich, aber nicht kaputt, und ihn stillschweigend zurechtzuruecken
+ * hiesse, jemandem seine Absicht wegzunehmen. Abgefangen wird nur, was gar
+ * kein Bild ergeben kann: `NaN`, `Infinity` und eine Groesse von null oder
+ * darunter – die liesse die Figur spurlos verschwinden.
+ */
+function heileBildbau(roh: unknown): Bildbau | undefined {
+  if (!roh || typeof roh !== 'object') return undefined;
+  const rohLagen = (roh as Record<string, unknown>).lagen;
+  if (!rohLagen || typeof rohLagen !== 'object' || istListe(rohLagen)) return undefined;
+
+  const lagen: Partial<Record<SchichtName, Lage>> = {};
+  for (const [name, wert] of Object.entries(rohLagen as Record<string, unknown>)) {
+    if (!SCHICHTNAMEN.has(name)) continue;
+    if (!wert || typeof wert !== 'object' || istListe(wert)) continue;
+    const l = wert as Record<string, unknown>;
+
+    const lage: Lage = {};
+    if (typeof l.teilId === 'string' && l.teilId) lage.teilId = l.teilId;
+    if (typeof l.farbe === 'string' && l.farbe) lage.farbe = l.farbe;
+    if (l.spiegel === true) lage.spiegel = true;
+    if (typeof l.versatzX === 'number' && Number.isFinite(l.versatzX)) lage.versatzX = l.versatzX;
+    if (typeof l.versatzY === 'number' && Number.isFinite(l.versatzY)) lage.versatzY = l.versatzY;
+    if (typeof l.groesse === 'number' && Number.isFinite(l.groesse) && l.groesse > 0) {
+      lage.groesse = l.groesse;
+    }
+
+    /* Eine Lage, in der nichts uebrigblieb, ist keine Lage. */
+    if (Object.keys(lage).length > 0) lagen[name as SchichtName] = lage;
+  }
+
+  /*
+   * Und die Ansicht.
+   *
+   * Sie stand hier zuerst nicht, und der Fehler war derselbe wie eine Runde
+   * zuvor beim `bildbau` selbst: Diese Datei baut Feld fuer Feld neu auf, und
+   * was nicht aufgezaehlt ist, faellt beim naechsten Speichern weg. Gemessen
+   * war es eindeutig – die Figur nach rechts gedreht, neu geladen, und sie sah
+   * den Betrachter wieder an. Keine Meldung, kein Fehler; die Drehung war
+   * einfach fort.
+   */
+  const ansicht = istAnsicht((roh as Record<string, unknown>).ansicht)
+    ? ((roh as Record<string, unknown>).ansicht as Ansicht)
+    : undefined;
+
+  /*
+   * Und die Kopflage – aus demselben Grund, und diesmal von vornherein.
+   *
+   * Zweimal ist an dieser Stelle schon etwas lautlos verschwunden, weil diese
+   * Datei Feld fuer Feld neu aufbaut: erst der `bildbau` selbst, dann die
+   * `ansicht`. Beim dritten Mal habe ich es nicht abgewartet.
+   *
+   * `groesse` muss groesser als null sein: Bei null verschwaende der ganze
+   * Kopf, und niemand kaeme darauf, dass eine Zahl daran schuld ist.
+   */
+  const kopf = heileKopflage((roh as Record<string, unknown>).kopf);
+
+  /*
+   * Nichts uebrig heisst: kein Bildbau. Eine gewaehlte Ansicht zaehlt dabei
+   * ausdruecklich als etwas – wer sein Bildnis leert und die Figur dabei nach
+   * rechts gedreht stehen laesst, hat eine Entscheidung getroffen, und sie
+   * beim Neuladen zurueckzudrehen waere dieselbe stille Ruecknahme wie oben,
+   * nur kleiner.
+   */
+  if (Object.keys(lagen).length === 0 && !ansicht && !kopf) return undefined;
+
+  return {
+    ...(ansicht ? { ansicht } : {}),
+    ...(kopf ? { kopf } : {}),
+    lagen,
+  };
+}
+
+/** Wo der Kopf sitzt – oder nichts, dann gilt die Vorgabe. */
+function heileKopflage(roh: unknown): Kopflage | undefined {
+  if (!roh || typeof roh !== 'object' || istListe(roh)) return undefined;
+  const k = roh as Record<string, unknown>;
+  const groesse = k.groesse;
+  if (typeof groesse !== 'number' || !Number.isFinite(groesse) || groesse <= 0) return undefined;
+  return {
+    groesse,
+    versatzX: zahl(k.versatzX, KOPF_AUF_KOERPER.versatzX),
+    versatzY: zahl(k.versatzY, KOPF_AUF_KOERPER.versatzY),
+    drehung: zahl(k.drehung, 0),
   };
 }
 

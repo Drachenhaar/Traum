@@ -25,6 +25,7 @@ import type {
   Revision,
   Settings,
   StoredImageMeta,
+  StoredTeil,
   StoredKlang,
 } from '../types';
 import { emptyFields, setCustomTypes, templateFor } from '../lib/templates';
@@ -62,6 +63,8 @@ interface StudioState {
   relations: Relation[];
   relIndex: RelationIndex;
   images: StoredImageMeta[];
+  /** Die Teile des Charakterbaukastens dieses Bandes. */
+  teile: StoredTeil[];
   boards: CanvasBoard[];
   settings: Settings;
   toasts: Toast[];
@@ -116,6 +119,11 @@ interface StudioState {
 
   /* Einträge */
   createEntry: (type: EntryType, patch?: Partial<Entry>) => Promise<Entry>;
+  /* --- Der Charakterbaukasten ------------------------------------------ */
+  /** Ein Teil in die Ablage legen. Gibt es zurück, damit man es gleich wählen kann. */
+  teilAnlegen: (teil: Omit<StoredTeil, 'id' | 'bookId' | 'createdAt' | 'updatedAt'>) => Promise<StoredTeil>;
+  teilAendern: (id: string, patch: Partial<StoredTeil>) => Promise<void>;
+  teilLoeschen: (id: string) => Promise<void>;
   updateEntry: (id: string, patch: Partial<Entry>) => void;
   duplicateEntry: (id: string) => Promise<Entry | null>;
   deleteEntry: (id: string) => Promise<void>;
@@ -419,21 +427,23 @@ export const useStudio = create<StudioState>((set, get) => {
 
   /** Die Daten eines Buches holen – und nur die. */
   const ladeBuchinhalt = async (bookId: string) => {
-    const [roheEintraege, roheKanten, images, boards, klaenge, roheKarten] = await Promise.all([
-      db.entries.where('bookId').equals(bookId).toArray(),
-      db.relations.where('bookId').equals(bookId).toArray(),
-      db.images.where('bookId').equals(bookId).toArray(),
-      db.boards.where('bookId').equals(bookId).toArray(),
-      db.klaenge.where('bookId').equals(bookId).toArray(),
-      db.karten.where('bookId').equals(bookId).toArray(),
-    ]);
+    const [roheEintraege, roheKanten, images, teile, boards, klaenge, roheKarten] =
+      await Promise.all([
+        db.entries.where('bookId').equals(bookId).toArray(),
+        db.relations.where('bookId').equals(bookId).toArray(),
+        db.images.where('bookId').equals(bookId).toArray(),
+        db.teile.where('bookId').equals(bookId).toArray(),
+        db.boards.where('bookId').equals(bookId).toArray(),
+        db.klaenge.where('bookId').equals(bookId).toArray(),
+        db.karten.where('bookId').equals(bookId).toArray(),
+      ]);
     const entries = heileEintraege(roheEintraege);
     const relations = heileBeziehungen(roheKanten);
     /* Auch die Karte kommt geheilt herein – siehe `lib/karte/modell.ts`. */
     const karten = roheKarten
       .map((k) => heileKarte(k))
       .filter((k): k is Kartendokument => !!k);
-    return { entries, relations, images, boards, klaenge, karten };
+    return { entries, relations, images, teile, boards, klaenge, karten };
   };
 
   return {
@@ -442,6 +452,7 @@ export const useStudio = create<StudioState>((set, get) => {
     relations: [],
     relIndex: buildRelationIndex([]),
     images: [],
+    teile: [],
     boards: [],
     settings: DEFAULT_SETTINGS,
     books: [],
@@ -554,7 +565,7 @@ export const useStudio = create<StudioState>((set, get) => {
            */
           const inhalt = offen
             ? await ladeBuchinhalt(offen.id)
-            : { entries: [], relations: [], images: [], boards: [], klaenge: [], karten: [] };
+            : { entries: [], relations: [], images: [], teile: [], boards: [], klaenge: [], karten: [] };
 
           await db.settings.put({ ...FRESH_SETTINGS, ...zerlegeAenderung(settings).global, id: 'settings' });
           set({
@@ -701,16 +712,17 @@ export const useStudio = create<StudioState>((set, get) => {
       const quelle = get().books.find((b) => b.id === id);
       if (!quelle) return null;
 
-      const [entries, relations, images, boards, klaenge, karten] = await Promise.all([
+      const [entries, relations, images, boards, klaenge, karten, teile] = await Promise.all([
         db.entries.where('bookId').equals(id).toArray(),
         db.relations.where('bookId').equals(id).toArray(),
         db.images.where('bookId').equals(id).toArray(),
         db.boards.where('bookId').equals(id).toArray(),
         db.klaenge.where('bookId').equals(id).toArray(),
         db.karten.where('bookId').equals(id).toArray(),
+        db.teile.where('bookId').equals(id).toArray(),
       ]);
 
-      const bestand = { entries, relations, images, boards, klaenge, karten };
+      const bestand = { entries, relations, images, boards, klaenge, karten, teile };
       const u = umschriftFuer(bestand);
 
       const kopie = neuesBuch({
@@ -741,7 +753,7 @@ export const useStudio = create<StudioState>((set, get) => {
 
       await db.transaction(
         'rw',
-        [db.books, db.entries, db.relations, db.images, db.boards, db.klaenge, db.klangBlobs, db.karten],
+        [db.books, db.entries, db.relations, db.images, db.boards, db.klaenge, db.klangBlobs, db.karten, db.teile],
         async () => {
           await db.books.put(kopie);
           if (ab.entries.length) await db.entries.bulkPut(ab.entries);
@@ -749,6 +761,7 @@ export const useStudio = create<StudioState>((set, get) => {
           if (ab.boards.length) await db.boards.bulkPut(ab.boards);
           if (ab.images.length) await db.images.bulkPut(ab.images);
           if (ab.karten.length) await db.karten.bulkPut(ab.karten);
+          if (ab.teile.length) await db.teile.bulkPut(ab.teile);
           if (ab.klaenge.length) {
             await db.klaenge.bulkPut(ab.klaenge);
             /*
@@ -809,10 +822,18 @@ export const useStudio = create<StudioState>((set, get) => {
           db.klaenge,
           db.klangBlobs,
           db.karten,
+          db.teile,
         ],
         async () => {
           await db.entries.where('bookId').equals(id).delete();
           await db.karten.where('bookId').equals(id).delete();
+          /*
+           * Die Teile gehen mit, die Bilddateien nicht: Ein Teil ist nur der
+           * Vermerk, wohin eine Zeichnung gehört. Die Zeichnung selbst liegt
+           * unter `images` und wird gleich nach derselben Regel behandelt wie
+           * jede andere – nur weggeworfen, wenn kein Buch mehr auf sie zeigt.
+           */
+          await db.teile.where('bookId').equals(id).delete();
           await db.relations.where('bookId').equals(id).delete();
           await db.boards.where('bookId').equals(id).delete();
           await db.revisions.where('bookId').equals(id).delete();
@@ -838,7 +859,7 @@ export const useStudio = create<StudioState>((set, get) => {
       );
       set((s) => ({ books: s.books.filter((b) => b.id !== id) }));
       if (get().activeBookId === id) {
-        set({ entries: [], relations: [], relIndex: buildRelationIndex([]), images: [], boards: [], karten: [] });
+        set({ entries: [], relations: [], relIndex: buildRelationIndex([]), images: [], teile: [], boards: [], karten: [] });
         const naechstes = regalfolge(get().books.filter((b) => !b.archived))[0];
         if (naechstes) await get().oeffneBuch(naechstes.id);
         else set({ activeBookId: undefined, settings: { ...get().settings, book: undefined } });
@@ -862,6 +883,50 @@ export const useStudio = create<StudioState>((set, get) => {
     },
 
     /* --------------------------------------------------------- Einträge */
+
+    /* ------------------------------------------- Der Charakterbaukasten -- */
+
+    /*
+     * Teile gehören dem Band, nicht dem Gerät.
+     *
+     * Ein Band, den man weitergibt, nimmt seine Zeichnungen mit – sonst
+     * öffnete der Nächste ein Buch voller Figuren ohne Gesichter. Das Bild
+     * selbst liegt in `images` und wird hier nur benannt.
+     */
+    async teilAnlegen(teil) {
+      const jetzt = Date.now();
+      const neu: StoredTeil = {
+        ...teil,
+        id: newId(),
+        bookId: get().activeBookId,
+        createdAt: jetzt,
+        updatedAt: jetzt,
+      };
+      await db.teile.put(neu);
+      set((s) => ({ teile: [...s.teile, neu] }));
+      return neu;
+    },
+
+    async teilAendern(id, patch) {
+      const vorher = get().teile.find((t) => t.id === id);
+      if (!vorher) return;
+      const nachher = { ...vorher, ...patch, id, updatedAt: Date.now() };
+      await db.teile.put(nachher);
+      set((s) => ({ teile: s.teile.map((t) => (t.id === id ? nachher : t)) }));
+    },
+
+    /*
+     * Gelöscht wird nur das Teil, nicht das Bild.
+     *
+     * Ein Bild kann in der Tafelsammlung stehen und ausserdem ein Teil sein.
+     * Wer das Teil wegnimmt, will die Zeichnung aus dem Baukasten haben und
+     * nicht aus dem Buch. Und die Bildnisse, die es benutzten, verlieren
+     * dadurch eine Schicht – nicht ihr Gesicht; siehe `lib/baukasten.ts`.
+     */
+    async teilLoeschen(id) {
+      await db.teile.delete(id);
+      set((s) => ({ teile: s.teile.filter((t) => t.id !== id) }));
+    },
 
     async createEntry(type, patch = {}) {
       const now = Date.now();
@@ -1495,7 +1560,7 @@ export const useStudio = create<StudioState>((set, get) => {
       setCustomTypes(settings.customTypes ?? []);
       const inhalt = offen
         ? await ladeBuchinhalt(offen.id)
-        : { entries: [], relations: [], images: [], boards: [], klaenge: [], karten: [] };
+        : { entries: [], relations: [], images: [], teile: [], boards: [], klaenge: [], karten: [] };
       set({
         ...inhalt,
         relIndex: buildRelationIndex(inhalt.relations),
@@ -1519,6 +1584,7 @@ export const useStudio = create<StudioState>((set, get) => {
         relations: [],
         relIndex: buildRelationIndex([]),
         images: [],
+        teile: [],
         boards: [],
         books: [],
         activeBookId: undefined,
