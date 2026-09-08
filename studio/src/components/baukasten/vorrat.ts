@@ -14,7 +14,12 @@
 
 import { useMemo } from 'react';
 import { useStudio } from '../../store/useStudio';
-import { heileTeil, type Teil } from '../../lib/baukasten';
+import {
+  KOPF_AUF_BUESTE,
+  KOPF_AUF_KOERPER,
+  heileTeil,
+  type Teil,
+} from '../../lib/baukasten';
 
 /**
  * Die eingebauten Teile – einmal berechnet, für die ganze Laufzeit.
@@ -85,6 +90,7 @@ const EINGEBAUT: Teil[] = [
       vorn: { art: 'grundform', form: 'ganzfigur' },
       links: { art: 'grundform', form: 'ganzfigur-seite' },
     },
+    kopfsitz: KOPF_AUF_KOERPER,
     toenbar: true,
   },
   {
@@ -100,6 +106,8 @@ const EINGEBAUT: Teil[] = [
       vorn: { art: 'grundform', form: 'schultern' },
       links: { art: 'grundform', form: 'schultern-seite' },
     },
+    /* Grosser Kopf, tief sitzend – eine Büste ist kein Achtel Figur. */
+    kopfsitz: KOPF_AUF_BUESTE,
     toenbar: true,
   },
   {

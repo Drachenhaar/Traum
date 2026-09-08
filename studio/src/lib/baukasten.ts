@@ -305,6 +305,19 @@ export interface Teil {
    */
   ansichten: Partial<Record<Ansicht, Quelle>>;
   /**
+   * Wo auf **diesem** Teil ein Kopf sitzt. Nur für Körperteile sinnvoll.
+   *
+   * Ein Körper weiss, wo sein Hals ist – eine Ganzfigur trägt den Kopf oben
+   * und klein, eine Büste gross und tief. Stünde das nur als eine einzige
+   * Vorgabe in der App, wäre jede zweite Wahl falsch: Genau so sass der Kopf
+   * auf der Büste winzig in der Luft über den Schultern.
+   *
+   * Fehlt die Angabe, bleibt die Kopflage, wie sie war. Das ist der richtige
+   * Rückfall für alles, was kein Körper ist – und für eigene Körper, bei denen
+   * der Verfasser die Lage selbst eingestellt und gemerkt hat.
+   */
+  kopfsitz?: Kopflage;
+  /**
    * Ob das Teil eingefärbt werden darf.
    *
    * Nur für Zeichnungen, die in einem Ton gehalten sind. Eine bunte
@@ -429,6 +442,28 @@ export const KOPF_AUF_KOERPER: Kopflage = {
   groesse: 0.2375,
   versatzX: 0,
   versatzY: -50.7,
+  drehung: 0,
+};
+
+/**
+ * Wo der Kopf auf einer **Büste** sitzt.
+ *
+ * Nach derselben Rechnung, mit anderen Zahlen: Bei der Büste liegt der Hals
+ * bei 58 und der Scheitel soll bei 8 stehen – ein Kopf von 50 Einheiten statt
+ * 13,3.
+ *
+ *     groesse  = 50 / 56   = 0,89
+ *     versatzY = 58 − 66   = −8
+ *
+ * Sie steht hier, weil sie gebraucht wird, und das ist die eigentliche Lehre:
+ * **Eine einzige Vorgabe reicht nicht.** Mit der Ganzfigur-Vorgabe auf einer
+ * Büste sass der Kopf winzig und weit über den Schultern in der Luft – auf dem
+ * Telefon sofort zu sehen, im Kopf nicht auszurechnen.
+ */
+export const KOPF_AUF_BUESTE: Kopflage = {
+  groesse: 0.89,
+  versatzX: 0,
+  versatzY: -8,
   drehung: 0,
 };
 
@@ -659,7 +694,34 @@ export function wuerfle(
     lagen[schicht.name] = lage;
   });
 
-  return { ansicht, lagen };
+  /*
+   * Der Kopf setzt sich auf den Körper, der gewürfelt wurde.
+   *
+   * Ohne diese Zeile würfelt der Baukasten sich selbst kaputt: Kommt die
+   * Büste heraus, sitzt darauf ein Kopf im Mass einer Ganzfigur. Die
+   * Kopflage ist keine freie Zahl, sondern hängt daran, *worauf* der Kopf
+   * sitzt.
+   */
+  const koerperId = lagen.koerper?.teilId;
+  const kopfsitz = koerperId
+    ? vorrat.find((t) => t.id === koerperId)?.kopfsitz
+    : undefined;
+
+  return { ansicht, ...(kopfsitz ? { kopf: kopfsitz } : {}), lagen };
+}
+
+/**
+ * Wie der Kopf sitzt, wenn dieser Körper gewählt wird.
+ *
+ * Gibt die bisherige Lage zurück, wenn das Teil nichts dazu sagt – ein
+ * Kopfschmuck oder eine eigene Zeichnung ohne gemerkte Lage soll nichts
+ * verstellen.
+ */
+export function kopfsitzFuer(
+  teil: Teil | undefined,
+  bisher: Kopflage,
+): Kopflage {
+  return teil?.kopfsitz ?? bisher;
 }
 
 /**
@@ -826,13 +888,39 @@ export function heileTeil(roh: unknown): Teil | null {
   /* Ein Teil ohne eine einzige Zeichnung kann nichts zeigen und ist keines. */
   if (Object.keys(ansichten).length === 0) return null;
 
+  /*
+   * Der Halssitz kommt mit – aus demselben Grund wie alles andere hier.
+   * Diese Datei baut Teil fuer Teil neu auf; was nicht aufgezaehlt ist, faellt
+   * beim naechsten Speichern weg. Bei einem eigenen Koerper waere das eine
+   * gemerkte Einstellung, die lautlos verschwindet.
+   */
+  const kopfsitz = heileKopfsitz(t.kopfsitz);
+
   return {
     id,
     schicht: schicht as SchichtName,
     name: typeof t.name === 'string' && t.name ? t.name : 'Ohne Namen',
     ansichten,
     toenbar: t.toenbar === true,
+    ...(kopfsitz ? { kopfsitz } : {}),
     ...(typeof t.bedeutung === 'string' && t.bedeutung ? { bedeutung: t.bedeutung } : {}),
+  };
+}
+
+/** Eine gemerkte Kopflage – oder nichts, dann bleibt die bisherige stehen. */
+function heileKopfsitz(roh: unknown): Kopflage | undefined {
+  if (!roh || typeof roh !== 'object' || Array.isArray(roh)) return undefined;
+  const k = roh as Record<string, unknown>;
+  const g = k.groesse;
+  /* Eine Groesse von null oder darunter liesse den Kopf spurlos verschwinden. */
+  if (typeof g !== 'number' || !Number.isFinite(g) || g <= 0) return undefined;
+  const zahlOder = (w: unknown, ersatz: number) =>
+    typeof w === 'number' && Number.isFinite(w) ? w : ersatz;
+  return {
+    groesse: g,
+    versatzX: zahlOder(k.versatzX, 0),
+    versatzY: zahlOder(k.versatzY, KOPF_AUF_KOERPER.versatzY),
+    drehung: zahlOder(k.drehung, 0),
   };
 }
 

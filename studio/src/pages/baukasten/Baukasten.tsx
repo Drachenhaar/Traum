@@ -69,6 +69,7 @@ import {
   bedeutungen,
   hatEigeneZeichnung,
   kopflageVon,
+  kopfsitzFuer,
   moeglichkeiten,
   nachSchichten,
   schichtVon,
@@ -169,6 +170,23 @@ export function Baukasten() {
   };
 
   const setzeKopf = (patch: Partial<Kopflage>) => setzeBau({ ...bau, kopf: { ...kopf, ...patch } });
+
+  /**
+   * Ein Teil wählen – und beim Körper zugleich den Kopf daraufsetzen.
+   *
+   * Ein Körper weiss, wo sein Hals ist: Die Ganzfigur trägt den Kopf oben und
+   * klein, die Büste gross und tief. Ohne diese Zeile blieb die Kopflage der
+   * vorigen Wahl stehen, und auf der Büste sass ein Kopf im Mass einer
+   * Ganzfigur – winzig, weit über den Schultern, in der Luft.
+   *
+   * Sagt das Teil nichts dazu (jede Schicht ausser dem Körper, und eigene
+   * Körper ohne gemerkte Lage), bleibt die Kopflage unangetastet.
+   */
+  const waehleTeil = (fuer: SchichtName, teil: Teil) => {
+    const vorher = bau.lagen[fuer] ?? {};
+    const lagen = { ...bau.lagen, [fuer]: { ...vorher, teilId: teil.id } };
+    setzeBau({ ...bau, kopf: kopfsitzFuer(teil, kopf), lagen });
+  };
 
   /**
    * Eine Gruppe wählen – und darin die erste Schicht, die etwas anzubieten hat.
@@ -338,6 +356,8 @@ export function Baukasten() {
     );
   }
 
+  /* Welcher Körper gerade steht – die Kopflage gehört zu ihm. */
+  const koerperteil = vorrat.find((t) => t.id === bau.lagen.koerper?.teilId);
   const fach = gefaecher.get(schichtName) ?? [];
   const lage = bau.lagen[schichtName];
   const gewaehlt = fach.find((t) => t.id === lage?.teilId);
@@ -463,13 +483,36 @@ export function Baukasten() {
                 <Schieber label="Nach unten" wert={kopf.versatzY} min={-75} max={-25} schritt={0.5}
                   onWert={(v) => setzeKopf({ versatzY: v })} />
               </div>
-              <button
-                type="button"
-                onClick={() => setzeBau({ ...bau, kopf: { ...KOPF_AUF_KOERPER } })}
-                className="mt-2 font-serif text-[12.5px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
-              >
-                Auf das übliche Mass zurück
-              </button>
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                <button
+                  type="button"
+                  onClick={() => setzeBau({ ...bau, kopf: { ...KOPF_AUF_KOERPER } })}
+                  className="font-serif text-[12.5px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
+                >
+                  Auf das übliche Mass zurück
+                </button>
+                {/*
+                  Am eigenen Körper merken.
+
+                  Damit wird aus einer einmaligen Einstellung eine Eigenschaft
+                  der Zeichnung: Wer seinen Körper hochlädt, stellt den Kopf
+                  einmal ein – und jede Figur, die diesen Körper danach wählt,
+                  bekommt ihn richtig aufgesetzt. Nur bei eigenen Teilen, denn
+                  eine eingebaute Grundform lässt sich nicht ändern.
+                */}
+                {koerperteil && istEigenes(koerperteil.id) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void teilAendern(koerperteil.id, { kopfsitz: kopf });
+                      notify(`„${koerperteil.name}“ merkt sich diese Kopflage.`, 'success');
+                    }}
+                    className="font-serif text-[12.5px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
+                  >
+                    Für „{koerperteil.name}“ merken
+                  </button>
+                )}
+              </div>
             </details>
           )}
 
@@ -550,6 +593,9 @@ export function Baukasten() {
                 key={teil.id}
                 bau={{
                   ...bau,
+                  /* Dieselbe Kopflage, die das Antippen setzt – sonst zeigt die
+                     Kachel etwas anderes, als sie liefert. */
+                  kopf: kopfsitzFuer(teil, kopf),
                   lagen: { ...bau.lagen, [schichtName]: { ...(lage ?? {}), teilId: teil.id } },
                 }}
                 vorrat={vorrat}
@@ -557,7 +603,7 @@ export function Baukasten() {
                 aktiv={lage?.teilId === teil.id}
                 label={teil.name}
                 fehlt={!ansichtenVon(teil).includes(ansicht)}
-                onClick={() => setzeLage(schichtName, { teilId: teil.id })}
+                onClick={() => waehleTeil(schichtName, teil)}
               />
             ))}
           </div>

@@ -12,7 +12,7 @@
 
 import type { Profil } from '../lib/profil';
 import type { Notiz } from '../lib/anerbieten/gedaechtnis';
-import type { Ansicht, Bildbau, SchichtName, Quelle } from '../lib/baukasten';
+import type { Ansicht, Bildbau, Kopflage, SchichtName, Quelle } from '../lib/baukasten';
 
 /** Typ-Kennung eines Eintrags. Eingebaute Typen siehe `lib/types-registry.ts`. */
 export type EntryType = string;
@@ -825,6 +825,8 @@ export interface StoredTeil {
    * herein, und die erreicht eine Wanderung nie.
    */
   ansichten?: Partial<Record<Ansicht, Quelle>>;
+  /** Wo auf diesem Teil ein Kopf sitzt. Nur für Körperteile sinnvoll. */
+  kopfsitz?: Kopflage;
   /** @deprecated Die erste Fassung: eine Zeichnung, die von vorn galt. */
   quelle?: Quelle;
   toenbar?: boolean;

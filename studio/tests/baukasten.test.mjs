@@ -49,6 +49,8 @@ const {
   kopflageVon,
   bildkennungen,
   KOPF_AUF_KOERPER,
+  KOPF_AUF_BUESTE,
+  kopfsitzFuer,
   WURF,
 } = await import(join(bau, 'baukasten.mjs'));
 
@@ -662,6 +664,70 @@ pruefe('die Vorgabe der Kopflage ist ausgerechnet, nicht geraten', () => {
   const aufKoerper = (y) => k.versatzY + 66 + (y - 66) * k.groesse;
   assert.ok(Math.abs(aufKoerper(66) - 15.3) < 0.05, 'das Kinn landet nicht am Halspunkt');
   assert.ok(Math.abs(aufKoerper(10) - 2.0) < 0.05, 'der Scheitel landet nicht am oberen Rand');
+});
+
+pruefe('auch die Büste ist ausgerechnet, nicht geraten', () => {
+  /*
+   * Der Fehler, den es zu fangen gilt, war auf dem Telefon zu sehen: Auf der
+   * Büste sass ein Kopf im Mass einer Ganzfigur – winzig und weit über den
+   * Schultern in der Luft. Bei der Büste liegt der Hals bei 58, der Scheitel
+   * soll bei 8 stehen.
+   */
+  const k = KOPF_AUF_BUESTE;
+  const aufKoerper = (y) => k.versatzY + 66 + (y - 66) * k.groesse;
+  assert.ok(Math.abs(aufKoerper(66) - 58) < 0.1, 'das Kinn landet nicht am Hals der Büste');
+  assert.ok(Math.abs(aufKoerper(10) - 8) < 0.6, 'der Scheitel landet nicht am oberen Rand');
+  /* Und sie muss deutlich grösser sein als auf einer Ganzfigur. */
+  assert.ok(k.groesse > KOPF_AUF_KOERPER.groesse * 3);
+});
+
+pruefe('ein Körper bringt seinen Halssitz mit', () => {
+  const ganz = { ...teil('ganz', 'koerper'), kopfsitz: KOPF_AUF_KOERPER };
+  const bueste = { ...teil('bueste', 'koerper'), kopfsitz: KOPF_AUF_BUESTE };
+  const haar = teil('haar1', 'haar');
+  assert.deepEqual(kopfsitzFuer(ganz, KOPF_AUF_BUESTE), KOPF_AUF_KOERPER);
+  assert.deepEqual(kopfsitzFuer(bueste, KOPF_AUF_KOERPER), KOPF_AUF_BUESTE);
+  /* Was keinen Halssitz nennt, verstellt nichts. */
+  assert.deepEqual(kopfsitzFuer(haar, KOPF_AUF_BUESTE), KOPF_AUF_BUESTE);
+  assert.deepEqual(kopfsitzFuer(undefined, KOPF_AUF_BUESTE), KOPF_AUF_BUESTE);
+});
+
+pruefe('der Wurf setzt den Kopf auf den gewürfelten Körper', () => {
+  /*
+   * Ohne das würfelt der Baukasten sich selbst kaputt: Kommt die Büste heraus,
+   * sitzt darauf ein Kopf im Mass einer Ganzfigur.
+   */
+  const nurBueste = [
+    { ...teil('bueste', 'koerper'), kopfsitz: KOPF_AUF_BUESTE },
+    teil('kopf1', 'kopf'),
+  ];
+  assert.deepEqual(wuerfle(1, nurBueste).kopf, KOPF_AUF_BUESTE);
+
+  const nurGanz = [
+    { ...teil('ganz', 'koerper'), kopfsitz: KOPF_AUF_KOERPER },
+    teil('kopf1', 'kopf'),
+  ];
+  assert.deepEqual(wuerfle(1, nurGanz).kopf, KOPF_AUF_KOERPER);
+});
+
+pruefe('der Halssitz überlebt die Heilung', () => {
+  const geheilt = heileTeil({
+    id: 't1',
+    schicht: 'koerper',
+    name: 'Mein Körper',
+    ansichten: { vorn: { art: 'bild', bildId: 'b1' } },
+    kopfsitz: { groesse: 0.5, versatzX: 1, versatzY: -30, drehung: 2 },
+  });
+  assert.deepEqual(geheilt.kopfsitz, { groesse: 0.5, versatzX: 1, versatzY: -30, drehung: 2 });
+  /* Eine Grösse von null liesse den Kopf spurlos verschwinden. */
+  const kaputt = heileTeil({
+    id: 't2',
+    schicht: 'koerper',
+    name: 'x',
+    ansichten: { vorn: { art: 'bild', bildId: 'b1' } },
+    kopfsitz: { groesse: 0 },
+  });
+  assert.equal(kaputt.kopfsitz, undefined);
 });
 
 pruefe('ohne Angabe gilt die Vorgabe', () => {
