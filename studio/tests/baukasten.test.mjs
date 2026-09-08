@@ -724,7 +724,63 @@ pruefe('beide Bildkennungen werden gezählt', () => {
   assert.deepEqual(bildkennungen(mitLinie).sort(), ['f1', 'f2', 'l1']);
 });
 
-console.log('\n12 · Umschreiben');
+/* =======================================================================
+ * 12 · DIE GRUPPEN DER OBERFLÄCHE
+ *
+ * Siebzehn Schichten liegen in sechs Gruppen. Der Fehler, der hier lauert, ist
+ * lautlos: Eine Schicht, die in keiner Gruppe steht, wird nirgends angezeigt –
+ * kein Fehler, keine Meldung, sie ist einfach nicht erreichbar. Und eine, die
+ * in zweien steht, lässt sich an zwei Orten verschieden einstellen.
+ * ==================================================================== */
+
+console.log('\n12 · Die Gruppen der Oberfläche');
+
+execFileSync(
+  'npx',
+  [
+    'esbuild',
+    'src/components/baukasten/gruppen.ts',
+    '--bundle',
+    '--format=esm',
+    `--outfile=${join(bau, 'gruppen.mjs')}`,
+    '--log-level=error',
+  ],
+  { cwd: join(import.meta.dirname, '..'), stdio: 'inherit' },
+);
+const { GRUPPEN, SCHICHTEN_IN_GRUPPEN, gruppeVon } = await import(join(bau, 'gruppen.mjs'));
+
+pruefe('jede Schicht steht in genau einer Gruppe', () => {
+  const alle = SCHICHTEN.map((s) => s.name).sort();
+  const gruppiert = [...SCHICHTEN_IN_GRUPPEN].sort();
+  assert.deepEqual(gruppiert, alle, 'eine Schicht fehlt in den Gruppen oder steht doppelt');
+  assert.equal(
+    new Set(SCHICHTEN_IN_GRUPPEN).size,
+    SCHICHTEN_IN_GRUPPEN.length,
+    'eine Schicht steht in zwei Gruppen',
+  );
+});
+
+pruefe('zu jeder Schicht lässt sich die Gruppe finden', () => {
+  for (const s of SCHICHTEN) {
+    assert.ok(gruppeVon(s.name), `keine Gruppe für ${s.name}`);
+  }
+  assert.equal(gruppeVon('gibtsnicht'), undefined);
+});
+
+pruefe('die Gruppen ändern die Reihenfolge des Stapels nicht', () => {
+  /*
+   * Die Gruppen sind eine Ordnung zum Ansehen. Würde die Oberfläche daraus
+   * zeichnen, läge das Haar plötzlich vor der Ausrüstung, weil „Haare" in der
+   * Leiste vor „Ausrüstung" steht. Gezeichnet wird nach SCHICHTEN – und diese
+   * Prüfung hält fest, dass beide Reihenfolgen wirklich verschieden sind, die
+   * Verwechslung also auffiele.
+   */
+  const nachGruppen = SCHICHTEN_IN_GRUPPEN;
+  const nachStapel = SCHICHTEN.map((s) => s.name);
+  assert.notDeepEqual(nachGruppen, nachStapel);
+});
+
+console.log('\n13 · Umschreiben');
 
 pruefe('umgeschrieben wird die Kennung, sonst nichts', () => {
   const karte = new Map([['alt', 'neu']]);

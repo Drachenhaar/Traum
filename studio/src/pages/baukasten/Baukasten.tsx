@@ -1,25 +1,33 @@
 /**
- * Der Charakterbaukasten.
+ * Der Charakterbaukasten – die Seite „Aussehen".
  *
- * Ein eigener Raum, kein Buchblatt: Man betritt ihn, baut ein Bildnis, und
- * es schlägt sich danach auf der Figurenseite auf.
+ * Nach dem Entwurf gebaut: eine Leiste mit sechs Gruppen an der linken Kante,
+ * das Bildnis in der Mitte, die Varianten als Spalte rechts, die Farben
+ * darunter.
  *
  * ---
  *
- * **Die Anforderung, an der so etwas sonst scheitert.**
+ * **Die Varianten zeigen die eigene Figur, nicht ein Symbol.**
  *
- * Ein Baukasten, der erst mit fünfhundert Zeichnungen etwas taugt, taugt am
- * ersten Tag nichts – und dann zeichnet niemand die fünfhundert. Diese Seite
- * ist deshalb so gebaut, dass sie **ohne eine einzige eigene Zeichnung**
- * benutzbar ist und mit jeder besser wird:
+ * Jede Kachel rechts ist ein vollständiges Bildnis – dasselbe wie in der
+ * Mitte, nur mit *dieser einen* Schicht ausgetauscht. Man sieht die Frisur
+ * also am eigenen Kopf, mit der eigenen Farbe, in der eigenen Ansicht, und
+ * nicht als freigestelltes Bildchen.
  *
- * - Eingebaute Grundformen füllen die wichtigsten Schichten. Sie sind
- *   Silhouetten und geben sich auch als solche zu erkennen.
- * - Jede Schicht hat Farbe, Spiegelung, Versatz und Grösse. Aus wenigen
- *   Zeichnungen werden dadurch sehr viele Gesichter – die Zahl steht unten
- *   auf der Seite, damit man sieht, was die nächste Zeichnung einbringt.
- * - Zeichnungen kommen über dieselbe Ablage herein wie alle Bilder des
- *   Buches und werden einer Schicht zugewiesen.
+ * Das ist teurer als ein Vorschaubild und es ist den Preis wert: Bei einem
+ * Baukasten ist die Frage nie „wie sieht dieses Teil aus", sondern „wie sieht
+ * es *an ihr* aus". Ein Symbol beantwortet die erste Frage; nur der Vergleich
+ * beantwortet die zweite.
+ *
+ * ---
+ *
+ * **Was diese Seite ohne eine einzige eigene Zeichnung kann.**
+ *
+ * Alles. Die eingebauten Silhouetten füllen Kopf und Körper, die Farben
+ * stammen aus dem Buch, das Würfeln funktioniert, und die Zahl unten sagt,
+ * was die nächste Zeichnung einbringt. Ein Baukasten, der erst mit
+ * fünfhundert Zeichnungen etwas taugt, taugt am ersten Tag nichts – und dann
+ * zeichnet niemand die fünfhundert.
  *
  * ---
  *
@@ -33,28 +41,38 @@
 
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Dices, Plus, Trash2, X } from 'lucide-react';
+import {
+  Dices,
+  PersonStanding,
+  Plus,
+  Scissors,
+  Shirt,
+  Smile,
+  Sparkles,
+  Sword,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { useStudio } from '../../store/useStudio';
 import { AppendixSheet } from '../book/Appendix';
 import { Bildniswerk } from '../../components/baukasten/Bildniswerk';
-import { Grundformbild } from '../../components/baukasten/Grundformen';
 import { useVorrat } from '../../components/baukasten/vorrat';
+import { GRUPPEN, type Gruppe, type Gruppenzeichen } from '../../components/baukasten/gruppen';
 import { importImageFiles } from '../../lib/images';
 import {
   ANSICHTEN,
   KOPF_AUF_KOERPER,
   SCHICHTEN,
+  WURF,
   ansichtVon,
-  kopflageVon,
   ansichtenVon,
+  bedeutungen,
   hatEigeneZeichnung,
+  kopflageVon,
   moeglichkeiten,
   nachSchichten,
+  schichtVon,
   wuerfle,
-  bedeutungen,
-  zeichnungFuer,
-  LEERER_BAU,
-  WURF,
   type Ansicht,
   type Bildbau,
   type Darstellung,
@@ -78,6 +96,16 @@ const PALETTE = [
   '#3E5545', '#5E7A5C', '#8FA37C', '#43536B', '#7B8CA6',
 ];
 
+/** Die Zeichen der Gruppenleiste. */
+const GRUPPENZEICHEN: Record<Gruppenzeichen, typeof PersonStanding> = {
+  koerper: PersonStanding,
+  gesicht: Smile,
+  haare: Scissors,
+  kleidung: Shirt,
+  ausruestung: Sword,
+  merkmale: Sparkles,
+};
+
 /** Eine Zahl aus einer Kennung – damit dieselbe Figur denselben Wurf bekommt. */
 function saatAus(text: string): number {
   let h = 0x811c9dc5;
@@ -92,6 +120,7 @@ export function Baukasten() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const entries = useStudio((s) => s.entries);
+  const eigeneTeile = useStudio((s) => s.teile);
   const teilAnlegen = useStudio((s) => s.teilAnlegen);
   const teilAendern = useStudio((s) => s.teilAendern);
   const teilLoeschen = useStudio((s) => s.teilLoeschen);
@@ -100,30 +129,27 @@ export function Baukasten() {
   const notify = useStudio((s) => s.notify);
 
   const entry = entries.find((e) => e.id === id);
-
-  /* Die eigenen Zeichnungen und die eingebauten Grundformen – siehe `vorrat.ts`. */
   const vorrat = useVorrat();
-  const eigeneTeile = useStudio((s) => s.teile);
 
-  const bau: Bildbau = entry?.bildbau ?? LEERER_BAU;
+  const bau: Bildbau = entry?.bildbau ?? { lagen: {} };
   const ansicht = ansichtVon(bau);
   const kopf = kopflageVon(bau);
   const gefaecher = useMemo(() => nachSchichten(vorrat), [vorrat]);
-  const [offeneSchicht, setOffeneSchicht] = useState<SchichtName | null>('kopf');
+
+  /* Welche Gruppe offen ist und welche Schicht darin – die zwei Ebenen links. */
+  const [gruppe, setGruppe] = useState<Gruppe>(GRUPPEN[1]);
+  const [schichtName, setSchichtName] = useState<SchichtName>('kopf');
+  const schicht = schichtVon(schichtName) ?? SCHICHTEN[0];
 
   /*
    * Woran gerade gearbeitet wird.
    *
    * Am Gesicht arbeitet man im Kopffeld – dort ist es gross genug, um ein Auge
    * um eine Kleinigkeit zu verschieben. Die Ganzfigur zeigt, ob es zusammen
-   * passt. Beides ist dasselbe Bildnis, nur anders angesehen; deshalb ist es
-   * ein Umschalter der Ansicht und keine Angabe am Bildbau.
+   * passt.
    */
   const [darstellung, setDarstellung] = useState<Darstellung>('ganzfigur');
 
-  const setzeKopf = (patch: Partial<Kopflage>) => setzeBau({ ...bau, kopf: { ...kopf, ...patch } });
-
-  /** Ob ein Teil aus der Ablage kommt – nur solche lassen sich ändern und löschen. */
   const istEigenes = (teilId: string) => eigeneTeile.some((t) => t.id === teilId);
 
   const setzeBau = (naechster: Bildbau) => {
@@ -131,31 +157,51 @@ export function Baukasten() {
     void updateEntry(entry.id, { bildbau: naechster });
   };
 
-  const setzeLage = (schicht: SchichtName, patch: Partial<Lage>) => {
-    const vorher = bau.lagen[schicht] ?? {};
-    setzeBau({ lagen: { ...bau.lagen, [schicht]: { ...vorher, ...patch } } });
+  const setzeLage = (fuer: SchichtName, patch: Partial<Lage>) => {
+    const vorher = bau.lagen[fuer] ?? {};
+    setzeBau({ ...bau, lagen: { ...bau.lagen, [fuer]: { ...vorher, ...patch } } });
   };
 
-  const leereSchicht = (schicht: SchichtName) => {
+  const leereSchicht = (fuer: SchichtName) => {
     const lagen = { ...bau.lagen };
-    delete lagen[schicht];
-    setzeBau({ lagen });
+    delete lagen[fuer];
+    setzeBau({ ...bau, lagen });
+  };
+
+  const setzeKopf = (patch: Partial<Kopflage>) => setzeBau({ ...bau, kopf: { ...kopf, ...patch } });
+
+  /**
+   * Eine Gruppe wählen – und darin die erste Schicht, die etwas anzubieten hat.
+   *
+   * Wer „Gesicht" antippt, will nicht auf einer leeren Ohrenschicht landen,
+   * nur weil sie in der Liste zufällig vorn steht. Gibt es nirgends etwas,
+   * bleibt es bei der ersten – dann ist die Gruppe eben noch leer, und das
+   * soll man auch sehen.
+   */
+  const waehleGruppe = (g: Gruppe) => {
+    setGruppe(g);
+    const belegt = g.schichten.find((s) => (gefaecher.get(s)?.length ?? 0) > 0);
+    setSchichtName(belegt ?? g.schichten[0]);
   };
 
   /* ------------------------------------------------------- Zeichnungen -- */
 
   const dateiRef = useRef<HTMLInputElement>(null);
-  const [zielschicht, setZielschicht] = useState<SchichtName>('kopf');
   const [zielansicht, setZielansicht] = useState<Ansicht>('vorn');
   const [laedt, setLaedt] = useState(false);
 
   /**
-   * Neue Teile anlegen.
+   * Neue Teile anlegen – in die **gerade gewählte** Schicht.
    *
-   * Die Zeichnung gilt für **eine** Ansicht – die gewählte. Sie stillschweigend
-   * für alle gelten zu lassen wäre bequem und falsch: Eine Vorderansicht ist
-   * keine Seitenansicht, und ein Baukasten, der das behauptet, zeigt in jeder
-   * Richtung dasselbe Gesicht. Genau das soll er ja nicht.
+   * Vorher stand hier eine eigene Auswahlliste für die Zielschicht. Sie war
+   * überflüssig und gefährlich zugleich: Man wählt links ohnehin schon eine
+   * Schicht aus, und zwei Angaben für dieselbe Sache gehen irgendwann
+   * auseinander – dann liegt die Zeichnung in einer anderen Schicht als der,
+   * die man vor sich sieht.
+   *
+   * Die Ansicht bleibt eine eigene Angabe: Sie ist nicht dieselbe Sache. Eine
+   * Zeichnung gilt für **eine** Richtung, und sie stillschweigend für alle
+   * gelten zu lassen hiesse, in jeder Richtung dasselbe Gesicht zu zeigen.
    */
   const dateienNehmen = async (dateien: FileList | null) => {
     if (!dateien?.length) return;
@@ -165,16 +211,14 @@ export function Baukasten() {
       addImages(metas);
       for (const meta of metas) {
         await teilAnlegen({
-          schicht: zielschicht,
+          schicht: schichtName,
           name: meta.title || 'Ohne Namen',
           ansichten: { [zielansicht]: { art: 'bild', bildId: meta.id } },
           /*
-           * Neue Zeichnungen gelten zunächst als **nicht** tönbar.
-           *
-           * Andersherum wäre es die schlechtere Vorgabe: Eine bunte
+           * Neue Zeichnungen gelten zunächst als **nicht** tönbar. Eine bunte
            * Zeichnung einzufärben ergibt Matsch, und wer das einmal sieht,
-           * hält den Baukasten für kaputt. Wer in einem Ton zeichnet, sagt
-           * es mit einem Klick.
+           * hält den Baukasten für kaputt. Wer in einem Ton zeichnet, sagt es
+           * mit einem Klick.
            */
           toenbar: false,
         });
@@ -183,7 +227,7 @@ export function Baukasten() {
       if (metas.length) {
         notify(
           `${metas.length} ${metas.length === 1 ? 'Zeichnung' : 'Zeichnungen'} in „${
-            SCHICHTEN.find((s) => s.name === zielschicht)?.label
+            schicht.label
           }“ gelegt – ${ANSICHTEN.find((a) => a.name === zielansicht)?.label.toLowerCase()}.`,
           'success',
         );
@@ -198,9 +242,7 @@ export function Baukasten() {
    * Eine Zeichnung an ein **vorhandenes** Teil hängen.
    *
    * Der zweite Weg herein, und der wichtigere: „Locken" von vorn und „Locken"
-   * von der Seite sind nicht zwei Frisuren, sondern eine. Gäbe es nur den
-   * Weg oben, entstünden zwei Teile, und beim Ansichtswechsel müsste man jede
-   * Schicht neu wählen – dieselbe Figur wäre in zwei Ansichten zwei Figuren.
+   * von der Seite sind nicht zwei Frisuren, sondern eine.
    */
   const nachtragRef = useRef<HTMLInputElement>(null);
   const [nachtrag, setNachtrag] = useState<{ teilId: string; ansicht: Ansicht } | null>(null);
@@ -214,9 +256,8 @@ export function Baukasten() {
       addImages(metas);
       for (const fehler of errors) notify(fehler, 'error');
       const meta = metas[0];
-      if (!meta) return;
       const teil = eigeneTeile.find((t) => t.id === ziel.teilId);
-      if (!teil) return;
+      if (!meta || !teil) return;
       await teilAendern(teil.id, {
         ansichten: { ...(teil.ansichten ?? {}), [ziel.ansicht]: { art: 'bild', bildId: meta.id } },
       });
@@ -233,14 +274,7 @@ export function Baukasten() {
     }
   };
 
-  /*
-   * Die Linie zu einer vorhandenen Fläche legen.
-   *
-   * Sie hängt an *dieser* Ansicht, nicht am Teil: Ein Kopf von vorn und
-   * derselbe Kopf von der Seite haben verschiedene Tusche. Die Fläche muss
-   * schon da sein – eine Linie ohne Fläche wäre eine Zeichnung, die sich
-   * nicht einfärben lässt, und dafür braucht es die Trennung gar nicht.
-   */
+  /* Die Tusche zu einer vorhandenen Fläche. */
   const linieRef = useRef<HTMLInputElement>(null);
   const [linienziel, setLinienziel] = useState<{ teilId: string; ansicht: Ansicht } | null>(null);
 
@@ -253,10 +287,9 @@ export function Baukasten() {
       addImages(metas);
       for (const fehler of errors) notify(fehler, 'error');
       const meta = metas[0];
-      if (!meta) return;
       const teil = eigeneTeile.find((t) => t.id === ziel.teilId);
       const vorhanden = teil?.ansichten?.[ziel.ansicht];
-      if (!teil || vorhanden?.art !== 'bild') return;
+      if (!meta || !teil || vorhanden?.art !== 'bild') return;
       await teilAendern(teil.id, {
         ansichten: {
           ...(teil.ansichten ?? {}),
@@ -271,19 +304,15 @@ export function Baukasten() {
     }
   };
 
-  /** Die Linie wieder abnehmen – dann färbt die Maske wieder alles. */
   const linieAbnehmen = async (teilId: string, fuer: Ansicht) => {
     const teil = eigeneTeile.find((t) => t.id === teilId);
     const vorhanden = teil?.ansichten?.[fuer];
     if (!teil || vorhanden?.art !== 'bild') return;
     const { linieId: _weg, ...ohneLinie } = vorhanden;
     void _weg;
-    await teilAendern(teil.id, {
-      ansichten: { ...(teil.ansichten ?? {}), [fuer]: ohneLinie },
-    });
+    await teilAendern(teil.id, { ansichten: { ...(teil.ansichten ?? {}), [fuer]: ohneLinie } });
   };
 
-  /** Dieselbe Zeichnung in allen Ansichten gelten lassen – für Grund und Beiwerk. */
   const fuerAlleAnsichten = async (teilId: string, von: Ansicht) => {
     const teil = eigeneTeile.find((t) => t.id === teilId);
     const quelle = teil?.ansichten?.[von];
@@ -309,85 +338,88 @@ export function Baukasten() {
     );
   }
 
+  const fach = gefaecher.get(schichtName) ?? [];
+  const lage = bau.lagen[schichtName];
+  const gewaehlt = fach.find((t) => t.id === lage?.teilId);
   const wege = moeglichkeiten(vorrat, ansicht);
   const wegeGesamt = moeglichkeiten(vorrat);
   const traegtBedeutung = bedeutungen(bau, vorrat);
 
   return (
-    <AppendixSheet title={entry.title} rubric="Anhang · Der Baukasten">
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
-        {/* Das Bildnis */}
+    <AppendixSheet title={entry.title} rubric="Anhang · Aussehen">
+      <p className="-mt-2 mb-6 font-serif text-[15px] italic text-ink-faint">
+        Forme, was man sehen kann.
+      </p>
+
+      <div className="grid gap-6 lg:grid-cols-[92px_minmax(0,1fr)_minmax(0,320px)]">
+        {/* ---------------------------------------------- Die Gruppen --- */}
+        <nav
+          aria-label="Gruppen"
+          className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0"
+        >
+          {GRUPPEN.map((g) => {
+            const Zeichen = GRUPPENZEICHEN[g.id];
+            const aktiv = gruppe.id === g.id;
+            /* Wie viel in dieser Gruppe überhaupt zur Wahl steht. */
+            const menge = g.schichten.reduce((n, s) => n + (gefaecher.get(s)?.length ?? 0), 0);
+            return (
+              <button
+                key={g.id}
+                type="button"
+                title={g.hinweis}
+                onClick={() => waehleGruppe(g)}
+                aria-current={aktiv}
+                className={cx(
+                  'group flex shrink-0 flex-col items-center gap-1 rounded-[3px] border px-2 py-2.5 transition-colors no-tap-highlight lg:w-full',
+                  aktiv
+                    ? 'border-gild-500/60 bg-gild-400/10 text-gold'
+                    : 'border-transparent text-ink-faint hover:text-gold',
+                )}
+              >
+                <Zeichen size={20} strokeWidth={1.4} />
+                <span className="text-center font-serif text-[10.5px] leading-tight">
+                  {g.label}
+                </span>
+                <span className="font-serif text-[10px] italic text-ink-faint/60">
+                  {menge === 0 ? '—' : menge}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* ---------------------------------------------- Das Bildnis --- */}
         <div className="lg:sticky lg:top-4 lg:self-start">
           {/*
-            `text-ink-faint` ohne Durchsichtigkeit.
-
-            Vorher stand hier `/25`, und ungetönte Grundformen zeichnen mit
-            `currentColor`: Zwei Silhouetten übereinander dunkelten sich an der
-            Überlappung gegenseitig ab, und aus Kopf und Schultern wurde ein
-            Fleck mit einem Rand mitten im Gesicht. Eine Silhouette ist eine
-            Fläche und keine Folie.
+            `text-ink-faint` ohne Durchsichtigkeit: Ungetönte Grundformen
+            zeichnen mit `currentColor`, und zwei durchsichtige Silhouetten
+            übereinander dunkeln sich an der Überlappung gegenseitig ab. Eine
+            Silhouette ist eine Fläche und keine Folie.
           */}
           <div className="relative overflow-hidden rounded-[3px] border border-line bg-paper-200 text-ink-faint">
             <Bildniswerk bau={bau} vorrat={vorrat} darstellung={darstellung} className="w-full" />
           </div>
 
-          {/*
-            Ganzfigur oder Kopf.
-
-            Kein Bearbeitungsmodus, sondern ein Blick: Dieselben Daten, einmal
-            zusammengesetzt und einmal das Kopffeld allein. Am Gesicht arbeitet
-            man im Kopffeld, weil ein Auge dort gross genug ist, um es um eine
-            Kleinigkeit zu verschieben – in der Ganzfigur wäre es zwanzig
-            Punkte breit.
-          */}
-          <div className="mt-3 flex rounded-full border border-line p-0.5">
-            {(
-              [
-                ['ganzfigur', 'Ganze Figur'],
-                ['kopf', 'Nur der Kopf'],
-              ] as const
-            ).map(([wert, label]) => (
-              <button
-                key={wert}
-                type="button"
-                onClick={() => setDarstellung(wert)}
-                className={cx(
-                  'min-h-[34px] flex-1 rounded-full px-2 font-serif text-[13px] transition-colors no-tap-highlight',
-                  darstellung === wert ? 'bg-gild-400/15 text-gold' : 'text-ink-faint hover:text-gold',
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <Umschalter
+            wert={darstellung}
+            werte={[
+              ['ganzfigur', 'Ganze Figur'],
+              ['kopf', 'Nur der Kopf'],
+            ]}
+            onWert={setDarstellung}
+          />
 
           {/*
-            Die Ansicht.
-
-            Sie steht direkt unter dem Bildnis und nicht bei den Schichten:
-            Sie ändert nicht *woraus* die Figur besteht, sondern *wie man sie
-            ansieht. Alle Schichten, Farben und Versätze bleiben stehen –
-            gewechselt wird nur die Zeichnung, die jedes Teil für diese
+            Die Ansicht ändert nicht, *woraus* die Figur besteht, sondern *wie
+            man sie ansieht*. Alle Schichten, Farben und Versätze bleiben
+            stehen; gewechselt wird nur die Zeichnung, die jedes Teil für diese
             Richtung mitbringt.
           */}
-          <div className="mt-3 flex rounded-full border border-line p-0.5">
-            {ANSICHTEN.map((a) => (
-              <button
-                key={a.name}
-                type="button"
-                title={a.hinweis}
-                onClick={() => setzeBau({ ...bau, ansicht: a.name })}
-                className={cx(
-                  'min-h-[34px] flex-1 rounded-full px-2 font-serif text-[13px] transition-colors no-tap-highlight',
-                  ansicht === a.name
-                    ? 'bg-gild-400/15 text-gold'
-                    : 'text-ink-faint hover:text-gold',
-                )}
-              >
-                {a.label}
-              </button>
-            ))}
-          </div>
+          <Umschalter
+            wert={ansicht}
+            werte={ANSICHTEN.map((a) => [a.name, a.label] as const)}
+            onWert={(a) => setzeBau({ ...bau, ansicht: a })}
+          />
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
@@ -401,7 +433,7 @@ export function Baukasten() {
             </button>
             <button
               type="button"
-              onClick={() => setzeBau({ ansicht, lagen: {} })}
+              onClick={() => setzeBau({ ansicht, kopf, lagen: {} })}
               className="min-h-[38px] font-serif text-[13px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
             >
               Alles ablegen
@@ -409,65 +441,27 @@ export function Baukasten() {
           </div>
 
           {/*
-            Die Zahl, die zeigt, was die nächste Zeichnung einbringt.
-            Sie ist der Grund, weiterzuzeichnen – und sie ist ehrlich: Sie
-            zählt nur die Teile, nicht Farbe und Versatz.
-          */}
-          <p className="mt-3 font-serif text-[12.5px] italic text-ink-faint">
-            {wegeGesamt === 0
-              ? 'Noch keine Teile – lege unten eine Zeichnung hinein.'
-              : `${wegeGesamt.toLocaleString('de')} Bildnisse sind aus diesen Teilen zu bauen, ${
-                  wege.toLocaleString('de')
-                } davon in dieser Ansicht.`}
-          </p>
-
-          {/*
-            Wo der Kopf sitzt.
-
-            Der Anker in Reglerform – und der Grund, warum das hier steht und
-            nicht bei den Schichten: Es ist keine Eigenschaft einer Schicht,
-            sondern die Naht zwischen den beiden Feldern. Wer daran zieht,
-            bewegt Augen, Mund und Haar mit, denn sie hängen am Kopffeld.
+            Wo der Kopf sitzt – die Naht zwischen den beiden Feldern und keine
+            Eigenschaft einer Schicht. Wer daran zieht, bewegt Augen, Mund und
+            Haar mit, denn sie hängen am Kopffeld.
 
             Nur bei der Ganzfigur zu sehen: Im Kopffeld allein hat die Naht
             keine Wirkung, und ein Regler ohne Wirkung ist ein Regler, der lügt.
           */}
           {darstellung === 'ganzfigur' && (
-            <div className="mt-5 border-t border-line pt-4">
-              <p className="rubric text-gild-400/70">Wo der Kopf sitzt</p>
+            <details className="mt-4 border-t border-line pt-3">
+              <summary className="cursor-pointer list-none font-serif text-[13px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight">
+                Wo der Kopf sitzt …
+              </summary>
               <div className="mt-2 grid grid-cols-2 gap-3">
-                <Schieber
-                  label="Grösse"
-                  wert={kopf.groesse}
-                  min={0.12}
-                  max={0.6}
-                  schritt={0.005}
-                  onWert={(v) => setzeKopf({ groesse: v })}
-                />
-                <Schieber
-                  label="Neigung"
-                  wert={kopf.drehung}
-                  min={-15}
-                  max={15}
-                  schritt={0.5}
-                  onWert={(v) => setzeKopf({ drehung: v })}
-                />
-                <Schieber
-                  label="Nach rechts"
-                  wert={kopf.versatzX}
-                  min={-25}
-                  max={25}
-                  schritt={0.5}
-                  onWert={(v) => setzeKopf({ versatzX: v })}
-                />
-                <Schieber
-                  label="Nach unten"
-                  wert={kopf.versatzY}
-                  min={-75}
-                  max={-25}
-                  schritt={0.5}
-                  onWert={(v) => setzeKopf({ versatzY: v })}
-                />
+                <Schieber label="Grösse" wert={kopf.groesse} min={0.12} max={0.6} schritt={0.005}
+                  onWert={(v) => setzeKopf({ groesse: v })} />
+                <Schieber label="Neigung" wert={kopf.drehung} min={-15} max={15} schritt={0.5}
+                  onWert={(v) => setzeKopf({ drehung: v })} />
+                <Schieber label="Nach rechts" wert={kopf.versatzX} min={-25} max={25} schritt={0.5}
+                  onWert={(v) => setzeKopf({ versatzX: v })} />
+                <Schieber label="Nach unten" wert={kopf.versatzY} min={-75} max={-25} schritt={0.5}
+                  onWert={(v) => setzeKopf({ versatzY: v })} />
               </div>
               <button
                 type="button"
@@ -476,8 +470,14 @@ export function Baukasten() {
               >
                 Auf das übliche Mass zurück
               </button>
-            </div>
+            </details>
           )}
+
+          <p className="mt-4 font-serif text-[12.5px] italic text-ink-faint">
+            {wegeGesamt === 0
+              ? 'Noch keine Teile – lege rechts eine Zeichnung hinein.'
+              : `${wegeGesamt.toLocaleString('de')} Bildnisse sind aus diesen Teilen zu bauen, ${wege.toLocaleString('de')} davon in dieser Ansicht.`}
+          </p>
 
           {traegtBedeutung.length > 0 && (
             <div className="mt-4 border-t border-line pt-3">
@@ -493,129 +493,157 @@ export function Baukasten() {
           )}
         </div>
 
-        {/* Die Schichten */}
-        <div>
-          <div className="space-y-1">
-            {SCHICHTEN.map((schicht) => {
-              const fach = gefaecher.get(schicht.name) ?? [];
-              const lage = bau.lagen[schicht.name];
-              const gewaehlt = fach.find((t) => t.id === lage?.teilId);
-              const offen = offeneSchicht === schicht.name;
-              return (
-                <div key={schicht.name} className="border-b border-line/70">
+        {/* --------------------------------------------- Die Varianten --- */}
+        <div className="min-w-0">
+          <p className="rubric text-gild-400/70">{gruppe.label}</p>
+          <p className="mt-1 font-serif text-[12.5px] italic text-ink-faint">{gruppe.hinweis}</p>
+
+          {/*
+            Die Schichten der Gruppe.
+
+            Bei einer einzigen Schicht wäre die Reihe eine Zeile, die nichts
+            sagt – dann steht sie nicht da. Eine Auswahl mit genau einem Eintrag
+            ist keine Auswahl.
+          */}
+          {gruppe.schichten.length > 1 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {gruppe.schichten.map((s) => {
+                const sch = schichtVon(s);
+                const belegt = !!bau.lagen[s]?.teilId;
+                return (
                   <button
+                    key={s}
                     type="button"
-                    onClick={() => setOffeneSchicht(offen ? null : schicht.name)}
-                    className="flex min-h-[46px] w-full items-center justify-between gap-3 text-left no-tap-highlight"
+                    onClick={() => setSchichtName(s)}
+                    className={cx(
+                      'min-h-[30px] rounded-full border px-3 font-serif text-[12.5px] transition-colors no-tap-highlight',
+                      schichtName === s
+                        ? 'border-gild-500/60 bg-gild-400/10 text-gold'
+                        : 'border-line text-ink-faint hover:text-gold',
+                    )}
                   >
-                    <span className="flex items-baseline gap-3">
-                      <span className="rubric text-gild-400/70">{schicht.label}</span>
-                      <span className="font-serif text-[14px] text-ink">
-                        {gewaehlt?.name ?? <span className="text-ink-faint/60">—</span>}
-                      </span>
-                    </span>
-                    <span className="shrink-0 font-serif text-[12px] italic text-ink-faint">
-                      {fach.length === 0 ? 'leer' : `${fach.length}`}
-                    </span>
+                    {sch?.label}
+                    {belegt && <span className="text-gold"> ·</span>}
                   </button>
+                );
+              })}
+            </div>
+          )}
 
-                  {offen && (
-                    <div className="pb-4">
-                      <p className="mb-2 font-serif text-[12.5px] italic text-ink-faint">
-                        {schicht.hinweis}
-                      </p>
+          <p className="mt-3 font-serif text-[12.5px] italic text-ink-faint">{schicht.hinweis}</p>
 
-                      {fach.length === 0 ? (
-                        <p className="font-serif text-[13px] italic text-ink-faint/70">
-                          Für diese Schicht gibt es noch nichts.
-                        </p>
-                      ) : (
-                        <div className="flex flex-wrap gap-2">
-                          <TeilKnopf
-                            aktiv={!lage?.teilId}
-                            onClick={() => leereSchicht(schicht.name)}
-                            label="nichts"
-                          />
-                          {fach.map((teil) => (
-                            <TeilKnopf
-                              key={teil.id}
-                              aktiv={lage?.teilId === teil.id}
-                              onClick={() => setzeLage(schicht.name, { teilId: teil.id })}
-                              label={teil.name}
-                              teil={teil}
-                              ansicht={ansicht}
-                            />
-                          ))}
-                        </div>
-                      )}
-
-                      {gewaehlt && (
-                        <Regler
-                          teil={gewaehlt}
-                          lage={lage ?? {}}
-                          ansicht={ansicht}
-                          eigenes={istEigenes(gewaehlt.id)}
-                          onLage={(patch) => setzeLage(schicht.name, patch)}
-                          onToenbar={(wert) => void teilAendern(gewaehlt.id, { toenbar: wert })}
-                          onBedeutung={(text) => void teilAendern(gewaehlt.id, { bedeutung: text })}
-                          onZeichnung={(fuer) => {
-                            setNachtrag({ teilId: gewaehlt.id, ansicht: fuer });
-                            nachtragRef.current?.click();
-                          }}
-                          onUeberall={() => void fuerAlleAnsichten(gewaehlt.id, ansicht)}
-                          onLinie={() => {
-                            setLinienziel({ teilId: gewaehlt.id, ansicht });
-                            linieRef.current?.click();
-                          }}
-                          onLinieWeg={() => void linieAbnehmen(gewaehlt.id, ansicht)}
-                          onLoeschen={
-                            istEigenes(gewaehlt.id)
-                              ? () => {
-                                  leereSchicht(schicht.name);
-                                  void teilLoeschen(gewaehlt.id);
-                                }
-                              : undefined
-                          }
-                        />
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+          {/*
+            Die Kacheln zeigen das ganze Bildnis mit ausgetauschter Schicht –
+            die Frisur am eigenen Kopf und nicht als freigestelltes Bildchen.
+          */}
+          <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-3">
+            <Variantenkachel
+              bau={{ ...bau, lagen: leerGemacht(bau, schichtName) }}
+              vorrat={vorrat}
+              feld={schicht.feld}
+              aktiv={!lage?.teilId}
+              label="nichts"
+              onClick={() => leereSchicht(schichtName)}
+            />
+            {fach.map((teil) => (
+              <Variantenkachel
+                key={teil.id}
+                bau={{
+                  ...bau,
+                  lagen: { ...bau.lagen, [schichtName]: { ...(lage ?? {}), teilId: teil.id } },
+                }}
+                vorrat={vorrat}
+                feld={schicht.feld}
+                aktiv={lage?.teilId === teil.id}
+                label={teil.name}
+                fehlt={!ansichtenVon(teil).includes(ansicht)}
+                onClick={() => setzeLage(schichtName, { teilId: teil.id })}
+              />
+            ))}
           </div>
 
-          {/* Zeichnungen hereinlegen */}
-          <div className="mt-8 border-t border-line pt-5">
-            <p className="rubric text-gild-400/70">Eigene Zeichnungen</p>
-            <p className="mt-1.5 font-serif text-[13px] italic text-ink-faint">
-              Ein Bild wird ein Teil, sobald du sagst, in welche Schicht und in welche Ansicht es
-              gehört. Am besten mit durchsichtigem Grund und in demselben quadratischen Ausschnitt –
-              dann passen alle Teile aufeinander.
+          {fach.length === 0 && (
+            <p className="mt-2 font-serif text-[13px] italic text-ink-faint/70">
+              Für „{schicht.label}“ gibt es noch keine Zeichnung.
             </p>
-            <p className="mt-1 font-serif text-[13px] italic text-ink-faint">
-              Gehört eine Zeichnung zu einem Teil, das es schon gibt – dieselbe Frisur, nur von der
-              Seite –, dann wähle das Teil oben aus und lege sie dort unter „Ansichten dieses Teils“
-              hinein. Nur so bleibt es <em>eine</em> Frisur.
-            </p>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <select
-                value={zielschicht}
-                onChange={(e) => setZielschicht(e.target.value as SchichtName)}
-                aria-label="In welche Schicht"
-                className="input-base min-h-[38px] w-auto"
-              >
-                {SCHICHTEN.map((s) => (
-                  <option key={s.name} value={s.name}>
-                    {s.label}
-                  </option>
+          )}
+
+          {/* Die Farben – zur Lage, nicht zum Teil. */}
+          {gewaehlt?.toenbar && (
+            <div className="mt-4">
+              <p className="rubric text-gild-400/70">Farbe</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setzeLage(schichtName, { farbe: undefined })}
+                  aria-label="Ohne Farbe"
+                  className={cx(
+                    'grid h-7 w-7 place-items-center rounded-full border',
+                    lage?.farbe ? 'border-line' : 'border-gild-500/70',
+                  )}
+                >
+                  <X size={12} className="text-ink-faint" />
+                </button>
+                {PALETTE.map((farbe) => (
+                  <button
+                    key={farbe}
+                    type="button"
+                    onClick={() => setzeLage(schichtName, { farbe })}
+                    aria-label={farbe}
+                    style={{ backgroundColor: farbe }}
+                    className={cx(
+                      'h-7 w-7 rounded-full border-2',
+                      lage?.farbe === farbe ? 'border-gold' : 'border-transparent',
+                    )}
+                  />
                 ))}
-              </select>
+              </div>
+            </div>
+          )}
+
+          {gewaehlt && (
+            <Feinregler
+              teil={gewaehlt}
+              lage={lage ?? {}}
+              ansicht={ansicht}
+              eigenes={istEigenes(gewaehlt.id)}
+              onLage={(patch) => setzeLage(schichtName, patch)}
+              onToenbar={(wert) => void teilAendern(gewaehlt.id, { toenbar: wert })}
+              onBedeutung={(text) => void teilAendern(gewaehlt.id, { bedeutung: text })}
+              onZeichnung={(fuer) => {
+                setNachtrag({ teilId: gewaehlt.id, ansicht: fuer });
+                nachtragRef.current?.click();
+              }}
+              onUeberall={() => void fuerAlleAnsichten(gewaehlt.id, ansicht)}
+              onLinie={() => {
+                setLinienziel({ teilId: gewaehlt.id, ansicht });
+                linieRef.current?.click();
+              }}
+              onLinieWeg={() => void linieAbnehmen(gewaehlt.id, ansicht)}
+              onLoeschen={
+                istEigenes(gewaehlt.id)
+                  ? () => {
+                      leereSchicht(schichtName);
+                      void teilLoeschen(gewaehlt.id);
+                    }
+                  : undefined
+              }
+            />
+          )}
+
+          {/* --------------------------------------- Zeichnungen herein --- */}
+          <div className="mt-6 border-t border-line pt-4">
+            <p className="rubric text-gild-400/70">Zeichnung hinzufügen</p>
+            <p className="mt-1.5 font-serif text-[12.5px] italic text-ink-faint">
+              Kommt in „{schicht.label}“ – die Schicht, die links gewählt ist. Am besten mit
+              durchsichtigem Grund und im selben quadratischen Ausschnitt wie alle anderen.
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               <select
                 value={zielansicht}
                 onChange={(e) => setZielansicht(e.target.value as Ansicht)}
                 aria-label="In welche Ansicht"
-                className="input-base min-h-[38px] w-auto"
+                className="input-base min-h-[36px] w-auto"
               >
                 {ANSICHTEN.map((a) => (
                   <option key={a.name} value={a.name}>
@@ -627,37 +655,16 @@ export function Baukasten() {
                 type="button"
                 disabled={laedt}
                 onClick={() => dateiRef.current?.click()}
-                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full border border-gild-500/40 px-4 font-serif text-[14px] text-gold transition-colors hover:bg-gild-400/10 disabled:opacity-50 no-tap-highlight"
+                className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-gild-500/40 px-4 font-serif text-[13.5px] text-gold transition-colors hover:bg-gild-400/10 disabled:opacity-50 no-tap-highlight"
               >
-                <Plus size={15} /> {laedt ? 'Wird gelegt …' : 'Zeichnungen wählen'}
+                <Plus size={15} /> {laedt ? 'Wird gelegt …' : 'Wählen'}
               </button>
-              <input
-                ref={dateiRef}
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={(e) => void dateienNehmen(e.target.files)}
-              />
-              {/*
-                Der zweite Weg herein: eine Zeichnung an ein vorhandenes Teil.
-                Der Knopf dazu steht beim Teil, nicht hier – hier liegt nur
-                das Feld, das die Datei entgegennimmt.
-              */}
-              <input
-                ref={nachtragRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => void zeichnungNachtragen(e.target.files)}
-              />
-              <input
-                ref={linieRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => void linieNachtragen(e.target.files)}
-              />
+              <input ref={dateiRef} type="file" accept="image/*" multiple className="hidden"
+                onChange={(e) => void dateienNehmen(e.target.files)} />
+              <input ref={nachtragRef} type="file" accept="image/*" className="hidden"
+                onChange={(e) => void zeichnungNachtragen(e.target.files)} />
+              <input ref={linieRef} type="file" accept="image/*" className="hidden"
+                onChange={(e) => void linieNachtragen(e.target.files)} />
             </div>
           </div>
         </div>
@@ -666,59 +673,96 @@ export function Baukasten() {
   );
 }
 
+/** Die Lagen ohne diese eine – für die Kachel „nichts". */
+function leerGemacht(bau: Bildbau, ohne: SchichtName): Bildbau['lagen'] {
+  const lagen = { ...bau.lagen };
+  delete lagen[ohne];
+  return lagen;
+}
+
 /* ------------------------------------------------------------- Bausteine -- */
 
-function TeilKnopf({
-  aktiv,
-  onClick,
-  label,
-  teil,
-  ansicht,
+/** Eine Reihe, aus der genau eines gilt. */
+function Umschalter<T extends string>({
+  wert,
+  werte,
+  onWert,
 }: {
-  aktiv: boolean;
-  onClick: () => void;
-  label: string;
-  teil?: Teil;
-  ansicht?: Ansicht;
+  wert: T;
+  werte: readonly (readonly [T, string])[];
+  onWert: (w: T) => void;
 }) {
-  /*
-   * Gezeigt wird, was dieses Teil **in dieser Ansicht** zeigen würde.
-   *
-   * Ein Teil ohne Zeichnung für die Richtung bleibt in der Auswahl stehen und
-   * sagt es. Es zu verstecken wäre die schlechtere Lösung: Dann verschwände
-   * die Hälfte des Vorrats beim Umschalten, und niemand wüsste, dass es die
-   * Frisur gibt – nur eben noch nicht von der Seite. So ist die Lücke
-   * sichtbar, und daneben steht, wie man sie schliesst.
-   */
-  const zeichnung = teil && ansicht ? zeichnungFuer(teil, ansicht) : null;
-  const fehlt = !!teil && !!ansicht && !zeichnung;
+  return (
+    <div className="mt-3 flex rounded-full border border-line p-0.5">
+      {werte.map(([w, label]) => (
+        <button
+          key={w}
+          type="button"
+          onClick={() => onWert(w)}
+          className={cx(
+            'min-h-[34px] flex-1 rounded-full px-2 font-serif text-[13px] transition-colors no-tap-highlight',
+            wert === w ? 'bg-gild-400/15 text-gold' : 'text-ink-faint hover:text-gold',
+          )}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
+/**
+ * Eine Variante, gezeigt am eigenen Bildnis.
+ *
+ * `feld` entscheidet den Ausschnitt: Eine Frisur beurteilt man am Kopf, ein
+ * Gewand an der ganzen Gestalt. Dieselbe Kachel für beides zu nehmen hiesse,
+ * Frisuren in Briefmarkengrösse zu vergleichen.
+ */
+function Variantenkachel({
+  bau,
+  vorrat,
+  feld,
+  aktiv,
+  label,
+  fehlt = false,
+  onClick,
+}: {
+  bau: Bildbau;
+  vorrat: readonly Teil[];
+  feld: 'kopf' | 'koerper';
+  aktiv: boolean;
+  label: string;
+  /** Für diese Ansicht nicht gezeichnet – die Kachel bleibt, sagt es aber. */
+  fehlt?: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       title={fehlt ? `${label} – für diese Ansicht noch nicht gezeichnet` : label}
       className={cx(
-        'grid h-16 w-16 place-items-center rounded-[3px] border transition-colors no-tap-highlight',
+        'group overflow-hidden rounded-[3px] border text-left transition-colors no-tap-highlight',
         aktiv ? 'border-gild-500/70 bg-gild-400/10' : 'border-line hover:border-gild-500/40',
-        fehlt && 'border-dashed opacity-45',
+        fehlt && 'border-dashed opacity-50',
       )}
     >
-      {zeichnung?.quelle.art === 'grundform' ? (
-        <Grundformbild
-          form={zeichnung.quelle.form}
-          className={cx('h-11 w-11 text-ink-faint/50', zeichnung.gespiegelt && '-scale-x-100')}
+      <div className="bg-paper-200 text-ink-faint">
+        <Bildniswerk
+          bau={bau}
+          vorrat={vorrat}
+          darstellung={feld === 'kopf' ? 'kopf' : 'ganzfigur'}
+          className="w-full"
         />
-      ) : (
-        <span className="px-1 text-center font-serif text-[10.5px] leading-tight text-ink-faint">
-          {label.slice(0, 18)}
-        </span>
-      )}
+      </div>
+      <span className="block truncate px-1.5 py-1 font-serif text-[10.5px] leading-tight text-ink-faint">
+        {label}
+      </span>
     </button>
   );
 }
 
-function Regler({
+function Feinregler({
   teil,
   lage,
   ansicht,
@@ -752,209 +796,151 @@ function Regler({
   const hatLinie = hier?.art === 'bild' && !!hier.linieId;
 
   return (
-    <div className="mt-4 space-y-3 border-l-2 border-gild-500/25 pl-4">
-      {/*
-        Die Ansichten dieses Teils.
+    <details className="mt-4 border-t border-line pt-3" open>
+      <summary className="cursor-pointer list-none rubric text-gild-400/70 no-tap-highlight">
+        „{teil.name}“ einstellen
+      </summary>
 
-        Das Herzstück: Hier sieht man auf einen Blick, was von dieser Sache
-        schon gezeichnet ist und was noch nicht – und schliesst die Lücke an
-        Ort und Stelle, statt ein zweites Teil anzulegen.
-      */}
-      {eigenes && (
-        <div>
-          <p className="rubric text-gild-400/70">Ansichten dieses Teils</p>
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {ANSICHTEN.map((a) => {
-              const hatEigen = hatEigeneZeichnung(teil, a.name);
-              const geerbt = !hatEigen && vorhanden.includes(a.name);
-              return (
-                <button
-                  key={a.name}
-                  type="button"
-                  onClick={() => onZeichnung(a.name)}
-                  title={
-                    hatEigen
-                      ? `${a.label}: gezeichnet – ersetzen`
-                      : geerbt
-                        ? `${a.label}: von der Gegenseite gespiegelt – eigene Zeichnung wählen`
-                        : `${a.label}: fehlt – Zeichnung wählen`
-                  }
-                  className={cx(
-                    'min-h-[30px] rounded-full border px-3 font-serif text-[12.5px] transition-colors no-tap-highlight',
-                    hatEigen
-                      ? 'border-gild-500/50 text-gold'
-                      : geerbt
-                        ? 'border-line text-ink-faint'
-                        : 'border-dashed border-line text-ink-faint/60',
-                  )}
-                >
-                  {a.label}
-                  {hatEigen ? ' ·' : geerbt ? ' ↔' : ' +'}
-                </button>
-              );
-            })}
-          </div>
-          <p className="mt-1.5 font-serif text-[12px] italic text-ink-faint/80">
-            {eigen
-              ? '↔ heisst: von der anderen Seite gespiegelt. + heisst: fehlt noch.'
-              : vorhanden.includes(ansicht)
-                ? 'In dieser Ansicht wird die Gegenseite gespiegelt gezeigt.'
-                : 'In dieser Ansicht zeigt dieses Teil noch nichts.'}
-          </p>
-          {eigen && (
-            <button
-              type="button"
-              onClick={onUeberall}
-              className="mt-1.5 font-serif text-[12.5px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
-            >
-              Diese Zeichnung für jede Ansicht gelten lassen
-            </button>
-          )}
+      <div className="mt-3 space-y-4 border-l-2 border-gild-500/25 pl-4">
+        {/* Lage und Grösse – gelten für dieses Bildnis, nicht für das Teil. */}
+        <div className="grid grid-cols-2 gap-3">
+          <Schieber label="Nach rechts" wert={lage.versatzX ?? 0} min={-25} max={25} schritt={0.5}
+            onWert={(v) => onLage({ versatzX: v })} />
+          <Schieber label="Nach unten" wert={lage.versatzY ?? 0} min={-25} max={25} schritt={0.5}
+            onWert={(v) => onLage({ versatzY: v })} />
+          <Schieber label="Grösse" wert={lage.groesse ?? 1} min={0.6} max={1.6} schritt={0.01}
+            onWert={(v) => onLage({ groesse: v })} />
+          <label className="flex items-end gap-2 pb-1 font-serif text-[13px] text-ink">
+            <input type="checkbox" checked={lage.spiegel === true}
+              onChange={(e) => onLage({ spiegel: e.target.checked })} className="accent-gild-400" />
+            Gespiegelt
+          </label>
         </div>
-      )}
 
-      {/*
-        Linie und Fläche.
+        {/*
+          Die Ansichten dieses Teils.
 
-        Der Unterschied zwischen Spielgrafik und Artbook, und er steht hier
-        neben der Farbwahl, weil er nur dort etwas bedeutet: Ohne Tönung
-        liegt die Zeichnung ohnehin unverändert da, mit Tönung entscheidet
-        die Linie darüber, ob eine Frisur eine Frisur bleibt oder ein Fleck
-        wird.
-
-        Nur bei eigenen Teilen und nur, wo für diese Ansicht eine eigene
-        Fläche liegt – eine Linie zu einer geliehenen Gegenseite wäre eine
-        Angabe am falschen Ort.
-      */}
-      {eigenes && eigen && hier?.art === 'bild' && (
-        <div>
-          <p className="rubric text-gild-400/70">Tusche</p>
-          <div className="mt-1.5 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={onLinie}
-              className={cx(
-                'inline-flex min-h-[30px] items-center gap-1.5 rounded-full border px-3 font-serif text-[12.5px] transition-colors no-tap-highlight',
-                hatLinie ? 'border-gild-500/50 text-gold' : 'border-dashed border-line text-ink-faint',
-              )}
-            >
-              {hatLinie ? 'Linie ersetzen' : 'Linie hinzufügen'}
-            </button>
-            {hatLinie && (
-              <button
-                type="button"
-                onClick={onLinieWeg}
-                className="font-serif text-[12.5px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
-              >
-                Linie abnehmen
+          Hier sieht man, was von dieser Sache schon gezeichnet ist – und
+          schliesst die Lücke an Ort und Stelle, statt ein zweites Teil
+          anzulegen.
+        */}
+        {eigenes && (
+          <div>
+            <p className="rubric text-gild-400/70">Ansichten dieses Teils</p>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {ANSICHTEN.map((a) => {
+                const hatEigen = hatEigeneZeichnung(teil, a.name);
+                const geerbt = !hatEigen && vorhanden.includes(a.name);
+                return (
+                  <button
+                    key={a.name}
+                    type="button"
+                    onClick={() => onZeichnung(a.name)}
+                    title={
+                      hatEigen
+                        ? `${a.label}: gezeichnet – ersetzen`
+                        : geerbt
+                          ? `${a.label}: von der Gegenseite gespiegelt – eigene Zeichnung wählen`
+                          : `${a.label}: fehlt – Zeichnung wählen`
+                    }
+                    className={cx(
+                      'min-h-[30px] rounded-full border px-3 font-serif text-[12.5px] transition-colors no-tap-highlight',
+                      hatEigen
+                        ? 'border-gild-500/50 text-gold'
+                        : geerbt
+                          ? 'border-line text-ink-faint'
+                          : 'border-dashed border-line text-ink-faint/60',
+                    )}
+                  >
+                    {a.label}
+                    {hatEigen ? ' ·' : geerbt ? ' ↔' : ' +'}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-1.5 font-serif text-[12px] italic text-ink-faint/80">
+              ↔ heisst: von der anderen Seite gespiegelt. + heisst: fehlt noch.
+            </p>
+            {eigen && (
+              <button type="button" onClick={onUeberall}
+                className="mt-1.5 font-serif text-[12.5px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight">
+                Diese Zeichnung für jede Ansicht gelten lassen
               </button>
             )}
           </div>
-          <p className="mt-1.5 font-serif text-[12px] italic text-ink-faint/80">
-            {hatLinie
-              ? 'Die Fläche wird eingefärbt, die Tusche bleibt darüber stehen.'
-              : 'Ohne Linie färbt die Farbe die ganze Zeichnung ein – gut für flache Teile, schlecht für schraffierte.'}
-          </p>
-        </div>
-      )}
+        )}
 
-      {/* Farbe – nur wo sie hingehört. */}
-      <div>
         {/*
-          Das Häkchen gehört dem Teil, die Farbe der Lage.
-          Bei einer eingebauten Grundform ist es deshalb nicht zu sehen: Sie
-          ist immer tönbar, und ein Häkchen, das sich nicht abwählen lässt,
-          wäre ein Schalter, der lügt. Die Farbwahl bleibt trotzdem stehen –
-          sie steht im Bildnis und nicht im Teil.
+          Linie und Fläche – der Unterschied zwischen Spielgrafik und Artbook.
+          Ohne Tusche färbt die Farbe die ganze Zeichnung ein: Was hell ist,
+          wird durchsichtig, und aus einer Frisur mit Schraffur wird ein Fleck.
+        */}
+        {eigenes && eigen && hier?.art === 'bild' && (
+          <div>
+            <p className="rubric text-gild-400/70">Tusche</p>
+            <div className="mt-1.5 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={onLinie}
+                className={cx(
+                  'inline-flex min-h-[30px] items-center gap-1.5 rounded-full border px-3 font-serif text-[12.5px] transition-colors no-tap-highlight',
+                  hatLinie ? 'border-gild-500/50 text-gold' : 'border-dashed border-line text-ink-faint',
+                )}
+              >
+                {hatLinie ? 'Linie ersetzen' : 'Linie hinzufügen'}
+              </button>
+              {hatLinie && (
+                <button type="button" onClick={onLinieWeg}
+                  className="font-serif text-[12.5px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight">
+                  Linie abnehmen
+                </button>
+              )}
+            </div>
+            <p className="mt-1.5 font-serif text-[12px] italic text-ink-faint/80">
+              {hatLinie
+                ? 'Die Fläche wird eingefärbt, die Tusche bleibt darüber stehen.'
+                : 'Ohne Linie färbt die Farbe die ganze Zeichnung ein – gut für flache Teile, schlecht für schraffierte.'}
+            </p>
+          </div>
+        )}
+
+        {/*
+          Das Häkchen gehört dem Teil, die Farbe der Lage. Bei einer
+          eingebauten Grundform ist es nicht zu sehen: Sie ist immer tönbar,
+          und ein Häkchen, das sich nicht abwählen lässt, wäre ein Schalter,
+          der lügt.
         */}
         {eigenes && (
           <label className="flex items-center gap-2 font-serif text-[13px] text-ink">
-            <input
-              type="checkbox"
-              checked={teil.toenbar === true}
-              onChange={(e) => onToenbar(e.target.checked)}
-              className="accent-gild-400"
-            />
+            <input type="checkbox" checked={teil.toenbar === true}
+              onChange={(e) => onToenbar(e.target.checked)} className="accent-gild-400" />
             In einem Ton gezeichnet – einfärbbar
           </label>
         )}
-        {teil.toenbar && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              onClick={() => onLage({ farbe: undefined })}
-              aria-label="Ohne Farbe"
-              className={cx(
-                'grid h-7 w-7 place-items-center rounded-full border',
-                lage.farbe ? 'border-line' : 'border-gild-500/70',
-              )}
-            >
-              <X size={12} className="text-ink-faint" />
-            </button>
-            {PALETTE.map((farbe) => (
-              <button
-                key={farbe}
-                type="button"
-                onClick={() => onLage({ farbe })}
-                aria-label={farbe}
-                style={{ backgroundColor: farbe }}
-                className={cx(
-                  'h-7 w-7 rounded-full border-2',
-                  lage.farbe === farbe ? 'border-gold' : 'border-transparent',
-                )}
-              />
-            ))}
+
+        {/*
+          Die Bedeutung – der Unterschied zum Ankleidespiel. Sie gehört dem
+          Teil und nicht dem Bildnis: Wer dieselbe Narbe zweimal verwendet, hat
+          zweimal dieselbe Geschichte, und das ist richtig so.
+        */}
+        {eigenes && (
+          <div>
+            <label className="rubric text-gild-400/70">Was dieses Teil bedeutet</label>
+            <input type="text" defaultValue={teil.bedeutung ?? ''}
+              onBlur={(e) => onBedeutung(e.target.value)}
+              placeholder="Von der Seilerbahn, im dritten Winter."
+              className="input-base mt-1" />
           </div>
         )}
+
+        {onLoeschen && (
+          <button type="button" onClick={onLoeschen}
+            className="inline-flex min-h-[34px] items-center gap-1.5 font-serif text-[12.5px] italic text-ink-faint transition-colors hover:text-red-700 no-tap-highlight">
+            <Trash2 size={13} /> Aus dem Baukasten nehmen
+          </button>
+        )}
       </div>
-
-      {/* Lage und Grösse */}
-      <div className="grid grid-cols-2 gap-3">
-        <Schieber label="Nach rechts" wert={lage.versatzX ?? 0} min={-25} max={25} schritt={0.5}
-          onWert={(v) => onLage({ versatzX: v })} />
-        <Schieber label="Nach unten" wert={lage.versatzY ?? 0} min={-25} max={25} schritt={0.5}
-          onWert={(v) => onLage({ versatzY: v })} />
-        <Schieber label="Grösse" wert={lage.groesse ?? 1} min={0.6} max={1.6} schritt={0.01}
-          onWert={(v) => onLage({ groesse: v })} />
-        <label className="flex items-end gap-2 pb-1 font-serif text-[13px] text-ink">
-          <input
-            type="checkbox"
-            checked={lage.spiegel === true}
-            onChange={(e) => onLage({ spiegel: e.target.checked })}
-            className="accent-gild-400"
-          />
-          Gespiegelt
-        </label>
-      </div>
-
-      {/*
-        Die Bedeutung – der Unterschied zum Ankleidespiel.
-        Sie gehört dem Teil und nicht dem Bildnis: Wer dieselbe Narbe zweimal
-        verwendet, hat zweimal dieselbe Geschichte, und das ist richtig so.
-      */}
-      {eigenes && (
-        <div>
-          <label className="rubric text-gild-400/70">Was dieses Teil bedeutet</label>
-          <input
-            type="text"
-            defaultValue={teil.bedeutung ?? ''}
-            onBlur={(e) => onBedeutung(e.target.value)}
-            placeholder="Von der Seilerbahn, im dritten Winter."
-            className="input-base mt-1"
-          />
-        </div>
-      )}
-
-      {onLoeschen && (
-        <button
-          type="button"
-          onClick={onLoeschen}
-          className="inline-flex min-h-[34px] items-center gap-1.5 font-serif text-[12.5px] italic text-ink-faint transition-colors hover:text-red-700 no-tap-highlight"
-        >
-          <Trash2 size={13} /> Aus dem Baukasten nehmen
-        </button>
-      )}
-    </div>
+    </details>
   );
 }
 
