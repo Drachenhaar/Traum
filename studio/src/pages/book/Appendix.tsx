@@ -108,6 +108,20 @@ export function anhangWerkzeuge(z: AnhangZahlen): AppendixEntry[] {
       gewicht: { welt: 1, spiel: 0.8, bild: 0.4, system: 0.4 },
     },
     {
+      /*
+       * Der Baukasten stand zuerst nur an einer Figur, erreichbar über eine
+       * unbeschriftete Raute und ein Menü hinter drei Punkten. Wer nicht
+       * wusste, dass es ihn gibt, fand ihn nicht – im ganzen Buch stand kein
+       * Wort, das ihn nennt. Ein Werkzeug, das man kennen muss, um es zu
+       * finden, ist für den, der es nicht kennt, nicht vorhanden.
+       */
+      id: 'baukasten',
+      to: '/baukasten',
+      title: 'Der Baukasten',
+      note: 'Ein Bildnis aus Schichten bauen – Kopf, Augen, Haar, Gewand. Aus wenigen Zeichnungen werden viele Gesichter.',
+      gewicht: { bild: 1, spiel: 0.6, schreiben: 0.4 },
+    },
+    {
       id: 'tafeln',
       to: '/tafeln',
       title: 'Tafelteil',
