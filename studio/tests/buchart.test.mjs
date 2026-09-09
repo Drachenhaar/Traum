@@ -44,9 +44,6 @@ const {
   buchartVon,
   vorschlagFuer,
   artOderVorschlag,
-  selbeWelt,
-  weltenVon,
-  weltzeileFuer,
 } = await import(join(bau, 'buchart.mjs'));
 
 let geprueft = 0;
@@ -187,99 +184,12 @@ pruefe('die Wahl schlägt den Vorschlag', () => {
   assert.equal(artOderVorschlag(band({ profil: { absicht: 'spiel' } })), 'rpg');
 });
 
-/* =======================================================================
- * 4 · DIE WELT
- * ==================================================================== */
-
-console.log('\n4 · Die Welt');
-
-pruefe('zwei Bücher ohne Weltkennung teilen nichts', () => {
-  /*
-   * Der Fehler, der hier lauert: `a.worldId === b.worldId` ist für zwei
-   * Bände ohne Kennung wahr – `undefined === undefined`. In einer Bibliothek
-   * aus Bestandsbüchern wäre danach jeder mit jedem verwandt.
-   */
-  assert.equal(selbeWelt(band(), band()), false);
-  assert.equal(selbeWelt(band({ worldId: undefined }), band({ worldId: undefined })), false);
-  assert.equal(selbeWelt(band({ worldId: '' }), band({ worldId: '' })), false);
-  assert.equal(selbeWelt(band({ worldId: 'welt_a' }), band()), false);
-  assert.equal(selbeWelt(undefined, undefined), false);
-});
-
-pruefe('dieselbe Kennung heisst dieselbe Welt', () => {
-  assert.equal(selbeWelt(band({ worldId: 'welt_a' }), band({ worldId: 'welt_a' })), true);
-  assert.equal(selbeWelt(band({ worldId: 'welt_a' }), band({ worldId: 'welt_b' })), false);
-});
-
-pruefe('Welten werden aus den Bänden gesammelt', () => {
-  const buecher = [
-    band({ worldId: 'w1', worldName: 'Nebelreich', art: 'artbook' }),
-    band({ worldId: 'w1', worldName: 'Nebelreich', art: 'rpg' }),
-    band({ worldId: 'w2', worldName: 'Mooshalde', art: 'novel' }),
-    band({ /* ohne Welt */ }),
-  ];
-  const welten = weltenVon(buecher);
-  assert.deepEqual(
-    welten.map((w) => [w.id, w.name, w.buecher.length]),
-    [
-      ['w1', 'Nebelreich', 2],
-      ['w2', 'Mooshalde', 1],
-    ],
-  );
-});
-
-pruefe('der Name kommt vom ältesten Band', () => {
-  /*
-   * Die Reihenfolge in der Eingabeliste darf nicht entscheiden – sonst hiesse
-   * dieselbe Welt je nach Sortierung anders.
-   */
-  const alt = band({ worldId: 'w', worldName: 'Zuerst', createdAt: 100 });
-  const jung = band({ worldId: 'w', worldName: 'Später', createdAt: 900 });
-  assert.equal(weltenVon([jung, alt])[0].name, 'Zuerst');
-  assert.equal(weltenVon([alt, jung])[0].name, 'Zuerst');
-});
-
-pruefe('eine Welt ohne Namen bekommt den Titel ihres Bandes', () => {
-  const namenlos = band({ worldId: 'w', worldName: '   ', title: 'Die Chroniken' });
-  assert.equal(weltenVon([namenlos])[0].name, 'Die Chroniken');
-});
-
-pruefe('geteilte Welten stehen oben', () => {
-  const welten = weltenVon([
-    band({ worldId: 'einsam', worldName: 'Einsam' }),
-    band({ worldId: 'geteilt', worldName: 'Geteilt' }),
-    band({ worldId: 'geteilt', worldName: 'Geteilt' }),
-  ]);
-  assert.equal(welten[0].id, 'geteilt');
-});
-
-/* =======================================================================
- * 5 · DIE ZEILE UNTER DEM BUCH
- * ==================================================================== */
-
-console.log('\n5 · Die Zeile unter dem Buch');
-
-pruefe('ein einzelner Band zeigt keine Welt', () => {
-  /*
-   * „Jedes Buch hat eine Welt" ist keine Auskunft. Erst der zweite Band macht
-   * die Zeile zu einer Aussage.
-   */
-  const allein = band({ worldId: 'w', worldName: 'Nebelreich' });
-  assert.equal(weltzeileFuer(allein, [allein]), undefined);
-  assert.equal(weltzeileFuer(allein, [allein, band({ worldId: 'anders' })]), undefined);
-});
-
-pruefe('zwei Bände derselben Welt zeigen sie beide', () => {
-  const a = band({ worldId: 'w', worldName: 'Nebelreich', art: 'artbook' });
-  const b = band({ worldId: 'w', worldName: 'Nebelreich', art: 'rpg' });
-  const alle = [a, b];
-  assert.equal(weltzeileFuer(a, alle), 'Nebelreich');
-  assert.equal(weltzeileFuer(b, alle), 'Nebelreich');
-});
-
-pruefe('ein Band ohne Weltkennung zeigt nie eine Zeile', () => {
-  const ohne = band();
-  assert.equal(weltzeileFuer(ohne, [ohne, band(), band()]), undefined);
-});
+/*
+ * Die Welt wird in `welten.test.mjs` geprüft.
+ *
+ * Sie stand hier, solange sie nur eine Kennung an einem Buch war. Seit sie ein
+ * eigener Datensatz mit eigenem Namen ist, gehört sie nicht mehr in die Datei,
+ * die prüft, was ein Buch ist.
+ */
 
 console.log(`\n${geprueft} Prüfungen bestanden.\n`);

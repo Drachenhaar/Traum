@@ -14,7 +14,8 @@
  * Antwort – man würde nach etwas fragen, das es noch nicht geben kann.
  */
 
-import { BUCHARTEN, type Buchart, type Welt } from '../../lib/buchart';
+import { BUCHARTEN, type Buchart } from '../../lib/buchart';
+import type { Weltsicht } from '../../lib/welten';
 import { cx } from '../../lib/utils';
 import { ClosedBook } from '../../components/book/CoverBoard';
 import type { LibraryBook } from '../../types';
@@ -156,7 +157,7 @@ export function Weltwahl({
   onWeiter,
   onZurueck,
 }: {
-  welten: Welt[];
+  welten: Weltsicht[];
   /** Die Kennung der gewählten Welt – `undefined` heisst „eine neue". */
   gewaehlt?: string;
   onChange: (worldId: string | undefined) => void;
@@ -219,7 +220,7 @@ export function Weltwahl({
  * wirklich braucht („ach ja, *die* Welt"). Ab drei wird gezählt, weil eine
  * Aufzählung dann länger wäre als die Zeile.
  */
-function baendeZeile(welt: Welt): string {
+function baendeZeile(welt: Weltsicht): string {
   const titel = welt.buecher.map((b) => b.title?.trim()).filter(Boolean) as string[];
   if (titel.length === 1) return titel[0];
   if (titel.length === 2) return `${titel[0]} · ${titel[1]}`;

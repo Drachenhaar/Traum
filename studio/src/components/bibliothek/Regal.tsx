@@ -30,9 +30,9 @@
 
 import { ClosedBook } from '../book/CoverBoard';
 import { Mehr, type MehrEintrag } from '../ui/Mehr';
-import { weltzeileFuer } from '../../lib/buchart';
+import { weltzeileFuer } from '../../lib/welten';
 import { cx } from '../../lib/utils';
-import type { LibraryBook } from '../../types';
+import type { LibraryBook, StoredWelt } from '../../types';
 
 /* ------------------------------------------------------------- Das Mass ---- */
 
@@ -96,6 +96,7 @@ function streuung(id: string): number {
 export function Regal({
   buecher,
   alle,
+  welten,
   onOeffnen,
   aktionen,
   gedaempft,
@@ -103,6 +104,8 @@ export function Regal({
   buecher: LibraryBook[];
   /** Alle Bände – gebraucht, um zu wissen, ob eine Welt geteilt wird. */
   alle: LibraryBook[];
+  /** Die Welten mit ihren Namen. Fehlen sie, leiht sich jede ihren Namen. */
+  welten: StoredWelt[];
   onOeffnen: (buch: LibraryBook) => void;
   aktionen: (buch: LibraryBook) => MehrEintrag[];
   gedaempft?: boolean;
@@ -145,6 +148,7 @@ export function Regal({
           key={b.id}
           buch={b}
           alle={alle}
+          welten={welten}
           vorderstes={i === 0 && !gedaempft}
           onOeffnen={() => onOeffnen(b)}
           aktionen={aktionen(b)}
@@ -159,12 +163,14 @@ export function Regal({
 function Band({
   buch,
   alle,
+  welten,
   vorderstes,
   onOeffnen,
   aktionen,
 }: {
   buch: LibraryBook;
   alle: LibraryBook[];
+  welten: StoredWelt[];
   vorderstes?: boolean;
   onOeffnen: () => void;
   aktionen: MehrEintrag[];
@@ -181,7 +187,7 @@ function Band({
   const hoehe = vorderstes ? HOCH : Math.round(HOCH * (0.88 + s * 0.11));
   const neigung = vorderstes ? 0 : (s - 0.5) * 3;
 
-  const welt = weltzeileFuer(buch, alle);
+  const welt = weltzeileFuer(buch, alle, welten);
 
   return (
     <div className="flex h-full flex-col">

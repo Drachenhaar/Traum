@@ -18,7 +18,8 @@ import { useStudio } from '../../store/useStudio';
 import { neuesBuch } from '../../lib/bibliothek';
 import { BUCH_TEXTE } from '../../lib/bookTexts';
 import { ABSICHTEN, profilAus, profilVon, type Absicht } from '../../lib/profil';
-import { waehlbareWelten, type Buchart } from '../../lib/buchart';
+import type { Buchart } from '../../lib/buchart';
+import { waehlbareWelten } from '../../lib/welten';
 import { deskStyle } from '../../lib/textures';
 import { cx } from '../../lib/utils';
 import { ClosedBook } from '../../components/book/CoverBoard';
@@ -101,7 +102,11 @@ export function Geburt({ onFertig, modus = 'geburt' }: { onFertig: (buchId?: str
    * einer Stelle entscheidbar.
    */
   const buecher = useStudio((s) => s.books);
-  const welten = useMemo(() => waehlbareWelten(buecher), [buecher]);
+  const weltensammlung = useStudio((s) => s.welten);
+  const welten = useMemo(
+    () => waehlbareWelten(buecher, weltensammlung),
+    [buecher, weltensammlung],
+  );
   const folge = szenenFolge(modus, welten.length);
 
   /*

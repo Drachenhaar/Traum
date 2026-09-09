@@ -18,6 +18,7 @@ import {
   VolumeX,
 } from 'lucide-react';
 import { useStudio } from '../store/useStudio';
+import { weltVon } from '../lib/welten';
 import { alleStill } from '../lib/atmosphaere';
 import { Modal } from '../components/ui/Modal';
 import { confirm } from '../components/ui/Confirm';
@@ -38,6 +39,32 @@ import {
 
 export function SettingsPage() {
   const settings = useStudio((s) => s.settings);
+  const buecher = useStudio((s) => s.books);
+  const weltenSammlung = useStudio((s) => s.welten);
+  const benenneWelt = useStudio((s) => s.benenneWelt);
+  const aktivesBuch = useStudio((s) => s.books.find((b) => b.id === s.activeBookId));
+
+  /*
+   * Was im Feld steht, was darunter steht, und wohin das Tippen geht.
+   *
+   * `weltFeld` ist bewusst der *rohe* Name und nicht der geliehene: Stuende
+   * der geliehene im Feld, sähe es aus, als sei die Welt bereits benannt –
+   * und wer ihn stehen liesse, hätte den Buchtitel als Weltnamen
+   * festgeschrieben, ohne es zu wollen.
+   */
+  const weltId = aktivesBuch?.worldId;
+  const gespeicherteWelt = weltenSammlung.find((w) => w.id === weltId);
+  const weltFeld = weltId ? (gespeicherteWelt?.name ?? '') : (settings.worldName ?? '');
+  const weltsicht = aktivesBuch ? weltVon(aktivesBuch, buecher, weltenSammlung) : undefined;
+  const weltPlatzhalter = weltId ? (weltsicht?.name ?? 'Dragoncore') : 'Dragoncore';
+  const geschwister = (weltsicht?.buecher.length ?? 1) - 1;
+  const weltHinweis = !weltId
+    ? undefined
+    : geschwister > 0
+      ? `Diese Welt trägt ${geschwister === 1 ? 'noch einen Band' : `noch ${geschwister} Bände`}. Der Name gilt für alle.`
+      : weltsicht && !weltsicht.benannt
+        ? 'Noch ohne eigenen Namen – gezeigt wird der Titel dieses Buches.'
+        : undefined;
   const entries = useStudio((s) => s.entries);
   const images = useStudio((s) => s.images);
   const relations = useStudio((s) => s.relations);
@@ -185,12 +212,30 @@ export function SettingsPage() {
           Name und Leitsatz erscheinen in der Seitenleiste, im Weltbuch und im Story-Modus.
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
+          {/*
+            Der Name gehoert der Welt, nicht dem Band.
+
+            Vorher schrieb dieses Feld in `settings.worldName` – und das ist
+            eine Einstellung *dieses Buches*. Sobald zwei Baende dieselbe Welt
+            teilen, koennte sie damit in dem einen anders heissen als in dem
+            anderen: dieselbe Welt unter zwei Namen, und keiner davon falsch.
+
+            Traegt der Band eine Weltkennung, schreibt das Feld deshalb an die
+            Welt. Ein Bestandsbuch ohne Kennung behaelt den alten Weg – ihm
+            eine Welt anzudichten waere eine Behauptung ueber ein Buch, das
+            jemand anders gemeint hat.
+          */}
           <Field label="Name der Welt">
             <TextInput
-              value={settings.worldName ?? ''}
-              onChange={(e) => updateSettings({ worldName: e.target.value })}
-              placeholder="Dragoncore"
+              value={weltFeld}
+              onChange={(e) =>
+                weltId
+                  ? void benenneWelt(weltId, e.target.value)
+                  : updateSettings({ worldName: e.target.value })
+              }
+              placeholder={weltPlatzhalter}
             />
+            {weltHinweis && <p className="mt-1.5 text-[13px] text-ink-faint">{weltHinweis}</p>}
           </Field>
           <Field label="Leitsatz">
             <TextInput

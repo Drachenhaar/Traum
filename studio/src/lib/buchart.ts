@@ -155,86 +155,11 @@ export function artOderVorschlag(buch: LibraryBook | undefined): Buchart {
   return buchartVon(buch) ?? vorschlagFuer(buch);
 }
 
-/* ------------------------------------------------------------ Die Welt ---- */
-
-/**
- * Gehören diese beiden Bände zur selben Welt?
+/*
+ * Die Welt steht jetzt in `lib/welten.ts`.
  *
- * Die Frage sieht trivial aus und ist es nicht: Ein Band ohne `worldId` teilt
- * seine Welt mit **niemandem**, auch nicht mit einem anderen Band ohne
- * `worldId`. Zwei Unbekannte sind nicht dasselbe. Ohne diese Zeile wären in
- * einer Bibliothek aus Bestandsbüchern plötzlich alle miteinander verwandt.
+ * Sie hat hier gewohnt, solange sie nur eine Kennung an einem Buch war. Seit
+ * sie ein eigener Datensatz mit eigenem Namen ist, ist sie die Ebene *über*
+ * dem Buch und keine Eigenschaft davon – und dann gehört sie nicht in die
+ * Datei, die beschreibt, was ein Buch ist.
  */
-export function selbeWelt(a: LibraryBook | undefined, b: LibraryBook | undefined): boolean {
-  return !!a?.worldId && !!b?.worldId && a.worldId === b.worldId;
-}
-
-/**
- * Die Welten einer Bibliothek – jede mit ihren Bänden.
- *
- * Nach Anzahl der Bände sortiert, damit die geteilten oben stehen; bei
- * Gleichstand nach dem Namen, damit die Reihenfolge nicht wackelt.
- *
- * Der Name einer Welt ist der `worldName` ihres ältesten Bandes. Das ist eine
- * Behelfslösung mit Ablaufdatum: Solange die Welt kein eigener Datensatz ist,
- * hat sie keinen eigenen Namen, und der erste Band, der sie eröffnet hat, hat
- * ihn am ehesten gemeint.
- */
-export interface Welt {
-  id: string;
-  name: string;
-  buecher: LibraryBook[];
-}
-
-export function weltenVon(buecher: LibraryBook[]): Welt[] {
-  const nach = new Map<string, LibraryBook[]>();
-  for (const b of buecher) {
-    if (!b.worldId) continue;
-    const liste = nach.get(b.worldId);
-    if (liste) liste.push(b);
-    else nach.set(b.worldId, [b]);
-  }
-
-  const welten: Welt[] = [];
-  for (const [id, liste] of nach) {
-    const nachAlter = [...liste].sort((x, y) => x.createdAt - y.createdAt);
-    const name = nachAlter.find((b) => b.worldName?.trim())?.worldName?.trim();
-    welten.push({
-      id,
-      name: name || nachAlter[0].title?.trim() || 'Unbenannte Welt',
-      buecher: nachAlter,
-    });
-  }
-
-  return welten.sort((a, b) => b.buecher.length - a.buecher.length || a.name.localeCompare(b.name, 'de'));
-}
-
-/**
- * Die Welten, die zur Auswahl stehen, wenn ein neues Buch entsteht.
- *
- * Alle – auch die mit nur einem Band. Genau darum geht es ja: Ein zweiter Band
- * in einer bisher einsamen Welt ist der erste Fall, in dem die Welt überhaupt
- * etwas bedeutet.
- *
- * Archivierte Bände zählen mit. Ein Buch ins Archiv zu räumen heisst nicht,
- * seine Welt aufzugeben.
- */
-export function waehlbareWelten(buecher: LibraryBook[]): Welt[] {
-  return weltenVon(buecher);
-}
-
-/**
- * Die Weltzuordnung, die unter einem Band im Regal steht – wenn überhaupt.
- *
- * Sie erscheint **nur**, wenn mindestens ein zweiter Band dieselbe Welt teilt.
- * Steht ein Weltname unter einem einzelnen Buch, ist das eine Behauptung ohne
- * Gegenüber: Jedes Buch hat eine Welt, das sagt nichts. Erst der zweite Band
- * macht daraus eine Verbindung, und dann ist die Zeile eine Auskunft.
- */
-export function weltzeileFuer(buch: LibraryBook, alle: LibraryBook[]): string | undefined {
-  if (!buch.worldId) return undefined;
-  const geschwister = alle.filter((b) => b.id !== buch.id && b.worldId === buch.worldId);
-  if (!geschwister.length) return undefined;
-  const welt = weltenVon([buch, ...geschwister]).find((w) => w.id === buch.worldId);
-  return welt?.name;
-}

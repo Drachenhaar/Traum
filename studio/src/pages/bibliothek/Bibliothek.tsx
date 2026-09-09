@@ -45,6 +45,7 @@ const SUCHE_AB = 8;
 export function Bibliothek() {
   const navigate = useNavigate();
   const books = useStudio((s) => s.books);
+  const welten = useStudio((s) => s.welten);
   const oeffneBuch = useStudio((s) => s.oeffneBuch);
   const archiviereBuch = useStudio((s) => s.archiviereBuch);
   const dupliziereBuch = useStudio((s) => s.dupliziereBuch);
@@ -180,6 +181,7 @@ export function Bibliothek() {
                 <Regal
                   buecher={gesucht}
                   alle={books}
+                  welten={welten}
                   onOeffnen={(b) => void oeffnen(b)}
                   aktionen={aktionen}
                 />
@@ -233,6 +235,7 @@ export function Bibliothek() {
                   <Regal
                     buecher={archiv}
                     alle={books}
+                    welten={welten}
                     gedaempft
                     onOeffnen={(b) => void oeffnen(b)}
                     aktionen={aktionen}

@@ -222,6 +222,17 @@ export const backupSchema = z.object({
   /** `book` oder `library` – nur zur Erklärung, entschieden wird an `books`. */
   kind: z.string().optional(),
 
+  /*
+   * Die Welten.
+   *
+   * Dieser Eintrag ist keine Formsache. Ein Zod-Objekt **entfernt**, was es
+   * nicht kennt – ohne Fehler, ohne Meldung. Fehlte die Zeile, käme jede
+   * Sicherung ohne ihre Welten zurück, und niemand merkte es, solange keine
+   * Welt einen eigenen Namen trägt. Genau so ist der Charakterbaukasten
+   * einmal aus jeder Sicherung gefallen.
+   */
+  welten: z.array(z.record(z.unknown())).optional(),
+
   /**
    * Die Klänge, jeweils mit der Datei als Data-URL.
    *

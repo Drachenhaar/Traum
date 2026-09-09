@@ -823,6 +823,37 @@ export const EMPTY_FILTER: EntryFilter = {
   orientation: '',
 };
 
+/* ------------------------------------------------------------------- Welt */
+
+/**
+ * Eine Welt, so wie sie in der Ablage liegt.
+ *
+ * Die oberste der drei Ebenen: **Welt – Buch – Darstellung.** Mehrere Bücher
+ * können dieselbe Welt tragen; sie ist der gemeinsame Boden, auf dem ein
+ * Roman, ein Artbook und eine Kampagne stehen können, ohne einander zu sein.
+ *
+ * Bis hierher hatte eine Welt nur eine Kennung an jedem Buch und lieh sich
+ * ihren Namen beim ältesten Band, der sie eröffnet hatte. Das war eine
+ * Behelfslösung mit einem sichtbaren Preis: Unter drei Bänden derselben Welt
+ * stand dreimal „Die Chroniken des Nebelwaldes" – der Titel eines Buches, wo
+ * der Name einer Welt hingehörte.
+ *
+ * **Was hier bewusst noch nicht steht:** Einträge, Beziehungen, Bilder, Zeit,
+ * Karten. Die hängen weiterhin an `bookId`. Diese Zeile ist der Anfang der
+ * Weltebene und nicht ihr Ende – der Umzug des Bestands ist ein eigener,
+ * grösserer Schritt, und ihn hier vorwegzunehmen hiesse, ein leeres
+ * Versprechen ins Modell zu schreiben.
+ */
+export interface StoredWelt {
+  id: string;
+  /** Wie die Welt heisst. Darf leer sein – dann springt der Titel ein. */
+  name: string;
+  /** Ein Satz über sie, wie auf einem Vorsatzblatt. */
+  tagline?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 /**
  * Ein Teil des Charakterbaukastens, so wie es in der Ablage liegt.
  *

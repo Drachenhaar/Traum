@@ -26,6 +26,7 @@ import type {
   Settings,
   StoredImageMeta,
   StoredTeil,
+  StoredWelt,
   StoredKlang,
 } from '../types';
 import { emptyFields, setCustomTypes, templateFor } from '../lib/templates';
@@ -40,6 +41,7 @@ import {
   sichtbareEinstellungen,
   zerlegeAenderung,
 } from '../lib/bibliothek';
+import { heileWelt, neueWelt } from '../lib/welten';
 import { seedIfEmpty } from '../db/seed';
 import { MOOSHALDE_BUCH, mooshalde } from '../lib/beispiel/mooshalde';
 import { buildRelationIndex, makeRelation, type RelationIndex } from '../lib/relations';
@@ -80,6 +82,14 @@ interface StudioState {
    * für das aufgeschlagene Buch.
    */
   books: LibraryBook[];
+  /**
+   * Die Welten – die Ebene über den Büchern.
+   *
+   * Global wie `books` und nicht je Buch geladen: Ein Band muss wissen, wie
+   * die Welt heisst, zu der er gehört, und beim Anlegen eines weiteren Buches
+   * müssen alle zur Wahl stehen.
+   */
+  welten: StoredWelt[];
   /** Welches Buch aufgeschlagen ist. Alles unten hängt daran. */
   activeBookId?: string;
   /** Die Klänge dieses Buches. Nur die Angaben – die Dateien bleiben liegen. */
@@ -100,6 +110,8 @@ interface StudioState {
   oeffneBuch: (id: string) => Promise<void>;
   schliesseBuch: () => void;
   erstelleBuch: (patch?: Partial<LibraryBook>) => Promise<LibraryBook>;
+  /** Einer Welt einen Namen geben. Leert der Name, wird er wieder geliehen. */
+  benenneWelt: (id: string, name: string) => Promise<void>;
   archiviereBuch: (id: string, archiviert: boolean) => Promise<void>;
   dupliziereBuch: (id: string) => Promise<LibraryBook | null>;
   loescheBuch: (id: string) => Promise<void>;
@@ -456,6 +468,7 @@ export const useStudio = create<StudioState>((set, get) => {
     boards: [],
     settings: DEFAULT_SETTINGS,
     books: [],
+    welten: [],
     activeBookId: undefined,
     klaenge: [],
     karten: [],
@@ -468,10 +481,20 @@ export const useStudio = create<StudioState>((set, get) => {
 
       initPromise = (async () => {
         try {
-          const [stored, buecher] = await Promise.all([
+          const [stored, buecher, roheWelten] = await Promise.all([
             db.settings.get('settings'),
             db.books.toArray(),
+            db.welten.toArray(),
           ]);
+          /*
+           * Auch die Welten kommen geheilt herein. Sie stammen aus einer
+           * Sicherung, aus einer Wanderung, aus einer Fassung, die es noch
+           * nicht gab – was hereinkommt, ist nicht notwendigerweise das, was
+           * hinausging.
+           */
+          const welten = roheWelten
+            .map((w) => heileWelt(w))
+            .filter((w): w is StoredWelt => !!w);
           const global: Settings = stored
             ? { ...DEFAULT_SETTINGS, ...stored, nav: mergeNav(stored.nav) }
             : DEFAULT_SETTINGS;
@@ -573,6 +596,7 @@ export const useStudio = create<StudioState>((set, get) => {
             relIndex: buildRelationIndex(inhalt.relations),
             settings,
             books: buecher,
+            welten,
             activeBookId: offen?.id,
             ready: true,
           });
@@ -632,6 +656,28 @@ export const useStudio = create<StudioState>((set, get) => {
     },
 
     /**
+     * Einer Welt einen Namen geben.
+     *
+     * Ein leerer Name ist kein Fehler, sondern eine Rücknahme: Danach leiht
+     * sich die Welt ihren Namen wieder beim ältesten Band, wie vor der
+     * Benennung. Wer sich vertippt hat, soll nicht mit einem falschen Namen
+     * leben, weil das Feld sich nicht leeren lässt.
+     */
+    async benenneWelt(id, name) {
+      const sauber = name.trim();
+      const vorhanden = get().welten.find((w) => w.id === id);
+      const welt: StoredWelt = vorhanden
+        ? { ...vorhanden, name: sauber, updatedAt: Date.now() }
+        : neueWelt({ id, name: sauber });
+      await db.welten.put(welt);
+      set((s) => ({
+        welten: s.welten.some((w) => w.id === id)
+          ? s.welten.map((w) => (w.id === id ? welt : w))
+          : [...s.welten, welt],
+      }));
+    },
+
+    /**
      * Ein Buch zuklappen.
      *
      * Es bleibt aktiv – wer die Bibliothek nur ansieht und dasselbe Buch
@@ -645,7 +691,26 @@ export const useStudio = create<StudioState>((set, get) => {
     async erstelleBuch(patch = {}) {
       const buch = neuesBuch(patch);
       await db.books.put(buch);
-      set((s) => ({ books: [...s.books, buch] }));
+
+      /*
+       * Eine neue Welt bekommt ihren Datensatz, sobald das erste Buch in ihr
+       * steht – und nur dann. Wählt jemand eine *bestehende* Welt, gibt es
+       * nichts anzulegen; ein zweiter Datensatz mit derselben Kennung würde
+       * den Namen der Welt überschreiben, die man gerade betreten hat.
+       *
+       * Der Name bleibt zunächst leer. Er wird dann vom Buch geliehen, wie
+       * bisher – und genau das ist der Punkt: Diese Zeile ändert nichts an
+       * dem, was jemand sieht. Sie schafft nur die Stelle, an der ein Name
+       * stehen kann.
+       */
+      let welten = get().welten;
+      if (buch.worldId && !welten.some((w) => w.id === buch.worldId)) {
+        const welt = neueWelt({ id: buch.worldId, createdAt: buch.createdAt });
+        await db.welten.put(welt);
+        welten = [...welten, welt];
+      }
+
+      set((s) => ({ books: [...s.books, buch], welten }));
       /*
        * Jetzt gibt es etwas zu verlieren – jetzt wird gefragt.
        *
@@ -1546,10 +1611,17 @@ export const useStudio = create<StudioState>((set, get) => {
      * haben, die es beim letzten Laden noch nicht gab.
      */
     async reloadFromDb() {
-      const [gespeichert, buecher] = await Promise.all([
+      const [gespeichert, buecher, roheWelten] = await Promise.all([
         db.settings.get('settings'),
         db.books.toArray(),
+        db.welten.toArray(),
       ]);
+      /*
+       * Auch die Welten – ein Import kann welche gebracht haben, und ohne
+       * diese Zeile stuende die Bibliothek danach mit den alten Namen da,
+       * bis jemand die Seite neu laedt.
+       */
+      const welten = roheWelten.map((w) => heileWelt(w)).filter((w): w is StoredWelt => !!w);
       const global: Settings = gespeichert
         ? { ...DEFAULT_SETTINGS, ...gespeichert, nav: mergeNav(gespeichert.nav) }
         : { ...get().settings };
@@ -1566,6 +1638,7 @@ export const useStudio = create<StudioState>((set, get) => {
         relIndex: buildRelationIndex(inhalt.relations),
         settings,
         books: buecher,
+        welten,
         activeBookId: offen?.id,
       });
     },
@@ -1587,6 +1660,7 @@ export const useStudio = create<StudioState>((set, get) => {
         teile: [],
         boards: [],
         books: [],
+        welten: [],
         activeBookId: undefined,
         klaenge: [],
         karten: [],

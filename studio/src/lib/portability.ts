@@ -23,6 +23,7 @@ import { db, FRESH_SETTINGS } from '../db/db';
 import { blobToDataUrl } from './images';
 import { backupSchema, singleEntrySchema, type BackupFile } from './schemas';
 import { buchAusAltenEinstellungen } from './bibliothek';
+import { heileWelt } from './welten';
 import type {
   CanvasBoard,
   Entry,
@@ -32,6 +33,7 @@ import type {
   StoredImageMeta,
   StoredKlang,
   StoredTeil,
+  StoredWelt,
 } from '../types';
 import { bauUmschreiben } from './baukasten';
 import { heileKarte, type Kartendokument } from './karte/modell';
@@ -92,7 +94,8 @@ function auslassen<T extends object, K extends keyof T>(wert: T, schluessel: K[]
  * lässt. Wer nur einen Band weitergeben will, nimmt `buildBookBackup`.
  */
 export async function buildFullBackup(withImages: boolean): Promise<string> {
-  const [entries, relations, boards, images, settings, books, karten, teile] = await Promise.all([
+  const [entries, relations, boards, images, settings, books, karten, teile, welten] =
+    await Promise.all([
     db.entries.toArray(),
     db.relations.toArray(),
     db.boards.toArray(),
@@ -101,6 +104,7 @@ export async function buildFullBackup(withImages: boolean): Promise<string> {
     db.books.toArray(),
     db.karten.toArray(),
     db.teile.toArray(),
+    db.welten.toArray(),
   ]);
   const payload = {
     app: 'dragoncore-studio' as const,
@@ -132,6 +136,15 @@ export async function buildFullBackup(withImages: boolean): Promise<string> {
      * kein Schaden: Es kommt zurueck, sobald das Bild wieder da ist.
      */
     teile,
+    /*
+     * Die Welten – die Ebene ueber den Buechern.
+     *
+     * Ohne sie kaeme eine Bibliothek zurueck, in der jede Welt wieder namenlos
+     * ist und sich ihren Namen beim aeltesten Band leiht. Das faellt nicht auf,
+     * solange niemand umbenannt hat – und genau deshalb steht die Zeile hier
+     * und nicht spaeter.
+     */
+    welten,
     images: await packImages(images, withImages),
     /*
      * Alles ausser dem Schluessel der Zeile.
@@ -169,6 +182,7 @@ export async function buildBookBackup(bookId: string, withImages: boolean): Prom
     db.teile.where('bookId').equals(bookId).toArray(),
   ]);
   if (!buch) throw new Error('Dieses Buch steht nicht in der Bibliothek.');
+  const welt = buch.worldId ? await db.welten.get(buch.worldId) : undefined;
 
   const payload = {
     app: 'dragoncore-studio' as const,
@@ -182,6 +196,14 @@ export async function buildBookBackup(bookId: string, withImages: boolean): Prom
     boards,
     karten,
     teile,
+    /*
+     * Die Welt dieses Bandes – falls er eine hat.
+     *
+     * Ein einzelnes Buch nimmt seine Welt mit, damit ihr Name auf dem anderen
+     * Geraet nicht verlorengeht. Es nimmt **nur** seine eigene mit: Wer ein
+     * Buch weitergibt, gibt nicht seine ganze Weltensammlung weiter.
+     */
+    welten: welt ? [welt] : [],
     images: await packImages(images, withImages),
     /*
      * Keine Einstellungen. Was diesem Buch gehoert, steht im Band selbst;
@@ -322,6 +344,14 @@ export async function importBackup(
     .map((k) => heileKarte(k))
     .filter((k): k is Kartendokument => !!k);
   let teile = (data.teile ?? []) as unknown as StoredTeil[];
+  /*
+   * Die Welten kommen geheilt herein – wie alles, was von aussen kommt.
+   * Eine Welt ohne Kennung ist keine und faellt weg, statt eine Zeile ohne
+   * Schluessel in die Ablage zu schreiben.
+   */
+  const welten = ((data.welten ?? []) as unknown[])
+    .map((w) => heileWelt(w))
+    .filter((w): w is StoredWelt => !!w);
 
   /*
    * Eine Bibliothekssicherung braucht mehr als einen Band. Wer eine
@@ -463,7 +493,7 @@ export async function importBackup(
   try {
     await db.transaction(
       'rw',
-      [db.entries, db.relations, db.boards, db.images, db.imageBlobs, db.settings, db.books, db.klaenge, db.klangBlobs, db.karten, db.teile],
+      [db.entries, db.relations, db.boards, db.images, db.imageBlobs, db.settings, db.books, db.klaenge, db.klangBlobs, db.karten, db.teile, db.welten],
       async () => {
       if (mode === 'bibliothek') {
         await Promise.all([
@@ -477,6 +507,7 @@ export async function importBackup(
           db.klangBlobs.clear(),
           db.karten.clear(),
           db.teile.clear(),
+          db.welten.clear(),
         ]);
       }
       if (buecher.length && mode !== 'merge') {
@@ -491,6 +522,14 @@ export async function importBackup(
       if (boards.length) await db.boards.bulkPut(boards);
       if (karten.length) await db.karten.bulkPut(karten);
       if (teile.length) await db.teile.bulkPut(teile);
+      /*
+       * Die Welten.
+       *
+       * `bulkPut` und nicht `bulkAdd`: Beim Zusammenfuehren kann eine Welt
+       * schon dastehen, weil ein anderes Buch derselben Welt bereits hier
+       * liegt. Dann gewinnt die eingelesene – sie ist die juengere Auskunft.
+       */
+      if (welten.length) await db.welten.bulkPut(welten);
 
       for (const k of klaenge) {
         const { dataUrl, ...angaben } = k;

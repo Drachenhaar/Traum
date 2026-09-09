@@ -28,6 +28,7 @@ import type {
   StoredKlang,
   StoredKlangBlob,
   StoredTeil,
+  StoredWelt,
 } from '../types';
 import type { Kartendokument } from '../lib/karte/modell';
 import { DEFAULT_NAV } from '../lib/nav';
@@ -53,6 +54,8 @@ export class StudioDatabase extends Dexie {
   karten!: Table<Kartendokument, string>;
   /** Die Teile des Charakterbaukastens – wo ein Bild hingehört, nicht das Bild. */
   teile!: Table<StoredTeil, string>;
+  /** Die Welten – die Ebene über den Büchern. */
+  welten!: Table<StoredWelt, string>;
 
   constructor() {
     super('dragoncore-studio');
@@ -207,6 +210,53 @@ export class StudioDatabase extends Dexie {
     this.version(6).stores({
       teile: 'id, bookId, schicht, updatedAt, [bookId+schicht]',
     });
+
+    /*
+     * Fassung 7: die Welten.
+     *
+     * Bis hierher war eine Welt nur eine Kennung an jedem Buch. Sie hatte
+     * keinen Namen; angezeigt wurde der Titel des ältesten Bandes, der sie
+     * eröffnet hatte. Bei drei Bänden derselben Welt stand darunter dreimal
+     * derselbe Buchtitel, wo der Name einer Welt hingehört.
+     *
+     * Die Aufwertung legt für jede vorhandene `worldId` einen Datensatz an –
+     * und übernimmt als Namen genau das, was bisher angezeigt wurde. Das ist
+     * Absicht: **Nach dieser Aufwertung sieht niemand etwas anderes als
+     * vorher.** Sie schafft die Möglichkeit umzubenennen, nicht eine neue
+     * Beschriftung. Wer nichts tut, merkt nichts.
+     *
+     * Bücher ohne `worldId` bleiben ohne. Ihnen hier eine Welt anzudichten
+     * hiesse zu behaupten, sie gehörten zusammen – zwei Bände ohne Kennung
+     * sind zwei Unbekannte und nicht zweimal dieselbe.
+     */
+    this.version(7)
+      .stores({
+        welten: 'id, name, updatedAt',
+      })
+      .upgrade(async (tx) => {
+        const buecher = (await tx.table('books').toArray()) as LibraryBook[];
+        const jetzt = Date.now();
+
+        /* Je Welt der älteste Band – er hat den Namen bisher gestellt. */
+        const aeltester = new Map<string, LibraryBook>();
+        for (const b of buecher) {
+          if (!b.worldId) continue;
+          const bisher = aeltester.get(b.worldId);
+          if (!bisher || b.createdAt < bisher.createdAt) aeltester.set(b.worldId, b);
+        }
+
+        const welten: StoredWelt[] = [];
+        for (const [id, band] of aeltester) {
+          welten.push({
+            id,
+            name: band.worldName?.trim() || band.title?.trim() || '',
+            tagline: band.worldTagline?.trim() || undefined,
+            createdAt: band.createdAt ?? jetzt,
+            updatedAt: jetzt,
+          });
+        }
+        if (welten.length) await tx.table('welten').bulkPut(welten);
+      });
   }
 }
 
@@ -255,6 +305,7 @@ export async function wipeDatabase(): Promise<void> {
       db.klangBlobs,
       db.karten,
       db.teile,
+      db.welten,
     ],
     async () => {
       await Promise.all([
@@ -270,6 +321,7 @@ export async function wipeDatabase(): Promise<void> {
         db.klangBlobs.clear(),
         db.karten.clear(),
         db.teile.clear(),
+        db.welten.clear(),
       ]);
       await db.settings.put({ ...FRESH_SETTINGS });
     },
