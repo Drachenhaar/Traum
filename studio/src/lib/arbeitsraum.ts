@@ -102,7 +102,7 @@ export const ARBEITSRAEUME: Record<Buchart, Arbeitsraum> = {
     id: 'werkstatt',
     name: 'Werkstatt',
     leer: 'Eine Welt zum Bespielen – sie beginnt mit einem von vier Dingen.',
-    eingang: '/anhang',
+    eingang: '/tisch',
     anfaenge: [
       { titel: 'Charakter erstellen', ziel: '/baukasten' },
       { titel: 'Weltkarte beginnen', ziel: '/weltkarte' },

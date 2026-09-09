@@ -8,7 +8,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { HashRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
-import { BookShell } from './components/book/BookShell';
+import { Arbeitsraum } from './components/arbeitsraum/Arbeitsraum';
 import { schlageBandAuf } from './lib/baende';
 import { Cover } from './components/book/Cover';
 import { ForewordSpread } from './pages/book/ForewordSpread';
@@ -46,6 +46,7 @@ import { MeinBuchSheet } from './pages/book/MeinBuch';
 import { Geburt } from './pages/geburt/Geburt';
 import { Onboarding } from './pages/onboarding/Onboarding';
 import { Bibliothek } from './pages/bibliothek/Bibliothek';
+import { Tisch } from './pages/arbeitsraum/Tisch';
 import { useStudio } from './store/useStudio';
 import { profilVon } from './lib/profil';
 import { Schauseiten } from './pages/onboarding/Schauseiten';
@@ -202,7 +203,17 @@ export default function App() {
         <Route path="/bibliothek" element={<Bibliothek />} />
         <Route path="/neues-buch" element={<NeuesBuch />} />
 
-        <Route element={<BookShell />}>
+        {/*
+          Die Hülle wird nicht mehr fest gewählt, sondern von der Buchart.
+
+          Dieselben Adressen, ein anderer Raum darum: ein Roman schreibt sich
+          in einem Manuskript, ein Rollenspielband liegt auf einem Tisch, ein
+          Artbook bleibt der Buchkörper. Siehe
+          `components/arbeitsraum/Arbeitsraum.tsx`.
+        */}
+        <Route element={<Arbeitsraum />}>
+          {/* Der Tisch – die erste Seite eines Rollenspielbandes. */}
+          <Route path="/tisch" element={<Tisch />} />
           {/* Die Besitzseite steht vor dem Vorwort – die erste Seite des Bandes. */}
           <Route path="/besitz" element={<OwnershipSpread />} />
           <Route path="/mein-buch" element={<MeinBuchSheet />} />

@@ -166,7 +166,7 @@ pruefe('ohne Art und ohne Lesebändchen bleibt es beim alten Weg', () => {
 pruefe('mit Art führt der erste Weg in den Raum', () => {
   assert.equal(eingangFuer('novel', undefined), '/roman');
   assert.equal(eingangFuer('artbook', undefined), '/inhalt');
-  assert.equal(eingangFuer('rpg', undefined), '/anhang');
+  assert.equal(eingangFuer('rpg', undefined), '/tisch');
 });
 
 pruefe('das Lesebändchen schlägt den Eingang', () => {
