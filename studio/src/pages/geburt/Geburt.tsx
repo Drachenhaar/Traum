@@ -17,8 +17,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useStudio } from '../../store/useStudio';
 import { neuesBuch } from '../../lib/bibliothek';
 import { BUCH_TEXTE } from '../../lib/bookTexts';
-import { ABSICHTEN, profilAus, profilVon, type Absicht } from '../../lib/profil';
-import type { Buchart } from '../../lib/buchart';
+import { profilAus } from '../../lib/profil';
+import { absichtFuer, type Buchart } from '../../lib/buchart';
 import { waehlbareWelten } from '../../lib/welten';
 import { deskStyle } from '../../lib/textures';
 import { cx } from '../../lib/utils';
@@ -37,37 +37,36 @@ const T = BUCH_TEXTE.geburt;
  * Absichtlich eine schlichte Liste: Sie ist die einzige Stelle, an der die
  * Abfolge steht. Eine weitere Szene ist ein Eintrag hier und ein Fall unten.
  */
-const SZENEN = [
-  'anfang',
-  'art',
-  'welt',
-  'einband',
-  'titel',
-  'zeichen',
-  'ausrichtung',
-  'vollendet',
-] as const;
+const SZENEN = ['anfang', 'art', 'welt', 'einband', 'titel', 'zeichen', 'vollendet'] as const;
 type Szene = (typeof SZENEN)[number];
 
 /**
  * Welche Szenen dieser Anlass durchläuft.
- *
- * Zwei Szenen fallen je nach Lage heraus, und beide aus demselben Grund: Eine
- * Frage, die nur eine mögliche Antwort hat, ist keine Frage.
- *
- * **Die Ausrichtung** wird nur beim *weiteren* Buch gefragt. Beim ersten hat
- * das Onboarding sie schon erfragt – ein zweites Mal danach zu fragen waere
- * Formularlogik, nicht Zeremonie.
  *
  * **Die Welt** wird nur gefragt, wenn es eine zu wählen gibt. Beim allerersten
  * Buch einer Bibliothek gibt es keine bestehende Welt; die Szene fiele auf
  * „Eine neue Welt" und sonst nichts zusammen, und dann fragt man besser gar
  * nicht. Beim Neubinden entfällt sie ebenfalls: Das Buch hat seine Welt
  * längst, und der Einband wechselt sie nicht.
+ *
+ * ---
+ *
+ * **Was hier einmal stand: die Ausrichtung.**
+ *
+ * Eine Szene mit sechs Absichten – „Ich möchte eine Geschichte und ihre Welt
+ * erschaffen", „Ich möchte meine Welt vor allem sehen" –, gefragt beim
+ * zweiten und jedem weiteren Buch. Sie ist gefallen, weil zwei Szenen vorher
+ * bereits „Was möchtest du erstellen?" steht und dieselbe Frage stellt, nur
+ * kürzer und mit Folgen: Die Art entscheidet über den Arbeitsraum, die
+ * Absicht nur über die Reihenfolge der Werkzeuge.
+ *
+ * Das Profil ist damit nicht verschwunden, es wird abgeleitet – und wer es
+ * anders will, stellt es in „Mein Buch" um. Eine App wird nicht dadurch
+ * weniger verwirrend, dass man die Fragen besser stellt, sondern dadurch,
+ * dass man weniger stellt.
  */
 function szenenFolge(modus: Modus, welten: number): readonly Szene[] {
   return SZENEN.filter((s) => {
-    if (s === 'ausrichtung') return modus === 'weiterer';
     if (s === 'welt') return modus !== 'neubinden' && welten > 0;
     return true;
   });
@@ -179,6 +178,16 @@ export function Geburt({ onFertig, modus = 'geburt' }: { onFertig: (buchId?: str
        * fuer Feld abgeschrieben.
        */
       art: entwurf.art,
+      /*
+       * Das Profil aus der Art.
+       *
+       * Es ordnet die Werkzeuge und faltet, was selten gebraucht wird – und
+       * es wurde bis hierher eigens erfragt. Jetzt folgt es der Art: ein
+       * Roman erscheint sanft und als Buch, eine Kampagne tief. Ein Buch, das
+       * bereits ein Profil hat (Neubinden), behält es; hier wird nichts
+       * überschrieben, was jemand einmal ausdrücklich gesetzt hat.
+       */
+      profil: entwurf.profil ?? profilAus(absichtFuer(entwurf.art)),
       title: entwurf.title.trim() || 'Mein Buch',
       subtitle: entwurf.subtitle?.trim() ?? '',
       coverMaterial: entwurf.coverMaterial,
@@ -296,17 +305,6 @@ export function Geburt({ onFertig, modus = 'geburt' }: { onFertig: (buchId?: str
                 vollendenLabel={weiterer ? T.weiter : worteEnde.knopf}
               />
             )}
-            {szene === 'ausrichtung' && (
-              <Ausrichtungswahl
-                gewaehlt={entwurf.profil?.absicht}
-                onChange={(absicht) =>
-                  aendern({ profil: absicht ? profilAus(absicht, profilVon(entwurf)) : undefined })
-                }
-                onZurueck={zurueck}
-                onVollenden={vollenden}
-                vollendenLabel={worteEnde.knopf}
-              />
-            )}
             {szene === 'vollendet' && (
               <Vollendet
                 onOeffnen={() => {
@@ -363,84 +361,6 @@ function Anfang({
         </p>
       </div>
     </button>
-  );
-}
-
-/* --------------------------------------------------- Szene: Ausrichtung ---- */
-
-/**
- * Wovon das Buch handelt.
- *
- * Die einzige Szene mit einem ausdrücklichen „egal“, und das ist Absicht:
- * Diese Wahl darf niemanden aufhalten. Sie schaltet nichts frei und nichts
- * ab – sie entscheidet über Beispiele und erste Vorschläge, sonst nichts.
- * Wäre es mehr, wären aus einem Buch fünf Programme geworden.
- */
-function Ausrichtungswahl({
-  gewaehlt,
-  onChange,
-  onZurueck,
-  onVollenden,
-  vollendenLabel,
-}: {
-  gewaehlt?: Absicht;
-  onChange: (absicht: Absicht | undefined) => void;
-  onZurueck: () => void;
-  onVollenden: () => void;
-  vollendenLabel: string;
-}) {
-  return (
-    <div>
-      <SzenenFrage frage={T.ausrichtung.frage} hinweis={T.ausrichtung.hinweis} />
-
-      <div className="mx-auto grid max-w-md gap-1.5">
-        {ABSICHTEN.map((a) => (
-          <button
-            key={a.id}
-            type="button"
-            onClick={() => onChange(gewaehlt === a.id ? undefined : a.id)}
-            className={cx(
-              'rounded-[3px] border px-4 py-3 text-left transition-colors no-tap-highlight',
-              gewaehlt === a.id
-                ? 'border-gild-500/50 bg-gild-400/10'
-                : 'border-paper-400/15 hover:border-gild-500/30',
-            )}
-          >
-            <p className="font-serif text-[15.5px] text-paper-200/90">{a.satz}</p>
-            <p className="mt-0.5 font-serif text-[12.5px] italic leading-snug text-paper-400/45">
-              {a.zeile}
-            </p>
-          </button>
-        ))}
-        <button
-          type="button"
-          onClick={() => onChange(undefined)}
-          className={cx(
-            'mt-1 min-h-[40px] font-serif text-[13px] italic transition-colors no-tap-highlight',
-            gewaehlt ? 'text-paper-400/40 hover:text-gold-hell' : 'text-gild-500/70',
-          )}
-        >
-          {T.ausrichtung.ohne}
-        </button>
-      </div>
-
-      <div className="mt-7 flex items-center justify-center gap-5">
-        <button
-          type="button"
-          onClick={onZurueck}
-          className="min-h-[44px] font-serif text-[13.5px] italic text-paper-400/45 transition-colors hover:text-paper-300 no-tap-highlight"
-        >
-          {T.zurueck}
-        </button>
-        <button
-          type="button"
-          onClick={onVollenden}
-          className="inline-flex min-h-[46px] items-center rounded-full border border-gild-500/35 px-7 font-serif text-[15px] text-gild-300 transition-colors duration-300 hover:border-gild-400/70 no-tap-highlight"
-        >
-          {vollendenLabel}
-        </button>
-      </div>
-    </div>
   );
 }
 

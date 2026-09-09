@@ -37,16 +37,30 @@ function wahr(was, bedingung, hinweis = '') {
 
 console.log('\n1 Der Pflichtweg');
 
+/*
+ * Zwei Abschnitte, nicht drei.
+ *
+ * Es waren einmal vier (mit der Führung), dann drei, jetzt zwei: Die
+ * Absichtsfrage ist gefallen, weil die Erschaffung zwei Bilder später fast
+ * dasselbe fragte. Die Zahl steht hier, damit ein Abschnitt nicht unbemerkt
+ * zurückkehrt – jeder verlängert den Weg jedes Menschen bis zu seinem ersten
+ * eigenen Wort.
+ */
 wahr(
-  `  drei Abschnitte, nicht vier (${W.PFLICHTWEG.join(' → ')})`,
-  W.PFLICHTWEG.length === 3,
+  `  zwei Abschnitte, nicht drei (${W.PFLICHTWEG.join(' → ')})`,
+  W.PFLICHTWEG.length === 2,
 );
 wahr(
   '  und die Führung ist keiner davon',
   !W.PFLICHTWEG.includes('fuehrung'),
   'sie stand einmal zwischen Buch und erstem Wort',
 );
-wahr('  er beginnt bei der Absicht', W.PFLICHTWEG[0] === 'absicht');
+wahr('  er beginnt beim Buch', W.PFLICHTWEG[0] === 'buch');
+wahr(
+  '  und die Absicht wird nicht mehr gefragt',
+  !W.PFLICHTWEG.includes('absicht'),
+  'sie wird jetzt aus der Buchart abgeleitet',
+);
 wahr('  und endet beim eigenen Anfang', W.PFLICHTWEG.at(-1) === 'anfang');
 
 /*
@@ -57,9 +71,9 @@ wahr('  und endet beim eigenen Anfang', W.PFLICHTWEG.at(-1) === 'anfang');
  * Test bliebe grün.
  */
 {
-  const gelaufen = ['absicht'];
-  let jetzt = 'absicht';
-  for (const was of ['gewaehlt', 'gebunden']) {
+  const gelaufen = ['buch'];
+  let jetzt = 'buch';
+  for (const was of ['gebunden']) {
     jetzt = W.naechsterAbschnitt(jetzt, was);
     gelaufen.push(jetzt);
   }
@@ -95,7 +109,7 @@ wahr(
 /* Von der Führung aus kommt man nirgends anders hin. */
 wahr(
   '  aus der Führung heraus gibt es keinen anderen Ausgang',
-  ['gewaehlt', 'gebunden', 'fuehrungGewuenscht'].every(
+  ['gebunden', 'fuehrungGewuenscht'].every(
     (was) => W.naechsterAbschnitt('fuehrung', was) === 'fuehrung',
   ),
 );
@@ -112,9 +126,26 @@ console.log('\n3 Was nichts tut');
 
 wahr(
   '  ein fremdes Ereignis bewegt nichts',
-  W.naechsterAbschnitt('absicht', 'gebunden') === 'absicht' &&
-    W.naechsterAbschnitt('buch', 'gewaehlt') === 'buch' &&
-    W.naechsterAbschnitt('anfang', 'gebunden') === 'anfang',
+  W.naechsterAbschnitt('buch', 'fuehrungFertig') === 'buch' &&
+    W.naechsterAbschnitt('anfang', 'gebunden') === 'anfang' &&
+    W.naechsterAbschnitt('fuehrung', 'gebunden') === 'fuehrung',
+);
+
+/*
+ * Und ein abgeschaffter Abschnitt bleibt abgeschafft.
+ *
+ * `naechsterAbschnitt` gibt bei allem Unbekannten den Abschnitt zurück, den
+ * es bekommen hat – „absicht" hinein, „absicht" heraus. Das sähe wie ein
+ * gültiger Zustand aus. Geprüft wird deshalb, dass aus dem *Pflichtweg*
+ * heraus niemand dorthin gelangt.
+ */
+wahr(
+  '  in die Absichtsfrage führt kein Weg mehr',
+  ['buch', 'fuehrung', 'anfang'].every((von) =>
+    ['gebunden', 'fuehrungGewuenscht', 'fuehrungFertig'].every(
+      (was) => W.naechsterAbschnitt(von, was) !== 'absicht',
+    ),
+  ),
 );
 
 /*
@@ -126,8 +157,8 @@ wahr(
  * in „Mein Buch".
  */
 {
-  const alle = ['absicht', 'buch', 'fuehrung', 'anfang'];
-  const ereignisse = ['gewaehlt', 'gebunden', 'fuehrungGewuenscht', 'fuehrungFertig'];
+  const alle = ['buch', 'fuehrung', 'anfang'];
+  const ereignisse = ['gebunden', 'fuehrungGewuenscht', 'fuehrungFertig'];
   const rueckwaerts = [];
   for (const von of alle) {
     for (const was of ereignisse) {

@@ -144,6 +144,34 @@ export function vorschlagFuer(buch: Pick<LibraryBook, 'profil' | 'weg'> | undefi
 }
 
 /**
+ * Die Absicht, die zu einer Art gehört – die Gegenrichtung.
+ *
+ * Sie wird gebraucht, weil Dragoncore **zweimal fast dasselbe gefragt hat**:
+ * „Was möchtest du erschaffen?" mit sechs Absichten, und gleich danach „Was
+ * möchtest du erstellen?" mit drei Arten. Zwei fast gleiche Fragen
+ * hintereinander sind genau die Verwirrung, gegen die dieser Umbau antritt.
+ *
+ * Aufgelöst wird sie in diese Richtung: **Die Art ist die Frage, die Absicht
+ * ist die Ableitung.** Die Art entscheidet über den Arbeitsraum und ist damit
+ * die folgenreichere; das Profil ordnet nur Werkzeuge und lässt sich in „Mein
+ * Buch" jederzeit ändern.
+ *
+ * Die Zuordnung ist absichtlich nicht die Umkehrung von `AUS_ABSICHT`: Diese
+ * ist nicht umkehrbar (zwei Absichten führen auf `artbook`, zwei auf `rpg`).
+ * Gewählt wird je Art die Absicht, deren Tiefe und Anmutung am besten passt –
+ * ein Roman soll sanft und als Buch erscheinen, eine Kampagne tief.
+ */
+const ZUR_ABSICHT: Record<Buchart, Absicht> = {
+  novel: 'erzaehlen',
+  artbook: 'zeigen',
+  rpg: 'spiel',
+};
+
+export function absichtFuer(art: Buchart | undefined): Absicht {
+  return art ? ZUR_ABSICHT[art] : 'frei';
+}
+
+/**
  * Die Art, die gilt – gewählt, sonst vorgeschlagen.
  *
  * Für alles, was *irgendeine* Antwort braucht und keine Oberfläche umschaltet:

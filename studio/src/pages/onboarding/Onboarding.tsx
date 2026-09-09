@@ -33,33 +33,28 @@
 import { useState } from 'react';
 import type { EntryType } from '../../types';
 import { useStudio } from '../../store/useStudio';
-import { profilAus, type Absicht } from '../../lib/profil';
+import { profilVon } from '../../lib/profil';
 import { naechsterAbschnitt, type Abschnitt } from '../../lib/onboarding/weg';
 import { Geburt } from '../geburt/Geburt';
-import { Absichtsfrage } from './Absichtsfrage';
 import { Schauseiten } from './Schauseiten';
 import { ErsterSchritt } from './ErsterSchritt';
 
 export function Onboarding({ onFertig }: { onFertig: (ziel?: string) => void }) {
-  const updateSettings = useStudio((s) => s.updateSettings);
   const createEntry = useStudio((s) => s.createEntry);
-  const [abschnitt, setAbschnitt] = useState<Abschnitt>('absicht');
-  const [absicht, setAbsicht] = useState<Absicht>('frei');
+  const [abschnitt, setAbschnitt] = useState<Abschnitt>('buch');
+
+  /*
+   * Die Absicht kommt jetzt aus dem Buch, das gerade entstanden ist.
+   *
+   * Vorher stand hier eine eigene Frage davor – und gleich danach fragte die
+   * Erschaffung noch einmal fast dasselbe. Die Art des Buches beantwortet
+   * beides; das Profil wird beim Vollenden daraus abgeleitet. Die Führung
+   * liest es hier nur ab.
+   */
+  const absicht = useStudio((s) => profilVon(s.settings.book).absicht);
 
   const weiter = (was: Parameters<typeof naechsterAbschnitt>[1]) =>
     setAbschnitt((jetzt) => naechsterAbschnitt(jetzt, was));
-
-  if (abschnitt === 'absicht') {
-    return (
-      <Absichtsfrage
-        onWahl={(gewaehlt) => {
-          setAbsicht(gewaehlt);
-          updateSettings({ profil: profilAus(gewaehlt) });
-          weiter('gewaehlt');
-        }}
-      />
-    );
-  }
 
   if (abschnitt === 'buch') {
     return <Geburt onFertig={() => weiter('gebunden')} />;
