@@ -33,6 +33,7 @@ import { ClosedBook } from '../../components/book/CoverBoard';
 import { Mehr, type MehrEintrag } from '../../components/ui/Mehr';
 import { confirm } from '../../components/ui/Confirm';
 import { imArchiv, imRegal, zuletztOffen } from '../../lib/bibliothek';
+import { buchartById, buchartVon, weltzeileFuer } from '../../lib/buchart';
 import { deskStyle } from '../../lib/textures';
 import { cx, downloadFile } from '../../lib/utils';
 import { backupFileName, buildBookBackup } from '../../lib/portability';
@@ -175,7 +176,14 @@ export function Bibliothek() {
               </label>
             )}
 
-            {vorn && <Vorderstes buch={vorn} onOeffnen={() => void oeffnen(vorn)} aktionen={aktionen(vorn)} />}
+            {vorn && (
+              <Vorderstes
+                buch={vorn}
+                alle={books}
+                onOeffnen={() => void oeffnen(vorn)}
+                aktionen={aktionen(vorn)}
+              />
+            )}
 
             {hinten.length > 0 && (
               <section className="mt-12">
@@ -185,6 +193,7 @@ export function Bibliothek() {
                     <ImRegal
                       key={b.id}
                       buch={b}
+                      alle={books}
                       onOeffnen={() => void oeffnen(b)}
                       aktionen={aktionen(b)}
                     />
@@ -242,6 +251,7 @@ export function Bibliothek() {
                       <ImRegal
                         key={b.id}
                         buch={b}
+                        alle={books}
                         gedaempft
                         onOeffnen={() => void oeffnen(b)}
                         aktionen={aktionen(b)}
@@ -302,14 +312,57 @@ function BeispielZeile() {
   );
 }
 
+/* --------------------------------------------------------- Die Bandzeile --- */
+
+/**
+ * Was ein Band unter seinem Titel von sich sagt: seine Art, und seine Welt.
+ *
+ * Beide erscheinen nur, wenn sie etwas bedeuten.
+ *
+ * **Die Art** steht nur da, wenn sie gewählt wurde. Ein Bestandsbuch ohne Art
+ * bekommt hier kein geratenes Wort untergeschoben – lieber nichts als eine
+ * Behauptung über ein Buch, das jemand anders gemeint hat.
+ *
+ * **Die Welt** steht nur da, wenn ein zweiter Band sie teilt. „Jedes Buch hat
+ * eine Welt" ist keine Auskunft; erst die geteilte Welt ist eine.
+ */
+function Bandzeile({
+  buch,
+  alle,
+  klein,
+}: {
+  buch: LibraryBook;
+  alle: LibraryBook[];
+  klein?: boolean;
+}) {
+  const art = buchartById(buchartVon(buch));
+  const welt = weltzeileFuer(buch, alle);
+  if (!art && !welt) return null;
+
+  return (
+    <p
+      className={cx(
+        'mt-1.5 truncate font-sans uppercase tracking-[0.14em] text-gild-500/55',
+        klein ? 'text-[9.5px]' : 'text-[10.5px]',
+      )}
+    >
+      {art?.name}
+      {art && welt && <span className="mx-1.5 text-paper-400/30">·</span>}
+      {welt && <span className="normal-case tracking-normal text-paper-400/45">{welt}</span>}
+    </p>
+  );
+}
+
 /* ------------------------------------------------------- Das vorderste ---- */
 
 function Vorderstes({
   buch,
+  alle,
   onOeffnen,
   aktionen,
 }: {
   buch: LibraryBook;
+  alle: LibraryBook[];
   onOeffnen: () => void;
   aktionen: MehrEintrag[];
 }) {
@@ -339,7 +392,8 @@ function Vorderstes({
             </p>
           )}
         </button>
-        <p className="mt-3 font-serif text-[12.5px] text-paper-400/40">{zuletztOffen(buch)}</p>
+        <Bandzeile buch={buch} alle={alle} />
+        <p className="mt-2 font-serif text-[12.5px] text-paper-400/40">{zuletztOffen(buch)}</p>
 
         <div className="mt-5 flex items-center gap-2">
           <button
@@ -360,11 +414,13 @@ function Vorderstes({
 
 function ImRegal({
   buch,
+  alle,
   onOeffnen,
   aktionen,
   gedaempft,
 }: {
   buch: LibraryBook;
+  alle: LibraryBook[];
   onOeffnen: () => void;
   aktionen: MehrEintrag[];
   gedaempft?: boolean;
@@ -384,6 +440,7 @@ function ImRegal({
           <p className="truncate font-serif text-[14.5px] leading-snug text-paper-200/90">
             {buch.title}
           </p>
+          <Bandzeile buch={buch} alle={alle} klein />
           <p className="mt-0.5 truncate font-serif text-[11.5px] text-paper-400/35">
             {zuletztOffen(buch)}
           </p>

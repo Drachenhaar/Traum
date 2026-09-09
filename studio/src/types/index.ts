@@ -11,6 +11,7 @@
  */
 
 import type { Profil } from '../lib/profil';
+import type { Buchart } from '../lib/buchart';
 import type { Notiz } from '../lib/anerbieten/gedaechtnis';
 import type { Ansicht, Bildbau, SchichtName, Quelle } from '../lib/baukasten';
 
@@ -540,6 +541,24 @@ export interface BookIdentity {
   emblemRotation?: number;
   /** Der Text, mit dem das Zeichen erzeugt wurde – bleibt als Herkunft erhalten. */
   emblemPrompt?: string;
+  /**
+   * Was für ein Buch das ist – siehe `lib/buchart.ts`.
+   *
+   * Bestimmt, welcher Arbeitsraum geladen wird: ein Roman wird geschrieben,
+   * ein Artbook gestaltet, ein Rollenspielband vorbereitet. Das ist die eine
+   * Angabe, an der die neue Grundregel hängt: „Die Welt ist gemeinsam. Das
+   * Buch bestimmt, wie man sie erlebt."
+   *
+   * Steht in der *Identität* und nicht daneben, weil der Einband sie zeigt:
+   * Auf dem Deckel stand bisher auf jedem Band das Wort „Artbook" – auf einem
+   * Roman eine schlichte Unwahrheit, sobald es Romane gibt.
+   *
+   * Darf fehlen, und das ist kein Übergangszustand, sondern eine Zusage: Ein
+   * Band aus der Zeit vor den Arbeitsräumen behält die Oberfläche, die er
+   * hatte, bis jemand ihn ausdrücklich einordnet. Eine Vermutung des
+   * Programms darf keine Werkstatt in einen Schreibraum verwandeln.
+   */
+  art?: Buchart;
   /** Wer das Buch begonnen hat. Erscheint auf der Besitzseite. */
   owner?: string;
   createdAt: number;
@@ -580,9 +599,10 @@ export interface LibraryBook extends BookIdentity {
   /**
    * Die Welt, in der dieses Buch spielt.
    *
-   * Noch ohne Wirkung – vorbereitet für den Tag, an dem ein Weltbuch und zwei
-   * Romane dieselbe Welt teilen. Bis dahin ist ein Buch seine eigene Welt,
-   * und das steht hier auch so: Jedes neue Buch bekommt eine eigene `worldId`.
+   * Jedes neue Buch bekommt eine eigene; zwei Bände, die dieselbe tragen,
+   * teilen ihr Weltwissen. Was „teilen" technisch heisst, ist noch nicht
+   * entschieden – heute hängen Einträge, Bilder und Beziehungen an `bookId`,
+   * nicht an `worldId`. Siehe `lib/buchart.ts`.
    */
   worldId?: string;
   /** Eine Reihe: „Mooshalde I, II, III". Noch ohne Verwaltung. */

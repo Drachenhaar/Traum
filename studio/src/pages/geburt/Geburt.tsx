@@ -13,11 +13,12 @@
  * Der Tisch bleibt ueber alle Szenen stehen. Nur was darauf liegt, wechselt.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useStudio } from '../../store/useStudio';
 import { neuesBuch } from '../../lib/bibliothek';
 import { BUCH_TEXTE } from '../../lib/bookTexts';
 import { ABSICHTEN, profilAus, profilVon, type Absicht } from '../../lib/profil';
+import { waehlbareWelten, type Buchart } from '../../lib/buchart';
 import { deskStyle } from '../../lib/textures';
 import { cx } from '../../lib/utils';
 import { ClosedBook } from '../../components/book/CoverBoard';
@@ -25,6 +26,7 @@ import type { LibraryBook } from '../../types';
 import { Einbandwahl } from './Einbandwahl';
 import { Titelwahl } from './Titelwahl';
 import { Zeichenwahl } from './Zeichenwahl';
+import { Artwahl, Weltwahl } from './Artwahl';
 
 const T = BUCH_TEXTE.geburt;
 
@@ -34,18 +36,40 @@ const T = BUCH_TEXTE.geburt;
  * Absichtlich eine schlichte Liste: Sie ist die einzige Stelle, an der die
  * Abfolge steht. Eine weitere Szene ist ein Eintrag hier und ein Fall unten.
  */
-const SZENEN = ['anfang', 'einband', 'titel', 'zeichen', 'ausrichtung', 'vollendet'] as const;
+const SZENEN = [
+  'anfang',
+  'art',
+  'welt',
+  'einband',
+  'titel',
+  'zeichen',
+  'ausrichtung',
+  'vollendet',
+] as const;
 type Szene = (typeof SZENEN)[number];
 
 /**
- * Die Ausrichtung wird nur beim *weiteren* Buch gefragt.
+ * Welche Szenen dieser Anlass durchläuft.
  *
- * Beim ersten hat das Onboarding sie schon erfragt – ein zweites Mal danach
- * zu fragen waere Formularlogik, nicht Zeremonie. Und ohne diese Szene faellt
- * sie einfach aus der Abfolge heraus, ohne dass irgendwo ein Schritt fehlt.
+ * Zwei Szenen fallen je nach Lage heraus, und beide aus demselben Grund: Eine
+ * Frage, die nur eine mögliche Antwort hat, ist keine Frage.
+ *
+ * **Die Ausrichtung** wird nur beim *weiteren* Buch gefragt. Beim ersten hat
+ * das Onboarding sie schon erfragt – ein zweites Mal danach zu fragen waere
+ * Formularlogik, nicht Zeremonie.
+ *
+ * **Die Welt** wird nur gefragt, wenn es eine zu wählen gibt. Beim allerersten
+ * Buch einer Bibliothek gibt es keine bestehende Welt; die Szene fiele auf
+ * „Eine neue Welt" und sonst nichts zusammen, und dann fragt man besser gar
+ * nicht. Beim Neubinden entfällt sie ebenfalls: Das Buch hat seine Welt
+ * längst, und der Einband wechselt sie nicht.
  */
-function szenenFolge(modus: Modus): readonly Szene[] {
-  return modus === 'weiterer' ? SZENEN : SZENEN.filter((s) => s !== 'ausrichtung');
+function szenenFolge(modus: Modus, welten: number): readonly Szene[] {
+  return SZENEN.filter((s) => {
+    if (s === 'ausrichtung') return modus === 'weiterer';
+    if (s === 'welt') return modus !== 'neubinden' && welten > 0;
+    return true;
+  });
 }
 
 /**
@@ -68,7 +92,29 @@ export function Geburt({ onFertig, modus = 'geburt' }: { onFertig: (buchId?: str
   const weiterer = modus === 'weiterer';
   const worteAnfang = weiterer ? T.anfangWeiterer : neu ? T.anfangNeu : T.anfang;
   const worteEnde = weiterer ? T.vollendenWeiterer : neu ? T.vollendenNeu : T.vollenden;
-  const folge = szenenFolge(modus);
+
+  /*
+   * Die Welten, die zur Wahl stehen – aus dem Regal, nicht aus dem Entwurf.
+   *
+   * Beim Neubinden wird die Frage gar nicht gestellt; die Liste bliebe dann
+   * ungenutzt, aber sie zu berechnen kostet nichts und hält die Abfolge an
+   * einer Stelle entscheidbar.
+   */
+  const buecher = useStudio((s) => s.books);
+  const welten = useMemo(() => waehlbareWelten(buecher), [buecher]);
+  const folge = szenenFolge(modus, welten.length);
+
+  /*
+   * Die gewaehlte Welt steht neben dem Entwurf, nicht in ihm.
+   *
+   * Der Entwurf traegt von `neuesBuch` her bereits eine eigene, frische
+   * Weltkennung – das ist der Fall „eine neue Welt". Wuerde die Wahl direkt
+   * in den Entwurf schreiben, waere diese frische Kennung nach einem Hin und
+   * Her verloren, und „Eine neue Welt" liesse sich nicht mehr zurueckwaehlen.
+   * `undefined` heisst hier also nicht „keine Welt", sondern „die eigene".
+   */
+  const [weltWahl, setWeltWahl] = useState<string>();
+  const gewaehlteWelt = welten.find((w) => w.id === weltWahl);
 
   /*
    * Der Entwurf lebt im Arbeitsspeicher, bis das Buch vollendet wird. Wer
@@ -121,6 +167,13 @@ export function Geburt({ onFertig, modus = 'geburt' }: { onFertig: (buchId?: str
   /** Das Buch vollenden: jetzt erst wird geschrieben. */
   const vollenden = () => {
     const einband = {
+      /*
+       * Die Art steht mit in dieser Liste, und das ist wichtiger, als es
+       * aussieht: Was hier nicht aufgezaehlt ist, existiert nach dem
+       * Vollenden nicht. Der Entwurf wird nicht uebernommen, er wird Feld
+       * fuer Feld abgeschrieben.
+       */
+      art: entwurf.art,
       title: entwurf.title.trim() || 'Mein Buch',
       subtitle: entwurf.subtitle?.trim() ?? '',
       coverMaterial: entwurf.coverMaterial,
@@ -142,8 +195,15 @@ export function Geburt({ onFertig, modus = 'geburt' }: { onFertig: (buchId?: str
     if (weiterer) {
       void erstelleBuch({
         ...einband,
-        worldName: einband.title,
-        worldTagline: einband.subtitle,
+        /*
+         * Wurde eine bestehende Welt gewaehlt, traegt der neue Band deren
+         * Kennung; sonst legt `neuesBuch` von selbst eine frische an. Der
+         * Weltname bleibt dann aber der der *bestehenden* Welt – ein zweiter
+         * Band darf sie nicht umbenennen.
+         */
+        worldId: weltWahl ?? entwurf.worldId,
+        worldName: gewaehlteWelt?.name ?? einband.title,
+        worldTagline: gewaehlteWelt ? '' : einband.subtitle,
         weg: entwurf.weg,
       }).then((band) => setAngelegt(band.id));
     } else {
@@ -152,7 +212,16 @@ export function Geburt({ onFertig, modus = 'geburt' }: { onFertig: (buchId?: str
     wechseln('vollendet');
   };
 
-  const zeigtBuch = szene !== 'anfang';
+  /*
+   * Wann das Buch auf dem Tisch liegt.
+   *
+   * Bei der Artwahl **nicht**. Dort stehen drei Bücher zur Wahl; ein viertes
+   * darüber, das noch keines von ihnen ist, verdoppelt den Gegenstand und
+   * schiebt auf dem Handy die Antworten unter den Rand – gemessen an einem
+   * iPhone 15: Frage oben, Wahl ausserhalb des Bildes. Die Wahl ist hier die
+   * Vorschau; ab dem Einband ist es wieder das Buch.
+   */
+  const zeigtBuch = szene !== 'anfang' && szene !== 'art';
 
   return (
     <div
@@ -170,7 +239,7 @@ export function Geburt({ onFertig, modus = 'geburt' }: { onFertig: (buchId?: str
         <div className="flex w-full max-w-3xl flex-1 flex-col items-center justify-center gap-9 py-6">
           {/* --------------------------------------------------- Das Buch */}
           <div
-            className="shrink-0 transition-opacity duration-500"
+            className={cx('shrink-0 transition-opacity duration-500', !zeigtBuch && 'hidden')}
             style={{ opacity: zeigtBuch ? 1 : 0 }}
           >
             <ClosedBook
@@ -186,6 +255,22 @@ export function Geburt({ onFertig, modus = 'geburt' }: { onFertig: (buchId?: str
             className="w-full transition-opacity duration-300"
             style={{ opacity: sichtbar ? 1 : 0 }}
           >
+            {szene === 'art' && (
+              <Artwahl
+                gewaehlt={entwurf.art}
+                onChange={(art: Buchart) => aendern({ art })}
+                onWeiter={weiter}
+              />
+            )}
+            {szene === 'welt' && (
+              <Weltwahl
+                welten={welten}
+                gewaehlt={weltWahl}
+                onChange={setWeltWahl}
+                onWeiter={weiter}
+                onZurueck={zurueck}
+              />
+            )}
             {szene === 'einband' && (
               <Einbandwahl identity={entwurf} onChange={aendern} onWeiter={weiter} />
             )}

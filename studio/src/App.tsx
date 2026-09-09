@@ -53,6 +53,8 @@ import { InteractionLab } from './components/raum/InteractionLab';
 import { ladeKonfig } from './lib/raum/konfig';
 import { buildBook } from './lib/book';
 import { istEinBuch } from './lib/bibliothek';
+import { buchartVon } from './lib/buchart';
+import { eingangFuer } from './lib/arbeitsraum';
 
 export default function App() {
   const ready = useStudio((s) => s.ready);
@@ -405,11 +407,21 @@ function CoverGate() {
   }, [settings.lastSpreadKey, book]);
 
   /*
-   * Beim allerersten Aufschlagen liegt die Besitzseite obenauf – so wie in
-   * einem neuen Buch. Danach übernimmt das Lesebändchen: Es schlägt dort auf,
-   * wo zuletzt zugeklappt wurde.
+   * Wohin das Aufschlagen führt – in drei Stufen, von der stärksten zur
+   * schwächsten Auskunft:
+   *
+   *   1. Das Lesebändchen, wenn die Seite noch existiert.
+   *   2. Das Vorwort, wenn es ein Lesebändchen gab, die Seite aber nicht mehr.
+   *   3. Der Eingang des Arbeitsraums – und ohne Arbeitsraum die Besitzseite.
+   *
+   * Die dritte Stufe ist die neue: Ein Roman schlägt bei seinem Manuskript
+   * auf, ein Rollenspielband bei seiner Werkbank. Ein Band ohne gewählte Art
+   * kommt weiter auf die Besitzseite, genau wie bisher – siehe
+   * `lib/arbeitsraum.ts`.
    */
-  const ziel = resume?.path ?? (settings.lastSpreadKey ? '/vorwort' : '/besitz');
+  const ziel =
+    resume?.path ??
+    (settings.lastSpreadKey ? '/vorwort' : eingangFuer(buchartVon(settings.book), undefined));
 
   /*
    * Der Umschlag ist der geschlossene Zustand des Buches – und damit der
