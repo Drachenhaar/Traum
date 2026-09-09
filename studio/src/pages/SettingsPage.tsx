@@ -53,7 +53,15 @@ export function SettingsPage() {
 
   const [busy, setBusy] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
-  const [importText, setImportText] = useState<string | null>(null);
+  /*
+   * Die **Datei** und nicht ihr Text.
+   *
+   * Seit die Sicherung ein ZIP ist, waere `file.text()` der sichere Weg, sie
+   * zu zerstoeren: Bytes durch einen Textleser zu schicken ersetzt jedes
+   * ungueltige Zeichen. `importBackup` erkennt am Inhalt, ob ein Archiv oder
+   * eine alte JSON-Datei vorliegt.
+   */
+  const [importDatei, setImportDatei] = useState<File | null>(null);
   const [importName, setImportName] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -97,7 +105,7 @@ export function SettingsPage() {
       const name = nurBuch
         ? backupFileName(`dragoncore-${dateiName(settings.book?.title ?? 'buch')}`)
         : backupFileName('dragoncore-bibliothek');
-      downloadFile(name, json, 'application/json');
+      downloadFile(name, json, 'application/zip');
       /*
        * Nur die Bibliothekssicherung setzt die Erinnerung zurueck. Ein
        * einzelnes Buch zu sichern ist kein Schutz fuer alles andere, und die
@@ -119,19 +127,14 @@ export function SettingsPage() {
     }
   };
 
-  const readFile = async (file: File) => {
-    try {
-      const text = await file.text();
-      setImportText(text);
-      setImportName(file.name);
-      setImportOpen(true);
-    } catch (err) {
-      notify(`Datei konnte nicht gelesen werden: ${(err as Error).message}`, 'error');
-    }
+  const readFile = (file: File) => {
+    setImportDatei(file);
+    setImportName(file.name);
+    setImportOpen(true);
   };
 
   const runImport = async (mode: 'merge' | 'buch' | 'bibliothek') => {
-    if (!importText) return;
+    if (!importDatei) return;
     if (mode === 'bibliothek') {
       const ok = await confirm({
         title: 'Die ganze Bibliothek ersetzen?',
@@ -144,7 +147,7 @@ export function SettingsPage() {
     }
     setBusy(true);
     try {
-      const result = await importBackup(importText, mode, activeBookId);
+      const result = await importBackup(importDatei, mode, activeBookId);
       if (!result.ok) {
         notify(result.message, 'error');
         return;
@@ -152,7 +155,7 @@ export function SettingsPage() {
       await reloadFromDb();
       notify(result.message, 'success');
       setImportOpen(false);
-      setImportText(null);
+      setImportDatei(null);
     } finally {
       setBusy(false);
       if (fileRef.current) fileRef.current.value = '';

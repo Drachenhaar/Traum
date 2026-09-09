@@ -104,8 +104,15 @@ export async function copyText(text: string): Promise<boolean> {
 }
 
 /** Datei-Download aus einem String erzeugen. */
-export function downloadFile(filename: string, content: string, mime: string): void {
-  const blob = new Blob([content], { type: mime });
+/**
+ * Eine Datei zum Herunterladen anbieten.
+ *
+ * Nimmt Text **oder** einen Blob. Der Blob ist der Weg fuer grosse
+ * Sicherungen: Ein Archiv von einem Gigabyte durch eine Zeichenkette zu
+ * schicken ginge gar nicht – genau daran scheiterte die alte Sicherung.
+ */
+export function downloadFile(filename: string, content: string | Blob, mime: string): void {
+  const blob = content instanceof Blob ? content : new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

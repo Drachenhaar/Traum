@@ -108,7 +108,7 @@ export function Bibliothek() {
         void (async () => {
           try {
             const json = await buildBookBackup(buch.id, true);
-            downloadFile(backupFileName(`dragoncore-${buch.id}`), json, 'application/json');
+            downloadFile(backupFileName(`dragoncore-${buch.id}`), json, 'application/zip');
             notify(`„${buch.title}“ liegt als Datei bereit.`, 'success');
           } catch (err) {
             notify(`Sicherung fehlgeschlagen: ${(err as Error).message}`, 'error');

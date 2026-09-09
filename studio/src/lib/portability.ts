@@ -21,6 +21,7 @@
 
 import { db, FRESH_SETTINGS } from '../db/db';
 import { blobToDataUrl } from './images';
+import { entpacke, packe, type Zipeintrag } from './zip';
 import { backupSchema, singleEntrySchema, type BackupFile } from './schemas';
 import { buchAusAltenEinstellungen } from './bibliothek';
 import type {
@@ -41,21 +42,73 @@ import { asBool, asList, asText, templateFor } from './templates';
 
 export const EXPORT_VERSION = 1;
 
+/** Wie die Angabendatei im Archiv heisst. */
+export const DATEN_IM_ARCHIV = 'daten.json';
+
+/**
+ * Ist das ein ZIP? Erkannt an den ersten vier Bytes, nicht am Dateinamen.
+ *
+ * `PK\x03\x04` steht am Anfang jedes Archivs – die Initialen von Phil Katz.
+ * Ein Dateiname laesst sich aendern, der Inhalt nicht.
+ */
+async function istArchiv(blob: Blob): Promise<boolean> {
+  if (blob.size < 4) return false;
+  const kopf = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+  return kopf[0] === 0x50 && kopf[1] === 0x4b && kopf[2] === 0x03 && kopf[3] === 0x04;
+}
+
 /* ------------------------------------------------------------------ Export */
 
 interface ImageExport extends StoredImageMeta {
+  /** Nur noch beim Lesen alter Sicherungen – geschrieben wird `datei`. */
   dataUrl?: string;
+  /** Wo die Datei im Archiv liegt, z. B. `bilder/img_1.png`. */
+  datei?: string;
 }
 
 /** Bild-Metadaten (plus optional die Bilddaten) für den Export einsammeln. */
-async function packImages(metas: StoredImageMeta[], withData: boolean): Promise<ImageExport[]> {
+/**
+ * Bilder fuer das Archiv einsammeln.
+ *
+ * Die Datei wandert als **Datei** ins ZIP und nicht als Base64 in den Text.
+ * Genau daran scheiterte die alte Sicherung: Eine Zeichenkette fasst 512 MB,
+ * Base64 blaeht um ein Drittel auf, und je nach Bildgroesse war bei 260 bis
+ * 1300 Bildern Schluss – mit „Invalid string length" und ohne Sicherung.
+ *
+ * Im JSON steht nur noch, **wo** die Datei liegt.
+ */
+async function packImages(
+  metas: StoredImageMeta[],
+  withData: boolean,
+  dateien: Zipeintrag[],
+): Promise<ImageExport[]> {
   if (!withData) return metas.map((m) => ({ ...m }));
   const out: ImageExport[] = [];
   for (const meta of metas) {
     const record = await db.imageBlobs.get(meta.blobId ?? meta.id);
-    out.push({ ...meta, dataUrl: record ? await blobToDataUrl(record.full) : undefined });
+    if (!record) {
+      out.push({ ...meta });
+      continue;
+    }
+    const pfad = `bilder/${meta.id}${endungFuer(meta.mime)}`;
+    dateien.push({ name: pfad, daten: record.full });
+    out.push({ ...meta, datei: pfad });
   }
   return out;
+}
+
+/** Eine Endung, die zum Typ passt – nur damit die Datei im Archiv lesbar heisst. */
+function endungFuer(mime: string | undefined): string {
+  if (!mime) return '.bin';
+  if (mime.includes('png')) return '.png';
+  if (mime.includes('jpeg') || mime.includes('jpg')) return '.jpg';
+  if (mime.includes('webp')) return '.webp';
+  if (mime.includes('gif')) return '.gif';
+  if (mime.includes('svg')) return '.svg';
+  if (mime.includes('mpeg') || mime.includes('mp3')) return '.mp3';
+  if (mime.includes('wav')) return '.wav';
+  if (mime.includes('ogg')) return '.ogg';
+  return '.bin';
 }
 
 /**
@@ -68,12 +121,16 @@ async function packImages(metas: StoredImageMeta[], withData: boolean): Promise<
 async function packKlaenge(
   klaenge: StoredKlang[],
   mitDaten: boolean,
-): Promise<(StoredKlang & { dataUrl?: string })[]> {
+  dateien: Zipeintrag[],
+): Promise<(StoredKlang & { dataUrl?: string; datei?: string })[]> {
   if (!mitDaten) return klaenge.map((k) => ({ ...k }));
-  const aus: (StoredKlang & { dataUrl?: string })[] = [];
+  const aus: (StoredKlang & { dataUrl?: string; datei?: string })[] = [];
   for (const k of klaenge) {
     const eintrag = await db.klangBlobs.get(k.id);
-    aus.push({ ...k, dataUrl: eintrag ? await blobToDataUrl(eintrag.datei) : undefined });
+    if (!eintrag) { aus.push({ ...k }); continue; }
+    const pfad = `klaenge/${k.id}${endungFuer(k.mime)}`;
+    dateien.push({ name: pfad, daten: eintrag.datei });
+    aus.push({ ...k, datei: pfad });
   }
   return aus;
 }
@@ -91,7 +148,8 @@ function auslassen<T extends object, K extends keyof T>(wert: T, schluessel: K[]
  * Die einzige Sicherung, aus der sich ein Gerät vollständig wiederherstellen
  * lässt. Wer nur einen Band weitergeben will, nimmt `buildBookBackup`.
  */
-export async function buildFullBackup(withImages: boolean): Promise<string> {
+export async function buildFullBackup(withImages: boolean): Promise<Blob> {
+  const dateien: Zipeintrag[] = [];
   const [entries, relations, boards, images, settings, books, karten, teile] = await Promise.all([
     db.entries.toArray(),
     db.relations.toArray(),
@@ -108,7 +166,7 @@ export async function buildFullBackup(withImages: boolean): Promise<string> {
     version: EXPORT_VERSION,
     exportedAt: Date.now(),
     books,
-    klaenge: await packKlaenge(await db.klaenge.toArray(), withImages),
+    klaenge: await packKlaenge(await db.klaenge.toArray(), withImages, dateien),
     entries,
     relations,
     boards,
@@ -132,7 +190,7 @@ export async function buildFullBackup(withImages: boolean): Promise<string> {
      * kein Schaden: Es kommt zurueck, sobald das Bild wieder da ist.
      */
     teile,
-    images: await packImages(images, withImages),
+    images: await packImages(images, withImages, dateien),
     /*
      * Alles ausser dem Schluessel der Zeile.
      *
@@ -147,7 +205,7 @@ export async function buildFullBackup(withImages: boolean): Promise<string> {
      */
     settings: settings ? auslassen(settings, ['id']) : undefined,
   };
-  return JSON.stringify(payload, null, 2);
+  return packe([{ name: DATEN_IM_ARCHIV, daten: JSON.stringify(payload, null, 2) }, ...dateien]);
 }
 
 /**
@@ -158,7 +216,8 @@ export async function buildFullBackup(withImages: boolean): Promise<string> {
  * ohne alles andere mitzugeben, und auf einem anderen Gerät neben die dort
  * vorhandenen stellen.
  */
-export async function buildBookBackup(bookId: string, withImages: boolean): Promise<string> {
+export async function buildBookBackup(bookId: string, withImages: boolean): Promise<Blob> {
+  const dateien: Zipeintrag[] = [];
   const [buch, entries, relations, boards, images, karten, teile] = await Promise.all([
     db.books.get(bookId),
     db.entries.where('bookId').equals(bookId).toArray(),
@@ -176,20 +235,20 @@ export async function buildBookBackup(bookId: string, withImages: boolean): Prom
     version: EXPORT_VERSION,
     exportedAt: Date.now(),
     books: [buch],
-    klaenge: await packKlaenge(await db.klaenge.where('bookId').equals(bookId).toArray(), withImages),
+    klaenge: await packKlaenge(await db.klaenge.where('bookId').equals(bookId).toArray(), withImages, dateien),
     entries,
     relations,
     boards,
     karten,
     teile,
-    images: await packImages(images, withImages),
+    images: await packImages(images, withImages, dateien),
     /*
      * Keine Einstellungen. Was diesem Buch gehoert, steht im Band selbst;
      * was dem Geraet gehoert – Navigation, Erinnerung ans Sichern –, geht
      * niemanden etwas an, der nur ein Buch bekommt.
      */
   };
-  return JSON.stringify(payload, null, 2);
+  return packe([{ name: DATEN_IM_ARCHIV, daten: JSON.stringify(payload, null, 2) }, ...dateien]);
 }
 
 /** Alle Bild-IDs, die zu einem Eintrag gehören (Cover, Felder, Blöcke). */
@@ -218,13 +277,42 @@ export async function buildEntryExport(entry: Entry, withImages = true): Promise
     exportedAt: Date.now(),
     entry,
     relations,
-    images: await packImages(metas, withImages),
+    /*
+     * Der Einzeleintrag bleibt eine JSON-Datei mit eingebetteten Bildern.
+     *
+     * Nicht aus Nachlaessigkeit: Eine Seite traegt eine Handvoll Bilder, und
+     * eine einzelne Datei laesst sich verschicken, in eine Nachricht haengen
+     * und von Hand ansehen. Die Zeichenkettengrenze, an der die *Sicherung*
+     * scheiterte, ist hier unerreichbar – sie liegt bei einigen hundert
+     * Bildern, und eine Seite hat keine hundert.
+     */
+    images: await packImagesAlsText(metas, withImages),
   };
   return JSON.stringify(payload, null, 2);
 }
 
-export function backupFileName(prefix = 'dragoncore-studio'): string {
-  return `${prefix}_${fileStamp()}.json`;
+/** Bilder als Base64 – nur noch fuer den Einzeleintrag, siehe oben. */
+async function packImagesAlsText(
+  metas: StoredImageMeta[],
+  withData: boolean,
+): Promise<ImageExport[]> {
+  if (!withData) return metas.map((m) => ({ ...m }));
+  const aus: ImageExport[] = [];
+  for (const meta of metas) {
+    const record = await db.imageBlobs.get(meta.blobId ?? meta.id);
+    aus.push({ ...meta, dataUrl: record ? await blobToDataUrl(record.full) : undefined });
+  }
+  return aus;
+}
+
+/**
+ * Der Dateiname einer Sicherung.
+ *
+ * `.zip`, weil es eines ist – ein Archiv `.json` zu nennen waere eine Luege,
+ * die genau dann auffliegt, wenn jemand die Datei zu oeffnen versucht.
+ */
+export function backupFileName(prefix = 'dragoncore-studio', endung = 'zip'): string {
+  return `${prefix}_${fileStamp()}.${endung}`;
 }
 
 /* ------------------------------------------------------------------ Import */
@@ -260,10 +348,39 @@ export interface ImportResult {
  * nirgends hineinlegen.
  */
 export async function importBackup(
-  text: string,
+  quelle: string | Blob,
   mode: 'bibliothek' | 'buch' | 'merge',
   aktivesBuch?: string,
 ): Promise<ImportResult> {
+  /*
+   * Zwei Formate, ein Weg herein.
+   *
+   * Seit die Sicherung ein ZIP ist, kommen beide Arten von Datei vor: das
+   * neue Archiv und jede JSON-Sicherung, die vorher entstanden ist. Eine
+   * alte Datei nicht mehr einlesen zu koennen waere der schlimmste Fehler,
+   * den ein Sicherungsformat machen kann – erkannt wird deshalb am Inhalt
+   * und nicht am Dateinamen, den jeder aendern kann.
+   */
+  let text: string;
+  let ausArchiv: Map<string, Blob> | null = null;
+
+  if (typeof quelle === 'string') {
+    text = quelle;
+  } else if (await istArchiv(quelle)) {
+    try {
+      ausArchiv = await entpacke(quelle);
+    } catch (err) {
+      return { ok: false, message: `Das Archiv liess sich nicht oeffnen: ${(err as Error).message}`, entries: 0, images: 0 };
+    }
+    const daten = ausArchiv.get(DATEN_IM_ARCHIV);
+    if (!daten) {
+      return { ok: false, message: `Im Archiv fehlt „${DATEN_IM_ARCHIV}".`, entries: 0, images: 0 };
+    }
+    text = await daten.text();
+  } else {
+    text = await quelle.text();
+  }
+
   let raw: unknown;
   try {
     raw = JSON.parse(text);
@@ -493,13 +610,17 @@ export async function importBackup(
       if (teile.length) await db.teile.bulkPut(teile);
 
       for (const k of klaenge) {
-        const { dataUrl, ...angaben } = k;
+        const { dataUrl, datei, ...angaben } = k as StoredKlang & { dataUrl?: string; datei?: string };
         await db.klaenge.put(angaben);
-        if (dataUrl) await db.klangBlobs.put({ id: angaben.id, datei: await dataUrlToBlob(dataUrl) });
+        const blob = (datei && ausArchiv?.get(datei)) || (dataUrl ? await dataUrlToBlob(dataUrl) : null);
+        if (blob) await db.klangBlobs.put({ id: angaben.id, datei: blob });
       }
 
       for (const img of images) {
-        const { dataUrl, ...roh } = img;
+        const { dataUrl, datei, ...roh } = img as StoredImageMeta & {
+          dataUrl?: string;
+          datei?: string;
+        };
         /*
          * Eingespielte Bilder stehen fuer sich.
          *
@@ -512,8 +633,13 @@ export async function importBackup(
          */
         const meta = { ...roh, blobId: roh.id };
         await db.images.put(meta);
-        if (dataUrl) {
-          const blob = await dataUrlToBlob(dataUrl);
+        /*
+         * Erst die Datei aus dem Archiv, sonst die Base64-Angabe einer alten
+         * Sicherung. Aus dem Archiv kommt sie als Blob herein und wird nie zu
+         * Text – das ist der ganze Sinn des Umbaus.
+         */
+        const blob = (datei && ausArchiv?.get(datei)) || (dataUrl ? await dataUrlToBlob(dataUrl) : null);
+        if (blob) {
           // Für den Import genügt dasselbe Bild als Vorschau – es wird beim
           // nächsten Anzeigen ohnehin verkleinert dargestellt.
           await db.imageBlobs.put({ id: meta.id, full: blob, thumb: blob });
