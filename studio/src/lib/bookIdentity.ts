@@ -165,7 +165,15 @@ export const DEFAULT_BOOK: Omit<BookIdentity, 'id' | 'createdAt' | 'updatedAt'> 
   coverMaterial: 'leder',
   coverColor: 'umbra',
   emblemType: 'preset',
-  emblemId: 'drache',
+  /*
+   * Feder und Buch statt Drachenkopf.
+   *
+   * Nur die *Vorgabe* für neue Bände – jedes vorhandene Buch trägt seine
+   * eigene Kennung im Datensatz und behält damit sein Zeichen. Ein Zeichen,
+   * das sich nach einer Programmänderung von selbst ändert, wäre ein
+   * Einbruch in ein fertiges Buch.
+   */
+  emblemId: 'federbuch',
 };
 
 /**

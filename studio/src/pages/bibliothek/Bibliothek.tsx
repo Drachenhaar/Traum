@@ -29,13 +29,12 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useStudio } from '../../store/useStudio';
-import { ClosedBook } from '../../components/book/CoverBoard';
-import { Mehr, type MehrEintrag } from '../../components/ui/Mehr';
+import { type MehrEintrag } from '../../components/ui/Mehr';
+import { Regal } from '../../components/bibliothek/Regal';
 import { confirm } from '../../components/ui/Confirm';
-import { imArchiv, imRegal, zuletztOffen } from '../../lib/bibliothek';
-import { buchartById, buchartVon, weltzeileFuer } from '../../lib/buchart';
+import { imArchiv, imRegal } from '../../lib/bibliothek';
 import { deskStyle } from '../../lib/textures';
-import { cx, downloadFile } from '../../lib/utils';
+import { downloadFile } from '../../lib/utils';
 import { backupFileName, buildBookBackup } from '../../lib/portability';
 import { BEISPIEL_TITEL } from '../../lib/beispiel/mooshalde';
 import type { LibraryBook } from '../../types';
@@ -69,17 +68,7 @@ export function Bibliothek() {
     );
   }, [regal, frage]);
 
-  /*
-   * Das vorderste Buch steht für sich.
-   *
-   * Nicht hervorgehoben, nicht mit einem Abzeichen versehen – einfach größer
-   * und zuerst, wie ein Band, den man gerade weggelegt hat und der noch nicht
-   * wieder eingeräumt ist. Auf dem Telefon ist das der ganze erste Bildschirm;
-   * zehn winzige Bücher nebeneinander wären dort niemandes Bibliothek.
-   */
   const sucht = frage.trim().length > 0;
-  const vorn: LibraryBook | undefined = sucht ? undefined : gesucht[0];
-  const hinten: LibraryBook[] = sucht ? gesucht : gesucht.slice(1);
 
   const oeffnen = async (buch: LibraryBook) => {
     await oeffneBuch(buch.id);
@@ -176,29 +165,24 @@ export function Bibliothek() {
               </label>
             )}
 
-            {vorn && (
-              <Vorderstes
-                buch={vorn}
-                alle={books}
-                onOeffnen={() => void oeffnen(vorn)}
-                aktionen={aktionen(vorn)}
-              />
-            )}
+            {/*
+              Ein Regal, keine zwei Bereiche.
 
-            {hinten.length > 0 && (
-              <section className="mt-12">
-                <p className="rubric text-paper-400/45">{vorn ? 'Daneben' : 'Gefunden'}</p>
-                <div className="mt-5 grid grid-cols-2 gap-x-5 gap-y-9 sm:grid-cols-3 lg:grid-cols-4">
-                  {hinten.map((b) => (
-                    <ImRegal
-                      key={b.id}
-                      buch={b}
-                      alle={books}
-                      onOeffnen={() => void oeffnen(b)}
-                      aktionen={aktionen(b)}
-                    />
-                  ))}
-                </div>
+              Vorher stand der zuletzt geöffnete Band gross für sich und alle
+              anderen darunter in einem Raster – zwei Darstellungen für
+              dieselbe Sache. Jetzt stehen alle auf demselben Brett, und der
+              vorderste trägt sein Lesebändchen. Das ist die eine Auszeichnung,
+              die ein Regal kennt.
+            */}
+            {gesucht.length > 0 && (
+              <section className="mt-8">
+                {sucht && <p className="rubric mb-1 text-paper-400/45">Gefunden</p>}
+                <Regal
+                  buecher={gesucht}
+                  alle={books}
+                  onOeffnen={(b) => void oeffnen(b)}
+                  aktionen={aktionen}
+                />
               </section>
             )}
 
@@ -246,18 +230,13 @@ export function Bibliothek() {
                   {archivOffen ? ' – zuklappen' : ' – ansehen'}
                 </button>
                 {archivOffen && (
-                  <div className="mt-6 grid grid-cols-2 gap-x-5 gap-y-9 sm:grid-cols-3 lg:grid-cols-4">
-                    {archiv.map((b) => (
-                      <ImRegal
-                        key={b.id}
-                        buch={b}
-                        alle={books}
-                        gedaempft
-                        onOeffnen={() => void oeffnen(b)}
-                        aktionen={aktionen(b)}
-                      />
-                    ))}
-                  </div>
+                  <Regal
+                    buecher={archiv}
+                    alle={books}
+                    gedaempft
+                    onOeffnen={(b) => void oeffnen(b)}
+                    aktionen={aktionen}
+                  />
                 )}
               </section>
             )}
@@ -309,145 +288,6 @@ function BeispielZeile() {
     >
       {laedt ? 'Wird eingeräumt …' : `Oder einen fertigen Band ansehen: „${BEISPIEL_TITEL}"`}
     </button>
-  );
-}
-
-/* --------------------------------------------------------- Die Bandzeile --- */
-
-/**
- * Was ein Band unter seinem Titel von sich sagt: seine Art, und seine Welt.
- *
- * Beide erscheinen nur, wenn sie etwas bedeuten.
- *
- * **Die Art** steht nur da, wenn sie gewählt wurde. Ein Bestandsbuch ohne Art
- * bekommt hier kein geratenes Wort untergeschoben – lieber nichts als eine
- * Behauptung über ein Buch, das jemand anders gemeint hat.
- *
- * **Die Welt** steht nur da, wenn ein zweiter Band sie teilt. „Jedes Buch hat
- * eine Welt" ist keine Auskunft; erst die geteilte Welt ist eine.
- */
-function Bandzeile({
-  buch,
-  alle,
-  klein,
-}: {
-  buch: LibraryBook;
-  alle: LibraryBook[];
-  klein?: boolean;
-}) {
-  const art = buchartById(buchartVon(buch));
-  const welt = weltzeileFuer(buch, alle);
-  if (!art && !welt) return null;
-
-  return (
-    <p
-      className={cx(
-        'mt-1.5 truncate font-sans uppercase tracking-[0.14em] text-gild-500/55',
-        klein ? 'text-[9.5px]' : 'text-[10.5px]',
-      )}
-    >
-      {art?.name}
-      {art && welt && <span className="mx-1.5 text-paper-400/30">·</span>}
-      {welt && <span className="normal-case tracking-normal text-paper-400/45">{welt}</span>}
-    </p>
-  );
-}
-
-/* ------------------------------------------------------- Das vorderste ---- */
-
-function Vorderstes({
-  buch,
-  alle,
-  onOeffnen,
-  aktionen,
-}: {
-  buch: LibraryBook;
-  alle: LibraryBook[];
-  onOeffnen: () => void;
-  aktionen: MehrEintrag[];
-}) {
-  return (
-    <section className="mt-9 flex items-start gap-6 sm:gap-9">
-      <button
-        type="button"
-        onClick={onOeffnen}
-        aria-label={`„${buch.title}“ aufschlagen`}
-        className="shrink-0 transition-transform duration-500 ease-out hover:-translate-y-1 no-tap-highlight"
-      >
-        <ClosedBook identity={buch} width={148} height={202} />
-      </button>
-
-      <div className="min-w-0 flex-1 pt-1">
-        <button
-          type="button"
-          onClick={onOeffnen}
-          className="block max-w-full text-left no-tap-highlight"
-        >
-          <h2 className="truncate font-serif text-[24px] leading-snug text-paper-200 sm:text-[30px]">
-            {buch.title}
-          </h2>
-          {buch.subtitle?.trim() && (
-            <p className="mt-1 font-serif text-[14.5px] italic leading-snug text-paper-400/55">
-              {buch.subtitle}
-            </p>
-          )}
-        </button>
-        <Bandzeile buch={buch} alle={alle} />
-        <p className="mt-2 font-serif text-[12.5px] text-paper-400/40">{zuletztOffen(buch)}</p>
-
-        <div className="mt-5 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onOeffnen}
-            className="inline-flex min-h-[42px] items-center rounded-full border border-gild-500/40 px-5 font-serif text-[15px] text-gild-500/90 transition-colors hover:bg-gild-400/10 no-tap-highlight"
-          >
-            Aufschlagen
-          </button>
-          <Mehr eintraege={aktionen} ausrichtung="links" />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ---------------------------------------------------------- Im Regal ------ */
-
-function ImRegal({
-  buch,
-  alle,
-  onOeffnen,
-  aktionen,
-  gedaempft,
-}: {
-  buch: LibraryBook;
-  alle: LibraryBook[];
-  onOeffnen: () => void;
-  aktionen: MehrEintrag[];
-  gedaempft?: boolean;
-}) {
-  return (
-    <div className={cx('flex flex-col items-start', gedaempft && 'opacity-55')}>
-      <button
-        type="button"
-        onClick={onOeffnen}
-        aria-label={`„${buch.title}“ aufschlagen`}
-        className="transition-transform duration-500 ease-out hover:-translate-y-1 no-tap-highlight"
-      >
-        <ClosedBook identity={buch} width={104} height={142} />
-      </button>
-      <div className="mt-3 flex w-full items-start gap-1">
-        <button type="button" onClick={onOeffnen} className="min-w-0 flex-1 text-left no-tap-highlight">
-          <p className="truncate font-serif text-[14.5px] leading-snug text-paper-200/90">
-            {buch.title}
-          </p>
-          <Bandzeile buch={buch} alle={alle} klein />
-          <p className="mt-0.5 truncate font-serif text-[11.5px] text-paper-400/35">
-            {zuletztOffen(buch)}
-          </p>
-        </button>
-        <Mehr eintraege={aktionen} />
-      </div>
-    </div>
   );
 }
 
