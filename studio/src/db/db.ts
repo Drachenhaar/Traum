@@ -40,6 +40,32 @@ import { buchAusAltenEinstellungen } from '../lib/bibliothek';
  */
 export const SEED_VERSION = 2;
 
+/**
+ * Die Tabellen, in denen **Weltwissen** liegt.
+ *
+ * Sie hängen seit Fassung 8 an `worldId` und nicht mehr am Buch. Die Liste
+ * steht hier und nicht verstreut, weil sechs Stellen sie brauchen: die
+ * Aufwertung, das Laden, das Stempeln, das Löschen, das Abschreiben und die
+ * Sicherung. Lief sie auseinander, fehlte irgendwo eine Tabelle – und das
+ * fällt erst auf, wenn jemand seine Karten vermisst.
+ *
+ * Nicht darin: `books` und `welten` (die sind die Ebenen selbst),
+ * `imageBlobs` und `klangBlobs` (sie hängen an ihrer Kennung und folgen
+ * ihrem Datensatz) und `settings` (das gehört dem Gerät).
+ */
+export const WELTTABELLEN = [
+  'entries',
+  'relations',
+  'images',
+  'revisions',
+  'boards',
+  'klaenge',
+  'karten',
+  'teile',
+] as const;
+
+export type Welttabelle = (typeof WELTTABELLEN)[number];
+
 export class StudioDatabase extends Dexie {
   entries!: Table<Entry, string>;
   relations!: Table<Relation, string>;
@@ -256,6 +282,79 @@ export class StudioDatabase extends Dexie {
           });
         }
         if (welten.length) await tx.table('welten').bulkPut(welten);
+      });
+
+    /*
+     * Fassung 8: das Weltwissen gehört der Welt.
+     *
+     * Die grösste Umstellung seit der Bibliothek – und die, um die es beim
+     * ganzen Umbau geht: **Die Welt ist gemeinsam. Das Buch bestimmt, wie man
+     * sie erlebt.** Bis hierher war das eine Absichtserklärung. Figuren, Orte,
+     * Beziehungen, Bilder, Karten und Klänge hingen an `bookId`; zwei Bände
+     * derselben Welt teilten ihren Namen und sonst nichts.
+     *
+     * **Was diese Aufwertung tut – und was ausdrücklich nicht.**
+     *
+     * Sie *ergänzt* `worldId` und lässt `bookId` unangetastet stehen. Genau so
+     * ist die Bibliothek in Fassung 3 entstanden, und aus demselben Grund:
+     * Sollte diese Aufwertung je zurückgenommen werden müssen, findet das
+     * alte Dragoncore seine Welt vor, als wäre nichts gewesen. `bookId` sagt
+     * danach „hier ist das entstanden" – eine Herkunft, keine Zuständigkeit.
+     *
+     * Für den, der die App benutzt, ändert sich in diesem Augenblick nichts:
+     * Wer nur ein Buch je Welt hat – und das ist bisher jeder, weil es keinen
+     * Weg gab, eine zu teilen –, sieht danach exakt dasselbe.
+     *
+     * **Ein Buch ohne `worldId` bekommt zuerst eine.** Ohne diesen Schritt
+     * hätte sein Bestand nachher keine Welt, und Laden nach Welt liesse ihn
+     * verschwinden. Das darf nicht passieren, also wird die Bedingung vorher
+     * hergestellt statt nachher abgefragt.
+     */
+    this.version(8)
+      .stores({
+        entries:
+          'id, bookId, worldId, type, category, status, favorite, updatedAt, createdAt, deletedAt, pipelineStage, *tags, [bookId+type], [bookId+updatedAt], [worldId+type], [worldId+updatedAt]',
+        relations: 'id, bookId, worldId, fromId, toId, type, createdAt',
+        images: 'id, bookId, worldId, category, status, favorite, updatedAt, createdAt, *tags',
+        revisions: 'id, bookId, worldId, entryId, at',
+        boards: 'id, bookId, worldId, updatedAt',
+        klaenge: 'id, bookId, worldId, createdAt',
+        karten: 'id, bookId, worldId, updatedAt',
+        teile: 'id, bookId, worldId, schicht, updatedAt, [bookId+schicht], [worldId+schicht]',
+      })
+      .upgrade(async (tx) => {
+        const buecher = (await tx.table('books').toArray()) as LibraryBook[];
+        const jetzt = Date.now();
+
+        /* Erst jedem Band eine Welt geben, der noch keine hat. */
+        const ohneWelt = buecher.filter((b) => !b.worldId);
+        if (ohneWelt.length) {
+          const frisch: StoredWelt[] = [];
+          for (const b of ohneWelt) {
+            b.worldId = `welt_${b.id}`;
+            frisch.push({
+              id: b.worldId,
+              name: b.worldName?.trim() || b.title?.trim() || '',
+              createdAt: b.createdAt ?? jetzt,
+              updatedAt: jetzt,
+            });
+          }
+          await tx.table('books').bulkPut(ohneWelt);
+          await tx.table('welten').bulkPut(frisch);
+        }
+
+        const weltVonBuch = new Map(buecher.map((b) => [b.id, b.worldId as string]));
+
+        for (const name of WELTTABELLEN) {
+          const tabelle = tx.table(name);
+          const alle = (await tabelle.toArray()) as Record<string, unknown>[];
+          if (!alle.length) continue;
+          const gestempelt = alle.map((z) => {
+            const welt = weltVonBuch.get(z.bookId as string);
+            return welt ? { ...z, worldId: welt } : z;
+          });
+          await tabelle.bulkPut(gestempelt);
+        }
       });
   }
 }

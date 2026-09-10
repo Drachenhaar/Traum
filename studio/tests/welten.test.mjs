@@ -48,6 +48,7 @@ const {
   waehlbareWelten,
   weltVon,
   weltzeileFuer,
+  nimmtWeltMit,
 } = await import(join(bau, 'welten.mjs'));
 
 let geprueft = 0;
@@ -238,6 +239,56 @@ pruefe('die Zeile zeigt den benannten Namen, nicht den geliehenen', () => {
   const b = band({ worldId: 'w', worldName: 'Die Chroniken des Nebelwaldes' });
   assert.equal(weltzeileFuer(a, [a, b], []), 'Die Chroniken des Nebelwaldes');
   assert.equal(weltzeileFuer(a, [a, b], [welt('w', 'Nebelreich')]), 'Nebelreich');
+});
+
+/* =======================================================================
+ * 5 · WER NIMMT DIE WELT MIT
+ *
+ * Die gefährlichste Regel des Programms: Seit das Weltwissen der Welt gehört,
+ * würde ein falsches Ja hier einem anderen Band seine Figuren, Orte und
+ * Karten unter den Händen wegnehmen.
+ * ==================================================================== */
+
+console.log('\n5 · Wer nimmt die Welt mit');
+
+pruefe('der letzte Band einer Welt nimmt sie mit', () => {
+  const allein = band({ worldId: 'w' });
+  assert.equal(nimmtWeltMit(allein, [allein]), true);
+});
+
+pruefe('ein Band mit Geschwistern nimmt nichts mit', () => {
+  const a = band({ worldId: 'w' });
+  const b = band({ worldId: 'w' });
+  assert.equal(nimmtWeltMit(a, [a, b]), false);
+  assert.equal(nimmtWeltMit(b, [a, b]), false);
+});
+
+pruefe('ein archivierter Geschwisterband zählt mit', () => {
+  /*
+   * Ein Buch wegzuräumen heisst nicht, es aufzugeben. Wer sein Artbook ins
+   * Archiv gestellt und danach die Kampagne gelöscht hat, soll seine Welt
+   * beim Zurückholen vorfinden.
+   */
+  const a = band({ worldId: 'w' });
+  const archiviert = band({ worldId: 'w', archived: true });
+  assert.equal(nimmtWeltMit(a, [a, archiviert]), false);
+});
+
+pruefe('ein Band einer anderen Welt hält nichts auf', () => {
+  const a = band({ worldId: 'w' });
+  const fremd = band({ worldId: 'andere' });
+  assert.equal(nimmtWeltMit(a, [a, fremd]), true);
+});
+
+pruefe('ein Band ohne Weltkennung nimmt nie etwas mit', () => {
+  /*
+   * `undefined === undefined` ist wahr. Ohne diese Zeile löschte ein Buch
+   * ohne Kennung die Inhalte *aller* anderen kennungslosen Bände mit.
+   */
+  const ohne = band();
+  assert.equal(nimmtWeltMit(ohne, [ohne]), false);
+  assert.equal(nimmtWeltMit(ohne, [ohne, band(), band()]), false);
+  assert.equal(nimmtWeltMit(undefined, []), false);
 });
 
 console.log(`\n${geprueft} Prüfungen bestanden.\n`);

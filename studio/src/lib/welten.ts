@@ -71,6 +71,32 @@ export function selbeWelt(a: LibraryBook | undefined, b: LibraryBook | undefined
   return !!a?.worldId && !!b?.worldId && a.worldId === b.worldId;
 }
 
+/**
+ * Nimmt dieses Buch beim Löschen seine Welt mit?
+ *
+ * Die gefährlichste Frage des ganzen Programms. Seit das Weltwissen der Welt
+ * gehört, würde ein Löschen nach altem Muster einem *anderen* Band die
+ * Figuren, Orte und Karten unter den Händen wegnehmen – er teilt sie ja.
+ *
+ * Die Regel: **Nur der letzte Band einer Welt nimmt sie mit.** Steht noch
+ * einer da, verschwindet allein das Buch, und die Welt bleibt bei dem, der
+ * noch in ihr wohnt.
+ *
+ * Archivierte Bände zählen als Bewohner. Ein Buch wegzuräumen heisst nicht,
+ * es aufzugeben – wer sein Artbook ins Archiv gestellt und danach die
+ * Kampagne gelöscht hat, soll seine Welt beim Zurückholen vorfinden.
+ *
+ * Ein Buch **ohne** Weltkennung nimmt nichts mit. Es kann seit
+ * Datenbankfassung 8 keines mehr geben; käme eines aus einer beschädigten
+ * Sicherung, wäre `worldId === undefined` bei einem Vergleich mit anderen
+ * Kennungslosen wahr – und dann löschte ein Buch die Inhalte fremder Bände.
+ * Lieber ein Rest in der Ablage als ein Verlust auf dem Tisch.
+ */
+export function nimmtWeltMit(buch: LibraryBook | undefined, alle: LibraryBook[]): boolean {
+  if (!buch?.worldId) return false;
+  return !alle.some((b) => b.id !== buch.id && b.worldId === buch.worldId);
+}
+
 /** Eine Welt, wie die Oberfläche sie braucht: mit Namen und mit ihren Bänden. */
 export interface Weltsicht {
   id: string;

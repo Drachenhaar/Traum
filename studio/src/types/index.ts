@@ -126,6 +126,19 @@ export interface Entry {
    * Sicherungsdateien noch gelesen werden können, ohne dass der Typ lügt.
    */
   bookId?: string;
+  /**
+   * Zu welcher **Welt** dieser Datensatz gehört.
+   *
+   * Seit Datenbankfassung 8 die eigentliche Zuständigkeit: Danach wird nach
+   * Welt geladen, nicht nach Buch. `bookId` bleibt daneben stehen und sagt
+   * „hier ist das entstanden" – eine Herkunft, keine Zugehörigkeit.
+   *
+   * Optional im Typ, aber nicht in den Daten: Die Aufwertung hat jeden
+   * vorhandenen Datensatz gestempelt, und beim Hereinkommen bekommt jeder
+   * neue die Welt des offenen Bandes. Das `?` steht hier nur, damit ältere
+   * Sicherungsdateien noch gelesen werden können, ohne dass der Typ lügt.
+   */
+  worldId?: string;
   title: string;
   subtitle: string;
   type: EntryType;
@@ -246,6 +259,19 @@ export interface Relation {
    * Bibliothek vermeiden.
    */
   bookId?: string;
+  /**
+   * Zu welcher **Welt** dieser Datensatz gehört.
+   *
+   * Seit Datenbankfassung 8 die eigentliche Zuständigkeit: Danach wird nach
+   * Welt geladen, nicht nach Buch. `bookId` bleibt daneben stehen und sagt
+   * „hier ist das entstanden" – eine Herkunft, keine Zugehörigkeit.
+   *
+   * Optional im Typ, aber nicht in den Daten: Die Aufwertung hat jeden
+   * vorhandenen Datensatz gestempelt, und beim Hereinkommen bekommt jeder
+   * neue die Welt des offenen Bandes. Das `?` steht hier nur, damit ältere
+   * Sicherungsdateien noch gelesen werden können, ohne dass der Typ lügt.
+   */
+  worldId?: string;
   /** Ausgangseintrag */
   fromId: string;
   /** Zieleintrag */
@@ -326,6 +352,19 @@ export interface StoredImageMeta {
    * zuerst lag.
    */
   bookId?: string;
+  /**
+   * Zu welcher **Welt** dieser Datensatz gehört.
+   *
+   * Seit Datenbankfassung 8 die eigentliche Zuständigkeit: Danach wird nach
+   * Welt geladen, nicht nach Buch. `bookId` bleibt daneben stehen und sagt
+   * „hier ist das entstanden" – eine Herkunft, keine Zugehörigkeit.
+   *
+   * Optional im Typ, aber nicht in den Daten: Die Aufwertung hat jeden
+   * vorhandenen Datensatz gestempelt, und beim Hereinkommen bekommt jeder
+   * neue die Welt des offenen Bandes. Das `?` steht hier nur, damit ältere
+   * Sicherungsdateien noch gelesen werden können, ohne dass der Typ lügt.
+   */
+  worldId?: string;
   title: string;
   description: string;
   tags: string[];
@@ -391,6 +430,19 @@ export interface EntryGeheim {
 export interface StoredKlang {
   id: string;
   bookId?: string;
+  /**
+   * Zu welcher **Welt** dieser Datensatz gehört.
+   *
+   * Seit Datenbankfassung 8 die eigentliche Zuständigkeit: Danach wird nach
+   * Welt geladen, nicht nach Buch. `bookId` bleibt daneben stehen und sagt
+   * „hier ist das entstanden" – eine Herkunft, keine Zugehörigkeit.
+   *
+   * Optional im Typ, aber nicht in den Daten: Die Aufwertung hat jeden
+   * vorhandenen Datensatz gestempelt, und beim Hereinkommen bekommt jeder
+   * neue die Welt des offenen Bandes. Das `?` steht hier nur, damit ältere
+   * Sicherungsdateien noch gelesen werden können, ohne dass der Typ lügt.
+   */
+  worldId?: string;
   title: string;
   fileName: string;
   mime: string;
@@ -419,6 +471,19 @@ export interface Revision {
    * keinen Eintrag mehr, an dem sie hinge.
    */
   bookId?: string;
+  /**
+   * Zu welcher **Welt** dieser Datensatz gehört.
+   *
+   * Seit Datenbankfassung 8 die eigentliche Zuständigkeit: Danach wird nach
+   * Welt geladen, nicht nach Buch. `bookId` bleibt daneben stehen und sagt
+   * „hier ist das entstanden" – eine Herkunft, keine Zugehörigkeit.
+   *
+   * Optional im Typ, aber nicht in den Daten: Die Aufwertung hat jeden
+   * vorhandenen Datensatz gestempelt, und beim Hereinkommen bekommt jeder
+   * neue die Welt des offenen Bandes. Das `?` steht hier nur, damit ältere
+   * Sicherungsdateien noch gelesen werden können, ohne dass der Typ lügt.
+   */
+  worldId?: string;
   entryId: string;
   at: number;
   /** Was ist passiert? „angelegt“, „bearbeitet“, „gelöscht“ … */
@@ -453,6 +518,19 @@ export interface CanvasBoard {
   id: string;
   /** Buch. Ein Bogen hängt an keinem Eintrag, also steht es hier oder nirgends. */
   bookId?: string;
+  /**
+   * Zu welcher **Welt** dieser Datensatz gehört.
+   *
+   * Seit Datenbankfassung 8 die eigentliche Zuständigkeit: Danach wird nach
+   * Welt geladen, nicht nach Buch. `bookId` bleibt daneben stehen und sagt
+   * „hier ist das entstanden" – eine Herkunft, keine Zugehörigkeit.
+   *
+   * Optional im Typ, aber nicht in den Daten: Die Aufwertung hat jeden
+   * vorhandenen Datensatz gestempelt, und beim Hereinkommen bekommt jeder
+   * neue die Welt des offenen Bandes. Das `?` steht hier nur, damit ältere
+   * Sicherungsdateien noch gelesen werden können, ohne dass der Typ lügt.
+   */
+  worldId?: string;
   name: string;
   items: CanvasItem[];
   /** Kamera beim letzten Verlassen – man kehrt dorthin zurück */
@@ -864,6 +942,19 @@ export interface StoredWelt {
 export interface StoredTeil {
   id: string;
   bookId?: string;
+  /**
+   * Zu welcher **Welt** dieser Datensatz gehört.
+   *
+   * Seit Datenbankfassung 8 die eigentliche Zuständigkeit: Danach wird nach
+   * Welt geladen, nicht nach Buch. `bookId` bleibt daneben stehen und sagt
+   * „hier ist das entstanden" – eine Herkunft, keine Zugehörigkeit.
+   *
+   * Optional im Typ, aber nicht in den Daten: Die Aufwertung hat jeden
+   * vorhandenen Datensatz gestempelt, und beim Hereinkommen bekommt jeder
+   * neue die Welt des offenen Bandes. Das `?` steht hier nur, damit ältere
+   * Sicherungsdateien noch gelesen werden können, ohne dass der Typ lügt.
+   */
+  worldId?: string;
   schicht: SchichtName;
   name: string;
   /**
