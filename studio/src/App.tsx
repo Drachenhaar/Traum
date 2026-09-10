@@ -47,6 +47,7 @@ import { Geburt } from './pages/geburt/Geburt';
 import { Onboarding } from './pages/onboarding/Onboarding';
 import { Bibliothek } from './pages/bibliothek/Bibliothek';
 import { Tisch } from './pages/arbeitsraum/Tisch';
+import { Verzeichnis } from './pages/arbeitsraum/Verzeichnis';
 import { useStudio } from './store/useStudio';
 import { profilVon } from './lib/profil';
 import { Schauseiten } from './pages/onboarding/Schauseiten';
@@ -214,6 +215,8 @@ export default function App() {
         <Route element={<Arbeitsraum />}>
           {/* Der Tisch – die erste Seite eines Rollenspielbandes. */}
           <Route path="/tisch" element={<Tisch />} />
+          {/* Das Verzeichnis – die Welt eines Romans, aus seinem Text gelesen. */}
+          <Route path="/verzeichnis" element={<Verzeichnis />} />
           {/* Die Besitzseite steht vor dem Vorwort – die erste Seite des Bandes. */}
           <Route path="/besitz" element={<OwnershipSpread />} />
           <Route path="/mein-buch" element={<MeinBuchSheet />} />

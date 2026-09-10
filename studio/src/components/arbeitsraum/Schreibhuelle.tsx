@@ -45,9 +45,18 @@ const ORTE: Ort[] = [
     gehoert: (p) => p.startsWith('/roman') || p.startsWith('/schreiben'),
   },
   {
-    ziel: '/inhalt',
+    /*
+     * Nicht das Inhaltsverzeichnis des Buches, sondern das des Romans.
+     *
+     * `/inhalt` ist der Buchblock mit seinen vierzehn Kapiteln – Naturgesetze,
+     * Materialien, Zeitalter. Für einen Roman ist das ein Regal voller
+     * Schubladen, die er nie öffnet. `/verzeichnis` zeigt stattdessen, was
+     * *in seinem Text* vorkommt.
+     */
+    ziel: '/verzeichnis',
     name: 'Welt',
     gehoert: (p) =>
+      p.startsWith('/verzeichnis') ||
       p.startsWith('/inhalt') ||
       p.startsWith('/kapitel') ||
       p.startsWith('/eintrag') ||
