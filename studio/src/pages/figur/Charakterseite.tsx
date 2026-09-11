@@ -56,6 +56,8 @@ import { Bildnis } from '../../components/figur/Bildnis';
 import { Mehr } from '../../components/ui/Mehr';
 import { Registerkante } from '../../components/figur/Registerkante';
 import { ERSTES_BLATT, REGISTERBLAETTER } from '../../components/figur/Register';
+import { erstesBlattFuer } from '../../lib/figur/registerfolge';
+import { buchartVon } from '../../lib/buchart';
 import { Blattinhalt, Kopfbildnis, blattfuellung } from '../../components/figur/Figurblaetter';
 import { Goldteiler, Wegepunkt, zeichenFuer } from '../../lib/zeichen/zeichen';
 import { Kolumnentitel, Seitenzahl } from '../../components/setzerei/Setzerei';
@@ -142,7 +144,16 @@ export function Charakterseite() {
    * Im Blick und nicht in der Welt – wie Ort und Tiefe. Wer ein Register
    * aufschlaegt, hat an der Figur nichts geaendert.
    */
-  const [blatt, setzeBlatt] = useState(ERSTES_BLATT);
+  /*
+   * Womit dieses Buch eine Figur aufschlägt.
+   *
+   * `ERSTES_BLATT` bleibt der Anfangswert – es gilt für den ersten Atemzug,
+   * bevor das Buch überhaupt gelesen ist, und für jeden Band ohne Buchart.
+   * Alles Weitere sagt `erstesBlattFuer`.
+   */
+  const buchart = useStudio((s) => buchartVon(s.settings.book));
+  const anfang = erstesBlattFuer(REGISTERBLAETTER, buchart) ?? ERSTES_BLATT;
+  const [blatt, setzeBlatt] = useState(anfang);
 
   const lebende = useMemo(() => livingEntries(entries), [entries]);
   const nach = useMemo(() => new Map(lebende.map((e) => [e.id, e])), [lebende]);
@@ -203,7 +214,7 @@ export function Charakterseite() {
    * bei Vaelorian zuletzt gelesen hatte. Ein Buch schlägt man nicht dort auf,
    * wo das vorige Buch lag.
    */
-  useEffect(() => setzeBlatt(ERSTES_BLATT), [entry?.id]);
+  useEffect(() => setzeBlatt(anfang), [entry?.id, anfang]);
 
   if (!entry) return <KeineFigur figuren={figuren} />;
 

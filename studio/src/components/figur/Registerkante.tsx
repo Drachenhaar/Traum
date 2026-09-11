@@ -18,6 +18,9 @@
 import { zeichenFuer } from '../../lib/zeichen/zeichen';
 import { DRACHE_MINDESTGROESSE, Drachenmarke } from '../../lib/zeichen/embleme';
 import { REGISTERBLAETTER, type Blattfuellung } from './Register';
+import { ordneBlaetter } from '../../lib/figur/registerfolge';
+import { useStudio } from '../../store/useStudio';
+import { buchartVon } from '../../lib/buchart';
 import { cx } from '../../lib/utils';
 
 export function Registerkante({
@@ -37,6 +40,15 @@ export function Registerkante({
    * und gar nicht, wenn das unter die Mindestgröße fällt.
    */
   const marke = breite - 12 >= DRACHE_MINDESTGROESSE ? Math.min(breite - 12, 38) : 0;
+
+  /*
+   * Dieselben Reiter, in der Ordnung dieses Buches.
+   *
+   * Nicht weniger Reiter – dieselben. Ein Roman zeigt die Fähigkeiten
+   * weiterhin, nur eben nicht an zweiter Stelle. Siehe `registerfolge.ts`.
+   */
+  const art = useStudio((s) => buchartVon(s.settings.book));
+  const blaetter = ordneBlaetter(REGISTERBLAETTER, art);
 
   return (
     <nav
@@ -80,7 +92,7 @@ export function Registerkante({
         </div>
       )}
 
-      {REGISTERBLAETTER.map((b) => {
+      {blaetter.map((b) => {
         const Z = zeichenFuer(b.zeichen);
         const aktiv = b.id === offen;
         const still = fuellung[b.id] === false;
