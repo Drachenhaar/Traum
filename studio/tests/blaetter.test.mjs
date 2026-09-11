@@ -93,9 +93,21 @@ sammle('../src');
 const gesamt = quellen.join('\n');
 
 const ohneTuer = blaetter.filter((r) => {
-  /* Als Ziel genannt – `to="/x"`, `to: '/x'`, `to={'/x'}` oder `navigate('/x')`. */
+  /*
+   * Als Ziel genannt – `to="/x"`, `to: '/x'`, `to={'/x'}` oder `navigate('/x')`.
+   *
+   * Dazu `ziel: '/x'` und `eingang: '/x'`: Seit es Arbeitsräume gibt, steht
+   * eine Tür nicht mehr immer als `<Link to="/x">` im Bauteil, sondern in
+   * einer Tabelle, die ein Bauteil durchläuft (`lib/arbeitsraum.ts`,
+   * `Raumzeile`). Das ist dieselbe Tür, nur einmal aufgeschrieben statt
+   * dreimal – und die Prüfung soll den Weg finden, nicht die Schreibweise.
+   *
+   * Was sie weiterhin fängt: ein Blatt, auf das **nirgends** gezeigt wird.
+   * Genau dafür ist sie da.
+   */
   const muster = new RegExp(
-    `to=["']${r}["']|to:\\s*['"]${r}['"]|to=\\{['"]${r}['"]\\}|navigate\\(['"]${r}['"]`,
+    `to=["']${r}["']|to:\\s*['"]${r}['"]|to=\\{['"]${r}['"]\\}|navigate\\(['"]${r}['"]` +
+      `|ziel:\\s*['"]${r}['"]|eingang:\\s*['"]${r}['"]`,
   );
   return !muster.test(gesamt);
 });

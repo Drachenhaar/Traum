@@ -38,7 +38,15 @@ import { deutlichkeit, uebergangMs } from '../../lib/raum/flaeche';
 export function useBook() {
   const entries = useStudio((s) => s.entries);
   const images = useStudio((s) => s.images);
-  return useMemo(() => buildBook(entries, images.length), [entries, images.length]);
+  /*
+   * Die gesetzte Seitenreihenfolge gehoert zum Buch und wird deshalb hier
+   * gereicht – `buildBook` selbst weiss nichts von Buechern im Regal.
+   */
+  const folge = useStudio((s) => s.settings.seitenfolge);
+  return useMemo(
+    () => buildBook(entries, images.length, folge),
+    [entries, images.length, folge],
+  );
 }
 
 /** Wo im Buch stehen wir gerade – und wie abgegriffen ist diese Seite? */

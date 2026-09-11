@@ -131,7 +131,7 @@ export function umschriftFuer(bestand: Bestand): Umschrift {
  * die einzige ehrliche Möglichkeit: Es gibt keine allgemeine Regel, die einer
  * Zeichenkette ansieht, ob sie ein Verweis ist.
  */
-function schreibeEintrag(e: Entry, u: Umschrift, bookId: string): Entry {
+function schreibeEintrag(e: Entry, u: Umschrift, bookId: string, worldId: string): Entry {
   const tpl = templateFor(e.type);
   const felder: Entry['fields'] = {};
   for (const [key, wert] of Object.entries(e.fields ?? {})) {
@@ -149,6 +149,7 @@ function schreibeEintrag(e: Entry, u: Umschrift, bookId: string): Entry {
     ...e,
     id: u.entries.get(e.id)!,
     bookId,
+    worldId,
     coverImage: um(u.images, e.coverImage),
     linkedEntryIds: umListe(u.entries, e.linkedEntryIds) ?? [],
     /*
@@ -186,10 +187,19 @@ function schreibeEintrag(e: Entry, u: Umschrift, bookId: string): Entry {
 export function schreibeAb(
   bestand: Bestand,
   bookId: string,
+  /*
+   * Die Welt der Abschrift – und sie ist ausdrücklich eine **neue**.
+   *
+   * Seit das Weltwissen der Welt gehört, wäre eine Kopie in *derselben* Welt
+   * keine Abschrift, sondern eine Verdopplung: Jede Figur stünde danach
+   * zweimal in derselben Welt, und beide Bände sähen beide. Wer ein Buch
+   * abschreibt, will eine Fassung zum Herumprobieren – also eine eigene Welt.
+   */
+  worldId: string,
   u: Umschrift = umschriftFuer(bestand),
 ): Bestand {
   return {
-    entries: bestand.entries.map((e) => schreibeEintrag(e, u, bookId)),
+    entries: bestand.entries.map((e) => schreibeEintrag(e, u, bookId, worldId)),
 
     relations: bestand.relations
       /* Eine Kante, deren Enden nicht beide mitkopiert werden, gibt es nicht. */
@@ -198,6 +208,7 @@ export function schreibeAb(
         ...r,
         id: newId('rel'),
         bookId,
+        worldId,
         fromId: u.entries.get(r.fromId)!,
         toId: u.entries.get(r.toId)!,
       })),
@@ -213,6 +224,7 @@ export function schreibeAb(
       ...m,
       id: u.images.get(m.id)!,
       bookId,
+      worldId,
       blobId: m.blobId ?? m.id,
     })),
 
@@ -220,6 +232,7 @@ export function schreibeAb(
       ...b,
       id: u.boards.get(b.id)!,
       bookId,
+      worldId,
       items: (b.items ?? []).map((i) => ({
         ...i,
         id: newId('ci'),
@@ -239,7 +252,7 @@ export function schreibeAb(
       })),
     })),
 
-    klaenge: bestand.klaenge.map((k) => ({ ...k, id: u.klaenge.get(k.id)!, bookId })),
+    klaenge: bestand.klaenge.map((k) => ({ ...k, id: u.klaenge.get(k.id)!, bookId, worldId })),
 
     /*
      * Die Karte.
@@ -260,6 +273,7 @@ export function schreibeAb(
       ...k,
       id: u.karten.get(k.id)!,
       bookId,
+      worldId,
       features: k.features.map((f) => ({
         ...f,
         id: newId('f'),
@@ -283,6 +297,7 @@ export function schreibeAb(
       ...t,
       id: u.teile.get(t.id)!,
       bookId,
+      worldId,
       /*
        * Jede Ansicht trägt ihre eigene Bildkennung, und jede muss mit.
        *

@@ -121,13 +121,28 @@ export const BUCH_SCHLUESSEL = [
   'spiegelVerlauf',
   'leitfaden',
   'entdeckungenAbsicht',
+  'seitenfolge',
 ] as const;
 
 export type BuchSchluessel = (typeof BUCH_SCHLUESSEL)[number];
 
 const BUCH_SET = new Set<string>(BUCH_SCHLUESSEL);
 
-/** Was die Oberfläche sieht: Geräteeinstellungen mit dem Buch darübergelegt. */
+/**
+ * Was die Oberfläche sieht: Geräteeinstellungen mit dem Buch darübergelegt.
+ *
+ * **Ein buchgebundener Wert, den das Buch nicht hat, ist nicht da.**
+ *
+ * Das klingt selbstverständlich und war es nicht. Vorher blieb stehen, was in
+ * der Grundlage stand – und die Grundlage ist beim Buchwechsel die *bereits
+ * gemischte* Einstellung des vorigen Bandes (`oeffneBuch` baut sie aus
+ * `get().settings`). Ein Buch ohne eigenes Lesebändchen erbte damit das des
+ * zuletzt offenen: Gemessen schlug ein Roman bei „/inhalt" auf, weil davor
+ * ein Artbook auf seinem Inhaltsverzeichnis gelegen hatte.
+ *
+ * Dass die drei Listen unten schon einzeln zurückgesetzt wurden, war der
+ * halbe Weg zu derselben Erkenntnis – jetzt gilt sie für alle Schlüssel.
+ */
 export function sichtbareEinstellungen(
   global: Settings,
   buch: LibraryBook | undefined,
@@ -136,7 +151,7 @@ export function sichtbareEinstellungen(
   const sicht: Record<string, unknown> = { ...global, book: buch };
   const quelle = buch as unknown as Record<string, unknown>;
   for (const k of BUCH_SCHLUESSEL) {
-    if (quelle[k] !== undefined) sicht[k] = quelle[k];
+    sicht[k] = quelle[k];
   }
   /*
    * Listen duerfen nie fehlen. Die Oberflaeche ruft `settings.goals.map`

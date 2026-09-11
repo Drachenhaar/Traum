@@ -19,6 +19,7 @@ import { colorById, materialById } from '../../lib/bookIdentity';
 import { TEXTURES } from '../../lib/textures';
 import { BookEmblem } from './BookEmblem';
 import { cx } from '../../lib/utils';
+import { buchartById, buchartVon } from '../../lib/buchart';
 
 /** `#RRGGBB` mit Deckkraft – fuer die Farbschicht ueber der Maserung. */
 function withAlpha(hex: string, alpha: number): string {
@@ -127,8 +128,18 @@ export function CoverFace({
       />
 
       {!klein && (
+        /*
+         * Was oben auf dem Deckel steht: die Art dieses Bandes.
+         *
+         * Bis es Buchtypen gab, stand hier auf *jedem* Buch das Wort
+         * „Artbook" – als Name des Programms, nicht als Aussage über den
+         * Band. Sobald es Romane gibt, ist es eine Unwahrheit auf dem
+         * Einband. Ein Band ohne gewählte Art behält das alte Wort: Sein
+         * Deckel soll sich nicht ändern, nur weil das Programm dazugelernt
+         * hat.
+         */
         <span className="rubric mt-1" style={{ color: withAlpha(farbe.foil, 0.7) }}>
-          Artbook
+          {buchartById(buchartVon(identity))?.name ?? 'Artbook'}
         </span>
       )}
 
@@ -212,11 +223,21 @@ export function ClosedBook({
   width = 286,
   height = 390,
   className,
+  ohneSchrift = false,
 }: {
   identity: BookIdentity;
   width?: number;
   height?: number;
   className?: string;
+  /**
+   * Nur der Einband, ohne Prägung.
+   *
+   * Für Bände, die keine sind: die drei Schaubücher bei „Was möchtest du
+   * erstellen?" etwa. Sie stehen dort als Material und Farbe, nicht als
+   * Werke – „Ohne Titel" dreimal nebeneinander sähe aus wie eine Bibliothek
+   * voller vergessener Bücher, und die Art steht ohnehin darunter.
+   */
+  ohneSchrift?: boolean;
 }) {
   const farbe = colorById(identity.coverColor);
 
@@ -259,7 +280,7 @@ export function ClosedBook({
             transform: `scale(${width / NENNBREITE})`,
           }}
         >
-          <CoverFace identity={identity} />
+          <CoverFace identity={identity} klein={ohneSchrift} />
         </div>
       </div>
 

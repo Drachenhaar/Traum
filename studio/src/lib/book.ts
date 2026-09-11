@@ -14,6 +14,7 @@
 import type { Entry, EntryType } from '../types';
 import { templateFor } from './templates';
 import { istRomanTeil } from './roman/struktur';
+import { ordne, type Seitenfolge } from './buch/seitenfolge';
 
 /* ------------------------------------------------------------------ Kapitel */
 
@@ -329,7 +330,17 @@ export interface BookStructure {
   pageOfEntry: Map<string, number>;
   chapters: {
     chapter: ChapterDef;
+    /** Die Eintraege in der Reihenfolge, in der sie im Buch stehen. */
     entries: Entry[];
+    /**
+     * Dieselben Eintraege in der Ordnung, die sich aus den Daten ergibt.
+     *
+     * Gebraucht fuer genau eine Frage: Weicht die von Hand gesetzte Folge
+     * ueberhaupt von der abgeleiteten ab? Nur dann ist „Zur Buchordnung
+     * zurueck" eine Handlung und nicht bloss ein Knopf. Mit `entries` allein
+     * laesst sich das nicht beantworten – dort ist die Folge schon angewandt.
+     */
+    abgeleitet: Entry[];
     /** Seitenzahl der Kapitelseite */
     page: number;
     /** Wie viele Seiten das Kapitel umfasst */
@@ -359,7 +370,19 @@ const FIRST_PAGE = 6;
  * Reihenfolge innerhalb eines Kapitels: nach Kategorie, dann alphabetisch –
  * so steht Verwandtes beieinander, wie in einem gesetzten Buch.
  */
-export function buildBook(entries: Entry[], imageCount: number): BookStructure {
+export function buildBook(
+  entries: Entry[],
+  imageCount: number,
+  /**
+   * Die von Hand gesetzte Reihenfolge – siehe `lib/buch/seitenfolge.ts`.
+   *
+   * Sie steht hier als Parameter und nicht als Abfrage im Buchkoerper, weil
+   * dieses Modul rein bleiben soll: Es baut aus Eintraegen ein Buch und weiss
+   * nichts von Buechern im Regal. Wer keine Folge reicht, bekommt die
+   * abgeleitete Ordnung – also alles, was es bisher gab.
+   */
+  folge?: Seitenfolge,
+): BookStructure {
   const spreads: Spread[] = [];
   let page = FIRST_PAGE;
 
@@ -388,7 +411,7 @@ export function buildBook(entries: Entry[], imageCount: number): BookStructure {
   const emptyChapters: ChapterDef[] = [];
 
   for (const chapter of CHAPTERS) {
-    const mine = living
+    const abgeleitet = living
       .filter((e) => chapterOfType(e.type).id === chapter.id)
       .sort(
         (a, b) =>
@@ -396,6 +419,15 @@ export function buildBook(entries: Entry[], imageCount: number): BookStructure {
           (a.category || '').localeCompare(b.category || '', 'de') ||
           a.title.localeCompare(b.title, 'de'),
       );
+
+    /*
+     * Und darueber die gesetzte Folge, falls es eine gibt.
+     *
+     * Die abgeleitete Ordnung bleibt der Unterbau und verschwindet nicht: Was
+     * die Folge nicht nennt – ein eben angelegter Eintrag etwa –, steht
+     * weiterhin nach Typ, Kategorie und Titel, nur hinten dran.
+     */
+    const mine = ordne(abgeleitet, folge?.[chapter.id]);
 
     // Leere Kapitel bekommen keine Seiten – aber sie bleiben nennbar.
     if (mine.length === 0) {
@@ -426,6 +458,7 @@ export function buildBook(entries: Entry[], imageCount: number): BookStructure {
     chapters.push({
       chapter,
       entries: mine,
+      abgeleitet,
       page: startPage,
       pages: page - startPage,
       complete: mine.every((e) => e.status === 'Freigegeben'),

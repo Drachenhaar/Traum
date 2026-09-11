@@ -1,4 +1,22 @@
 /**
+ * Die Absichtsfrage – **derzeit nicht im Weg.**
+ *
+ * Sie stand als erste Szene der Erschaffung: „Was möchtest du erschaffen?" mit
+ * sechs Absichten. Zwei Bilder später fragte die Erschaffung „Was möchtest du
+ * erstellen?" mit drei Buchtypen – zwei fast gleiche Fragen hintereinander,
+ * und die zweite ist die folgenreichere: Sie entscheidet, welcher Arbeitsraum
+ * sich öffnet. Also ist die erste aus dem Weg genommen; die Absicht wird jetzt
+ * aus der Art abgeleitet (`lib/buchart.ts`).
+ *
+ * **Nicht gelöscht, nur nicht mehr aufgerufen.** Die sechs Absichten gibt es
+ * weiter, und in „Mein Buch" lassen sie sich jederzeit umstellen. Sollte es
+ * je wieder einen Ort geben, an dem diese Frage richtig steht – ein Profil
+ * für Lehrer, ein Weg ohne Buch –, steht sie hier fertig.
+ *
+ */
+
+/*
+
  * Was möchtest du erschaffen?
  *
  * Die erste Frage, die Dragoncore stellt – und sie steht jetzt **vor** der

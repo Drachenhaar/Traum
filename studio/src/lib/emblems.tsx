@@ -13,6 +13,7 @@
 
 import type { ReactNode } from 'react';
 import dragoncore from '../assets/emblem.png';
+import siegelFederbuch from '../assets/wappen/federbuch.webp';
 import siegelDrache from '../assets/wappen/drache.webp';
 import siegelBaum from '../assets/wappen/baum.webp';
 import siegelBuch from '../assets/wappen/buch.webp';
@@ -61,6 +62,24 @@ export function nimmtFarbeAn(preset: EmblemPreset): boolean {
 }
 
 export const EMBLEM_PRESETS: EmblemPreset[] = [
+  {
+    /*
+     * Das Zeichen, das ein neues Buch von selbst trägt.
+     *
+     * Eine Feder über einem aufgeschlagenen Buch, in einem Ring aus feinen
+     * Bögen. Es steht vor dem Drachen, weil es sagt, was hier geschieht –
+     * geschrieben wird –, während der Drache sagt, wie das Programm heisst.
+     * Auf dem Deckel eines Bandes, der noch keinen Titel hat, ist das erste
+     * die bessere Auskunft.
+     *
+     * Freigestellt aus der Vorlage nach Sättigung: Der Grund war ein
+     * entsättigtes Creme, das Zeichen gesättigtes Gold. Nach Helligkeit zu
+     * trennen hätte die Glanzlichter im Gold mitgenommen.
+     */
+    id: 'federbuch',
+    label: 'Feder & Buch',
+    src: siegelFederbuch,
+  },
   {
     id: 'dragoncore',
     label: 'Dragoncore',

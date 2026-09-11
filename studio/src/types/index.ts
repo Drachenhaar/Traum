@@ -11,6 +11,8 @@
  */
 
 import type { Profil } from '../lib/profil';
+import type { Buchart } from '../lib/buchart';
+import type { Seitenfolge } from '../lib/buch/seitenfolge';
 import type { Notiz } from '../lib/anerbieten/gedaechtnis';
 import type { Ansicht, Bildbau, SchichtName, Quelle } from '../lib/baukasten';
 
@@ -125,6 +127,19 @@ export interface Entry {
    * Sicherungsdateien noch gelesen werden können, ohne dass der Typ lügt.
    */
   bookId?: string;
+  /**
+   * Zu welcher **Welt** dieser Datensatz gehört.
+   *
+   * Seit Datenbankfassung 8 die eigentliche Zuständigkeit: Danach wird nach
+   * Welt geladen, nicht nach Buch. `bookId` bleibt daneben stehen und sagt
+   * „hier ist das entstanden" – eine Herkunft, keine Zugehörigkeit.
+   *
+   * Optional im Typ, aber nicht in den Daten: Die Aufwertung hat jeden
+   * vorhandenen Datensatz gestempelt, und beim Hereinkommen bekommt jeder
+   * neue die Welt des offenen Bandes. Das `?` steht hier nur, damit ältere
+   * Sicherungsdateien noch gelesen werden können, ohne dass der Typ lügt.
+   */
+  worldId?: string;
   title: string;
   subtitle: string;
   type: EntryType;
@@ -245,6 +260,19 @@ export interface Relation {
    * Bibliothek vermeiden.
    */
   bookId?: string;
+  /**
+   * Zu welcher **Welt** dieser Datensatz gehört.
+   *
+   * Seit Datenbankfassung 8 die eigentliche Zuständigkeit: Danach wird nach
+   * Welt geladen, nicht nach Buch. `bookId` bleibt daneben stehen und sagt
+   * „hier ist das entstanden" – eine Herkunft, keine Zugehörigkeit.
+   *
+   * Optional im Typ, aber nicht in den Daten: Die Aufwertung hat jeden
+   * vorhandenen Datensatz gestempelt, und beim Hereinkommen bekommt jeder
+   * neue die Welt des offenen Bandes. Das `?` steht hier nur, damit ältere
+   * Sicherungsdateien noch gelesen werden können, ohne dass der Typ lügt.
+   */
+  worldId?: string;
   /** Ausgangseintrag */
   fromId: string;
   /** Zieleintrag */
@@ -325,6 +353,19 @@ export interface StoredImageMeta {
    * zuerst lag.
    */
   bookId?: string;
+  /**
+   * Zu welcher **Welt** dieser Datensatz gehört.
+   *
+   * Seit Datenbankfassung 8 die eigentliche Zuständigkeit: Danach wird nach
+   * Welt geladen, nicht nach Buch. `bookId` bleibt daneben stehen und sagt
+   * „hier ist das entstanden" – eine Herkunft, keine Zugehörigkeit.
+   *
+   * Optional im Typ, aber nicht in den Daten: Die Aufwertung hat jeden
+   * vorhandenen Datensatz gestempelt, und beim Hereinkommen bekommt jeder
+   * neue die Welt des offenen Bandes. Das `?` steht hier nur, damit ältere
+   * Sicherungsdateien noch gelesen werden können, ohne dass der Typ lügt.
+   */
+  worldId?: string;
   title: string;
   description: string;
   tags: string[];
@@ -390,6 +431,19 @@ export interface EntryGeheim {
 export interface StoredKlang {
   id: string;
   bookId?: string;
+  /**
+   * Zu welcher **Welt** dieser Datensatz gehört.
+   *
+   * Seit Datenbankfassung 8 die eigentliche Zuständigkeit: Danach wird nach
+   * Welt geladen, nicht nach Buch. `bookId` bleibt daneben stehen und sagt
+   * „hier ist das entstanden" – eine Herkunft, keine Zugehörigkeit.
+   *
+   * Optional im Typ, aber nicht in den Daten: Die Aufwertung hat jeden
+   * vorhandenen Datensatz gestempelt, und beim Hereinkommen bekommt jeder
+   * neue die Welt des offenen Bandes. Das `?` steht hier nur, damit ältere
+   * Sicherungsdateien noch gelesen werden können, ohne dass der Typ lügt.
+   */
+  worldId?: string;
   title: string;
   fileName: string;
   mime: string;
@@ -418,6 +472,19 @@ export interface Revision {
    * keinen Eintrag mehr, an dem sie hinge.
    */
   bookId?: string;
+  /**
+   * Zu welcher **Welt** dieser Datensatz gehört.
+   *
+   * Seit Datenbankfassung 8 die eigentliche Zuständigkeit: Danach wird nach
+   * Welt geladen, nicht nach Buch. `bookId` bleibt daneben stehen und sagt
+   * „hier ist das entstanden" – eine Herkunft, keine Zugehörigkeit.
+   *
+   * Optional im Typ, aber nicht in den Daten: Die Aufwertung hat jeden
+   * vorhandenen Datensatz gestempelt, und beim Hereinkommen bekommt jeder
+   * neue die Welt des offenen Bandes. Das `?` steht hier nur, damit ältere
+   * Sicherungsdateien noch gelesen werden können, ohne dass der Typ lügt.
+   */
+  worldId?: string;
   entryId: string;
   at: number;
   /** Was ist passiert? „angelegt“, „bearbeitet“, „gelöscht“ … */
@@ -452,6 +519,19 @@ export interface CanvasBoard {
   id: string;
   /** Buch. Ein Bogen hängt an keinem Eintrag, also steht es hier oder nirgends. */
   bookId?: string;
+  /**
+   * Zu welcher **Welt** dieser Datensatz gehört.
+   *
+   * Seit Datenbankfassung 8 die eigentliche Zuständigkeit: Danach wird nach
+   * Welt geladen, nicht nach Buch. `bookId` bleibt daneben stehen und sagt
+   * „hier ist das entstanden" – eine Herkunft, keine Zugehörigkeit.
+   *
+   * Optional im Typ, aber nicht in den Daten: Die Aufwertung hat jeden
+   * vorhandenen Datensatz gestempelt, und beim Hereinkommen bekommt jeder
+   * neue die Welt des offenen Bandes. Das `?` steht hier nur, damit ältere
+   * Sicherungsdateien noch gelesen werden können, ohne dass der Typ lügt.
+   */
+  worldId?: string;
   name: string;
   items: CanvasItem[];
   /** Kamera beim letzten Verlassen – man kehrt dorthin zurück */
@@ -540,6 +620,24 @@ export interface BookIdentity {
   emblemRotation?: number;
   /** Der Text, mit dem das Zeichen erzeugt wurde – bleibt als Herkunft erhalten. */
   emblemPrompt?: string;
+  /**
+   * Was für ein Buch das ist – siehe `lib/buchart.ts`.
+   *
+   * Bestimmt, welcher Arbeitsraum geladen wird: ein Roman wird geschrieben,
+   * ein Artbook gestaltet, ein Rollenspielband vorbereitet. Das ist die eine
+   * Angabe, an der die neue Grundregel hängt: „Die Welt ist gemeinsam. Das
+   * Buch bestimmt, wie man sie erlebt."
+   *
+   * Steht in der *Identität* und nicht daneben, weil der Einband sie zeigt:
+   * Auf dem Deckel stand bisher auf jedem Band das Wort „Artbook" – auf einem
+   * Roman eine schlichte Unwahrheit, sobald es Romane gibt.
+   *
+   * Darf fehlen, und das ist kein Übergangszustand, sondern eine Zusage: Ein
+   * Band aus der Zeit vor den Arbeitsräumen behält die Oberfläche, die er
+   * hatte, bis jemand ihn ausdrücklich einordnet. Eine Vermutung des
+   * Programms darf keine Werkstatt in einen Schreibraum verwandeln.
+   */
+  art?: Buchart;
   /** Wer das Buch begonnen hat. Erscheint auf der Besitzseite. */
   owner?: string;
   createdAt: number;
@@ -580,9 +678,10 @@ export interface LibraryBook extends BookIdentity {
   /**
    * Die Welt, in der dieses Buch spielt.
    *
-   * Noch ohne Wirkung – vorbereitet für den Tag, an dem ein Weltbuch und zwei
-   * Romane dieselbe Welt teilen. Bis dahin ist ein Buch seine eigene Welt,
-   * und das steht hier auch so: Jedes neue Buch bekommt eine eigene `worldId`.
+   * Jedes neue Buch bekommt eine eigene; zwei Bände, die dieselbe tragen,
+   * teilen ihr Weltwissen. Was „teilen" technisch heisst, ist noch nicht
+   * entschieden – heute hängen Einträge, Bilder und Beziehungen an `bookId`,
+   * nicht an `worldId`. Siehe `lib/buchart.ts`.
    */
   worldId?: string;
   /** Eine Reihe: „Mooshalde I, II, III". Noch ohne Verwaltung. */
@@ -617,6 +716,20 @@ export interface LibraryBook extends BookIdentity {
   leitfaden?: { an: boolean; erledigt: string[] };
   /** Welche Entdeckungen in *diesem* Band Absicht sind. */
   entdeckungenAbsicht?: string[];
+  /**
+   * Die von Hand gesetzte Reihenfolge der Seiten – siehe `lib/buch/seitenfolge.ts`.
+   *
+   * Kapitelkennung → Reihenfolge der Einträge darin. Fehlt ein Kapitel, gilt
+   * die abgeleitete Ordnung; fehlt die Tabelle ganz, ist das Buch nie von Hand
+   * sortiert worden.
+   *
+   * **Warum am Buch und nicht am Eintrag.** Was ein Eintrag ist, steht im
+   * Eintrag; in welcher Reihenfolge er steht, ist eine Eigenschaft des Buches.
+   * Zwei Bände derselben Welt dürfen sie verschieden ordnen, ohne einander zu
+   * überschreiben – derselbe Grundsatz, aus dem die Welt vom Buch getrennt
+   * wurde, eine Ebene tiefer.
+   */
+  seitenfolge?: Seitenfolge;
   /**
    * Das Profil dieses Buches – siehe `lib/profil.ts`.
    *
@@ -732,6 +845,8 @@ export interface Settings {
    * sich die Welt so, dass er neu entsteht, ist er auch wieder eine Frage.
    */
   entdeckungenAbsicht?: string[];
+  /** Die von Hand gesetzte Seitenreihenfolge – siehe `lib/buch/seitenfolge.ts`. */
+  seitenfolge?: Seitenfolge;
   /**
    * Wie weit der Leitfaden ist – siehe `lib/leitfaden.ts`.
    *
@@ -803,6 +918,37 @@ export const EMPTY_FILTER: EntryFilter = {
   orientation: '',
 };
 
+/* ------------------------------------------------------------------- Welt */
+
+/**
+ * Eine Welt, so wie sie in der Ablage liegt.
+ *
+ * Die oberste der drei Ebenen: **Welt – Buch – Darstellung.** Mehrere Bücher
+ * können dieselbe Welt tragen; sie ist der gemeinsame Boden, auf dem ein
+ * Roman, ein Artbook und eine Kampagne stehen können, ohne einander zu sein.
+ *
+ * Bis hierher hatte eine Welt nur eine Kennung an jedem Buch und lieh sich
+ * ihren Namen beim ältesten Band, der sie eröffnet hatte. Das war eine
+ * Behelfslösung mit einem sichtbaren Preis: Unter drei Bänden derselben Welt
+ * stand dreimal „Die Chroniken des Nebelwaldes" – der Titel eines Buches, wo
+ * der Name einer Welt hingehörte.
+ *
+ * **Was hier bewusst noch nicht steht:** Einträge, Beziehungen, Bilder, Zeit,
+ * Karten. Die hängen weiterhin an `bookId`. Diese Zeile ist der Anfang der
+ * Weltebene und nicht ihr Ende – der Umzug des Bestands ist ein eigener,
+ * grösserer Schritt, und ihn hier vorwegzunehmen hiesse, ein leeres
+ * Versprechen ins Modell zu schreiben.
+ */
+export interface StoredWelt {
+  id: string;
+  /** Wie die Welt heisst. Darf leer sein – dann springt der Titel ein. */
+  name: string;
+  /** Ein Satz über sie, wie auf einem Vorsatzblatt. */
+  tagline?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 /**
  * Ein Teil des Charakterbaukastens, so wie es in der Ablage liegt.
  *
@@ -813,6 +959,19 @@ export const EMPTY_FILTER: EntryFilter = {
 export interface StoredTeil {
   id: string;
   bookId?: string;
+  /**
+   * Zu welcher **Welt** dieser Datensatz gehört.
+   *
+   * Seit Datenbankfassung 8 die eigentliche Zuständigkeit: Danach wird nach
+   * Welt geladen, nicht nach Buch. `bookId` bleibt daneben stehen und sagt
+   * „hier ist das entstanden" – eine Herkunft, keine Zugehörigkeit.
+   *
+   * Optional im Typ, aber nicht in den Daten: Die Aufwertung hat jeden
+   * vorhandenen Datensatz gestempelt, und beim Hereinkommen bekommt jeder
+   * neue die Welt des offenen Bandes. Das `?` steht hier nur, damit ältere
+   * Sicherungsdateien noch gelesen werden können, ohne dass der Typ lügt.
+   */
+  worldId?: string;
   schicht: SchichtName;
   name: string;
   /**

@@ -91,7 +91,12 @@ pruefe(
   eingebunden.every((d) => dateien.includes(d)),
   eingebunden.filter((d) => !dateien.includes(d)).join(', '),
 );
-pruefe('Es sind fünfzehn Siegel', dateien.length === 15, `${dateien.length}`);
+/*
+ * Die Zahl steht hier, damit ein Siegel nicht unbemerkt dazukommt oder
+ * verschwindet – und sie hat gerade genau das getan: Mit „Feder & Buch",
+ * dem Zeichen, das ein neues Buch von selbst trägt, sind es sechzehn.
+ */
+pruefe('Es sind sechzehn Siegel', dateien.length === 16, `${dateien.length}`);
 
 /*
  * 4 Kommt die Trennung bei der Wahl an?

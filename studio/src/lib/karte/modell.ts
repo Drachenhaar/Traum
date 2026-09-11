@@ -83,6 +83,8 @@ export interface Kartenfeature {
 export interface Kartendokument {
   id: string;
   bookId: string;
+  /** Zu welcher Welt diese Karte gehört – siehe `db/db.ts`, Fassung 8. */
+  worldId?: string;
   /** Der Startwert der Karte selbst – für alles, was nicht zu einer Fläche gehört. */
   seed: number;
   styleId: string;

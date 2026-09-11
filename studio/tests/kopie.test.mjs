@@ -140,7 +140,7 @@ const bestand = () => ({
 
 const quelle = bestand();
 const u = K.umschriftFuer(quelle);
-const ab = K.schreibeAb(quelle, 'B', u);
+const ab = K.schreibeAb(quelle, 'B', 'welt_B', u);
 
 /* -------------------- 1. Keine einzige Kennung des Originals bleibt stehen */
 
@@ -288,14 +288,35 @@ wahr('  aber das Zeichen zeigt auf das kopierte Bild',
 /* --------------------------------------------------- 6. Randfaelle */
 
 const leer = { entries: [], relations: [], images: [], boards: [], klaenge: [], karten: [], teile: [] };
-p('6 ein leeres Buch bleibt leer', K.schreibeAb(leer, 'B'), leer);
+/*
+ * Die Abschrift landet in einer **eigenen Welt**.
+ *
+ * Seit das Weltwissen der Welt gehört, wäre eine Kopie in derselben Welt
+ * keine Abschrift, sondern eine Verdopplung: Jede Figur stünde danach zweimal
+ * darin, und beide Bände sähen beide. Geprüft wird jede Tabelle, damit nicht
+ * eine einzelne die alte Welt behält – die fiele erst auf, wenn jemand sein
+ * Original geöffnet hat und dort alles doppelt vorfindet.
+ */
+{
+  const abschrift = K.schreibeAb(quelle, 'B', 'welt_B');
+  const fremd = [];
+  for (const [name, liste] of Object.entries(abschrift)) {
+    for (const z of liste) {
+      if (z.worldId !== 'welt_B') fremd.push(`${name}:${z.id}`);
+      if (z.bookId !== 'B') fremd.push(`${name}:${z.id} (Buch)`);
+    }
+  }
+  p('  jeder abgeschriebene Datensatz trägt die neue Welt', fremd, []);
+}
+
+p('6 ein leeres Buch bleibt leer', K.schreibeAb(leer, 'B', 'welt_B'), leer);
 const ohneBloecke = {
   ...leer,
   entries: [e('x', 'Ohne', 'page', { blocks: undefined, fields: undefined, linkedEntryIds: undefined })],
 };
 let geflogen = false;
 try {
-  K.schreibeAb(ohneBloecke, 'B');
+  K.schreibeAb(ohneBloecke, 'B', 'welt_B');
 } catch {
   geflogen = true;
 }

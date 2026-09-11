@@ -252,10 +252,19 @@ export function Bildnis({
               ein Achtel hoch wären. Ein Rahmen für ein Gesicht bekommt das
               Gesicht, nicht die Figur in Briefmarkengrösse.
             */}
+            {/*
+              Dieselbe Fassung wie beim Lichtbild daneben.
+
+              `fassungFuer` stand schon hier – aber nur der Fotoweg fragte
+              danach. Das gebaute Bildnis holte seine Schichten immer in
+              voller Auflösung, auch in der Beziehungsliste, wo es
+              achtundsechzig Punkte gross ist.
+            */}
             <Bildniswerk
               bau={gebautesBildnis}
               vorrat={vorrat}
               darstellung="kopf"
+              fassung={fassungFuer(schacht)}
               className="h-full max-w-full"
             />
           </div>

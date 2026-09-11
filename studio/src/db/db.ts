@@ -28,6 +28,7 @@ import type {
   StoredKlang,
   StoredKlangBlob,
   StoredTeil,
+  StoredWelt,
 } from '../types';
 import type { Kartendokument } from '../lib/karte/modell';
 import { DEFAULT_NAV } from '../lib/nav';
@@ -38,6 +39,32 @@ import { buchAusAltenEinstellungen } from '../lib/bibliothek';
  * Datenbank und Beispieldaten kein Ringschluss der Imports entsteht.
  */
 export const SEED_VERSION = 2;
+
+/**
+ * Die Tabellen, in denen **Weltwissen** liegt.
+ *
+ * Sie hängen seit Fassung 8 an `worldId` und nicht mehr am Buch. Die Liste
+ * steht hier und nicht verstreut, weil sechs Stellen sie brauchen: die
+ * Aufwertung, das Laden, das Stempeln, das Löschen, das Abschreiben und die
+ * Sicherung. Lief sie auseinander, fehlte irgendwo eine Tabelle – und das
+ * fällt erst auf, wenn jemand seine Karten vermisst.
+ *
+ * Nicht darin: `books` und `welten` (die sind die Ebenen selbst),
+ * `imageBlobs` und `klangBlobs` (sie hängen an ihrer Kennung und folgen
+ * ihrem Datensatz) und `settings` (das gehört dem Gerät).
+ */
+export const WELTTABELLEN = [
+  'entries',
+  'relations',
+  'images',
+  'revisions',
+  'boards',
+  'klaenge',
+  'karten',
+  'teile',
+] as const;
+
+export type Welttabelle = (typeof WELTTABELLEN)[number];
 
 export class StudioDatabase extends Dexie {
   entries!: Table<Entry, string>;
@@ -53,6 +80,8 @@ export class StudioDatabase extends Dexie {
   karten!: Table<Kartendokument, string>;
   /** Die Teile des Charakterbaukastens – wo ein Bild hingehört, nicht das Bild. */
   teile!: Table<StoredTeil, string>;
+  /** Die Welten – die Ebene über den Büchern. */
+  welten!: Table<StoredWelt, string>;
 
   constructor() {
     super('dragoncore-studio');
@@ -207,6 +236,126 @@ export class StudioDatabase extends Dexie {
     this.version(6).stores({
       teile: 'id, bookId, schicht, updatedAt, [bookId+schicht]',
     });
+
+    /*
+     * Fassung 7: die Welten.
+     *
+     * Bis hierher war eine Welt nur eine Kennung an jedem Buch. Sie hatte
+     * keinen Namen; angezeigt wurde der Titel des ältesten Bandes, der sie
+     * eröffnet hatte. Bei drei Bänden derselben Welt stand darunter dreimal
+     * derselbe Buchtitel, wo der Name einer Welt hingehört.
+     *
+     * Die Aufwertung legt für jede vorhandene `worldId` einen Datensatz an –
+     * und übernimmt als Namen genau das, was bisher angezeigt wurde. Das ist
+     * Absicht: **Nach dieser Aufwertung sieht niemand etwas anderes als
+     * vorher.** Sie schafft die Möglichkeit umzubenennen, nicht eine neue
+     * Beschriftung. Wer nichts tut, merkt nichts.
+     *
+     * Bücher ohne `worldId` bleiben ohne. Ihnen hier eine Welt anzudichten
+     * hiesse zu behaupten, sie gehörten zusammen – zwei Bände ohne Kennung
+     * sind zwei Unbekannte und nicht zweimal dieselbe.
+     */
+    this.version(7)
+      .stores({
+        welten: 'id, name, updatedAt',
+      })
+      .upgrade(async (tx) => {
+        const buecher = (await tx.table('books').toArray()) as LibraryBook[];
+        const jetzt = Date.now();
+
+        /* Je Welt der älteste Band – er hat den Namen bisher gestellt. */
+        const aeltester = new Map<string, LibraryBook>();
+        for (const b of buecher) {
+          if (!b.worldId) continue;
+          const bisher = aeltester.get(b.worldId);
+          if (!bisher || b.createdAt < bisher.createdAt) aeltester.set(b.worldId, b);
+        }
+
+        const welten: StoredWelt[] = [];
+        for (const [id, band] of aeltester) {
+          welten.push({
+            id,
+            name: band.worldName?.trim() || band.title?.trim() || '',
+            tagline: band.worldTagline?.trim() || undefined,
+            createdAt: band.createdAt ?? jetzt,
+            updatedAt: jetzt,
+          });
+        }
+        if (welten.length) await tx.table('welten').bulkPut(welten);
+      });
+
+    /*
+     * Fassung 8: das Weltwissen gehört der Welt.
+     *
+     * Die grösste Umstellung seit der Bibliothek – und die, um die es beim
+     * ganzen Umbau geht: **Die Welt ist gemeinsam. Das Buch bestimmt, wie man
+     * sie erlebt.** Bis hierher war das eine Absichtserklärung. Figuren, Orte,
+     * Beziehungen, Bilder, Karten und Klänge hingen an `bookId`; zwei Bände
+     * derselben Welt teilten ihren Namen und sonst nichts.
+     *
+     * **Was diese Aufwertung tut – und was ausdrücklich nicht.**
+     *
+     * Sie *ergänzt* `worldId` und lässt `bookId` unangetastet stehen. Genau so
+     * ist die Bibliothek in Fassung 3 entstanden, und aus demselben Grund:
+     * Sollte diese Aufwertung je zurückgenommen werden müssen, findet das
+     * alte Dragoncore seine Welt vor, als wäre nichts gewesen. `bookId` sagt
+     * danach „hier ist das entstanden" – eine Herkunft, keine Zuständigkeit.
+     *
+     * Für den, der die App benutzt, ändert sich in diesem Augenblick nichts:
+     * Wer nur ein Buch je Welt hat – und das ist bisher jeder, weil es keinen
+     * Weg gab, eine zu teilen –, sieht danach exakt dasselbe.
+     *
+     * **Ein Buch ohne `worldId` bekommt zuerst eine.** Ohne diesen Schritt
+     * hätte sein Bestand nachher keine Welt, und Laden nach Welt liesse ihn
+     * verschwinden. Das darf nicht passieren, also wird die Bedingung vorher
+     * hergestellt statt nachher abgefragt.
+     */
+    this.version(8)
+      .stores({
+        entries:
+          'id, bookId, worldId, type, category, status, favorite, updatedAt, createdAt, deletedAt, pipelineStage, *tags, [bookId+type], [bookId+updatedAt], [worldId+type], [worldId+updatedAt]',
+        relations: 'id, bookId, worldId, fromId, toId, type, createdAt',
+        images: 'id, bookId, worldId, category, status, favorite, updatedAt, createdAt, *tags',
+        revisions: 'id, bookId, worldId, entryId, at',
+        boards: 'id, bookId, worldId, updatedAt',
+        klaenge: 'id, bookId, worldId, createdAt',
+        karten: 'id, bookId, worldId, updatedAt',
+        teile: 'id, bookId, worldId, schicht, updatedAt, [bookId+schicht], [worldId+schicht]',
+      })
+      .upgrade(async (tx) => {
+        const buecher = (await tx.table('books').toArray()) as LibraryBook[];
+        const jetzt = Date.now();
+
+        /* Erst jedem Band eine Welt geben, der noch keine hat. */
+        const ohneWelt = buecher.filter((b) => !b.worldId);
+        if (ohneWelt.length) {
+          const frisch: StoredWelt[] = [];
+          for (const b of ohneWelt) {
+            b.worldId = `welt_${b.id}`;
+            frisch.push({
+              id: b.worldId,
+              name: b.worldName?.trim() || b.title?.trim() || '',
+              createdAt: b.createdAt ?? jetzt,
+              updatedAt: jetzt,
+            });
+          }
+          await tx.table('books').bulkPut(ohneWelt);
+          await tx.table('welten').bulkPut(frisch);
+        }
+
+        const weltVonBuch = new Map(buecher.map((b) => [b.id, b.worldId as string]));
+
+        for (const name of WELTTABELLEN) {
+          const tabelle = tx.table(name);
+          const alle = (await tabelle.toArray()) as Record<string, unknown>[];
+          if (!alle.length) continue;
+          const gestempelt = alle.map((z) => {
+            const welt = weltVonBuch.get(z.bookId as string);
+            return welt ? { ...z, worldId: welt } : z;
+          });
+          await tabelle.bulkPut(gestempelt);
+        }
+      });
   }
 }
 
@@ -255,6 +404,7 @@ export async function wipeDatabase(): Promise<void> {
       db.klangBlobs,
       db.karten,
       db.teile,
+      db.welten,
     ],
     async () => {
       await Promise.all([
@@ -270,6 +420,7 @@ export async function wipeDatabase(): Promise<void> {
         db.klangBlobs.clear(),
         db.karten.clear(),
         db.teile.clear(),
+        db.welten.clear(),
       ]);
       await db.settings.put({ ...FRESH_SETTINGS });
     },

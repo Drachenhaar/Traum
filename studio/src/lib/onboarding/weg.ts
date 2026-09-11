@@ -26,6 +26,21 @@
  *
  * ---
  *
+ * **Und dann wurde der Weg noch einmal kürzer.**
+ *
+ * Vorn stand die Frage „Was möchtest du erschaffen?" mit sechs Absichten.
+ * Gleich danach fragte die Erschaffung „Was möchtest du erstellen?" mit drei
+ * Buchtypen – zwei fast gleiche Fragen hintereinander, und die zweite ist die
+ * folgenreichere: Sie entscheidet, welcher Arbeitsraum sich öffnet.
+ *
+ * Also fällt die erste weg. Die Absicht wird jetzt aus der Art abgeleitet
+ * (`lib/buchart.ts`), und wer sie anders will, stellt sie in „Mein Buch" um.
+ * Der Pflichtweg ist damit von drei Abschnitten auf zwei geschrumpft – das
+ * ist der einzige Weg, eine App weniger verwirrend zu machen: eine Frage
+ * *weniger* stellen, nicht eine bessere.
+ *
+ * ---
+ *
  * **Warum das eine eigene Datei ist.**
  *
  * Es sind vier Zustände und eine Handvoll Übergänge; als `switch` im Bauteil
@@ -36,12 +51,10 @@
  */
 
 /** Die Abschnitte der Erschaffung. */
-export type Abschnitt = 'absicht' | 'buch' | 'fuehrung' | 'anfang';
+export type Abschnitt = 'buch' | 'fuehrung' | 'anfang';
 
 /** Was gerade geschehen ist. */
 export type Schritt =
-  /** Die Absicht ist gewählt. */
-  | 'gewaehlt'
   /** Das Buch ist gebunden. */
   | 'gebunden'
   /** Jemand möchte erst ein Beispiel sehen. */
@@ -56,7 +69,7 @@ export type Schritt =
  * Datei. Wer die Liste erweitert, verlängert den Weg jedes Menschen bis zu
  * seinem ersten Wort; das soll man sehen müssen, während man es tut.
  */
-export const PFLICHTWEG: readonly Abschnitt[] = ['absicht', 'buch', 'anfang'];
+export const PFLICHTWEG: readonly Abschnitt[] = ['buch', 'anfang'];
 
 /**
  * Wohin als Nächstes.
@@ -66,7 +79,6 @@ export const PFLICHTWEG: readonly Abschnitt[] = ['absicht', 'buch', 'anfang'];
  * an Stellen, an denen niemand nachsieht.
  */
 export function naechsterAbschnitt(jetzt: Abschnitt, was: Schritt): Abschnitt {
-  if (jetzt === 'absicht' && was === 'gewaehlt') return 'buch';
   if (jetzt === 'buch' && was === 'gebunden') return 'anfang';
   if (jetzt === 'anfang' && was === 'fuehrungGewuenscht') return 'fuehrung';
   /*

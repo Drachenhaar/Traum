@@ -29,12 +29,12 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useStudio } from '../../store/useStudio';
-import { ClosedBook } from '../../components/book/CoverBoard';
-import { Mehr, type MehrEintrag } from '../../components/ui/Mehr';
+import { type MehrEintrag } from '../../components/ui/Mehr';
+import { Regal } from '../../components/bibliothek/Regal';
 import { confirm } from '../../components/ui/Confirm';
-import { imArchiv, imRegal, zuletztOffen } from '../../lib/bibliothek';
+import { imArchiv, imRegal } from '../../lib/bibliothek';
 import { deskStyle } from '../../lib/textures';
-import { cx, downloadFile } from '../../lib/utils';
+import { downloadFile } from '../../lib/utils';
 import { backupFileName, buildBookBackup } from '../../lib/portability';
 import { BEISPIEL_TITEL } from '../../lib/beispiel/mooshalde';
 import type { LibraryBook } from '../../types';
@@ -45,6 +45,7 @@ const SUCHE_AB = 8;
 export function Bibliothek() {
   const navigate = useNavigate();
   const books = useStudio((s) => s.books);
+  const welten = useStudio((s) => s.welten);
   const oeffneBuch = useStudio((s) => s.oeffneBuch);
   const archiviereBuch = useStudio((s) => s.archiviereBuch);
   const dupliziereBuch = useStudio((s) => s.dupliziereBuch);
@@ -68,17 +69,7 @@ export function Bibliothek() {
     );
   }, [regal, frage]);
 
-  /*
-   * Das vorderste Buch steht für sich.
-   *
-   * Nicht hervorgehoben, nicht mit einem Abzeichen versehen – einfach größer
-   * und zuerst, wie ein Band, den man gerade weggelegt hat und der noch nicht
-   * wieder eingeräumt ist. Auf dem Telefon ist das der ganze erste Bildschirm;
-   * zehn winzige Bücher nebeneinander wären dort niemandes Bibliothek.
-   */
   const sucht = frage.trim().length > 0;
-  const vorn: LibraryBook | undefined = sucht ? undefined : gesucht[0];
-  const hinten: LibraryBook[] = sucht ? gesucht : gesucht.slice(1);
 
   const oeffnen = async (buch: LibraryBook) => {
     await oeffneBuch(buch.id);
@@ -175,21 +166,25 @@ export function Bibliothek() {
               </label>
             )}
 
-            {vorn && <Vorderstes buch={vorn} onOeffnen={() => void oeffnen(vorn)} aktionen={aktionen(vorn)} />}
+            {/*
+              Ein Regal, keine zwei Bereiche.
 
-            {hinten.length > 0 && (
-              <section className="mt-12">
-                <p className="rubric text-paper-400/45">{vorn ? 'Daneben' : 'Gefunden'}</p>
-                <div className="mt-5 grid grid-cols-2 gap-x-5 gap-y-9 sm:grid-cols-3 lg:grid-cols-4">
-                  {hinten.map((b) => (
-                    <ImRegal
-                      key={b.id}
-                      buch={b}
-                      onOeffnen={() => void oeffnen(b)}
-                      aktionen={aktionen(b)}
-                    />
-                  ))}
-                </div>
+              Vorher stand der zuletzt geöffnete Band gross für sich und alle
+              anderen darunter in einem Raster – zwei Darstellungen für
+              dieselbe Sache. Jetzt stehen alle auf demselben Brett, und der
+              vorderste trägt sein Lesebändchen. Das ist die eine Auszeichnung,
+              die ein Regal kennt.
+            */}
+            {gesucht.length > 0 && (
+              <section className="mt-8">
+                {sucht && <p className="rubric mb-1 text-paper-400/45">Gefunden</p>}
+                <Regal
+                  buecher={gesucht}
+                  alle={books}
+                  welten={welten}
+                  onOeffnen={(b) => void oeffnen(b)}
+                  aktionen={aktionen}
+                />
               </section>
             )}
 
@@ -237,17 +232,14 @@ export function Bibliothek() {
                   {archivOffen ? ' – zuklappen' : ' – ansehen'}
                 </button>
                 {archivOffen && (
-                  <div className="mt-6 grid grid-cols-2 gap-x-5 gap-y-9 sm:grid-cols-3 lg:grid-cols-4">
-                    {archiv.map((b) => (
-                      <ImRegal
-                        key={b.id}
-                        buch={b}
-                        gedaempft
-                        onOeffnen={() => void oeffnen(b)}
-                        aktionen={aktionen(b)}
-                      />
-                    ))}
-                  </div>
+                  <Regal
+                    buecher={archiv}
+                    alle={books}
+                    welten={welten}
+                    gedaempft
+                    onOeffnen={(b) => void oeffnen(b)}
+                    aktionen={aktionen}
+                  />
                 )}
               </section>
             )}
@@ -299,98 +291,6 @@ function BeispielZeile() {
     >
       {laedt ? 'Wird eingeräumt …' : `Oder einen fertigen Band ansehen: „${BEISPIEL_TITEL}"`}
     </button>
-  );
-}
-
-/* ------------------------------------------------------- Das vorderste ---- */
-
-function Vorderstes({
-  buch,
-  onOeffnen,
-  aktionen,
-}: {
-  buch: LibraryBook;
-  onOeffnen: () => void;
-  aktionen: MehrEintrag[];
-}) {
-  return (
-    <section className="mt-9 flex items-start gap-6 sm:gap-9">
-      <button
-        type="button"
-        onClick={onOeffnen}
-        aria-label={`„${buch.title}“ aufschlagen`}
-        className="shrink-0 transition-transform duration-500 ease-out hover:-translate-y-1 no-tap-highlight"
-      >
-        <ClosedBook identity={buch} width={148} height={202} />
-      </button>
-
-      <div className="min-w-0 flex-1 pt-1">
-        <button
-          type="button"
-          onClick={onOeffnen}
-          className="block max-w-full text-left no-tap-highlight"
-        >
-          <h2 className="truncate font-serif text-[24px] leading-snug text-paper-200 sm:text-[30px]">
-            {buch.title}
-          </h2>
-          {buch.subtitle?.trim() && (
-            <p className="mt-1 font-serif text-[14.5px] italic leading-snug text-paper-400/55">
-              {buch.subtitle}
-            </p>
-          )}
-        </button>
-        <p className="mt-3 font-serif text-[12.5px] text-paper-400/40">{zuletztOffen(buch)}</p>
-
-        <div className="mt-5 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onOeffnen}
-            className="inline-flex min-h-[42px] items-center rounded-full border border-gild-500/40 px-5 font-serif text-[15px] text-gild-500/90 transition-colors hover:bg-gild-400/10 no-tap-highlight"
-          >
-            Aufschlagen
-          </button>
-          <Mehr eintraege={aktionen} ausrichtung="links" />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ---------------------------------------------------------- Im Regal ------ */
-
-function ImRegal({
-  buch,
-  onOeffnen,
-  aktionen,
-  gedaempft,
-}: {
-  buch: LibraryBook;
-  onOeffnen: () => void;
-  aktionen: MehrEintrag[];
-  gedaempft?: boolean;
-}) {
-  return (
-    <div className={cx('flex flex-col items-start', gedaempft && 'opacity-55')}>
-      <button
-        type="button"
-        onClick={onOeffnen}
-        aria-label={`„${buch.title}“ aufschlagen`}
-        className="transition-transform duration-500 ease-out hover:-translate-y-1 no-tap-highlight"
-      >
-        <ClosedBook identity={buch} width={104} height={142} />
-      </button>
-      <div className="mt-3 flex w-full items-start gap-1">
-        <button type="button" onClick={onOeffnen} className="min-w-0 flex-1 text-left no-tap-highlight">
-          <p className="truncate font-serif text-[14.5px] leading-snug text-paper-200/90">
-            {buch.title}
-          </p>
-          <p className="mt-0.5 truncate font-serif text-[11.5px] text-paper-400/35">
-            {zuletztOffen(buch)}
-          </p>
-        </button>
-        <Mehr eintraege={aktionen} />
-      </div>
-    </div>
   );
 }
 
