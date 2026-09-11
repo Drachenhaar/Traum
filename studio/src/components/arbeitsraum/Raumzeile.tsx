@@ -43,7 +43,7 @@ export function Raumzeile({
   const { pathname } = useLocation();
 
   return (
-    <header className="flex shrink-0 items-center gap-3 border-b border-paper-400/12 px-4 pt-[calc(0.55rem+env(safe-area-inset-top))] pb-2 sm:px-6">
+    <header className="flex shrink-0 items-center gap-3 border-b border-paper-400/15 px-4 pt-[calc(0.55rem+env(safe-area-inset-top))] pb-2 sm:px-6">
       {/*
         Zurück ins Regal.
 
@@ -95,7 +95,16 @@ export function Raumzeile({
               className={cx(
                 'shrink-0 rounded-full px-2.5 py-1.5 font-serif text-[13.5px] transition-colors no-tap-highlight sm:px-3 sm:text-[14px]',
                 hier
-                  ? 'bg-gild-400/12 text-gild-300'
+                  /*
+                   * `/10` und nicht `/12`.
+                   *
+                   * Tailwinds Deckkraftskala kennt nur Vielfache von fuenf –
+                   * `/12` erzeugt gar keine Klasse. Die Pille hinter dem
+                   * offenen Ort wurde deshalb nie gezeichnet, und zwar
+                   * unsichtbar: Der Text war golden, also sah es nach Absicht
+                   * aus. `npm run klassen` hat es gefunden.
+                   */
+                  ? 'bg-gild-400/10 text-gild-300'
                   : 'text-paper-400/55 hover:text-paper-200',
               )}
             >
