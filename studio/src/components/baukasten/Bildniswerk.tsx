@@ -66,7 +66,7 @@ import { cx } from '../../lib/utils';
  * lädt jede Schicht für sich, und der Stapel baut sich vor den Augen
  * zusammen. Erst wenn alles da ist, steht das Bildnis.
  */
-function useBildadressen(ids: string[]): Map<string, string> | null {
+function useBildadressen(ids: string[], fassung: Fassung): Map<string, string> | null {
   const schluessel = ids.join('|');
   const [adressen, setAdressen] = useState<Map<string, string> | null>(null);
 
@@ -76,7 +76,7 @@ function useBildadressen(ids: string[]): Map<string, string> | null {
       setAdressen(new Map());
       return;
     }
-    void Promise.all(ids.map(async (id) => [id, await getImageUrl(id, 'full')] as const)).then(
+    void Promise.all(ids.map(async (id) => [id, await getImageUrl(id, fassung)] as const)).then(
       (paare) => {
         if (!gilt) return;
         setAdressen(new Map(paare.filter((p): p is [string, string] => p[1] !== null)));
@@ -86,7 +86,7 @@ function useBildadressen(ids: string[]): Map<string, string> | null {
       gilt = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [schluessel]);
+  }, [schluessel, fassung]);
 
   return adressen;
 }
@@ -177,16 +177,34 @@ function Stueck({
   );
 }
 
+/**
+ * In welcher Auflösung die Schichten geholt werden.
+ *
+ * Gemessen an acht Kacheln mit je einem 1600er Bild: **17 MB gegen 512 kB**,
+ * ein Faktor von vierunddreissig. Die Zahl kommt nicht von der Kompression,
+ * sondern von der Fläche – ein 1600er Bild hat fünfundzwanzigmal so viele
+ * Bildpunkte wie ein 320er, und eine Kachel ist neunzig Punkte breit.
+ *
+ * Deshalb ist die Voreinstellung trotzdem `full`: Das grosse Bildnis in der
+ * Mitte der Charakterseite *braucht* die Auflösung, und eine Voreinstellung,
+ * die die Hauptansicht verschlechtert, um Kacheln zu retten, hätte die Sache
+ * genau verkehrt herum. Wer klein zeigt, sagt es.
+ */
+export type Fassung = 'thumb' | 'full';
+
 export function Bildniswerk({
   bau,
   vorrat,
   darstellung = 'ganzfigur',
+  fassung = 'full',
   className,
 }: {
   bau: Bildbau;
   vorrat: readonly Teil[];
   /** Ganze Figur oder nur der Kopf – dieselben Daten, zwei Darstellungen. */
   darstellung?: Darstellung;
+  /** Grosse Ansicht oder Kachel – siehe `Fassung`. */
+  fassung?: Fassung;
   className?: string;
 }) {
   const folge = zeichenfolge(bau, vorrat);
@@ -209,7 +227,7 @@ export function Bildniswerk({
       if (q.linieId) bildIds.push(q.linieId);
     }
   }
-  const adressen = useBildadressen(bildIds);
+  const adressen = useBildadressen(bildIds, fassung);
 
   /*
    * Der Kasten einer Kopfbahn.

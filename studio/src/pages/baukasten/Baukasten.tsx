@@ -748,10 +748,18 @@ function Variantenkachel({
       )}
     >
       <div className="bg-paper-200 text-ink-faint">
+        {/*
+          Die kleine Fassung – die Kachel ist neunzig Punkte breit.
+
+          Nachgemessen: acht Kacheln mit je einem 1600er Bild holten 17 MB,
+          wo 512 kB dasselbe zeigen. Sichtbar ist der Unterschied auf dieser
+          Fläche nicht; spürbar war er, sobald ein Buch echte Bilder trug.
+        */}
         <Bildniswerk
           bau={bau}
           vorrat={vorrat}
           darstellung={feld === 'kopf' ? 'kopf' : 'ganzfigur'}
+          fassung="thumb"
           className="w-full"
         />
       </div>

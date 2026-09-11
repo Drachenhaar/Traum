@@ -98,7 +98,14 @@ function Wahlkachel({
     >
       <div className="relative aspect-square bg-paper-200 text-ink-faint">
         {gebaut ? (
-          <Bildniswerk bau={gebaut} vorrat={vorrat} darstellung="kopf" className="w-full" />
+          /* Zwei bis vier je Reihe – eine Kachel, keine Ansicht. */
+          <Bildniswerk
+            bau={gebaut}
+            vorrat={vorrat}
+            darstellung="kopf"
+            fassung="thumb"
+            className="w-full"
+          />
         ) : (
           <span className="absolute inset-0 grid place-items-center font-serif text-[30px] text-gild-400/45">
             {namenszeichen(entry.title)}
