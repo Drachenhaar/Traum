@@ -363,6 +363,32 @@ bisher über CSS-Kurven), links/oben/unten über Tiefe 1 hinaus.
 sollte irgendwann in Bibliotheks-, Eintrags- und Blockaktionen zerfallen. Der
 Verfasser hat einen großen Store-Umbau untersagt. **Nicht anfangen.**
 
+### Zwei Punkte aus dem Dreibücher-Umbau
+
+**Dieses Dokument ist an mehreren Stellen überholt.** Es nennt Dexie-Fassung 5
+(es sind 8), einundzwanzig Prüfsuiten (es sind achtundvierzig) und kennt die
+drei Ebenen Welt–Buch–Darstellung noch gar nicht: `lib/buchart.ts`,
+`lib/arbeitsraum.ts`, `lib/welten.ts`, `lib/buch/seitenfolge.ts`,
+`lib/figur/registerfolge.ts` und `lib/roman/` fehlen in Abschnitt 3, ebenso
+die Tabelle `welten` und die `worldId`-Indizes in Abschnitt 2. Wer als
+nächstes hier liest, liest teilweise das Projekt von vorgestern.
+
+**Die Prüfbefehle des Projekts werden umgangen.** In Abschnitt 5 steht die
+richtige Reihenfolge – `npm test`, dann `npm run build`, dann
+`npm run klassen`. Im Dreibücher-Umbau wurde stattdessen eine eigene Schleife
+über `tests/*.test.mjs` benutzt: Die deckt die Suiten ab, aber **nicht**
+`npm run klassen`. Folge: `bg-gild-400/12` und `border-paper-400/12` standen
+zwei Wochen lang wirkungslos im Quelltext, die Pille hinter dem offenen Ort in
+der Raumzeile wurde nie gezeichnet – und weil der Text golden blieb, sah es
+auf jedem Bildschirmfoto nach Absicht aus. Gefunden hat es erst die
+Github-Prüfung, obwohl genau diese Falle in Abschnitt 4 wörtlich beschrieben
+steht.
+
+Die Lücke ist also keine Wissenslücke, sondern eine Gewohnheit. Eine mögliche
+Antwort wäre ein einziger Befehl, der alles vier hintereinander ausführt, statt
+vier Befehle, von denen man den letzten vergessen kann – **noch nicht
+entschieden, bewusst offen.**
+
 ---
 
 ## 7. Wie hier gearbeitet wird
