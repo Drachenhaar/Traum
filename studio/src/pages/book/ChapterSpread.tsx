@@ -12,6 +12,7 @@
 import { Link, useParams } from 'react-router-dom';
 import { chapterById } from '../../lib/book';
 import { templateFor } from '../../lib/templates';
+import { Kapitelliste } from '../../components/buch/Kapitelliste';
 import { useCurrentSpread } from '../../components/book/BookShell';
 import { Spread, Plate } from '../../components/book/Spread';
 import { useImageUrl } from '../../components/images/Thumb';
@@ -162,34 +163,12 @@ export function ChapterSpread() {
             </div>
           )}
 
-          <p className="rubric mb-3">In diesem Kapitel</p>
-          <ol>
-            {entry.entries.map((item) => {
-              const page = book.pageOfEntry.get(item.id);
-              const tpl = templateFor(item.type);
-              return (
-                <li key={item.id} className="group">
-                  <Link to={`/eintrag/${item.id}`} className="flex items-baseline gap-2 py-[6px] no-tap-highlight">
-                    <span
-                      aria-hidden
-                      className="h-[5px] w-[5px] shrink-0 translate-y-[-3px] rounded-full"
-                      style={{ background: tpl.accent }}
-                    />
-                    <span className="font-serif text-[15.5px] leading-snug text-ink transition-colors group-hover:text-gold">
-                      {item.title}
-                    </span>
-                    <span
-                      aria-hidden
-                      className="mx-1 min-w-[1rem] flex-1 translate-y-[-4px] border-b border-dotted border-lineStrong"
-                    />
-                    <span className="shrink-0 font-serif text-[13px] tabular-nums text-ink-faint">
-                      {page}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ol>
+          <Kapitelliste
+            kapitelId={chapter.id}
+            eintraege={entry.entries}
+            abgeleitet={entry.abgeleitet}
+            seiteVon={(id) => book.pageOfEntry.get(id)}
+          />
         </>
       }
     />

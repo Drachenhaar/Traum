@@ -121,6 +121,7 @@ export const BUCH_SCHLUESSEL = [
   'spiegelVerlauf',
   'leitfaden',
   'entdeckungenAbsicht',
+  'seitenfolge',
 ] as const;
 
 export type BuchSchluessel = (typeof BUCH_SCHLUESSEL)[number];

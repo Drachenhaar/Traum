@@ -12,6 +12,7 @@
 
 import type { Profil } from '../lib/profil';
 import type { Buchart } from '../lib/buchart';
+import type { Seitenfolge } from '../lib/buch/seitenfolge';
 import type { Notiz } from '../lib/anerbieten/gedaechtnis';
 import type { Ansicht, Bildbau, SchichtName, Quelle } from '../lib/baukasten';
 
@@ -716,6 +717,20 @@ export interface LibraryBook extends BookIdentity {
   /** Welche Entdeckungen in *diesem* Band Absicht sind. */
   entdeckungenAbsicht?: string[];
   /**
+   * Die von Hand gesetzte Reihenfolge der Seiten – siehe `lib/buch/seitenfolge.ts`.
+   *
+   * Kapitelkennung → Reihenfolge der Einträge darin. Fehlt ein Kapitel, gilt
+   * die abgeleitete Ordnung; fehlt die Tabelle ganz, ist das Buch nie von Hand
+   * sortiert worden.
+   *
+   * **Warum am Buch und nicht am Eintrag.** Was ein Eintrag ist, steht im
+   * Eintrag; in welcher Reihenfolge er steht, ist eine Eigenschaft des Buches.
+   * Zwei Bände derselben Welt dürfen sie verschieden ordnen, ohne einander zu
+   * überschreiben – derselbe Grundsatz, aus dem die Welt vom Buch getrennt
+   * wurde, eine Ebene tiefer.
+   */
+  seitenfolge?: Seitenfolge;
+  /**
    * Das Profil dieses Buches – siehe `lib/profil.ts`.
    *
    * Es ordnet und faltet, es entfernt nie. Was hier steht, entscheidet, was
@@ -830,6 +845,8 @@ export interface Settings {
    * sich die Welt so, dass er neu entsteht, ist er auch wieder eine Frage.
    */
   entdeckungenAbsicht?: string[];
+  /** Die von Hand gesetzte Seitenreihenfolge – siehe `lib/buch/seitenfolge.ts`. */
+  seitenfolge?: Seitenfolge;
   /**
    * Wie weit der Leitfaden ist – siehe `lib/leitfaden.ts`.
    *
