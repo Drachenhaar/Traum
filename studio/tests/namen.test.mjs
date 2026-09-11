@@ -249,10 +249,78 @@ pruefe('aus einem Namen wird kein kürzerer erfunden', () => {
 });
 
 /* =======================================================================
- * 4 · DIE ORDNUNG
+ * 4 · ZWEITEILIGE NAMEN
  * ==================================================================== */
 
-console.log('\n4 · Die Ordnung');
+console.log('\n4 · Zweiteilige Namen');
+
+pruefe('zwei grossgeschriebene Wörter nebeneinander sind ein Name', () => {
+  /*
+   * Im Deutschen wird ein Adjektiv klein geschrieben – „der graue Turm" –,
+   * **ausser** es gehört zum Namen: „der Graue Turm". Diesen Unterschied
+   * macht der Verfasser mit der Taste, und hier wird er gelesen.
+   */
+  const text =
+    'Vor ihnen stand der Graue Turm. Der Graue Turm war leer. ' +
+    'Am Abend erreichten sie den Grauen Turm nicht mehr.';
+  assert.ok(namen(text).includes('Graue Turm'), `nicht gefunden: ${namen(text)}`);
+});
+
+pruefe('der Teil wird nicht daneben noch einmal vorgeschlagen', () => {
+  /*
+   * Ohne Abzug stünde „Graue Turm" **und** „Turm" in der Liste, und der
+   * Verfasser müsste raten, welches gemeint ist.
+   */
+  const text = 'Vor ihnen stand der Graue Turm. Der Graue Turm war leer. Im Graue Turm war es kalt.';
+  const f = namen(text);
+  assert.ok(f.includes('Graue Turm'));
+  assert.ok(!f.includes('Turm'), `„Turm" steht daneben: ${f}`);
+});
+
+pruefe('ein Teil, der auch allein vorkommt, bleibt', () => {
+  /*
+   * Die Gegenprobe zum Abzug: „Aelfric" steht zweimal für sich und zweimal
+   * in „Sankt Aelfric". Nach dem Abzug bleiben zwei – und damit zu Recht
+   * beide Vorschläge.
+   */
+  const text =
+    'Sie kamen zu Sankt Aelfric. Sankt Aelfric war verlassen. ' +
+    'Aelfric hatte den Ort gebaut. Damals war Aelfric jung.';
+  const f = namen(text);
+  assert.ok(f.includes('Sankt Aelfric'), `Paar fehlt: ${f}`);
+  assert.ok(f.includes('Aelfric'), `Teil fehlt: ${f}`);
+});
+
+pruefe('ein einmaliges Paar entlastet seinen Teil nicht', () => {
+  /*
+   * Wofür die Schwelle bei Paaren wirklich da ist – und die Gegenprobe
+   * darauf blieb zuerst grün.
+   *
+   * „Alten Turm" steht genau einmal; das ist kein Name, sondern ein
+   * Adjektiv, das zufällig gross am Satzanfang folgte. Zöge es trotzdem von
+   * „Turm" ab, fiele der Turm unter die Schwelle und verschwände – ein
+   * Vorschlag weniger, und niemand wüsste warum.
+   */
+  const text = 'Er sah den Alten Turm. Der Turm war leer.';
+  const f = namen(text);
+  assert.ok(f.includes('Turm'), `Turm verschwunden: ${f}`);
+  assert.ok(!f.includes('Alten Turm'), `einmaliges Paar vorgeschlagen: ${f}`);
+});
+
+pruefe('Funktionswörter bilden kein Paar', () => {
+  /*
+   * „Der Wald" und „Sie Ging" sind keine Namen. Am Satzanfang steht sonst
+   * jedes Wortpaar gross da.
+   */
+  const text = 'Der Wald schwieg. Der Wald roch nach Regen. Der Wald war alt.';
+  assert.ok(!namen(text).some((n) => n.includes(' ')), `Paar gefunden: ${namen(text)}`);
+});
+
+/* =======================================================================
+ * 5 · DIE ORDNUNG
+ * ==================================================================== */
+
+console.log('\n5 · Die Ordnung');
 
 pruefe('das Häufigste steht oben', () => {
   const text =

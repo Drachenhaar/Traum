@@ -292,6 +292,8 @@ export function findeNamen(text: string, bekannt: Entry[] = []): Namensfund[] {
     beleg: string;
   }
   const nach = new Map<string, Zaehler>();
+  /** Zweiteilige Namen – getrennt gezählt, am Ende zusammengeführt. */
+  const paare = new Map<string, Zaehler>();
 
   for (const satz of saetze(text)) {
     const woerter = satz.split(WORTGRENZE).filter(Boolean);
@@ -328,6 +330,46 @@ export function findeNamen(text: string, bekannt: Entry[] = []): Namensfund[] {
         }
       }
       const nachWort = i + 1 < woerter.length ? woerter[i + 1].toLowerCase() : '';
+
+      /*
+       * Zweiteilige Namen: „Grauer Turm", „Sankt Aelfric", „Hohe Halle".
+       *
+       * Zwei grossgeschriebene Wörter nebeneinander, beide keine
+       * Funktionswörter. Im Deutschen ist das ein starkes Zeichen – ein
+       * Adjektiv wird klein geschrieben („der graue Turm"), **ausser** es
+       * gehört zum Namen („der Graue Turm"). Genau diesen Unterschied macht
+       * der Verfasser mit der Taste, und wir lesen ihn.
+       *
+       * Der Fund wird mitgezählt und die beiden Teile bekommen ihn später
+       * abgezogen: Wer „Grauer Turm" anlegt, will nicht daneben noch einen
+       * „Turm" vorgeschlagen bekommen.
+       */
+      if (i + 1 < woerter.length) {
+        const zweites = woerter[i + 1];
+        const kleinZwei = zweites.toLowerCase();
+        if (
+          /^\p{Lu}/u.test(zweites) &&
+          zweites.length > 2 &&
+          !FUNKTIONSWORT.has(klein) &&
+          !FUNKTIONSWORT.has(kleinZwei)
+        ) {
+          const paarName = `${wort} ${zweites}`;
+          const paarKlein = paarName.toLowerCase();
+          if (!schonDa.has(paarKlein)) {
+            let pz = paare.get(paarKlein);
+            if (!pz) {
+              pz = { name: paarName, anzahl: 0, mitten: 0, mitBegleiter: 0, ortspunkte: 0, personenpunkte: 0, beleg: satz };
+              paare.set(paarKlein, pz);
+            }
+            pz.anzahl++;
+            if (!amAnfang) pz.mitten++;
+            if (BEGLEITER.has(vor)) pz.mitBegleiter++;
+            if (ORTSWORTE.has(vor) && !frageverbNah) pz.ortspunkte++;
+            const nachPaar = i + 2 < woerter.length ? woerter[i + 2].toLowerCase() : '';
+            if (PERSONENWORTE.has(nachPaar) || PERSONENWORTE.has(vor)) pz.personenpunkte++;
+          }
+        }
+      }
 
       let z = nach.get(klein);
       if (!z) {
@@ -380,6 +422,27 @@ export function findeNamen(text: string, bekannt: Entry[] = []): Namensfund[] {
       nach.delete(klein);
       break;
     }
+  }
+
+  /*
+   * Die zweiteiligen Namen einreihen – und ihre Teile entlasten.
+   *
+   * „Der Graue Turm stand." dreimal: Ohne Abzug stünde danach „Grauer Turm"
+   * **und** „Turm" in der Liste, und der Verfasser müsste raten, welches von
+   * beiden gemeint ist. Nach dem Abzug bleibt „Turm" nur dann übrig, wenn er
+   * auch allein vorkommt – und dann zu Recht.
+   */
+  for (const [paarKlein, pz] of paare) {
+    if (pz.anzahl < MINDESTENS) continue;
+    if (pz.mitten === 0 && pz.anzahl < 3) continue;
+    const [ersterKlein, zweiterKlein] = paarKlein.split(' ');
+    for (const teil of [ersterKlein, zweiterKlein]) {
+      const z = nach.get(teil);
+      if (!z) continue;
+      z.anzahl -= pz.anzahl;
+      z.mitten = Math.max(0, z.mitten - pz.mitten);
+    }
+    nach.set(paarKlein, pz);
   }
 
   const funde: Namensfund[] = [];

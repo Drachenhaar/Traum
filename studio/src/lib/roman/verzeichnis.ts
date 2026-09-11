@@ -136,6 +136,102 @@ export function baueVerzeichnis(manuskript: string, welt: Entry[]): Verzeichnis 
   return { abteilungen, vorschlaege: funde.length };
 }
 
+/* --------------------------------------------------------- Die Romanspur -- */
+
+/** Eine Szene mit ihrem Kapitel und dem Text darin. */
+export interface Szenentext {
+  szene: Entry;
+  kapitel?: Entry;
+  text: string;
+}
+
+export interface Spurszene {
+  szene: Entry;
+  kapitel?: Entry;
+  /** Wie oft der Name in dieser Szene steht. */
+  anzahl: number;
+}
+
+export interface Romanspur {
+  /** Wo im Manuskript der Name vorkommt – in Erzählreihenfolge. */
+  szenen: Spurszene[];
+  /** Wie oft insgesamt. */
+  anzahl: number;
+  /** Wer und was in denselben Szenen steht – häufigstes zuerst. */
+  zusammenMit: { entry: Entry; szenen: number }[];
+}
+
+/**
+ * Was der Roman über diesen Eintrag weiss.
+ *
+ * Der Auftrag nennt für die Charakterseite: „Beziehungen, wichtige Orte,
+ * wichtige Gegenstände, wichtige Ereignisse, Kapitel, in denen er vorkommt" –
+ * und den Satz, auf den es ankommt: **„Der Autor soll diese Informationen
+ * nicht vorher manuell ausfüllen müssen."**
+ *
+ * Hier steht die halbe Antwort darauf. Sie wird *gelesen* und nicht gepflegt:
+ * Wer eine Szene umschreibt, ändert damit diese Liste, ohne sie anzufassen.
+ * Wer eine Figur aus dem Buch streicht, sieht sie hier verschwinden.
+ *
+ * **Zusammen vorkommen ist keine Beziehung** – und das ist Absicht. Zwei
+ * Figuren in derselben Szene können Geschwister sein, Feinde oder einander
+ * nie begegnet. Was hier steht, ist eine Beobachtung („kommt oft zusammen
+ * vor"), keine Behauptung. Wer daraus eine Beziehung machen will, sagt es
+ * ausdrücklich – dafür gibt es `randnotizen.ts` mit seinen Vorschlägen aus
+ * ganzen Sätzen.
+ */
+export function romanspur(
+  entry: Entry,
+  welt: Entry[],
+  texte: Szenentext[],
+): Romanspur {
+  /*
+   * Ohne Titel gibt es nichts zu suchen.
+   *
+   * Nicht bloss Sauberkeit: `erkenne` greift auf `entry.title.trim()` zu, und
+   * ein Eintrag aus einer älteren Fassung kann gar keinen Titel haben. Hier
+   * steht die Wache, die das abfängt.
+   */
+  const name = entry.title?.trim();
+  if (!name) return { szenen: [], anzahl: 0, zusammenMit: [] };
+
+  const nadel = [{ ...entry, title: name }];
+  const szenen: Spurszene[] = [];
+  let anzahl = 0;
+
+  /*
+   * Die anderen Weltbestandteile – ohne den, um den es geht.
+   *
+   * Mehr wird hier **nicht** gefiltert. Gelöschtes, Romanteile und zu kurze
+   * Titel entscheidet `erkenne` selbst, und zwar für das ganze Buch an einer
+   * einzigen Stelle. Dieselbe Regel zweimal zu schreiben heisst, sie eines
+   * Tages nur einmal zu ändern.
+   */
+  const andere = welt.filter((e) => e.id !== entry.id);
+  const mit = new Map<string, { entry: Entry; szenen: number }>();
+
+  for (const t of texte) {
+    const treffer = erkenne(t.text, nadel);
+    if (!treffer.length) continue;
+    anzahl += treffer[0].anzahl;
+    szenen.push({ szene: t.szene, kapitel: t.kapitel, anzahl: treffer[0].anzahl });
+
+    for (const v of erkenne(t.text, andere)) {
+      const bisher = mit.get(v.entry.id);
+      if (bisher) bisher.szenen++;
+      else mit.set(v.entry.id, { entry: v.entry, szenen: 1 });
+    }
+  }
+
+  return {
+    szenen,
+    anzahl,
+    zusammenMit: [...mit.values()].sort(
+      (a, b) => b.szenen - a.szenen || a.entry.title.localeCompare(b.entry.title, 'de'),
+    ),
+  };
+}
+
 /**
  * In welchen Kapiteln kommt diese Figur vor?
  *

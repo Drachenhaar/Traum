@@ -27,6 +27,8 @@ import { Pfad } from '../../components/relations/Pfad';
 import { WerKommtVor } from '../../components/entry/WerKommtVor';
 import { PrintPreview } from '../../components/entry/PrintPreview';
 import { StoryMode } from '../../components/story/StoryMode';
+import { AusDemRoman } from '../../components/roman/AusDemRoman';
+import { buchartVon } from '../../lib/buchart';
 import { confirm } from '../../components/ui/Confirm';
 import { schreibeZeit } from '../../lib/chronik/zeit';
 import { datiere } from '../../lib/chronik/zustand';
@@ -54,6 +56,15 @@ export function EntrySpread() {
   const [vorlesen, setVorlesen] = useState(false);
 
   const entriesById = useMemo(() => new Map(entries.map((e) => [e.id, e])), [entries]);
+
+  /*
+   * Ist dies ein Roman?
+   *
+   * `buchartVon` gibt bewusst kein Ersatzergebnis zurück: Ein Buch von
+   * gestern hat keine Art, und dann ist es auch kein Roman. Es sieht dort
+   * aus wie zuvor, und das ist die Absicht.
+   */
+  const roman = buchartVon(settings.book) === 'novel';
 
   /* Besuch zählen – daraus entsteht später die Abnutzung der Seite. */
   useEffect(() => {
@@ -354,6 +365,15 @@ export function EntrySpread() {
             linken Seite.
           */}
           <WerKommtVor entry={entry} />
+
+          {/*
+            Was der Roman über diese Figur weiss – nur im Roman.
+
+            Ein Artbook hat kein Manuskript, ein Rollenspielband hat Abenteuer
+            statt Szenen. Der Block bliebe dort leer, und ein leerer Block ist
+            eine Behauptung über ein Buch, das gar nicht so gelesen wird.
+          */}
+          {roman && <AusDemRoman entry={entry} />}
 
           <Zeitgenossen entry={entry} />
 
