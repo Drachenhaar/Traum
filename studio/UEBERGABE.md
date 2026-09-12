@@ -16,6 +16,20 @@ eine Bauart im Code, nicht in einem Ticket.
 
 Ein **digitales Buch**, kein Werkzeugkasten mit Buchtapete.
 
+Seit dem Dreibücher-Umbau steht darüber ein Satz, der fast jede Entwurfsfrage
+entscheidet: **Die Welt ist gemeinsam. Das Buch bestimmt, wie man sie erlebt.**
+Daraus folgen drei Ebenen, und wer sie verwechselt, baut an der falschen
+Stelle:
+
+| Ebene | Was dort lebt | Wo es steht |
+|---|---|---|
+| **Welt** | Figuren, Orte, Dinge, Beziehungen, Bilder, Karten, Klänge | an einer `worldId` |
+| **Buch** | Titel, Einband, Buchart, Seitenreihenfolge, Profil | an einer `bookId` |
+| **Darstellung** | Arbeitsraum, Registerfolge, was zuerst offen liegt | abgeleitet, nie gespeichert |
+
+Mehrere Bücher dürfen dieselbe Welt tragen. Ein Roman und ein Artbook über
+dasselbe Nebelreich zeigen denselben Nebelwald – und zeigen ihn verschieden.
+
 - React 18 + TypeScript + Vite + Tailwind, HashRouter, Dexie (IndexedDB),
   Zustand, Zod.
 - **Vollständig lokal.** Kein Backend, kein Konto, keine Übertragung, keine KI
@@ -52,36 +66,67 @@ Code funktioniert.
 
 ## 2. Datenmodell und Speicher
 
-### Dexie, Fassung 5 (`src/db/db.ts`)
+### Dexie, Fassung 8 (`src/db/db.ts`)
 
-| Tabelle | Inhalt |
-|---|---|
-| `books` | Die Bibliothek. Ein Band ist ein paar hundert Byte |
-| `entries` | Alle Inhalte, an `bookId` gebunden |
-| `relations` | Die bedeutungstragenden Kanten |
-| `images` / `imageBlobs` | Angaben getrennt von Datei |
-| `klaenge` / `klangBlobs` | Dasselbe Muster für Geräusche |
-| `boards` | Concept-Art-Flächen (lose Blätter) |
-| `karten` | Weltkarten: Geometrie und Bedeutung, **nie ein Bild** |
-| `revisions` | Zeitleiste, jede Fassung zurückholbar |
-| `settings` | Eine Zeile, Gerätezustand |
+**Dexie-Fassung N entspricht IndexedDB-Fassung N×10.** Fassung 7 ist dort 70,
+Fassung 8 ist 80. Wer das übersieht, sucht den Fehler in der Aufwertung, wo
+keiner ist.
 
-**Nur das aufgeschlagene Buch wird geladen** (`ladeBuchinhalt` in
-`useStudio.ts`). Zwanzig andere Bücher dürfen tausende Einträge haben; sie
-kosten nichts.
+| Tabelle | Inhalt | gehört |
+|---|---|---|
+| `books` | Die Bibliothek. Ein Band ist ein paar hundert Byte | – |
+| `welten` | Name und Alter einer Welt. Mehr nicht – der Inhalt liegt woanders | – |
+| `entries` | Alle Inhalte | Welt |
+| `relations` | Die bedeutungstragenden Kanten | Welt |
+| `images` / `imageBlobs` | Angaben getrennt von Datei | Welt |
+| `klaenge` / `klangBlobs` | Dasselbe Muster für Geräusche | Welt |
+| `boards` | Concept-Art-Flächen (lose Blätter) | Welt |
+| `karten` | Weltkarten: Geometrie und Bedeutung, **nie ein Bild** | Welt |
+| `teile` | Die Schichten des Bildnis-Baukastens | Welt |
+| `revisions` | Zeitleiste, jede Fassung zurückholbar | Welt |
+| `settings` | Eine Zeile, Gerätezustand | – |
 
-### Die sieben Stellen, die bei einer neuen Tabelle angefasst werden müssen
+`WELTTABELLEN` in `db.ts` zählt die acht weltgebundenen Tabellen auf. Sie ist
+die Liste, gegen die man prüft, ob eine neue Tabelle vollständig angeschlossen
+ist.
 
-Das ist die Liste, die man vergisst und die dann Daten kostet:
+**`bookId` ist geblieben – als Herkunft, nicht als Zuständigkeit.** Geladen
+wird nach `worldId`; `bookId` sagt weiterhin, in welchem Band ein Datensatz
+entstanden ist. Diese Auskunft lässt sich nicht wiederherstellen, wenn man sie
+einmal weglässt, also wird sie weiter mitgeschrieben (`heimat()` in
+`useStudio.ts` liefert beides zusammen und wird an allen acht Schreibstellen
+benutzt).
 
-1. `db.ts` – Tabelle anlegen, `wipeDatabase` erweitern
-2. `useStudio.ts` – `ladeBuchinhalt`, Anfangszustand, alle
+**Nur die aufgeschlagene Welt wird geladen** (`ladeWeltinhalt` in
+`useStudio.ts`; hier stand bis Fassung 8 `ladeBuchinhalt`). Zwanzig andere
+Bücher dürfen tausende Einträge haben; sie kosten nichts.
+
+### Die neun Stellen, die bei einer neuen Tabelle angefasst werden müssen
+
+Das ist die Liste, die man vergisst und die dann Daten kostet. Seit Fassung 8
+sind es zwei mehr – beide gehören zur Welt:
+
+1. `db.ts` – Tabelle anlegen, `WELTTABELLEN` ergänzen, `wipeDatabase` erweitern
+2. `db.ts` – die Aufwertung: `worldId` an vorhandene Datensätze stempeln
+3. `useStudio.ts` – `ladeWeltinhalt`, Anfangszustand, alle
    `{ entries: [], … }`-Rückfälle
-3. `useStudio.ts` – `dupliziereBuch` (lesen **und** schreiben)
-4. `useStudio.ts` – `loescheBuch`
-5. `lib/kopie.ts` – `Bestand`, `Umschrift`, `umschriftFuer`, `schreibeAb`
-6. `lib/portability.ts` – `buildFullBackup`, `buildBookBackup`, Import
-7. `lib/schemas.ts` – `backupSchema` (mit `.passthrough()`!)
+4. `useStudio.ts` – `stempele` (das Netz unter der Aufwertung; die Tabellen
+   stehen dort einzeln und nicht in einer Schleife, weil Dexies Tabellentypen
+   sich nicht vereinigen lassen und eine Schleife ein `as never` bräuchte –
+   gelogen an genau der Stelle, an der fremde Daten umgeschrieben werden)
+5. `useStudio.ts` – `dupliziereBuch` (lesen **und** schreiben, jetzt in eine
+   *frische* Welt)
+6. `useStudio.ts` – `loescheBuch` (und `nimmtWeltMit` in `lib/welten.ts`: Ein
+   Band, dessen Welt noch ein anderer trägt, darf sie nicht mitnehmen)
+7. `lib/kopie.ts` – `Bestand`, `Umschrift`, `umschriftFuer`, `schreibeAb`
+8. `lib/portability.ts` – `buildFullBackup`, `buildBookBackup`, Import
+9. `lib/schemas.ts` – `backupSchema` (mit `.passthrough()`!)
+
+> **Falle aus Fassung 8:** „Herrenlos" heisst nicht mehr „ohne Buch", sondern
+> **ohne Welt.** Ein Datensatz mit `bookId` aber ohne `worldId` ist genauso
+> unsichtbar wie einer ganz ohne – nur schwerer zu erkennen, weil er zugeordnet
+> *aussieht*. `findeHerrenloses` zählt deshalb über die Welten und nicht über
+> die Bücher: Die Zählung muss dieselbe Frage stellen wie das Laden.
 
 ### Heilung statt Vertrauen
 
@@ -106,11 +151,73 @@ Import, ein abgeschnittener Schreibvorgang.
 ### 3.1 Bibliothek und Buch
 
 `lib/bibliothek.ts`. Ein `LibraryBook` trägt Titel, Einband, Zeichen,
-Weltnamen, Lesebändchen, Ziele, eigene Typen, Profil. `istEinBuch()` prüft nur
-eines: Hat es einen Titel? Daran – und nur daran – hängt der Routenbaum in
-`App.tsx` (Erschaffung → Bibliothek → Buch).
+Weltnamen, Lesebändchen, Ziele, eigene Typen, Profil, Buchart und
+Seitenreihenfolge. `istEinBuch()` prüft nur eines: Hat es einen Titel? Daran –
+und nur daran – hängt der Routenbaum in `App.tsx` (Erschaffung → Bibliothek →
+Arbeitsraum).
 
-### 3.2 Das Profil (`lib/profil.ts`)
+Die Bibliothek ist seit dem Umbau ein **Regal** (`components/bibliothek/Regal.tsx`):
+Buchrücken nebeneinander auf einem gemalten Brett, Höhe und Neigung je Band aus
+einem FNV-1a-Streuwert der Kennung – stabil, also springt nichts beim
+Neuzeichnen. Das zuletzt geöffnete Buch trägt ein goldenes Lesebändchen.
+
+> **Falle, die Tage gekostet hat:** `sichtbareEinstellungen` legt das Buch über
+> die Geräteeinstellungen. Ein **buchgebundener Wert, den das Buch nicht hat,
+> ist nicht da** – vorher blieb stehen, was in der Grundlage stand, und die
+> Grundlage ist beim Buchwechsel die *bereits gemischte* Einstellung des
+> vorigen Bandes. Gemessen schlug ein Roman bei `/inhalt` auf, weil davor ein
+> Artbook auf seinem Inhaltsverzeichnis gelegen hatte. `BUCH_SCHLUESSEL` zählt
+> die betroffenen Schlüssel auf; wer einen neuen buchgebundenen Wert einführt,
+> trägt ihn dort ein.
+
+### 3.2 Die drei Ebenen (`lib/buchart.ts`, `lib/arbeitsraum.ts`, `lib/welten.ts`)
+
+Das Gerüst des Dreibücher-Umbaus. Drei kleine, reine Module – und eine Regel,
+die überall gilt:
+
+**`buchartVon` liefert bewusst kein Ersatzergebnis.** `undefined` heisst „ein
+Buch von gestern", nicht „vermutlich ein Roman". Auf diesen Geräten liegt
+Arbeit; ein Band, der gestern ein Buch mit allen Werkzeugen war, darf sich
+nicht über Nacht in einen Schreibraum verwandeln, weil ein Programm eine
+Vermutung hatte. Dieselbe Zusage zieht sich durch `arbeitsraum.ts`,
+`registerfolge.ts` und `seitenfolge.ts`: Ohne Buchart bleibt alles wie zuvor.
+
+- `buchart.ts` – `novel | artbook | rpg`, dazu `AUS_ABSICHT`/`absichtFuer` als
+  Brücke zum Profil
+- `arbeitsraum.ts` – eine **Tabelle**, keine Kette von `if`: je Buchart ein
+  Eingang, ein Leersatz, bis zu vier Anfänge. Der Auftrag schliesst eine
+  gemeinsame Oberfläche mit Ausnahmen ausdrücklich aus, und der Unterschied ist
+  nicht das Ergebnis, sondern die Richtung: Eine Oberfläche mit Ausnahmen
+  wächst zu einer Oberfläche mit vielen Ausnahmen.
+- `welten.ts` – `neueWelt`, `heileWelt`, `selbeWelt`, `nameFuer` (drei Stufen
+  mit `benannt`-Merker), `weltzeileFuer` (zeigt die Welt nur, wenn **zwei**
+  Bücher sie teilen), `nimmtWeltMit`
+
+Die Hüllen liegen unter `components/arbeitsraum/`: `Arbeitsraum.tsx` ist die
+Weiche, `Schreibhuelle` (Roman: zwei Orte, kein Blättern), `Werkstatthuelle`
+(Rollenspiel: vier Orte), und für Artbook **und alles ohne Art** der gewohnte
+`BookShell`.
+
+### 3.3 Was das Buch mit der Welt macht
+
+Drei Stellen, an denen dieselbe Welt verschieden erscheint:
+
+- **`lib/buch/seitenfolge.ts`** – die von Hand gesetzte Seitenreihenfolge des
+  Artbooks, je Kapitel, am **Buch** abgelegt (`seitenfolge`). Was neu
+  dazukommt, landet hinten und nicht an seinem alphabetischen Platz: Ein neues
+  Bild mitten in eine gesetzte Folge zu schieben hiesse, es unsichtbar an einen
+  Ort zu stellen, den niemand gewählt hat. `buildBook(entries, imageCount,
+  folge?)` wendet sie an und liefert je Kapitel zusätzlich `abgeleitet` – nur
+  damit sich beantworten lässt, ob es überhaupt etwas zurückzunehmen gibt.
+- **`lib/figur/registerfolge.ts`** – die Reihenfolge der sieben
+  Registerblätter je Buchart. **Reihenfolge, nicht Auswahl:** Jeder Buchtyp
+  zeigt alle sieben. Eine Romanfigur, die am Spieltisch auftaucht, hat Werte,
+  und wer sie im Roman nicht mehr erreicht, kann sie dort auch nicht mehr
+  eintragen. Die Übersicht steht überall vorn; unterschieden wird ab dem
+  zweiten Reiter.
+- **`lib/roman/verzeichnis.ts` und `namen.ts`** – siehe 3.8.
+
+### 3.4 Das Profil (`lib/profil.ts`)
 
 Die adaptive Individualisierung. **Kein `userType`.** Gespeichert wird ein
 Profil aus Absicht (erzählen/welt/spiel/entwerfen/zeigen/frei), Tiefe
@@ -118,14 +225,19 @@ Profil aus Absicht (erzählen/welt/spiel/entwerfen/zeigen/frei), Tiefe
 ab, welche Werkzeuge sichtbar sind – `OFFEN_JE_TIEFE = {sanft:4, standard:7,
 tief:11, system:99}`.
 
-Die erste Frage („Was möchtest du erschaffen?") steht **vor** der Buchgestaltung
-(`pages/onboarding/Absichtsfrage.tsx`).
+**Die Absichtsfrage steht seit dem Dreibücher-Umbau nicht mehr im Weg.** Sie
+fragte „Was möchtest du erschaffen?", und die Buchartwahl fragt seither
+dasselbe in anderen Worten – zweimal dieselbe Frage in zwei Schritten ist keine
+Sorgfalt, sondern ein Formular. `PFLICHTWEG` ist deshalb nur noch
+`['buch', 'anfang']`. Die Absicht wird jetzt aus der Buchart abgeleitet
+(`absichtFuer` in `lib/buchart.ts`); `pages/onboarding/Absichtsfrage.tsx`
+**bleibt liegen und wird nicht gelöscht** – ihr Kopfkommentar sagt warum.
 
 Die Anmutung ist eine **Präsentationsschicht**: ein `data-anmutung`-Attribut am
 Buchkörper, darunter regelt `index.css` Schriftgrad, Zeilenluft, Bildgröße. Ein
 Attribut, keine drei Sätze Komponenten.
 
-### 3.3 Das Anerbieten (`lib/anerbieten/`)
+### 3.5 Das Anerbieten (`lib/anerbieten/`)
 
 Der strenge Ablauf: **Beobachtung → Relevanz → Anerbieten → Entscheidung des
 Nutzers.** Beobachtungen mutieren nie.
@@ -146,7 +258,7 @@ Welt" und „eine Eigenschaft *der* Welt".
 
 > **Es gibt bewusst keine Canonize-Funktion.** Nicht vergessen – untersagt.
 
-### 3.4 Die Karte (`lib/karte/`)
+### 3.6 Die Karte (`lib/karte/`)
 
 Die Formel: **Geometrie + Bedeutung + Startwert + Kartenstil = Darstellung.**
 Gespeichert wird nie eine Farbe und nie ein Baum.
@@ -166,7 +278,7 @@ Gespeichert wird nie eine Farbe und nie ein Baum.
 
 Seite: `/weltkarte`. Die alte Sternkarte (Weltgraph) liegt weiter unter `/karte`.
 
-### 3.5 Die Bedienungs-DNA (`lib/raum/`, `components/raum/`)
+### 3.7 Die Bedienungs-DNA (`lib/raum/`, `components/raum/`)
 
 Das Jüngste und das, was künftig alles trägt.
 
@@ -207,13 +319,59 @@ Erst wenn alle vier für die Raumgeste ausgehen, wird sie beansprucht.
 Gemessen wird am **Fenster**, nicht am Buchkasten (der beginnt unter der
 Kopfzeile – ein Zug vom echten oberen Rand käme sonst nie an).
 
-### 3.6 Die übrigen gewachsenen Systeme
+### 3.8 Der Roman liest sein eigenes Manuskript (`lib/roman/`)
+
+`struktur.ts`, `randnotizen.ts`, `ausgabe.ts` (inkl. DOCX) und `zip.ts` gab es
+schon. Neu und für den Roman entscheidend sind zwei:
+
+**`namen.ts` – `findeNamen(text, bekannt)`.** Findet Namen im Manuskript, die
+die Welt noch nicht kennt. Die Prüfung, um die es dabei wirklich geht, ist
+nicht „findet es Denis?", sondern: **schlägt es „Wald", „Tag" und „Hand"
+vor?** Im Deutschen ist jedes Substantiv gross, Grossschreibung allein sagt
+also nichts. Es entscheiden Artikel (`BEGLEITER`), eine geschlossene Liste
+satzeröffnender Funktionswörter, ein Wörterbuch gewöhnlicher Substantive,
+Ortsendungen, Beugungszusammenführung (nur wenn die Grundform ebenfalls
+vorkommt) und ein Rückblick von vier Wörtern vor „nach". Mehrteilige Namen
+werden als Paar gezählt, und die Einzelteile werden um die Vorkommen des Paares
+entlastet – sonst stünde neben „Grauer Turm" auch noch „Turm".
+
+**`verzeichnis.ts` – `baueVerzeichnis` und `romanspur`.** Das Weltverzeichnis
+des Romans (`/verzeichnis`) und der Block „Aus dem Roman" auf der
+Charakterseite. `romanspur` liest, in welchen Szenen eine Figur vorkommt,
+welche Kapitel das sind und wer in denselben Szenen steht. **Es speichert
+nichts** – wer eine Szene umschreibt, ändert damit diese Zeilen, ohne sie
+anzufassen.
+
+> Die Überschrift dort heisst „Steht bei" und **nicht** „Beziehungen". Zwei
+> Figuren in derselben Szene können Geschwister sein, Feinde oder einander nie
+> begegnet. Was dort steht, ist eine Beobachtung; „Beziehung" wäre eine
+> Behauptung – und damit ein Bruch von Gesetz 4.
+
+Der Block erscheint **nur im Roman**. Ein Artbook hat kein Manuskript, ein
+Rollenspielband Abenteuer statt Szenen; dort wäre er leer, und ein leerer
+Block, der erklärt, warum er leer ist, ist genau die Software-Anmutung, gegen
+die dieser Umbau antritt.
+
+> **Falle:** `romanspur` filtert absichtlich **nicht** nach Gelöschtem,
+> Romanteilen oder zu kurzen Titeln. Das entscheidet `erkenne` in
+> `randnotizen.ts`, und zwar für das ganze Buch an einer Stelle. Dieselbe Regel
+> zweimal zu schreiben heisst, sie eines Tages nur einmal zu ändern.
+
+### 3.9 Die übrigen gewachsenen Systeme
 
 `lib/druck/weltbuch.ts` (CSS Paged Media), `lib/chronik/` (Weltzeit, Epochen,
-Zeitgenossen), `lib/roman/` (Struktur, Randnotizen, Ausgabe inkl. DOCX),
-`lib/relations.ts` (Kanten mit Bedeutung, `RelationIndex`), `lib/geheim.ts`
-(Spielleiterwissen/Tischmodus), `lib/leitfaden.ts`, `lib/suche.ts`,
-`lib/portability.ts` (Sicherung/Import), `lib/kopie.ts` (Buchabschrift).
+Zeitgenossen), `lib/relations.ts` (Kanten mit Bedeutung, `RelationIndex`),
+`lib/geheim.ts` (Spielleiterwissen/Tischmodus), `lib/leitfaden.ts`,
+`lib/suche.ts`, `lib/portability.ts` (Sicherung/Import), `lib/kopie.ts`
+(Buchabschrift), `lib/baukasten.ts` mit `lib/bildnis.ts` (Bildnis aus
+Schichten).
+
+> **Falle beim Baukasten:** `fassungFuer(schacht)` entscheidet, ob ein Bild in
+> voller Auflösung oder als Vorschau geholt wird, und `Bildniswerk` nimmt dafür
+> einen `fassung`-Parameter. Wer eine neue Kachelwand baut und ihn vergisst,
+> holt Originale für neunzig Punkte breite Kacheln – gemessen 17 MB statt
+> 512 kB bei acht Kacheln. `tests/bildfassung.test.mjs` liest dafür den
+> Quelltext; unschön, aber die einzige Prüfung, die es findet.
 
 ---
 
@@ -298,18 +456,25 @@ cd studio
 npm install
 npm run dev          # Entwicklungsserver
 npx tsc --noEmit     # Typprüfung
-npm test             # 21 Prüfungen, jede in eigenem Prozess
+npm test             # 48 Suiten, jede in eigenem Prozess
 npm run build        # tsc + vite build
 npm run klassen      # NACH dem Bauen: Deckkraftklassen gegen das echte CSS
 ```
+
+**Alle vier, und `npm run klassen` zuletzt.** Genau das wurde im
+Dreibücher-Umbau umgangen – siehe Abschnitt 6.
 
 `scripts/test.mjs` startet jede Suite einzeln, räumt `.testbau` auf und zeigt
 bei Erfolg nur die letzte Zeile, bei Fehlschlag die volle Ausgabe. Jede Suite
 baut die zu prüfende Quelldatei mit esbuild zu einem Bündel
 (`tests/arbeit.mjs` kennt den Ort).
 
-**21 Suiten**, darunter `raum` (46 Zusicherungen zur Bedienung), `karte` (32),
-`kopie` (32), `anerbieten` (58), `profil` (62), `druck` (48).
+**48 Suiten**, darunter `tiefenkarte` (158 Zusicherungen), `werkstatt` (130),
+`profil` (62), `anerbieten` (58), `druck` (48), `zeit` (38), `speicher` (30).
+
+Aus dem Dreibücher-Umbau kamen dazu: `buchart`, `arbeitsraum`, `welten`,
+`regal`, `namen` (27), `romanspur` (14), `seitenfolge` (25), `bildfassung`,
+`registerfolge` (15).
 
 ### Wie in diesem Projekt geprüft wird
 
@@ -351,8 +516,9 @@ behält ihre Entscheidung „hier gibt es noch kein Buch".
 
 **Im Kern vorhanden, aber nicht gezeichnet:** die Aufmerksamkeitsstufe „leise".
 
-**Vorgesehen und inert:** `worldId` (geteilte Welten), `seriesId` (Reihen),
-`beginn`/`ende` an Kartenflächen (die Karte kennt keine Zeit).
+**Vorgesehen und inert:** `seriesId` (Reihen), `beginn`/`ende` an
+Kartenflächen (die Karte kennt keine Zeit). *`worldId` stand bis zum
+Dreibücher-Umbau hier – seit Fassung 8 trägt sie das ganze Weltwissen.*
 
 **Aus dem Bedienungsauftrag bewusst nicht gebaut:** Werkstattzustand, ein
 eigener Öffnungsübergang aus dem geschlossenen Buch, iPad-/Desktop-Sonderlayouts,
@@ -363,15 +529,7 @@ bisher über CSS-Kurven), links/oben/unten über Tiefe 1 hinaus.
 sollte irgendwann in Bibliotheks-, Eintrags- und Blockaktionen zerfallen. Der
 Verfasser hat einen großen Store-Umbau untersagt. **Nicht anfangen.**
 
-### Zwei Punkte aus dem Dreibücher-Umbau
-
-**Dieses Dokument ist an mehreren Stellen überholt.** Es nennt Dexie-Fassung 5
-(es sind 8), einundzwanzig Prüfsuiten (es sind achtundvierzig) und kennt die
-drei Ebenen Welt–Buch–Darstellung noch gar nicht: `lib/buchart.ts`,
-`lib/arbeitsraum.ts`, `lib/welten.ts`, `lib/buch/seitenfolge.ts`,
-`lib/figur/registerfolge.ts` und `lib/roman/` fehlen in Abschnitt 3, ebenso
-die Tabelle `welten` und die `worldId`-Indizes in Abschnitt 2. Wer als
-nächstes hier liest, liest teilweise das Projekt von vorgestern.
+### Aus dem Dreibücher-Umbau
 
 **Die Prüfbefehle des Projekts werden umgangen.** In Abschnitt 5 steht die
 richtige Reihenfolge – `npm test`, dann `npm run build`, dann
@@ -388,6 +546,16 @@ Die Lücke ist also keine Wissenslücke, sondern eine Gewohnheit. Eine mögliche
 Antwort wäre ein einziger Befehl, der alles vier hintereinander ausführt, statt
 vier Befehle, von denen man den letzten vergessen kann – **noch nicht
 entschieden, bewusst offen.**
+
+**Vom Umbau selbst blieb liegen:** Die freie Seitenreihenfolge gibt es nur
+innerhalb eines Kapitels, nicht über das ganze Artbook – die Kapitel tragen
+Inhaltsverzeichnis, Register und Lesezeichen, und eine Folge über alle hinweg
+wäre keine Ordnung mehr, sondern ihre Abschaffung. Ob das reicht, weiss erst,
+wer ein echtes Artbook damit setzt.
+
+**Geparkt, aber jetzt älter als der Umbau:** `claude/baukasten-koerpersitz`
+(Kopfsitz, Stapel-Import, ZIP-Sicherung). Die drei Commits sind nie gegen die
+Welten- und Buchart-Änderungen geprüft worden.
 
 ---
 
