@@ -36,7 +36,7 @@ import { imArchiv, imRegal } from '../../lib/bibliothek';
 import { deskStyle } from '../../lib/textures';
 import { downloadFile } from '../../lib/utils';
 import { backupFileName, buildBookBackup } from '../../lib/portability';
-import { BEISPIEL_TITEL } from '../../lib/beispiel/mooshalde';
+import { BEISPIEL_TITEL } from '../../lib/beispiel/dragoncore';
 import type { LibraryBook } from '../../types';
 
 /** Ab wie vielen Bänden ein Suchfeld mehr hilft als es stört. */
@@ -253,13 +253,13 @@ export function Bibliothek() {
 /* --------------------------------------------------- Der Beispielband ---- */
 
 /**
- * „Mooshalde ansehen" – und was danach dasteht.
+ * „Den Beispielband ansehen" – und was danach dasteht.
  *
  * Nach dem Laden verschwindet die Zeile nicht, sondern sagt, was geschehen
  * ist und wo es steht. Ein Knopf, der wortlos nichts tut, weil er schon
  * gedrückt wurde, ist die häufigste Art, jemanden zu verwirren.
  *
- * Und er lädt nur **einmal**: Steht Mooshalde schon im Regal, wird nicht ein
+ * Und er lädt nur **einmal**: Steht der Beispielband schon im Regal, wird nicht ein
  * zweiter angelegt. Zwei gleich benannte Bände nebeneinander wären kein
  * Angebot mehr, sondern ein Fehler mit Doppelklick als Ursache.
  */

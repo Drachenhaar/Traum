@@ -43,7 +43,7 @@ import {
 } from '../lib/bibliothek';
 import { heileWelt, neueWelt, nimmtWeltMit } from '../lib/welten';
 import { seedIfEmpty } from '../db/seed';
-import { MOOSHALDE_BUCH, mooshalde } from '../lib/beispiel/mooshalde';
+import { DRAGONCORE_BUCH, dragoncore } from '../lib/beispiel/dragoncore';
 import { buildRelationIndex, makeRelation, type RelationIndex } from '../lib/relations';
 import { kinderVon, naechsteOrdnung } from '../lib/roman/struktur';
 import { heileBeziehungen, heileEintraege } from '../lib/heilung';
@@ -784,26 +784,26 @@ export const useStudio = create<StudioState>((set, get) => {
     },
 
     /**
-     * Mooshalde ins Regal stellen.
+     * Den Beispielband ins Regal stellen.
      *
      * Es wird **nicht** geöffnet. Das ist Absicht: Ein Band, der sich beim
      * Laden selbst aufschlägt, hat das gerade offene Buch zugeklappt, ohne zu
      * fragen. Er stellt sich hin, sagt Bescheid, und der Leser entscheidet.
      */
     async ladeBeispielband() {
-      const buch = neuesBuch(MOOSHALDE_BUCH);
+      const buch = neuesBuch(DRAGONCORE_BUCH);
       /*
        * Der Band bringt seine **eigene Welt** mit.
        *
        * Ohne sie waere sein Inhalt herrenlos, und Herrenloses faellt beim
        * naechsten Start dem Buch zu, das gerade vorne liegt – siehe den
-       * Kopfkommentar von `mooshalde()`. Die Weltzeile gehoert in dieselbe
+       * Kopfkommentar von `dragoncore()`. Die Weltzeile gehoert in dieselbe
        * Transaktion wie die Eintraege: Ein Band mit Inhalt, aber ohne
        * Weltzeile, waere genau der halbe Zustand, gegen den `heileWelt`
        * antritt.
        */
       const welt = neueWelt({ id: buch.worldId!, name: buch.worldName });
-      const { entries, relations } = mooshalde(buch.id, buch.worldId!);
+      const { entries, relations } = dragoncore(buch.id, buch.worldId!);
 
       await db.transaction(
         'rw',

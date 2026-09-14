@@ -1,5 +1,5 @@
 /*
- * Der Beispielband „Mooshalde".
+ * Der Beispielband „Dragoncore".
  *
  * Ein Band, den niemand von Hand pflegt, verrottet leise: Ein Tippfehler in
  * einer Kennung macht aus einer Beziehung nichts, und *nichts* fällt beim
@@ -26,7 +26,7 @@ function wahr(was, bedingung, hinweis = '') {
 }
 
 const lies = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
-const quelle = lies('../src/lib/beispiel/mooshalde.ts');
+const quelle = lies('../src/lib/beispiel/dragoncore.ts');
 
 /**
  * Die Prosa wegnehmen, bevor man im Quelltext sucht.
@@ -164,7 +164,7 @@ console.log('\n4 Der Band bleibt bei sich');
 const store = ohneProsa(lies('../src/store/useStudio.ts'));
 const laden = store.slice(store.indexOf('async ladeBeispielband()'), store.indexOf('async archiviereBuch'));
 wahr('  die Ladeaktion gibt es', laden.length > 100);
-wahr('  sie legt ein eigenes Buch an', /neuesBuch\(MOOSHALDE_BUCH\)/.test(laden));
+wahr('  sie legt ein eigenes Buch an', /neuesBuch\(DRAGONCORE_BUCH\)/.test(laden));
 wahr('  und öffnet es nicht', !/oeffneBuch/.test(laden));
 wahr('  sie schreibt nur in dieses Buch', /bulkPut\(entries\)/.test(laden) && /db\.books\.put\(buch\)/.test(laden));
 
@@ -227,11 +227,11 @@ rmSync(bau, { recursive: true, force: true });
 mkdirSync(bau, { recursive: true });
 execFileSync(
   'npx',
-  ['esbuild', 'src/lib/beispiel/mooshalde.ts', '--bundle', '--format=esm',
+  ['esbuild', 'src/lib/beispiel/dragoncore.ts', '--bundle', '--format=esm',
    `--outfile=${join(bau, 'band.mjs')}`, '--log-level=error'],
   { cwd: new URL('..', import.meta.url).pathname, stdio: 'inherit' },
 );
-const { mooshalde: baueBand } = await import(join(bau, 'band.mjs'));
+const { dragoncore: baueBand } = await import(join(bau, 'band.mjs'));
 
 const gebaut = baueBand('buch_x', 'welt_x');
 
@@ -261,7 +261,7 @@ const abschnitt = speicherquelle.slice(
   speicherquelle.indexOf('async ladeBeispielband'),
   speicherquelle.indexOf('async archiviereBuch'),
 );
-wahr('  die Welt wird mitgereicht', /mooshalde\(buch\.id,\s*buch\.worldId/.test(abschnitt));
+wahr('  die Welt wird mitgereicht', /dragoncore\(buch\.id,\s*buch\.worldId/.test(abschnitt));
 wahr('  die Weltzeile wird geschrieben', /db\.welten\.put\(welt\)/.test(abschnitt));
 wahr('  beides in derselben Transaktion', /db\.welten,/.test(abschnitt));
 
