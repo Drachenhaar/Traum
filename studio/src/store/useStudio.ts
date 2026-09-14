@@ -792,13 +792,31 @@ export const useStudio = create<StudioState>((set, get) => {
      */
     async ladeBeispielband() {
       const buch = neuesBuch(MOOSHALDE_BUCH);
-      const { entries, relations } = mooshalde(buch.id);
+      /*
+       * Der Band bringt seine **eigene Welt** mit.
+       *
+       * Ohne sie waere sein Inhalt herrenlos, und Herrenloses faellt beim
+       * naechsten Start dem Buch zu, das gerade vorne liegt – siehe den
+       * Kopfkommentar von `mooshalde()`. Die Weltzeile gehoert in dieselbe
+       * Transaktion wie die Eintraege: Ein Band mit Inhalt, aber ohne
+       * Weltzeile, waere genau der halbe Zustand, gegen den `heileWelt`
+       * antritt.
+       */
+      const welt = neueWelt({ id: buch.worldId!, name: buch.worldName });
+      const { entries, relations } = mooshalde(buch.id, buch.worldId!);
 
-      await db.transaction('rw', [db.books, db.entries, db.relations], async () => {
-        await db.books.put(buch);
-        await db.entries.bulkPut(entries);
-        await db.relations.bulkPut(relations);
-      });
+      await db.transaction(
+        'rw',
+        [db.books, db.welten, db.entries, db.relations],
+        async () => {
+          await db.books.put(buch);
+          await db.welten.put(welt);
+          await db.entries.bulkPut(entries);
+          await db.relations.bulkPut(relations);
+        },
+      );
+
+      set((s) => ({ welten: [...s.welten, welt] }));
 
       set((s) => ({ books: [...s.books, buch] }));
       get().notify(

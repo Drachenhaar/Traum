@@ -1333,7 +1333,22 @@ const KANTEN: [von: Kennung, art: string, nach: Kennung, notiz?: string][] = [
  * einander nicht überschreiben – und damit die Beziehungen auf die Einträge
  * *dieses* Bandes zeigen und nicht auf die des vorigen.
  */
-export function mooshalde(bookId: string): Bauteil {
+/**
+ * Der Band bekommt **beides**: Buch und Welt.
+ *
+ * Die `worldId` fehlte hier, und der Schaden war grösser, als er aussah. Seit
+ * Fassung 8 wird nach Welt geladen; fünfzig Einträge ohne Welt sind herrenlos,
+ * und die Heilung beim nächsten Start gibt Herrenloses dem Buch, **das gerade
+ * vorne liegt** – samt neuer `bookId`. Wer den Beispielband einräumte und sein
+ * eigenes Buch offen hatte, fand danach Alve Reet und das Glockenhaus in
+ * seinem eigenen Register, ohne Weg zurück: Die Herkunft war mit
+ * überschrieben.
+ *
+ * Gemessen: 51 Einträge in der eigenen Welt statt einem. Genau das, wogegen
+ * der Kopfkommentar dieser Datei antritt – *„Das eigene Buch bleibt
+ * unberührt."*
+ */
+export function mooshalde(bookId: string, worldId: string): Bauteil {
   const jetzt = Date.now();
   const kennung = (id: Kennung) => `${bookId}__${id}`;
 
@@ -1341,6 +1356,7 @@ export function mooshalde(bookId: string): Bauteil {
     ...e,
     id: kennung(e.id),
     bookId,
+    worldId,
   }));
 
   const vorhanden = new Set(entries.map((e) => e.id));
@@ -1359,6 +1375,7 @@ export function mooshalde(bookId: string): Bauteil {
     relations.push({
       id: `${bookId}__rel_${relations.length.toString(36)}`,
       bookId,
+      worldId,
       fromId: a,
       toId: b,
       type: art,

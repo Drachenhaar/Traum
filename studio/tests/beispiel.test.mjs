@@ -9,7 +9,10 @@
  * nur das Lesen.
  */
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, mkdirSync, rmSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { join } from 'node:path';
+import { ARBEIT } from './arbeit.mjs';
 
 let bestanden = 0;
 let gescheitert = 0;
@@ -201,6 +204,66 @@ const farben = new Set(
 );
 const gewaehlt = code.match(/coverColor: '([a-z]+)'/)?.[1];
 wahr(`  die Einbandfarbe „${gewaehlt}" gibt es`, !!gewaehlt && farben.has(gewaehlt));
+
+/* ==========================================================================
+ * 7  DER BAND GEHÖRT SEINER EIGENEN WELT
+ *
+ * Der teuerste Fehler dieses Bandes, und er war unsichtbar: Die Bauroutine
+ * stempelte nur `bookId`. Seit Fassung 8 wird nach **Welt** geladen – fünfzig
+ * Einträge ohne Welt sind herrenlos, und die Heilung beim nächsten Start gibt
+ * Herrenloses dem Buch, das gerade vorne liegt, samt neuer `bookId`.
+ *
+ * Gemessen im Browser: Wer den Band einräumte und sein eigenes Buch offen
+ * hatte, fand danach 51 Einträge in seiner Welt statt einem – Alve Reet und
+ * das Glockenhaus im eigenen Register, und die Herkunft mit überschrieben.
+ *
+ * Deshalb wird hier nicht der Quelltext gelesen, sondern **gerechnet**.
+ * ======================================================================= */
+
+console.log('\n7 Der Band gehört seiner eigenen Welt');
+
+const bau = join(ARBEIT, 'beispielband');
+rmSync(bau, { recursive: true, force: true });
+mkdirSync(bau, { recursive: true });
+execFileSync(
+  'npx',
+  ['esbuild', 'src/lib/beispiel/mooshalde.ts', '--bundle', '--format=esm',
+   `--outfile=${join(bau, 'band.mjs')}`, '--log-level=error'],
+  { cwd: new URL('..', import.meta.url).pathname, stdio: 'inherit' },
+);
+const { mooshalde: baueBand } = await import(join(bau, 'band.mjs'));
+
+const gebaut = baueBand('buch_x', 'welt_x');
+
+wahr('  der Band bringt Einträge mit', gebaut.entries.length > 0);
+wahr(
+  '  jeder Eintrag trägt die Welt',
+  gebaut.entries.every((e) => e.worldId === 'welt_x'),
+  `${gebaut.entries.filter((e) => e.worldId !== 'welt_x').length} ohne Welt`,
+);
+wahr(
+  '  jede Beziehung trägt die Welt',
+  gebaut.relations.every((r) => r.worldId === 'welt_x'),
+  `${gebaut.relations.filter((r) => r.worldId !== 'welt_x').length} ohne Welt`,
+);
+wahr(
+  '  die Herkunft steht weiterhin daneben',
+  gebaut.entries.every((e) => e.bookId === 'buch_x'),
+);
+
+/*
+ * Und die Stelle, die ihn einräumt, muss beides reichen – und eine Weltzeile
+ * anlegen. Ohne sie hätte die Welt keinen Namen, und `weltzeileFuer` fände
+ * eine Welt, die es in der Tabelle nicht gibt.
+ */
+const speicherquelle = ohneProsa(lies('../src/store/useStudio.ts'));
+const abschnitt = speicherquelle.slice(
+  speicherquelle.indexOf('async ladeBeispielband'),
+  speicherquelle.indexOf('async archiviereBuch'),
+);
+wahr('  die Welt wird mitgereicht', /mooshalde\(buch\.id,\s*buch\.worldId/.test(abschnitt));
+wahr('  die Weltzeile wird geschrieben', /db\.welten\.put\(welt\)/.test(abschnitt));
+wahr('  beides in derselben Transaktion', /db\.welten,/.test(abschnitt));
 
 console.log(`\n${bestanden} bestanden, ${gescheitert} gescheitert`);
 process.exit(gescheitert ? 1 : 0);
