@@ -36,7 +36,7 @@ import { imArchiv, imRegal } from '../../lib/bibliothek';
 import { deskStyle } from '../../lib/textures';
 import { downloadFile } from '../../lib/utils';
 import { backupFileName, buildBookBackup } from '../../lib/portability';
-import { BEISPIEL_TITEL } from '../../lib/beispiel/dragoncore';
+import { BEISPIELBAENDE } from '../../lib/beispiel/baende';
 import type { LibraryBook } from '../../types';
 
 /** Ab wie vielen Bänden ein Suchfeld mehr hilft als es stört. */
@@ -266,31 +266,61 @@ export function Bibliothek() {
 function BeispielZeile() {
   const books = useStudio((s) => s.books);
   const ladeBeispielband = useStudio((s) => s.ladeBeispielband);
-  const [laedt, setLaedt] = useState(false);
+  const [laedt, setLaedt] = useState<string | null>(null);
 
-  const schonDa = books.some((b) => b.title === BEISPIEL_TITEL);
-
-  if (schonDa) {
-    return (
-      <p className="mt-4 font-serif text-[13.5px] italic leading-relaxed text-paper-400/40">
-        „{BEISPIEL_TITEL}" steht im Regal. Schlag ihn auf – und nimm ihn wieder heraus, wenn du
-        ihn gesehen hast.
-      </p>
-    );
-  }
+  /*
+   * Je Band eine Zeile, und jede kennt ihren eigenen Zustand.
+   *
+   * Ein gemeinsames „Beispielbände ansehen" hätte zwei sehr verschiedene
+   * Welten in einen Knopf gesteckt – und wer den ersten schon gesehen hat,
+   * bekäme den zweiten nie angeboten.
+   */
+  const offen = BEISPIELBAENDE.filter((b) => !books.some((x) => x.title === b.titel));
+  const schonDa = BEISPIELBAENDE.filter((b) => books.some((x) => x.title === b.titel));
 
   return (
-    <button
-      type="button"
-      disabled={laedt}
-      onClick={() => {
-        setLaedt(true);
-        void ladeBeispielband().finally(() => setLaedt(false));
-      }}
-      className="mt-4 block min-h-[40px] text-left font-serif text-[13.5px] italic leading-relaxed text-paper-400/45 transition-colors hover:text-gold-hell disabled:opacity-50 no-tap-highlight"
-    >
-      {laedt ? 'Wird eingeräumt …' : `Oder einen fertigen Band ansehen: „${BEISPIEL_TITEL}"`}
-    </button>
+    <div className="mt-4 space-y-2.5">
+      {offen.map((band) => (
+        <button
+          key={band.id}
+          type="button"
+          disabled={laedt !== null}
+          onClick={() => {
+            setLaedt(band.id);
+            void ladeBeispielband(band.id).finally(() => setLaedt(null));
+          }}
+          className="block min-h-[40px] text-left font-serif text-[13.5px] italic leading-relaxed text-paper-400/45 transition-colors hover:text-gold-hell disabled:opacity-50 no-tap-highlight"
+        >
+          {laedt === band.id ? (
+            'Wird eingeräumt …'
+          ) : (
+            <>
+              Einen fertigen Band ansehen: „{band.titel}"
+              {/*
+                Die Zeile darunter ist kein Schmuck.
+
+                Zwei Bände, die beide „ein Band zum Ansehen" heissen, sind
+                keine Wahl. Erst der Satz, was sie zeigen, macht aus zwei
+                Knöpfen zwei Angebote.
+              */}
+              <span className="mt-0.5 block text-[12px] not-italic text-paper-400/30">
+                {band.worum}
+              </span>
+            </>
+          )}
+        </button>
+      ))}
+
+      {schonDa.map((band) => (
+        <p
+          key={band.id}
+          className="font-serif text-[13.5px] italic leading-relaxed text-paper-400/40"
+        >
+          „{band.titel}" steht im Regal. Schlag ihn auf – und nimm ihn wieder heraus, wenn du
+          ihn gesehen hast.
+        </p>
+      ))}
+    </div>
   );
 }
 

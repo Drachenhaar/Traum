@@ -43,7 +43,7 @@ import {
 } from '../lib/bibliothek';
 import { heileWelt, neueWelt, nimmtWeltMit } from '../lib/welten';
 import { seedIfEmpty } from '../db/seed';
-import { DRAGONCORE_BUCH, dragoncore } from '../lib/beispiel/dragoncore';
+import { BEISPIELBAENDE, bandMit } from '../lib/beispiel/baende';
 import { buildRelationIndex, makeRelation, type RelationIndex } from '../lib/relations';
 import { kinderVon, naechsteOrdnung } from '../lib/roman/struktur';
 import { heileBeziehungen, heileEintraege } from '../lib/heilung';
@@ -122,7 +122,8 @@ interface StudioState {
    * Buch: Wer sein Artbook aufschlägt, will darin nicht die Figuren eines
    * anderen finden und sie einzeln wieder herauspflücken müssen.
    */
-  ladeBeispielband: () => Promise<LibraryBook>;
+  /** Einen Band zum Ansehen ins Regal stellen – Kennungen in `lib/beispiel/baende.ts`. */
+  ladeBeispielband: (welcher?: string) => Promise<LibraryBook>;
   /**
    * Zu welchem Buch gehört diese Seite? Für Verweise, die aus einem anderen
    * Buch kommen – siehe `components/book/BuchWeiche.tsx`.
@@ -790,8 +791,17 @@ export const useStudio = create<StudioState>((set, get) => {
      * Laden selbst aufschlägt, hat das gerade offene Buch zugeklappt, ohne zu
      * fragen. Er stellt sich hin, sagt Bescheid, und der Leser entscheidet.
      */
-    async ladeBeispielband() {
-      const buch = neuesBuch(DRAGONCORE_BUCH);
+    async ladeBeispielband(welcher = BEISPIELBAENDE[0].id) {
+      /*
+       * Ein Weg ins Regal für alle Bände – siehe `lib/beispiel/baende.ts`.
+       *
+       * Eine zweite Ladefunktion je Band waere die zweite Gelegenheit
+       * gewesen, die `worldId` zu vergessen. Genau das ist hier schon einmal
+       * passiert und hat fremde Eintraege in fremde Buecher gespuelt.
+       */
+      const band = bandMit(welcher);
+      if (!band) throw new Error(`Beispielband „${welcher}" gibt es nicht`);
+      const buch = neuesBuch(band.buch);
       /*
        * Der Band bringt seine **eigene Welt** mit.
        *
@@ -803,7 +813,7 @@ export const useStudio = create<StudioState>((set, get) => {
        * antritt.
        */
       const welt = neueWelt({ id: buch.worldId!, name: buch.worldName });
-      const { entries, relations } = dragoncore(buch.id, buch.worldId!);
+      const { entries, relations } = band.baue(buch.id, buch.worldId!);
 
       await db.transaction(
         'rw',
@@ -816,9 +826,7 @@ export const useStudio = create<StudioState>((set, get) => {
         },
       );
 
-      set((s) => ({ welten: [...s.welten, welt] }));
-
-      set((s) => ({ books: [...s.books, buch] }));
+      set((s) => ({ welten: [...s.welten, welt], books: [...s.books, buch] }));
       get().notify(
         `„${buch.title}" steht im Regal – ${entries.length} Einträge und ${relations.length} Verbindungen.`,
         'success',
