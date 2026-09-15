@@ -17,10 +17,13 @@
  * Buches; was sich ändert, ist, wie viel gleichzeitig erreichbar ist.
  */
 
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { useStudio } from '../../store/useStudio';
 import { deskStyle } from '../../lib/textures';
 import { Raumzeile, type Ort } from './Raumzeile';
+import { useRaum } from '../../lib/raum/useRaum';
+import { Raumschicht } from '../raum/Raumschicht';
+import { Tiefenraum } from '../raum/Tiefenraum';
 
 /**
  * Die vier Orte einer Runde.
@@ -65,6 +68,10 @@ const ORTE: Ort[] = [
 ];
 
 export function Werkstatthuelle() {
+  const tiefe = useRaum((s) => s.tiefe);
+  /* Welche Seiten ohne Bogen liegen – siehe unten. */
+  const { pathname } = useLocation();
+  const vollbild = pathname.startsWith('/figur/');
   const titel = useStudio((s) => s.settings.book?.title?.trim() || 'Mein Buch');
 
   return (
@@ -79,14 +86,45 @@ export function Werkstatthuelle() {
         und eine Begegnungsliste haben das nicht; ihnen nimmt eine schmale
         Spalte nur Platz weg.
       */}
-      <main className="scroll-slim min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 pb-2 sm:px-5 sm:pb-5">
-        <div className="relative mx-auto flex min-h-full w-full max-w-[72rem] flex-col">
-          <span aria-hidden className="paper-sheet absolute inset-0 z-0 block rounded-[3px]" />
-          <div className="relative z-10 flex min-h-0 flex-1 flex-col">
+      {/*
+        Die Raumschicht – siehe die Begründung in `Schreibhuelle.tsx`.
+
+        Am Spieltisch wiegt ihr Fehlen am schwersten: Die Tiefe einer Figur
+        ist genau das, was man mitten im Spiel braucht, ohne die Seite zu
+        verlassen.
+      */}
+      <Raumschicht>
+        {tiefe > 0 ? (
+          <Tiefenraum />
+        ) : vollbild ? (
+          /*
+           * Die Charakterseite liegt **direkt** in der Schicht.
+           *
+           * Dieselbe Ausnahme wie im Buchkörper, und aus demselben Grund: Sie
+           * ist randlos und fast schwarz, kein Bogen – auf Papier gesetzt wäre
+           * sie ein dunkles Rechteck mitten auf einer hellen Seite.
+           *
+           * Wichtiger noch ist die Bedienung. Im scrollenden `main` verliert
+           * die Randgeste gegen die Scrollbarkeit – so steht es in der
+           * Reihenfolge, wem der Finger gehört. Gemessen: Im Rollenspielband
+           * führte ein Zug vom Rand zum Tisch statt in die Tiefe, im Artbook
+           * dagegen öffnete derselbe Zug „Wesen · Tiefe 1". Der Unterschied
+           * war genau dieser Kasten.
+           */
+          <div key={pathname} className="blatt-eintritt flex min-h-0 flex-1 flex-col">
             <Outlet />
           </div>
-        </div>
-      </main>
+        ) : (
+          <main className="scroll-slim min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 pb-2 sm:px-5 sm:pb-5">
+            <div className="relative mx-auto flex min-h-full w-full max-w-[72rem] flex-col">
+              <span aria-hidden className="paper-sheet absolute inset-0 z-0 block rounded-[3px]" />
+              <div className="relative z-10 flex min-h-0 flex-1 flex-col">
+                <Outlet />
+              </div>
+            </div>
+          </main>
+        )}
+      </Raumschicht>
     </div>
   );
 }

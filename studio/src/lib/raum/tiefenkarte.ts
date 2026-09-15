@@ -131,6 +131,19 @@ export interface Tiefenweg {
   was: string;
   /** Mindestens eine. Die Länge *ist* die Reichweite dieses Weges. */
   stufen: Tiefenstufe[];
+  /**
+   * Der Weg führt irgendwohin, aber dort steht noch nichts.
+   *
+   * Hier gab es diese Möglichkeit nicht: Ein Weg war da oder nicht da. Eine
+   * frisch angelegte Figur hatte damit **null** Richtungen, und die Geste lief
+   * stumm ins Leere – ununterscheidbar von einer kaputten Bedienung.
+   *
+   * `still` ist der dritte Zustand dazwischen: Der Weg wird angeboten, leiser
+   * gezeichnet, und der Raum dahinter sagt, was hier stünde. Erfunden wird
+   * nichts – es wird nur ausgesprochen, was vorher bloss gemeint war. Siehe
+   * `ersatz.ts`.
+   */
+  still?: boolean;
 }
 
 /**
@@ -249,8 +262,25 @@ export function karte(wege: Partial<Record<Richtung, Tiefenweg | undefined>>): T
 }
 
 /** Ein Weg mit einer einzigen Stufe – der häufigste Fall. */
-export function weg(name: string, was: string, titel: string, raum: Raumkennung): Tiefenweg {
-  return { name, was, stufen: [{ titel, raum }] };
+export function weg(
+  name: string,
+  was: string,
+  titel: string,
+  raum: Raumkennung,
+  still = false,
+): Tiefenweg {
+  return { name, was, stufen: [{ titel, raum }], still };
+}
+
+/**
+ * Die Richtungen, in denen etwas steht – ohne die stillen.
+ *
+ * Gebraucht überall dort, wo gezählt wird, was eine Seite *hat*: Ein stiller
+ * Weg ist ein Angebot, kein Bestand. Wer ihn mitzählte, behauptete für eine
+ * leere Figur vier Umgebungen.
+ */
+export function volleRichtungen(karte: Tiefenkarte): Richtung[] {
+  return richtungen(karte).filter((r) => !karte[r]?.still);
 }
 
 /** Ein Weg über mehrere Stufen: „was gehört dazu", „wie hängt es zusammen", … */

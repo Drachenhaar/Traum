@@ -35,6 +35,8 @@ import {
   NOTIZFELDER,
   WISSENSFELDER,
 } from '../../lib/raum/figurkarte';
+import { ersatzFuer, mitNamen } from '../../lib/raum/ersatz';
+import type { Raumkennung } from '../../lib/raum/tiefenkarte';
 import { Bildnis } from './Bildnis';
 import { Goldteiler, zeichenFuer } from '../../lib/zeichen/zeichen';
 import { templateFor } from '../../lib/templates';
@@ -107,18 +109,88 @@ const Strich = () => <div className="h-px bg-gild-600/15" aria-hidden />;
  * Was nicht da ist, wird gesagt – aber nur einmal und leise.
  *
  * Ein leerer Raum mit einer Zeile „noch nichts" ist ehrlicher als ein Raum,
- * der sich mit Naheliegendem füllt. Vorkommen sollte er trotzdem selten: Die
- * Karte gibt eine Richtung gar nicht erst frei, wenn dahinter nichts liegt.
+ * der sich mit Naheliegendem füllt.
+ *
+ * **Hier stand einmal, dieser Fall komme selten vor** – die Karte gebe eine
+ * Richtung gar nicht erst frei, wenn dahinter nichts liege. Das stimmt nicht
+ * mehr und war auch vorher der schwächere Weg: Eine Figur ohne Inhalt bekam
+ * damit gar keine Tiefe, und die Geste lief stumm ins Leere. Seit
+ * `figurkarte` alle vier Richtungen anbietet und die leeren als `still`
+ * kennzeichnet, ist dieser Raum der **Normalfall** für eine frische Figur –
+ * und muss entsprechend gut sein.
  */
 const Still = ({ was }: { was: string }) => (
   <p className="py-6 text-center font-serif text-[12px] italic text-paper-300/35">{was}</p>
 );
+
+/**
+ * Der leere Raum, ausgesprochen.
+ *
+ * Drei Zeilen und höchstens eine Tür – siehe `lib/raum/ersatz.ts`, wo die
+ * Sätze stehen und begründet ist, warum sie je Richtung verschieden sind.
+ *
+ * Was hier **nicht** steht: eine Mahnung, ein Zähler, ein Fortschritt. Gesetz
+ * 3 lautet „Unvollständigkeit ist kein Fehler", und eine leere Seite, die
+ * einen anblafft, wäre sein glattes Gegenteil. Der erste Satz redet deshalb
+ * über die Figur und nicht über die Datenbank.
+ */
+function Ersatzraum({ raum, anker }: { raum: Raumkennung; anker: Entry }) {
+  const navigate = useNavigate();
+  const ersatz = ersatzFuer(raum);
+  if (!ersatz) return <Still was="Hier ist noch nichts." />;
+
+  return (
+    <div className="py-8 text-center">
+      {/*
+        Die Raute wie beim fehlenden Bildnis.
+
+        Dasselbe Zeichen für dieselbe Aussage: „hier wäre etwas, es ist nur
+        noch nicht da." Ein zweites Zeichen zu erfinden hiesse, zweimal
+        dasselbe zu sagen und dabei verschieden zu klingen.
+      */}
+      <svg
+        width="34"
+        height="34"
+        viewBox="0 0 100 100"
+        fill="none"
+        className="mx-auto text-gild-500/25"
+        aria-hidden
+      >
+        <path d="M50 4l46 46-46 46L4 50z" stroke="currentColor" strokeWidth="1.5" />
+      </svg>
+
+      <p className="mx-auto mt-5 max-w-[26ch] font-serif text-[15px] italic leading-[1.6] text-paper-200/70">
+        {mitNamen(ersatz.sagt, anker.title)}
+      </p>
+
+      <p className="mx-auto mt-3 max-w-[30ch] font-serif text-[12.5px] leading-[1.65] text-paper-300/40">
+        {ersatz.waere}
+      </p>
+
+      {ersatz.tuer && (
+        <button
+          type="button"
+          onClick={() =>
+            navigate(ersatz.tuer!.ziel === 'setzerei' ? '/setzerei' : `/eintrag/${anker.id}`)
+          }
+          className="mt-6 min-h-[40px] font-serif text-[12.5px] text-gild-400/70 underline decoration-gild-600/40 underline-offset-4 transition-colors hover:text-gild-300 no-tap-highlight"
+        >
+          {ersatz.tuer.text}
+        </button>
+      )}
+    </div>
+  );
+}
 
 /* ---------------------------------------------------------------- Felder -- */
 
 const text = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 const liste = (v: unknown) =>
   Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && !!x.trim()) : [];
+
+/** Trägt dieses Feld etwas? Dieselbe Frage, die `Felder` gleich stellt. */
+const hatFeld = (e: Entry, k: string) =>
+  !!text(e.fields?.[k]) || liste(e.fields?.[k]).length > 0;
 
 /**
  * Die Felder einer Vorlage unter ihren echten Beschriftungen zeigen.
@@ -197,7 +269,7 @@ export function RaumBeziehungen({ anker }: { anker: Entry }) {
       .filter((n): n is Nachbar => !!n.entry);
   }, [entries, relIndex, anker.id]);
 
-  if (!nachbarn.length) return <Still was="Von dieser Figur führt noch keine Verbindung fort." />;
+  if (!nachbarn.length) return <Ersatzraum raum="beziehungen" anker={anker} />;
 
   const gebuendelt = BUENDEL.map((b) => ({
     ...b,
@@ -470,6 +542,23 @@ export function RaumWissen({ anker }: { anker: Entry }) {
   const navigate = useNavigate();
   const hatGeheim = !!anker.geheim?.text?.trim();
 
+  /*
+   * Der Raum fragt sich selbst, ob er etwas zu zeigen hat.
+   *
+   * Nicht über eine zweite Regel neben `figurkarte`, sondern über genau das,
+   * was er gleich zeichnen würde. Zwei Stellen, die unabhängig voneinander
+   * „ist hier etwas?" beantworten, geben eines Tages verschiedene Antworten –
+   * und dann steht ein leerer Raum da, der sich für voll hält.
+   */
+  const leer =
+    !anker.description?.trim() &&
+    !WISSENSFELDER.some((k) => hatFeld(anker, k)) &&
+    !anker.beginn &&
+    !anker.ende &&
+    !hatGeheim &&
+    (anker.blocks?.length ?? 0) === 0;
+  if (leer) return <Ersatzraum raum="wissen" anker={anker} />;
+
   return (
     <div className="space-y-7">
       {anker.description?.trim() && (
@@ -538,6 +627,10 @@ export function RaumHerkunft({ anker }: { anker: Entry }) {
       .filter((x): x is { entry: Entry; label: string; id: string } => !!x.entry);
   }, [entries, relIndex, anker.id]);
 
+  if (orte.length === 0 && !HERKUNFTSFELDER.some((k) => hatFeld(anker, k))) {
+    return <Ersatzraum raum="herkunft" anker={anker} />;
+  }
+
   return (
     <div className="space-y-7">
       {orte.length > 0 && (
@@ -586,6 +679,10 @@ export function RaumNotizen({ anker }: { anker: Entry }) {
       .map((r) => ({ entry: nach.get(r.otherId), label: r.label, id: r.relation.id }))
       .filter((x): x is { entry: Entry; label: string; id: string } => !!x.entry);
   }, [entries, relIndex, anker.id]);
+
+  if (dinge.length === 0 && !NOTIZFELDER.some((k) => hatFeld(anker, k)) && !anker.geheim?.text?.trim()) {
+    return <Ersatzraum raum="notizen" anker={anker} />;
+  }
 
   return (
     <div className="space-y-7">
