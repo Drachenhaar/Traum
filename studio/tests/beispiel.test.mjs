@@ -38,7 +38,7 @@ const lies = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
  */
 const DATEIEN = [
   { id: 'dragoncore', datei: '../src/lib/beispiel/dragoncore.ts', mindestens: 40, kantenMin: 50 },
-  { id: 'stillersee', datei: '../src/lib/beispiel/stillersee.ts', mindestens: 15, kantenMin: 25 },
+  { id: 'riesen', datei: '../src/lib/beispiel/riesen.ts', mindestens: 15, kantenMin: 25 },
 ];
 const quelle = lies(DATEIEN[0].datei);
 
@@ -310,7 +310,7 @@ for (const b of BAENDE) {
     { cwd: new URL('..', import.meta.url).pathname, stdio: 'inherit' },
   );
   const m = await import(join(bau, b.id + '.mjs'));
-  const baue = m.dragoncore ?? m.stillersee;
+  const baue = m.dragoncore ?? m.riesen;
   gebaute[b.id] = baue('buch_x', 'welt_x');
 }
 
@@ -343,7 +343,7 @@ for (const b of BAENDE) {
  */
 {
   const a = new Set(band('dragoncore').kennungen);
-  const gemeinsam = band('stillersee').kennungen.filter((k) => a.has(k));
+  const gemeinsam = band('riesen').kennungen.filter((k) => a.has(k));
   wahr('  kein Band benutzt die Kennungen des anderen', gemeinsam.length === 0, gemeinsam.join(', '));
 }
 

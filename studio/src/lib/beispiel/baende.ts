@@ -17,7 +17,7 @@
 
 import type { Entry, LibraryBook, Relation } from '../../types';
 import { DRAGONCORE_BUCH, BEISPIEL_TITEL, dragoncore, KANTEN_ANZAHL } from './dragoncore';
-import { STILLERSEE_BUCH, SEE_TITEL, stillersee, SEE_KANTEN_ANZAHL } from './stillersee';
+import { RIESEN_BUCH, RIESEN_TITEL, riesen, RIESEN_KANTEN_ANZAHL } from './riesen';
 
 export interface Beispielband {
   /** Stabile Kennung – steht in keiner Oberfläche, nur in Prüfungen und Aufrufen. */
@@ -50,20 +50,21 @@ export const BEISPIELBAENDE: Beispielband[] = [
     kanten: KANTEN_ANZAHL,
   },
   {
-    id: 'stillersee',
+    id: 'riesen',
     /*
      * Der zweite Band zeigt bewusst eine **andere Art von Zusammenhang.**
      *
-     * Im ersten läuft eine Kette von einer Ursache zu einer Wirkung. Hier
-     * hängt alles an einer Dauer: Was sich zeigt, hängt davon ab, wie lange
-     * jemand geblieben ist. Zwei Bände, die dasselbe vorführen, wären einer
-     * zu viel.
+     * Im ersten läuft eine Kette von einer Ursache zu einer Wirkung – ein
+     * gefällter Baum, und am Ende schweigt ein Vogel. Hier läuft sie von
+     * einer **Beobachtung** zu einer Antwort: Fische stehen still, ein
+     * Wärter sieht hin, ein Hang bewegt sich. Zwei Bände, die dasselbe
+     * vorführen, wären einer zu viel.
      */
-    titel: SEE_TITEL,
-    worum: 'Eine Welt, die sich nach Dauer zeigt – drei Minuten, fünf, zehn, und dann das Tal.',
-    buch: STILLERSEE_BUCH,
-    baue: stillersee,
-    kanten: SEE_KANTEN_ANZAHL,
+    titel: RIESEN_TITEL,
+    worum: 'Fische stehen still, ein Hang öffnet ein Auge, und eine Kuppel antwortet nach oben.',
+    buch: RIESEN_BUCH,
+    baue: riesen,
+    kanten: RIESEN_KANTEN_ANZAHL,
   },
 ];
 
