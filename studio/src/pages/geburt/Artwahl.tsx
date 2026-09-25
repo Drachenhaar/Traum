@@ -19,6 +19,7 @@ import type { Weltsicht } from '../../lib/welten';
 import { cx } from '../../lib/utils';
 import { ClosedBook } from '../../components/book/CoverBoard';
 import type { LibraryBook } from '../../types';
+import { BUCH_TEXTE } from '../../lib/bookTexts';
 import { SzenenFrage, SzenenWeg } from './Geburt';
 
 /* ------------------------------------------------------------- Die Art ---- */
@@ -101,7 +102,12 @@ export function Artwahl({
         })}
       </div>
 
-      <SzenenWeg onZurueck={onZurueck} onWeiter={onWeiter} weiterAus={!gewaehlt} />
+      <SzenenWeg
+        onZurueck={onZurueck}
+        onWeiter={onWeiter}
+        weiterAus={!gewaehlt}
+        weiterWarum={BUCH_TEXTE.geburt.warten.art}
+      />
     </div>
   );
 }

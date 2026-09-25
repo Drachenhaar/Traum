@@ -168,6 +168,67 @@ export function sicherungFaellig(
 }
 
 /**
+ * Der Satz, der auf dem geschlossenen Buch steht – oder keiner.
+ *
+ * ---
+ *
+ * **Warum es diesen Satz überhaupt gibt.**
+ *
+ * `sicherungFaellig` oben war sorgfältig durchdacht und hatte **einen
+ * einzigen Aufrufer: die Einstellungsseite.** Die Warnung stand damit genau
+ * dort, wo nur hingeht, wer ohnehin schon an Sicherungen denkt. Bei einem
+ * Buch ohne Gegenstelle, das ein geleerter Browserspeicher restlos
+ * vernichtet, war das die riskanteste Lücke im ganzen Programm: Die Rechnung
+ * war fertig, ihr fehlte nur ein Ort.
+ *
+ * **Warum der Einband dieser Ort ist.**
+ *
+ * Nicht mitten in der Arbeit – wer schreibt, schreibt. Das geschlossene Buch
+ * dagegen sieht man bei jedem Start und immer dann, wenn man es weglegt, und
+ * das ist genau der Augenblick, in dem eine Abschrift willkommen ist statt
+ * lästig.
+ *
+ * **Und warum es kein Warndreieck ist.**
+ *
+ * Gesetz 3 lautet „nichts mahnt". Das gilt für eine unfertige Welt und nicht
+ * für eine echte Gefahr – aber der Ton gilt trotzdem. Hier steht deshalb eine
+ * Auskunft über das Buch und keine Aufforderung an den Leser:
+ *
+ *     „Fehlende Sicherung! Jetzt sichern!"     ← ein Programm, das schimpft
+ *     „Von diesen 50 Seiten liegt noch keine   ← eine Auskunft über das Werk
+ *      Sicherung ausserhalb dieses Browsers."
+ *
+ * Der zweite Satz sagt ausserdem, *warum* es zählt. „Fällig" erklärt nichts.
+ */
+export function sicherungssatz(
+  {
+    letzteSicherung,
+    aeltesterEintrag,
+    eintraege,
+  }: { letzteSicherung?: number; aeltesterEintrag?: number; eintraege: number },
+  tage: number,
+  jetzt = Date.now(),
+): string | undefined {
+  if (!sicherungFaellig({ letzteSicherung, aeltesterEintrag, eintraege }, tage, jetzt)) {
+    return undefined;
+  }
+
+  /*
+   * Zwei Sätze, und der erste ist der wichtigere.
+   *
+   * Wer nie gesichert hat, weiss oft gar nicht, dass alles nur in diesem
+   * einen Browser liegt. Ihm nützt „die letzte Sicherung ist 14 Tage her"
+   * gar nichts – es gab keine.
+   */
+  if (letzteSicherung === undefined) {
+    return `Von ${eintraege === 1 ? 'dieser einen Seite' : `diesen ${eintraege} Seiten`} liegt noch keine Sicherung ausserhalb dieses Browsers.`;
+  }
+
+  const alter = Math.floor((jetzt - letzteSicherung) / 86_400_000);
+  return `Die letzte Sicherung ist ${alter} Tage alt.`;
+}
+
+/**
  * Bytes, wie ein Mensch sie liest.
  *
  * Mit tausend und nicht mit 1024: Der Browser meldet seine Schätzung in

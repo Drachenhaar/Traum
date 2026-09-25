@@ -19,7 +19,147 @@
     <title>Dragoncore Artbook</title>
   </head>
   <body>
+    <!--
+      Der Vorsatz – was dasteht, bevor das Buch da ist.
+
+      Gemessen, Zeit bis zum ersten sichtbaren Zeichen: 0,14 s am Schreibtisch,
+      1,7 s im WLAN, **8,0 s im Mobilfunknetz**, 11,7 s im schwachen Netz. So
+      lange lag hier eine cremefarbene Fläche – nicht einmal ein Umriss –, und
+      danach sprang sie ohne Übergang auf den dunklen Tisch.
+
+      Zwei Fehler in einem: die Leere, und der Farbsprung an ihrem Ende.
+
+      Der Vorsatz behebt beide. Er malt **sofort** denselben Tisch, auf dem
+      gleich das Buch liegt; aus der Wartezeit wird damit nicht ein Ladebild,
+      sondern der Ort selbst. Und weil der Grund schon der richtige ist, gibt
+      es am Ende nichts mehr zu springen.
+
+      Drei Entscheidungen, die daran hängen:
+
+      **Die Marke erscheint erst nach 400 ms.** Wer in 140 ms geladen hat,
+      soll sie nie sehen – ein Ladezeichen, das aufblitzt und sofort wieder
+      geht, ist unruhiger als gar keins.
+
+      **Kein Fortschrittsbalken, kein sich drehender Ring.** Beides zählt die
+      Sekunden mit und macht das Warten länger, als es ist. Die Marke atmet
+      statt zu laufen.
+
+      **Ohne Bündel, ohne Modul, ohne Abhängigkeit.** Der Vorsatz muss
+      dastehen, bevor irgendetwas geladen ist – deshalb steht er als reines
+      Markup mit eigenem Stil hier und nicht in einer Komponente. Aus
+      demselben Grund steht er **neben** `#root` und nicht darin: Der Notnagel
+      weiter unten prüft, ob `#root` leer geblieben ist, und ein Vorsatz darin
+      hätte diese Prüfung stillgelegt.
+    -->
+    <style>
+      /* Der Grund liegt am html-Element, damit schon der allererste Anstrich
+         dunkel ist – bevor das Stilblatt mit seinem Creme ankommt. */
+      html {
+        background-color: #100d0b;
+      }
+      #vorsatz {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        /* Derselbe Tisch wie in `.desk-surface` – dieselben drei Werte. */
+        background:
+          radial-gradient(120% 90% at 22% 0%, rgba(212, 175, 55, 0.09) 0%, transparent 55%),
+          radial-gradient(90% 70% at 80% 100%, rgba(120, 90, 50, 0.08) 0%, transparent 60%),
+          linear-gradient(160deg, #1a1512 0%, #100d0b 55%, #0b0908 100%);
+        transition: opacity 420ms ease;
+      }
+      #vorsatz[data-fort] {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #vorsatz svg {
+        color: #d4af37;
+        opacity: 0;
+        animation: vorsatz-marke 900ms ease 400ms forwards, vorsatz-atem 3.4s ease-in-out 1.3s infinite;
+      }
+      @keyframes vorsatz-marke {
+        from { opacity: 0; transform: scale(0.94); }
+        to   { opacity: 0.38; transform: scale(1); }
+      }
+      @keyframes vorsatz-atem {
+        0%, 100% { opacity: 0.38; }
+        50%      { opacity: 0.16; }
+      }
+      /* Wer Bewegung abbestellt hat, bekommt die Marke ruhig und sofort. */
+      @media (prefers-reduced-motion: reduce) {
+        #vorsatz svg { animation: none; opacity: 0.32; }
+        #vorsatz { transition: none; }
+      }
+    </style>
+
+    <div id="vorsatz" role="status" aria-label="Das Buch wird aufgeschlagen">
+      <svg width="46" height="46" viewBox="0 0 48 48" fill="currentColor" aria-hidden="true">
+        <path
+          d="M22 8c11-1 21 7 22 18 1 8-4 15-11 17 5-4 8-10 7-16-1-8-8-14-16-13-7 1-12 7-11 13 .5 5 5 8 10 7 3-.4 5-3 4.6-5.6-.3-2-2.3-3.4-4.3-3.2 4-1.6 8 1 8.5 5 .6 5-3 9.6-9 10.3-8 1-15-4.6-16-12.6-.7-6 2-11.4 6.6-14.6C6 17 2 24.6 3 33c.7 6 4.3 11.4 9.6 14"
+          transform="translate(2 2) scale(.94)"
+        />
+        <path d="M30 2c4-2 9-1 12 2-3 0-6 1-8 3 3 2 4 5 4 8-2-3-5-5-9-5-3 0-6 2-7 4-1-4 1-8 4-10-2-1-4-1-6 0 2-2 6-3 10-2z" />
+      </svg>
+    </div>
+
     <div id="root"></div>
+
+    <!--
+      **Erst hier, nach `#root`.**
+
+      Das Skript stand zuerst oben beim Vorsatz und fand `#root` nicht – das
+      Element gab es zu diesem Zeitpunkt noch nicht. Damit meldete sich der
+      Beobachter nie an, der Vorsatz blieb liegen, und weil er über allem
+      liegt, verschluckte er jede Berührung: Die App war geladen, sichtbar
+      war sie nicht.
+
+      Gefunden hat es kein Zeitmesser, sondern ein Browserlauf, der etwas
+      antippen wollte. Die Messungen davor prüften, ob der Grund *erscheint* –
+      keine, ob er wieder *geht*.
+    -->
+    <script>
+      /*
+       * Der Vorsatz geht, sobald das Buch da ist.
+       *
+       * Ein Beobachter auf `#root` und kein Aufruf aus `main.tsx`: So bleibt
+       * der ganze Vorgang in dieser Datei und überlebt jeden Umbau der App.
+       * Bricht das Bündel, bleibt der Vorsatz stehen – und nach sieben
+       * Sekunden übernimmt der Notnagel weiter unten.
+       */
+      (function () {
+        var vorsatz = document.getElementById('vorsatz');
+        var root = document.getElementById('root');
+        if (!vorsatz || !root) return;
+
+        function fort() {
+          if (!vorsatz || vorsatz.hasAttribute('data-fort')) return;
+          vorsatz.setAttribute('data-fort', '');
+          /* Erst nach dem Ausblenden aus dem Baum nehmen. */
+          window.setTimeout(function () {
+            if (vorsatz && vorsatz.parentNode) vorsatz.parentNode.removeChild(vorsatz);
+            vorsatz = null;
+          }, 480);
+        }
+
+        if (root.childElementCount > 0) return fort();
+        if (typeof MutationObserver !== 'function') {
+          /* Sehr alter Browser: lieber zu früh gehen als ewig stehen. */
+          window.setTimeout(fort, 2500);
+          return;
+        }
+        var auge = new MutationObserver(function () {
+          if (root.childElementCount > 0) {
+            auge.disconnect();
+            fort();
+          }
+        });
+        auge.observe(root, { childList: true });
+      })();
+    </script>
+
 
     <!--
       Notnagel gegen die stumme weiße Seite.

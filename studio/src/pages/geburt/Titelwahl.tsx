@@ -8,7 +8,7 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { BUCH_TEXTE } from '../../lib/bookTexts';
+import { BUCH_TEXTE, titelHinweis } from '../../lib/bookTexts';
 import type { BookIdentity } from '../../types';
 import { SzenenFrage, SzenenWeg } from './Geburt';
 
@@ -16,11 +16,22 @@ const T = BUCH_TEXTE.geburt.titel;
 
 export function Titelwahl({
   identity,
+  welt,
   onChange,
   onWeiter,
   onZurueck,
 }: {
   identity: BookIdentity;
+  /**
+   * Der Name der **bestehenden** Welt, der dieses Buch beitritt – oder
+   * nichts, wenn mit ihm eine neue beginnt.
+   *
+   * Diese Seite wusste bisher nicht, in welcher der beiden Lagen sie steht,
+   * und sagte deshalb in beiden dasselbe. In der einen war das falsch:
+   * „Der Name deiner Welt" stand auch dann im Feld, wenn die Welt längst
+   * einen hatte und ihn behält.
+   */
+  welt?: string;
   onChange: (patch: Partial<BookIdentity>) => void;
   onWeiter: () => void;
   onZurueck: () => void;
@@ -47,7 +58,7 @@ export function Titelwahl({
 
   return (
     <div>
-      <SzenenFrage frage={T.frage} hinweis={T.hinweis} />
+      <SzenenFrage frage={T.frage} hinweis={titelHinweis(welt)} />
 
       <div className="mx-auto max-w-sm">
         <input
@@ -81,7 +92,12 @@ export function Titelwahl({
         />
       </div>
 
-      <SzenenWeg onZurueck={onZurueck} onWeiter={onWeiter} weiterAus={!fertig} />
+      <SzenenWeg
+        onZurueck={onZurueck}
+        onWeiter={onWeiter}
+        weiterAus={!fertig}
+        weiterWarum={BUCH_TEXTE.geburt.warten.titel}
+      />
     </div>
   );
 }

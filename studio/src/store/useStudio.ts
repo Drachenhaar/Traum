@@ -43,7 +43,7 @@ import {
 } from '../lib/bibliothek';
 import { heileWelt, neueWelt, nimmtWeltMit } from '../lib/welten';
 import { seedIfEmpty } from '../db/seed';
-import { MOOSHALDE_BUCH, mooshalde } from '../lib/beispiel/mooshalde';
+import { BEISPIELBAENDE, bandMit } from '../lib/beispiel/baende';
 import { buildRelationIndex, makeRelation, type RelationIndex } from '../lib/relations';
 import { kinderVon, naechsteOrdnung } from '../lib/roman/struktur';
 import { heileBeziehungen, heileEintraege } from '../lib/heilung';
@@ -122,7 +122,8 @@ interface StudioState {
    * Buch: Wer sein Artbook aufschlägt, will darin nicht die Figuren eines
    * anderen finden und sie einzeln wieder herauspflücken müssen.
    */
-  ladeBeispielband: () => Promise<LibraryBook>;
+  /** Einen Band zum Ansehen ins Regal stellen – Kennungen in `lib/beispiel/baende.ts`. */
+  ladeBeispielband: (welcher?: string) => Promise<LibraryBook>;
   /**
    * Zu welchem Buch gehört diese Seite? Für Verweise, die aus einem anderen
    * Buch kommen – siehe `components/book/BuchWeiche.tsx`.
@@ -784,23 +785,48 @@ export const useStudio = create<StudioState>((set, get) => {
     },
 
     /**
-     * Mooshalde ins Regal stellen.
+     * Den Beispielband ins Regal stellen.
      *
      * Es wird **nicht** geöffnet. Das ist Absicht: Ein Band, der sich beim
      * Laden selbst aufschlägt, hat das gerade offene Buch zugeklappt, ohne zu
      * fragen. Er stellt sich hin, sagt Bescheid, und der Leser entscheidet.
      */
-    async ladeBeispielband() {
-      const buch = neuesBuch(MOOSHALDE_BUCH);
-      const { entries, relations } = mooshalde(buch.id);
+    async ladeBeispielband(welcher = BEISPIELBAENDE[0].id) {
+      /*
+       * Ein Weg ins Regal für alle Bände – siehe `lib/beispiel/baende.ts`.
+       *
+       * Eine zweite Ladefunktion je Band waere die zweite Gelegenheit
+       * gewesen, die `worldId` zu vergessen. Genau das ist hier schon einmal
+       * passiert und hat fremde Eintraege in fremde Buecher gespuelt.
+       */
+      const band = bandMit(welcher);
+      if (!band) throw new Error(`Beispielband „${welcher}" gibt es nicht`);
+      const buch = neuesBuch(band.buch);
+      /*
+       * Der Band bringt seine **eigene Welt** mit.
+       *
+       * Ohne sie waere sein Inhalt herrenlos, und Herrenloses faellt beim
+       * naechsten Start dem Buch zu, das gerade vorne liegt – siehe den
+       * Kopfkommentar von `dragoncore()`. Die Weltzeile gehoert in dieselbe
+       * Transaktion wie die Eintraege: Ein Band mit Inhalt, aber ohne
+       * Weltzeile, waere genau der halbe Zustand, gegen den `heileWelt`
+       * antritt.
+       */
+      const welt = neueWelt({ id: buch.worldId!, name: buch.worldName });
+      const { entries, relations } = await band.baue(buch.id, buch.worldId!);
 
-      await db.transaction('rw', [db.books, db.entries, db.relations], async () => {
-        await db.books.put(buch);
-        await db.entries.bulkPut(entries);
-        await db.relations.bulkPut(relations);
-      });
+      await db.transaction(
+        'rw',
+        [db.books, db.welten, db.entries, db.relations],
+        async () => {
+          await db.books.put(buch);
+          await db.welten.put(welt);
+          await db.entries.bulkPut(entries);
+          await db.relations.bulkPut(relations);
+        },
+      );
 
-      set((s) => ({ books: [...s.books, buch] }));
+      set((s) => ({ welten: [...s.welten, welt], books: [...s.books, buch] }));
       get().notify(
         `„${buch.title}" steht im Regal – ${entries.length} Einträge und ${relations.length} Verbindungen.`,
         'success',

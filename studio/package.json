@@ -6,7 +6,7 @@
   "description": "Dragoncore Studio – lokaler Creative-Workspace und lebendige Art Bible",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && node scripts/dienstbote-bauen.mjs",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "klassen": "node scripts/klassen-pruefen.mjs",

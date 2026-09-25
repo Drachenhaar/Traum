@@ -388,32 +388,63 @@ const figur = (felder = {}, extra = {}) => ({
 });
 const figurlage = (entry, kanten = []) => ({ entry, kanten, kennt: () => true });
 
+/*
+ * **Hier stand vorher: „eine leere Figur hat keine Umgebung" → `[]`.**
+ *
+ * Das war die Umsetzung eines richtigen Grundsatzes – nichts erfinden – auf
+ * dem schwächeren Weg. Gemessen bekam eine frisch angelegte Figur die Karte
+ * `{}`, und wer sie in die Tiefe drückte, bekam **nichts**: keine Bewegung,
+ * keinen Satz. Die beabsichtigte Aussage „um diese Figur herum ist nichts"
+ * wurde damit nie ausgesprochen und war von einer kaputten Bedienung nicht zu
+ * unterscheiden.
+ *
+ * Geprüft wird deshalb jetzt die schärfere Zusage: Die Richtung wird
+ * angeboten, **und sie ist als still gekennzeichnet**. Was gefüllt ist und was
+ * leer, muss weiterhin auf den Punkt stimmen – sonst wäre aus „nichts
+ * erfinden" ein „überall vier Türen" geworden, und das wäre schlimmer als
+ * vorher.
+ */
+const voll = (karte) => T.volleRichtungen(karte);
+
 p(
-  '9 eine leere Figur hat keine Umgebung',
+  '9 eine leere Figur bietet alle vier Richtungen an',
   T.richtungen(FK.figurkarte(figurlage(figur()))),
-  [],
+  ['links', 'rechts', 'oben', 'unten'],
 );
+p('  und keine einzige davon ist gefüllt', voll(FK.figurkarte(figurlage(figur()))), []);
 p(
-  '  ein Satz Text öffnet oben',
-  T.richtungen(FK.figurkarte(figurlage(figur({}, { description: 'Er kam aus dem Norden.' })))),
+  '  ein Satz Text füllt oben',
+  voll(FK.figurkarte(figurlage(figur({}, { description: 'Er kam aus dem Norden.' })))),
   ['oben'],
 );
 p(
-  '  eine Verwandte öffnet rechts',
-  T.richtungen(
-    FK.figurkarte(figurlage(figur(), [{ relation: { type: 'related' }, otherId: 'x' }])),
-  ),
+  '  eine Verwandte füllt rechts',
+  voll(FK.figurkarte(figurlage(figur(), [{ relation: { type: 'related' }, otherId: 'x' }]))),
   ['rechts'],
 );
 p(
-  '  ein Schwert öffnet unten und nicht rechts',
-  T.richtungen(FK.figurkarte(figurlage(figur(), [{ relation: { type: 'owns' }, otherId: 'x' }]))),
+  '  ein Schwert füllt unten und nicht rechts',
+  voll(FK.figurkarte(figurlage(figur(), [{ relation: { type: 'owns' }, otherId: 'x' }]))),
   ['unten'],
 );
 p(
-  '  ein Wohnort öffnet links',
-  T.richtungen(FK.figurkarte(figurlage(figur(), [{ relation: { type: 'lives_in' }, otherId: 'x' }]))),
+  '  ein Wohnort füllt links',
+  voll(FK.figurkarte(figurlage(figur(), [{ relation: { type: 'lives_in' }, otherId: 'x' }]))),
   ['links'],
+);
+/*
+ * Die Kette nach rechts ist nur dann dreistufig, wenn es Beziehungen gibt.
+ * Eine Figur, die niemanden kennt, hat auch keine „gemeinsame Geschichte";
+ * drei Stufen hinter derselben Leere wären das Labyrinth aus dem Auftrag.
+ */
+p('  ohne Beziehungen reicht rechts eine Stufe', T.reichweite(FK.figurkarte(figurlage(figur())), 'rechts'), 1);
+p(
+  '  mit Beziehungen reicht rechts drei Stufen',
+  T.reichweite(
+    FK.figurkarte(figurlage(figur(), [{ relation: { type: 'related' }, otherId: 'x' }])),
+    'rechts',
+  ),
+  3,
 );
 
 /*
@@ -435,8 +466,8 @@ p(
 
 /* Eine Kante auf eine Seite, die es nicht gibt, zählt nicht. */
 p(
-  '  eine Kante ins Leere öffnet nichts',
-  T.richtungen(
+  '  eine Kante ins Leere füllt nichts',
+  voll(
     FK.figurkarte({
       entry: figur(),
       kanten: [{ relation: { type: 'related' }, otherId: 'weg' }],

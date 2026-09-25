@@ -1,5 +1,5 @@
 /**
- * Mooshalde – ein fertiger Band zum Ansehen.
+ * Dragoncore – ein fertiger Band zum Ansehen.
  *
  * ---
  *
@@ -13,7 +13,7 @@
  * kein Vorführraum; wer sein eigenes Buch aufschlägt, will darin nicht die
  * Figuren eines anderen finden und sie einzeln wieder herauspflücken müssen.
  *
- * Mooshalde steht deshalb als eigener Band im Regal: aufschlagen, durchsehen,
+ * Dragoncore steht deshalb als eigener Band im Regal: aufschlagen, durchsehen,
  * und mit einer Handbewegung wieder aus der Bibliothek nehmen. Das eigene
  * Buch bleibt unberührt.
  *
@@ -23,7 +23,7 @@
  *
  * Die erste DNA-Regel dieser Welt lautet „Ruhe vor Spektakel". Ein Band, der
  * sie vorführen soll, darf also keinen Bösewicht haben und keine Schlacht.
- * Mooshalde hat stattdessen eine Ursache, die niemand wollte:
+ * Dragoncore hat stattdessen eine Ursache, die niemand wollte:
  *
  *   Wenzel fällte eine Eiche – rechtmäßig, für Seilholz. Die Krone dieser
  *   Eiche hielt den Nebel und hob ihn den Hang hinauf. Ohne sie kommt der
@@ -124,7 +124,7 @@ function baueEintraege(): Entry[] {
         consequence:
           'Fällt ein einziger großer Baum an der richtigen Stelle, endet der Nebel dreißig Schritt tiefer als am Tag zuvor. Man sieht es nicht am Baum. Man sieht es oben.',
         known:
-          'Jedes Kind in Mooshalde kann es aufsagen. Keiner hat es je auf eine bestimmte Eiche angewendet.',
+          'Jedes Kind in Dragoncore kann es aufsagen. Keiner hat es je auf eine bestimmte Eiche angewendet.',
       },
     }),
 
@@ -136,14 +136,14 @@ function baueEintraege(): Entry[] {
         'Kein Naturgesetz im strengen Sinn, sondern eines, an das sich alle halten, als wäre es eins. Das ist der Grund, warum das Schweigen nicht bloß still ist, sondern gefährlich.',
       tags: ['Zeit', 'Läuten'],
       fields: {
-        rule: 'In Mooshalde zählt ein Tag erst, wenn die Glocken ihn geläutet haben. Verträge, Geburten, Schulden und Feiertage werden nach Läuten datiert, nicht nach Sonnen.',
+        rule: 'In Dragoncore zählt ein Tag erst, wenn die Glocken ihn geläutet haben. Verträge, Geburten, Schulden und Feiertage werden nach Läuten datiert, nicht nach Sonnen.',
         because:
           'Die Sonne ist im Nebelwald an vier von fünf Tagen nicht zu sehen. Die Glocken sind zu hören. Man hat sich vor sehr langer Zeit für das entschieden, was da ist.',
         limit:
           'Für alles außerhalb der Halde gilt es nicht. Wer hinunter in die Städte geht, muss dort nach Sonnen rechnen und kommt eine Woche durcheinander zurück.',
         cost: 'Ein Tag ohne Läuten ist kein Tag. Er steht in keinem Buch und in keinem Vertrag.',
         consequence:
-          'Seit die Glocken schweigen, altert in Mooshalde amtlich niemand mehr. Das klingt wie ein Scherz und wird von Woche zu Woche weniger lustig.',
+          'Seit die Glocken schweigen, altert in Dragoncore amtlich niemand mehr. Das klingt wie ein Scherz und wird von Woche zu Woche weniger lustig.',
         known: 'Allen. Es ist der erste Satz, den ein Zugezogener erklärt bekommt.',
       },
     }),
@@ -161,7 +161,7 @@ function baueEintraege(): Entry[] {
       fields: {
         rule: 'Wenn ein Entwurf um Aufmerksamkeit kämpft, ist er noch nicht fertig.',
         because:
-          'Mooshalde erzählt von einem Ort, der schon lange da ist. Wer lange da ist, muss sich nicht beweisen.',
+          'Dragoncore erzählt von einem Ort, der schon lange da ist. Wer lange da ist, muss sich nicht beweisen.',
         doThis: ['weiche Übergänge', 'Kontraste senken', 'Details weglassen', 'lange Blickführung'],
         notThis: ['harte Kanten', 'Neonfarben', 'wilde Posen', 'Effektgewitter'],
       },
@@ -218,8 +218,8 @@ function baueEintraege(): Entry[] {
       },
     }),
 
-    eintrag('ort_mooshalde', 'location', {
-      title: 'Mooshalde',
+    eintrag('ort_dragoncore', 'location', {
+      title: 'Dragoncore',
       subtitle: 'Vierzig Dächer an einem Hang',
       category: 'Siedlung',
       description:
@@ -265,7 +265,7 @@ function baueEintraege(): Entry[] {
         'Kein Teich von Natur aus, sondern ein Loch, das sich vor zweihundert Jahren mit Regen gefüllt hat und seither nie leer geworden ist.',
       tags: ['Wasser', 'Waldkoi'],
       fields: {
-        region: 'Mooshalde, unterhalb des Glockenhauses',
+        region: 'Dragoncore, unterhalb des Glockenhauses',
         atmosphere:
           'Rund und flach, mit einem Rand aus Bohlen, die alle zwölf Jahre erneuert werden. Kinder werfen Brot hinein; die Waldkoi kommen dafür herauf und wissen genau, wann.',
         light: 'Die Wasseroberfläche ist die einzige Stelle in der Halde, an der der Himmel steht.',
@@ -282,7 +282,7 @@ function baueEintraege(): Entry[] {
         'Der einzige Weg vom Dorf hinunter in den Grund. Auf Stelzen, weil der Hang jeden festen Weg innerhalb eines Winters wegrutschen lässt.',
       tags: ['Weg', 'Wenzel'],
       fields: {
-        region: 'Zwischen Mooshalde und Nebelgrund',
+        region: 'Zwischen Dragoncore und Nebelgrund',
         atmosphere:
           'Vierhundertsechs Bohlen, jede einzeln nummeriert – Wenzels Werk und Wenzels Buchführung. Ab Bohle zweihundert verschwindet der Steg im Nebel, und man geht die letzten hundert nach Gehör.',
         light: 'Oben grün und gefiltert, unten weiß. Der Übergang liegt immer woanders.',
@@ -297,7 +297,7 @@ function baueEintraege(): Entry[] {
       subtitle: 'Der beste Augenblick des Jahres',
       category: 'Morgengrauen',
       description:
-        'Der Moment, für den Mooshalde gebaut wurde. Wer ihn einmal erlebt hat, versteht, warum niemand fortzieht.',
+        'Der Moment, für den Dragoncore gebaut wurde. Wer ihn einmal erlebt hat, versteht, warum niemand fortzieht.',
       tags: ['Läuten', 'Freude'],
       favorite: true,
       fields: {
@@ -374,7 +374,7 @@ function baueEintraege(): Entry[] {
       subtitle: 'Der Baum, der den Nebel hebt',
       category: 'Baum',
       description:
-        'Der wichtigste Baum dieses Bandes, und der einzige, der darin nicht mehr steht. Alles, was in Mooshalde geschieht, geschieht wegen einer gefällten Nebeleiche.',
+        'Der wichtigste Baum dieses Bandes, und der einzige, der darin nicht mehr steht. Alles, was in Dragoncore geschieht, geschieht wegen einer gefällten Nebeleiche.',
       tags: ['Kern', 'Nebel', 'Verlust'],
       favorite: true,
       fields: {
@@ -422,7 +422,7 @@ function baueEintraege(): Entry[] {
         size: 'Ranken bis fünf Schritt, Blüten daumengroß',
         season: 'Blüht vom vierten bis zum neunten Monat.',
         growth:
-          'Rankt links herum, immer an der wetterabgewandten Seite. Die Blüten hängen nach unten und öffnen sich, wenn die Luft feucht genug ist – und feucht genug ist sie in Mooshalde immer dann, wenn geläutet wird.',
+          'Rankt links herum, immer an der wetterabgewandten Seite. Die Blüten hängen nach unten und öffnen sich, wenn die Luft feucht genug ist – und feucht genug ist sie in Dragoncore immer dann, wenn geläutet wird.',
         magic:
           'Daher der Name, und daher der Irrtum: Alle glauben, sie öffne sich *wegen* der Glocken. Sie öffnet sich wegen desselben Nebels, der die Glocken zum Klingen bringt.\n\nDieses Jahr hat sie zum ersten Mal seit Menschengedenken geschlossen geblüht.',
         palette: ['#C9B7D2|Blütenblass', '#55604A|Rankengrün', '#A8853F|Staubgold'],
@@ -434,7 +434,7 @@ function baueEintraege(): Entry[] {
       subtitle: 'Der Tag, wie ihn die Halde erlebt',
       category: 'Wanderung',
       description:
-        'Der tägliche Auf- und Abstieg des Nebels. Das Uhrwerk, an dem in Mooshalde Glocken, Pflanzen, Tiere und Menschen hängen – und das seit einem Jahr eine Stufe zu kurz greift.',
+        'Der tägliche Auf- und Abstieg des Nebels. Das Uhrwerk, an dem in Dragoncore Glocken, Pflanzen, Tiere und Menschen hängen – und das seit einem Jahr eine Stufe zu kurz greift.',
       tags: ['Kern', 'Nebel', 'Kreislauf'],
       favorite: true,
       fields: {
@@ -447,7 +447,7 @@ function baueEintraege(): Entry[] {
           'Ab Mittag reißt er von unten auf. Am Nachmittag steht er nur noch in den Senken.',
         rebirth:
           'Abends sinkt der Rest zurück in den Grund und liegt dort über Nacht. Am nächsten Morgen ist es derselbe Nebel.',
-        habitat: 'Der Westhang zwischen Nebelgrund und Mooshalde',
+        habitat: 'Der Westhang zwischen Nebelgrund und Dragoncore',
         chain: ['Nebelgrund', 'Nebeleichen am Hang', 'Glockenhaus', 'Schleiermoos', 'Glockenhäher'],
         symbiosis: [
           'Nebeleiche hebt – Glocke läutet',
@@ -465,7 +465,7 @@ function baueEintraege(): Entry[] {
       subtitle: 'Der Vogel, der die Glocken auswendig kann',
       category: 'Vogel',
       description:
-        'Ahmt nach, was er oft hört. In Mooshalde hat er ein Jahrhundert lang Glocken gehört. Jetzt vergisst er sie, und das ist die erste Nachricht, die im Dorf ankommt – lange bevor jemand versteht, dass es eine ist.',
+        'Ahmt nach, was er oft hört. In Dragoncore hat er ein Jahrhundert lang Glocken gehört. Jetzt vergisst er sie, und das ist die erste Nachricht, die im Dorf ankommt – lange bevor jemand versteht, dass es eine ist.',
       tags: ['Kern', 'Läuten', 'Vogel'],
       favorite: true,
       fields: {
@@ -479,7 +479,7 @@ function baueEintraege(): Entry[] {
         migration: 'Bleibt. Er zieht nur den Hang hinauf und hinunter, dem Nebel nach.',
         sleep: 'In der Krone einer Nebeleiche, immer auf dem zweituntersten Hauptast.',
         mating:
-          'Im dritten Monat. Das Männchen wirbt mit der schwierigsten Tonfolge, die es kann – in Mooshalde also mit dem vollen Siebenschlag.',
+          'Im dritten Monat. Das Männchen wirbt mit der schwierigsten Tonfolge, die es kann – in Dragoncore also mit dem vollen Siebenschlag.',
         voice:
           'Zwei Stimmen: die eigene, ein rauhes Schaben, und die geliehene. Die geliehene ist erstaunlich rein und trifft die tiefe Glocke auf einen Viertelton.\n\nEr vergisst in der Reihenfolge, in der er gelernt hat. Zuerst fiel der Siebenschlag weg, dann die drei hohen. Seit dem Frühjahr kann er nur noch den einen tiefen Schlag, und den setzt er zu falschen Zeiten.',
         tracks:
@@ -543,7 +543,7 @@ function baueEintraege(): Entry[] {
       subtitle: 'Vierzehn Stück, jede mit Namen',
       category: 'Säugetier',
       description:
-        'Das Nutztier der Halde. Sie liefert Milch, hält die Stege frei und trägt die Schellen, die seit einem Jahr das Einzige sind, was in Mooshalde zuverlässig klingt.',
+        'Das Nutztier der Halde. Sie liefert Milch, hält die Stege frei und trägt die Schellen, die seit einem Jahr das Einzige sind, was in Dragoncore zuverlässig klingt.',
       tags: ['Halde', 'Alltag'],
       fields: {
         species: 'Kleine Bergziege, langhaarig, dunkelbraun bis moosgrau',
@@ -602,9 +602,9 @@ function baueEintraege(): Entry[] {
       tags: ['Kern', 'Glockenhaus'],
       favorite: true,
       fields: {
-        role: 'Glockenwärterin von Mooshalde',
+        role: 'Glockenwärterin von Dragoncore',
         age: 'Vierundsiebzig',
-        herkunft: 'Mooshalde, drittes Haus über dem Teich',
+        herkunft: 'Dragoncore, drittes Haus über dem Teich',
         volk: 'Haldenvolk',
         zugehoerigkeit: 'Das Glockenhaus – kein Amt, ein Schlüssel',
         wesen: ['genau', 'unbeirrbar', 'trocken', 'nicht sentimental'],
@@ -653,7 +653,7 @@ function baueEintraege(): Entry[] {
       fields: {
         role: 'Läuft die Wege, die Hedda nicht mehr läuft',
         age: 'Vierzehn',
-        herkunft: 'Mooshalde',
+        herkunft: 'Dragoncore',
         volk: 'Haldenvolk',
         zugehoerigkeit: 'Niemandem, sagt er',
         wesen: ['schnell', 'aufmerksam', 'unruhig', 'loyaler, als ihm lieb ist'],
@@ -734,7 +734,7 @@ function baueEintraege(): Entry[] {
       subtitle: 'Kartiererin',
       category: 'Nebenfigur',
       description:
-        'Zieht durch die Hänge und zeichnet Nebelgrenzen. Sie bringt das Wort mit, das in Mooshalde fehlt – und die Waage, mit der man es prüfen kann.',
+        'Zieht durch die Hänge und zeichnet Nebelgrenzen. Sie bringt das Wort mit, das in Dragoncore fehlt – und die Waage, mit der man es prüfen kann.',
       tags: ['Fremde', 'Messen'],
       fields: {
         role: 'Nimmt Nebelhöhen auf, für wen, sagt sie nicht',
@@ -819,7 +819,7 @@ function baueEintraege(): Entry[] {
       subtitle: 'Einundfünfzig Jahre in einer Handschrift',
       category: 'Schriftstück',
       description:
-        'Kein magischer Gegenstand. Ein Buch, in dem jemand jeden Tag dasselbe aufgeschrieben hat – und genau deshalb der einzige Beweis, den Mooshalde besitzt.',
+        'Kein magischer Gegenstand. Ein Buch, in dem jemand jeden Tag dasselbe aufgeschrieben hat – und genau deshalb der einzige Beweis, den Dragoncore besitzt.',
       tags: ['Kern', 'Beweis', 'Hedda'],
       favorite: true,
       fields: {
@@ -845,7 +845,7 @@ function baueEintraege(): Entry[] {
       subtitle: 'Alves Werkzeug',
       category: 'Werkzeug',
       description:
-        'Wiegt keinen Nebel, sondern das Wasser, das er auf einer Fläche hinterlässt. Das erste Gerät, das je in Mooshalde bestätigt hat, was ein Buch schon wusste.',
+        'Wiegt keinen Nebel, sondern das Wasser, das er auf einer Fläche hinterlässt. Das erste Gerät, das je in Dragoncore bestätigt hat, was ein Buch schon wusste.',
       tags: ['Messen', 'Alve'],
       fields: {
         purpose:
@@ -879,7 +879,7 @@ function baueEintraege(): Entry[] {
 
     eintrag('kle_wetterkittel', 'clothing', {
       title: 'Der Wetterkittel',
-      subtitle: 'Was man in Mooshalde trägt',
+      subtitle: 'Was man in Dragoncore trägt',
       category: 'Mantel',
       description:
         'Kein Regenmantel. Nebel fällt nicht, er steht – deshalb ist dieser Kittel unten offen und oben dicht.',
@@ -923,7 +923,7 @@ function baueEintraege(): Entry[] {
       subtitle: 'Achtzig Schritt gerade Linie',
       category: 'Konstruktion',
       description:
-        'Der einzige gerade Bau in Mooshalde – notwendigerweise, denn ein Seil kann man nicht um die Ecke schlagen.',
+        'Der einzige gerade Bau in Dragoncore – notwendigerweise, denn ein Seil kann man nicht um die Ecke schlagen.',
       tags: ['Wenzel', 'Handwerk'],
       fields: {
         style:
@@ -995,7 +995,7 @@ function baueEintraege(): Entry[] {
         source:
           'Wiederholung. Wer zwanzig Jahre lang jeden Tag dieselben sieben Glocken hört, hört irgendwann Unterschiede, für die es keine Wörter gibt.',
         cost:
-          'Zwanzig Jahre. Es gibt keine Abkürzung, und das ist der Grund, warum es in Mooshalde nur zwei Menschen können.',
+          'Zwanzig Jahre. Es gibt keine Abkürzung, und das ist der Grund, warum es in Dragoncore nur zwei Menschen können.',
         limit:
           'Es funktioniert nur bei diesen Glocken, in diesem Haus, an diesem Hang. Wer fortgeht, verliert es innerhalb eines Jahres.',
         effect:
@@ -1091,7 +1091,7 @@ function baueEintraege(): Entry[] {
         kennzeichen:
           'Zwei bis sieben Läuten am Tag. Verträge nach Läuten. Kinder, die den Siebenschlag pfeifen konnten, bevor sie schreiben lernten. Vierzehn Glockenwärter nacheinander, kein einziger Streit um das Amt.',
         wende:
-          'Der neunzehnte Tag des dritten Monats im vergangenen Jahr. Am selben Nachmittag wurde in Mooshalde noch siebenmal geläutet; die Krone lag schon unten.',
+          'Der neunzehnte Tag des dritten Monats im vergangenen Jahr. Am selben Nachmittag wurde in Dragoncore noch siebenmal geläutet; die Krone lag schon unten.',
         quellen:
           'Das Läutbuch, hundertneunzig Jahre lückenlos. Wenzels Instandsetzungsbuch, dreiunddreißig Jahre. Die Fadenlängen des Schleiermooses am Gebälk.',
       },
@@ -1243,20 +1243,20 @@ const KANTEN: [von: Kennung, art: string, nach: Kennung, notiz?: string][] = [
   ['pfl_nebeleiche', 'follows_dna', 'law_nebel', 'Der Baum ist der Beleg für das Gesetz'],
 
   /* Der Ort und was in ihm liegt. */
-  ['bio_nebelwald', 'contains', 'ort_mooshalde'],
+  ['bio_nebelwald', 'contains', 'ort_dragoncore'],
   ['bio_nebelwald', 'contains', 'ort_nebelgrund'],
-  ['ort_mooshalde', 'contains', 'arc_glockenhaus'],
-  ['ort_mooshalde', 'contains', 'arc_seilerbahn'],
-  ['ort_mooshalde', 'contains', 'ort_haldenteich'],
+  ['ort_dragoncore', 'contains', 'arc_glockenhaus'],
+  ['ort_dragoncore', 'contains', 'arc_seilerbahn'],
+  ['ort_dragoncore', 'contains', 'ort_haldenteich'],
   ['ort_haldensteg', 'precedes', 'ort_nebelgrund', 'Vierhundertsechs Bohlen hinab'],
-  ['ort_mooshalde', 'contains', 'ort_haldensteg'],
+  ['ort_dragoncore', 'contains', 'ort_haldensteg'],
   ['arc_glockenhaus', 'contains', 'moe_laeutpult'],
   ['moe_laeutpult', 'contains', 'art_laeutbuch'],
 
   /* Menschen. */
-  ['fig_hedda', 'lives_in', 'ort_mooshalde'],
-  ['fig_jonte', 'lives_in', 'ort_mooshalde'],
-  ['fig_wenzel', 'lives_in', 'ort_mooshalde'],
+  ['fig_hedda', 'lives_in', 'ort_dragoncore'],
+  ['fig_jonte', 'lives_in', 'ort_dragoncore'],
+  ['fig_wenzel', 'lives_in', 'ort_dragoncore'],
   ['fig_hedda', 'parent_of', 'fig_jonte', 'Großmutter – die Mutter dazwischen fehlt'],
   ['fig_hedda', 'owns', 'art_laeutbuch', 'Sie würde sagen, umgekehrt'],
   ['fig_hedda', 'uses', 'moe_laeutpult'],
@@ -1277,7 +1277,7 @@ const KANTEN: [von: Kennung, art: string, nach: Kennung, notiz?: string][] = [
   ['tier_haeher', 'uses', 'pfl_nebeleiche', 'Schläft auf dem zweituntersten Hauptast'],
   ['tier_waldkoi', 'lives_in', 'ort_haldenteich'],
   ['tier_trittfalter', 'lives_in', 'bio_nebelwald'],
-  ['tier_haldenziege', 'lives_in', 'ort_mooshalde'],
+  ['tier_haldenziege', 'lives_in', 'ort_dragoncore'],
   ['tier_haldenziege', 'uses', 'ort_haldensteg', 'Sie geht voran und prüft jede Bohle'],
   ['kre_nebelgaenger', 'lives_in', 'ort_nebelgrund'],
   ['kre_nebelgaenger', 'follows_dna', 'law_nebel', 'Es folgt der Grenze, nicht dem Ort'],
@@ -1295,13 +1295,13 @@ const KANTEN: [von: Kennung, art: string, nach: Kennung, notiz?: string][] = [
 
   /* Regeln und Geschichten. */
   ['arc_glockenhaus', 'follows_dna', 'dna_gewachsen', 'In Reinform: kein rechter Winkel'],
-  ['ort_mooshalde', 'follows_dna', 'dna_ruhe'],
+  ['ort_dragoncore', 'follows_dna', 'dna_ruhe'],
   ['mom_erstes', 'follows_dna', 'dna_licht', 'Acht Minuten Messing'],
   ['lor_glocken', 'appears_in', 'arc_glockenhaus'],
   ['lor_glocken', 'follows_dna', 'law_nebel', 'Die Legende enthielt die Ursache immer schon'],
   ['law_gelaeutet', 'follows_dna', 'mus_haldenschlag'],
   ['mus_haldenschlag', 'appears_in', 'arc_glockenhaus'],
-  ['que_schweigen', 'plays_at', 'ort_mooshalde'],
+  ['que_schweigen', 'plays_at', 'ort_dragoncore'],
   ['sti_wenzel', 'plays_at', 'arc_seilerbahn'],
   ['sti_wenzel', 'pov', 'fig_wenzel'],
   ['sti_hedda', 'pov', 'fig_hedda'],
@@ -1318,7 +1318,7 @@ const KANTEN: [von: Kennung, art: string, nach: Kennung, notiz?: string][] = [
   ['kap_eins', 'contains', 'sze_nichts'],
   ['sze_haeher', 'pov', 'fig_jonte'],
   ['sze_nichts', 'pov', 'fig_hedda'],
-  ['rom_stille', 'plays_at', 'ort_mooshalde'],
+  ['rom_stille', 'plays_at', 'ort_dragoncore'],
   ['pro_glockenhaus', 'appears_in', 'arc_glockenhaus'],
 ];
 
@@ -1333,7 +1333,22 @@ const KANTEN: [von: Kennung, art: string, nach: Kennung, notiz?: string][] = [
  * einander nicht überschreiben – und damit die Beziehungen auf die Einträge
  * *dieses* Bandes zeigen und nicht auf die des vorigen.
  */
-export function mooshalde(bookId: string): Bauteil {
+/**
+ * Der Band bekommt **beides**: Buch und Welt.
+ *
+ * Die `worldId` fehlte hier, und der Schaden war grösser, als er aussah. Seit
+ * Fassung 8 wird nach Welt geladen; fünfzig Einträge ohne Welt sind herrenlos,
+ * und die Heilung beim nächsten Start gibt Herrenloses dem Buch, **das gerade
+ * vorne liegt** – samt neuer `bookId`. Wer den Beispielband einräumte und sein
+ * eigenes Buch offen hatte, fand danach Alve Reet und das Glockenhaus in
+ * seinem eigenen Register, ohne Weg zurück: Die Herkunft war mit
+ * überschrieben.
+ *
+ * Gemessen: 51 Einträge in der eigenen Welt statt einem. Genau das, wogegen
+ * der Kopfkommentar dieser Datei antritt – *„Das eigene Buch bleibt
+ * unberührt."*
+ */
+export function dragoncore(bookId: string, worldId: string): Bauteil {
   const jetzt = Date.now();
   const kennung = (id: Kennung) => `${bookId}__${id}`;
 
@@ -1341,6 +1356,7 @@ export function mooshalde(bookId: string): Bauteil {
     ...e,
     id: kennung(e.id),
     bookId,
+    worldId,
   }));
 
   const vorhanden = new Set(entries.map((e) => e.id));
@@ -1359,6 +1375,7 @@ export function mooshalde(bookId: string): Bauteil {
     relations.push({
       id: `${bookId}__rel_${relations.length.toString(36)}`,
       bookId,
+      worldId,
       fromId: a,
       toId: b,
       type: art,
@@ -1373,25 +1390,6 @@ export function mooshalde(bookId: string): Bauteil {
 /** Wie viele Kanten der Band beschreibt – für die Prüfung, die auf Tippfehler achtet. */
 export const KANTEN_ANZAHL = KANTEN.length;
 
-/** Wie der Band heisst – eine Stelle, aus der Regal und Bibliothek lesen. */
-export const BEISPIEL_TITEL = 'Mooshalde';
 
-/** Der Einband, unter dem Mooshalde im Regal steht. */
-export const MOOSHALDE_BUCH = {
-  title: BEISPIEL_TITEL,
-  subtitle: 'Ein Band zum Ansehen',
-  worldName: 'Mooshalde',
-  worldTagline: 'Vierzig Dächer an einem Hang, und sieben Glocken, die niemand läutet.',
-  coverMaterial: 'leder' as const,
-  /*
-   * `waldgruen`, nicht `moos`.
-   *
-   * `moos` gibt es – aber als *Band*farbe, nicht als Einbandfarbe. Der Wert
-   * fiel still auf Umbra zurück, und still ist hier das Problem: Der Einband
-   * sah aus wie jeder andere, und nichts wies darauf hin, dass eine Farbe
-   * verworfen worden war. Gültige Einbandfarben stehen in `bookIdentity.ts`.
-   */
-  coverColor: 'waldgruen' as const,
-  emblemType: 'preset' as const,
-  emblemId: 'drache',
-};
+/** Der Einband, unter dem Dragoncore im Regal steht. */
+

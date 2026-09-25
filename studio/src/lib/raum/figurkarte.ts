@@ -125,14 +125,29 @@ export function figurkarte(lage: Figurlage): Tiefenkarte {
   const hatNotizen =
     etwasDa(e, NOTIZFELDER) || fundstueckeVon(lage).length > 0 || !!e.geheim?.text;
 
+  /*
+   * **Alle vier Richtungen, immer – die leeren still.**
+   *
+   * Hier stand vorher `undefined`, und die Begründung dafür steht oben im
+   * Kopf: Eine Richtung offenzuhalten, in der nichts liegt, heisst, dort
+   * etwas zu erfinden. Der Grundsatz bleibt richtig; die Umsetzung war es
+   * nicht.
+   *
+   * Gemessen: Eine frisch angelegte Figur bekam die Karte `{}` – keine
+   * einzige Richtung. Wer sie in die Tiefe drückte, bekam **nichts**: keine
+   * Bewegung, keinen Satz. Die beabsichtigte Aussage („um diese Figur herum
+   * ist nichts") wurde damit nie ausgesprochen, und für den, der drückt, ist
+   * sie von einer kaputten Bedienung nicht zu unterscheiden.
+   *
+   * `still` löst das, ohne den Grundsatz zu brechen: Der Weg wird angeboten,
+   * leiser gezeichnet, und der Raum dahinter sagt in einem Satz, was hier
+   * stünde. Es wird nichts behauptet, was nicht da ist – es wird gesagt, dass
+   * nichts da ist. Siehe `ersatz.ts`.
+   */
   return karte({
-    oben: hatWissen
-      ? weg('Wissen', 'Geschichte · Hintergrund', 'Was von ihr bekannt ist', 'wissen')
-      : undefined,
+    oben: weg('Wissen', 'Geschichte · Hintergrund', 'Was von ihr bekannt ist', 'wissen', !hatWissen),
 
-    links: hatHerkunft
-      ? weg('Herkunft', 'Ort · Welt', 'Woher sie kommt, wo sie steht', 'herkunft')
-      : undefined,
+    links: weg('Herkunft', 'Ort · Welt', 'Woher sie kommt, wo sie steht', 'herkunft', !hatHerkunft),
 
     /*
      * Rechts liegt der Weg, der drei Ebenen tief geht – und der einzige mit
@@ -150,16 +165,27 @@ export function figurkarte(lage: Figurlage): Tiefenkarte {
      * wird automatisch ein eigener Tiefenraum." Drei sind das, was diese Seite
      * zu sagen hat.
      */
+    /*
+     * Rechts bleibt die Kette dreistufig – aber ohne Beziehungen endet sie
+     * nach der ersten Stufe. Eine Figur, die niemanden kennt, hat auch keine
+     * „gemeinsame Geschichte"; zwei weitere Stufen anzubieten, hinter denen
+     * dieselbe Leere steht, wäre genau das Labyrinth, vor dem der Auftrag
+     * warnt.
+     */
     rechts: beziehungen.length
       ? tieferWeg('Beziehungen', 'Verbündete · Konflikte', [
           { titel: 'Wer ihr nahesteht', raum: 'beziehungen', wahl: 'noetig' },
           { titel: 'Diese Verbindung', raum: 'beziehung' },
           { titel: 'Gemeinsame Geschichte', raum: 'gemeinsameGeschichte' },
         ])
-      : undefined,
+      : weg('Beziehungen', 'Verbündete · Konflikte', 'Wer ihr nahesteht', 'beziehungen', true),
 
-    unten: hatNotizen
-      ? weg('Notizen', 'Erinnerungen · Fundstücke', 'Was von ihr aufbewahrt ist', 'notizen')
-      : undefined,
+    unten: weg(
+      'Notizen',
+      'Erinnerungen · Fundstücke',
+      'Was von ihr aufbewahrt ist',
+      'notizen',
+      !hatNotizen,
+    ),
   });
 }

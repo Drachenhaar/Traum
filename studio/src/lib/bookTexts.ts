@@ -24,10 +24,40 @@ export const BUCH_TEXTE = {
       material: 'Material',
       farbe: 'Farbe',
     },
+    /**
+     * Die Frage nach dem Namen – und die Welt, die daran hängt.
+     *
+     * Hier standen bis eben zwei verschiedene Dinge in einem Atemzug:
+     *
+     *     Frage:       „Wie soll dein **Buch** heißen?"
+     *     Platzhalter: „Der Name deiner **Welt**"
+     *
+     * Seit Fassung 8 sind das nicht mehr zwei Worte für dasselbe. Die Welt
+     * ist gemeinsam, das Buch bestimmt, wie man sie erlebt; ein zweiter Band
+     * kann in derselben Welt stehen. Genau dieser Unterschied trägt den
+     * halben Aufbau des Programms – und ausgerechnet an der Stelle, an der
+     * jemand ihn zum ersten Mal begegnet, wurde er verwischt.
+     *
+     * **Im einen Fall war der Platzhalter schlicht falsch.** Wer sein Buch
+     * einer bestehenden Welt zuordnet, wurde aufgefordert, deren Namen
+     * einzutragen – obwohl sie längst einen hat und ihn behält. Nachgelesen
+     * in `Geburt.tsx`: `worldName: gewaehlteWelt?.name ?? einband.title`.
+     *
+     * Der Platzhalter nennt jetzt nur noch das Buch. Was mit der Welt
+     * geschieht, sagt der Hinweis – und er sagt es je nach Lage anders,
+     * weil es je nach Lage etwas anderes ist. Das ist der Grund, warum aus
+     * einem festen Satz eine Funktion wurde: Ein Satz, der in der Hälfte der
+     * Fälle nicht stimmt, ist kein Hinweis, sondern eine Falle.
+     */
     titel: {
       frage: 'Wie soll dein Buch heißen?',
-      hinweis: 'Der Name steht auf dem Einband. Er lässt sich jederzeit ändern.',
-      platzhalter: 'Der Name deiner Welt',
+      /** Eine neue Welt beginnt mit diesem Buch – und trägt seinen Namen. */
+      hinweisNeueWelt:
+        'Der Name steht auf dem Einband – und auf der Welt, die mit diesem Buch beginnt. Er lässt sich jederzeit ändern.',
+      /** `%s` ist die bestehende Welt. Sie heisst weiter, wie sie heisst. */
+      hinweisBestehendeWelt:
+        'Der Name steht auf dem Einband. Die Welt %s behält ihren eigenen. Er lässt sich jederzeit ändern.',
+      platzhalter: 'Ein Name für dieses Buch',
       untertitelPlatzhalter: 'Ein Untertitel, wenn du magst',
     },
     zeichen: {
@@ -105,6 +135,39 @@ export const BUCH_TEXTE = {
     },
     zurueck: 'Zurück',
     weiter: 'Weiter',
+
+    /**
+     * Warum „Weiter" gerade nicht geht.
+     *
+     * Gemessen, auf dem Telefon: Zwei der fünf Schritte sperren den Knopf,
+     * beide bei Deckkraft 0,3, beide ohne ein Wort dazu. Wer ihn drückt,
+     * bekommt nichts – keine Bewegung, keine Meldung. Und der aktive
+     * „Zurück" daneben sieht verfügbarer aus als der Weg nach vorn.
+     *
+     * Das Bittere daran: **Die Begründungen gibt es längst.** Sie stehen im
+     * Quelltext, ausführlich und gut, und richten sich an Programmierer:
+     *
+     *     „Ein Buch ohne Art hätte keinen Arbeitsraum, und dann stünde man
+     *      nach der Zeremonie vor einer Tür ohne Zimmer."   – Artwahl.tsx
+     *
+     *     „Trägt das Buch schon einen Namen? Daran – und nur daran – hängt
+     *      alles."                                      – bookIdentity.ts
+     *
+     * Der Leser bekam davon nichts. Hier stehen dieselben Gründe in der
+     * Sprache des Buches.
+     *
+     * **Und warum sie nicht mahnen.** Gesetz 3: nichts mahnt. Kein „bitte",
+     * kein „erforderlich", kein Ausrufezeichen. Zwei Sätze: Was gerade der
+     * Fall ist, und was daraus folgt – beides über das Buch, nicht über ein
+     * Formular. Sie stehen sofort da, nicht erst nach einem misslungenen
+     * Griff: Eine Sackgasse zu erklären, nachdem jemand hineingelaufen ist,
+     * ist schlechter, als sie gar nicht erst entstehen zu lassen. Und sie
+     * verschwinden in dem Augenblick, in dem sie nicht mehr stimmen.
+     */
+    warten: {
+      art: 'Noch ist keine Art gewählt. Ohne sie hat das Buch keinen Arbeitsraum.',
+      titel: 'Noch ohne Namen. Ein namenloses Buch lässt sich nicht wieder aufschlagen.',
+    },
   },
 
   besitz: {
@@ -125,6 +188,31 @@ export const BUCH_TEXTE = {
     neuBindenNote: 'Noch einmal durch die Szenen – Einband, Titel, Zeichen. Der Band bleibt, wie er ist.',
   },
 } as const;
+
+/**
+ * Was unter der Titelfrage steht – je nachdem, wohin dieses Buch gehört.
+ *
+ * `welt` ist der Name einer **bestehenden** Welt, der dieses Buch beitritt,
+ * oder `undefined`, wenn mit ihm eine neue beginnt. Die Frage darüber bleibt
+ * in beiden Fällen dieselbe; es ist immer der Titel des Buches, nach dem
+ * gefragt wird.
+ *
+ * Eine leere oder nur aus Leerzeichen bestehende Angabe gilt als „keine".
+ * Den Satz „Die Welt  behält ihren eigenen." mit einem Loch in der Mitte
+ * auszuliefern wäre schlimmer als der Satz, der hier vorher stand.
+ */
+export function titelHinweis(welt?: string): string {
+  const name = welt?.trim();
+  if (!name) return BUCH_TEXTE.geburt.titel.hinweisNeueWelt;
+  /*
+   * Anführungszeichen um den Weltnamen, und zwar deutsche.
+   *
+   * Ohne sie liest sich „Die Welt Das Tal der stillen Riesen behält ihren
+   * eigenen." wie ein verunglückter Satz. Mit ihnen ist sichtbar, wo der
+   * Name anfängt und aufhört – auch bei einer Welt, die „Die Welt" heisst.
+   */
+  return BUCH_TEXTE.geburt.titel.hinweisBestehendeWelt.replace('%s', `„${name}“`);
+}
 
 /** Ein Datum, wie es auf einer Besitzseite steht. */
 export function langesDatum(at: number): string {
