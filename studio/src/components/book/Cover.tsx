@@ -37,6 +37,7 @@ import { deskStyle } from '../../lib/textures';
 import { coverSurface, CoverFace } from './CoverBoard';
 import { cx } from '../../lib/utils';
 import { beiKonfig, konfig } from '../../lib/raum/konfig';
+import { Sicherungszeile } from './Sicherungszeile';
 import { haptik } from '../../lib/raum/haptik';
 import { beruehrung, dauer, deckelverlauf, deckelwinkel } from '../../lib/buch/koerper';
 
@@ -478,6 +479,14 @@ export function Cover({
           <p className="mt-8 font-serif text-[11.5px] tracking-[0.18em] text-paper-400/35">
             {book.totalPages} Seiten · {book.chapters.length} Kapitel
           </p>
+
+          {/*
+            Und darunter, wenn es etwas zu sagen gibt: wo dieses Buch liegt.
+
+            Nicht mitten in der Arbeit, sondern am geschlossenen Buch – siehe
+            `sicherungssatz` in `lib/speicher.ts`.
+          */}
+          <Sicherungszeile />
         </div>
       </div>
     </div>
