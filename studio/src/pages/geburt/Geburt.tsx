@@ -291,6 +291,12 @@ export function Geburt({ onFertig, modus = 'geburt' }: { onFertig: (buchId?: str
             {szene === 'titel' && (
               <Titelwahl
                 identity={entwurf}
+                /*
+                 * Nur eine **bestehende** Welt wird hier durchgereicht.
+                 * Beginnt mit diesem Buch eine neue, steht `undefined` da –
+                 * und der Hinweis sagt dann, dass sie den Titel mitträgt.
+                 */
+                welt={gewaehlteWelt?.name}
                 onChange={aendern}
                 onWeiter={weiter}
                 onZurueck={zurueck}
