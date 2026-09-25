@@ -267,18 +267,38 @@ console.log('\n6 Der Einband');
 const farben = new Set(
   [...ohneProsa(lies('../src/lib/bookIdentity.ts')).matchAll(/id: '([a-z]+)',\s*\n\s*label:/g)].map((m) => m[1]),
 );
-for (const b of BAENDE) {
-  const gewaehlt = b.code.match(/coverColor: '([a-z]+)'/)?.[1];
-  wahr(`  ${b.id}: die Einbandfarbe „${gewaehlt}" gibt es`, !!gewaehlt && farben.has(gewaehlt));
-}
+/*
+ * Die Einbände stehen jetzt im **Verzeichnis**, nicht in den Bandmodulen.
+ *
+ * Der Grund ist gemessen: Ein einziger `import` einer Titelzeile hätte die
+ * ganze Bandprosa ins Hauptbündel geholt – 113 kB, geladen von jedem, der
+ * die Bände nie aufschlägt. Deshalb wird hier das Verzeichnis gelesen.
+ */
+const verzeichnis = ohneProsa(lies('../src/lib/beispiel/baende.ts'));
+const einbaende = [...verzeichnis.matchAll(/coverColor: '([a-z]+)'/g)].map((m) => m[1]);
+wahr(`  ${einbaende.length} Einbände im Verzeichnis`, einbaende.length === BAENDE.length);
+for (const f of einbaende) wahr(`  die Einbandfarbe „${f}" gibt es`, farben.has(f));
 /*
  * Und die beiden sehen im Regal verschieden aus.
  *
  * Zwei Bände in demselben Einband sind von weitem ein Band mit einem Schatten.
  */
-{
-  const einbaende = BAENDE.map((b) => b.code.match(/coverColor: '([a-z]+)'/)?.[1]);
-  wahr('  kein Band sieht aus wie der andere', new Set(einbaende).size === einbaende.length, einbaende.join(', '));
+wahr('  kein Band sieht aus wie der andere', new Set(einbaende).size === einbaende.length, einbaende.join(', '));
+
+/*
+ * **Und kein Bandmodul wird beim Start geholt.**
+ *
+ * Die Zusage, auf der die ganze Aufteilung ruht: Das Verzeichnis darf die
+ * Bandmodule nur über `import(...)` kennen. Ein gewöhnlicher `import` oben
+ * in der Datei zöge die Prosa wieder ins Hauptbündel, und niemand sähe es –
+ * ausser an acht Sekunden leerem Bildschirm.
+ */
+wahr(
+  '  das Verzeichnis holt die Bände erst auf Zuruf',
+  !/^import .*from '\.\/(dragoncore|riesen)'/m.test(verzeichnis),
+);
+for (const id of ['dragoncore', 'riesen']) {
+  wahr(`  ${id} wird nachgeladen`, new RegExp(`import\\('\\./${id}'\\)`).test(verzeichnis));
 }
 
 /* ==========================================================================

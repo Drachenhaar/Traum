@@ -1390,25 +1390,6 @@ export function dragoncore(bookId: string, worldId: string): Bauteil {
 /** Wie viele Kanten der Band beschreibt – für die Prüfung, die auf Tippfehler achtet. */
 export const KANTEN_ANZAHL = KANTEN.length;
 
-/** Wie der Band heisst – eine Stelle, aus der Regal und Bibliothek lesen. */
-export const BEISPIEL_TITEL = 'Dragoncore';
 
 /** Der Einband, unter dem Dragoncore im Regal steht. */
-export const DRAGONCORE_BUCH = {
-  title: BEISPIEL_TITEL,
-  subtitle: 'Ein Band zum Ansehen',
-  worldName: 'Dragoncore',
-  worldTagline: 'Vierzig Dächer an einem Hang, und sieben Glocken, die niemand läutet.',
-  coverMaterial: 'leder' as const,
-  /*
-   * `waldgruen`, nicht `moos`.
-   *
-   * `moos` gibt es – aber als *Band*farbe, nicht als Einbandfarbe. Der Wert
-   * fiel still auf Umbra zurück, und still ist hier das Problem: Der Einband
-   * sah aus wie jeder andere, und nichts wies darauf hin, dass eine Farbe
-   * verworfen worden war. Gültige Einbandfarben stehen in `bookIdentity.ts`.
-   */
-  coverColor: 'waldgruen' as const,
-  emblemType: 'preset' as const,
-  emblemId: 'dragoncore',
-};
+

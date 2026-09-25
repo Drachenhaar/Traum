@@ -615,27 +615,8 @@ const KANTEN: [von: Kennung, art: string, nach: Kennung, notiz?: string][] = [
 /** Wie viele Kanten der Band beschreibt – für die Prüfung auf Tippfehler. */
 export const RIESEN_KANTEN_ANZAHL = KANTEN.length;
 
-/** Wie der Band heisst – eine Stelle, aus der Regal und Bibliothek lesen. */
-export const RIESEN_TITEL = 'Das Observatorium der stillen Riesen';
 
-export const RIESEN_BUCH = {
-  title: RIESEN_TITEL,
-  subtitle: 'Ein Band zum Ansehen',
-  worldName: 'Das Tal der stillen Riesen',
-  worldTagline: 'Der Tierwärter bemerkte es zuerst an den Kois.',
-  coverMaterial: 'leinen' as const,
-  /*
-   * `nachtblau`, nicht `tinte`.
-   *
-   * „Tinte" stand hier zuerst und ist keine Einbandfarbe – der Wert wäre
-   * still auf Umbra zurückgefallen, und der Band hätte ausgesehen wie der
-   * erste. Gültige Farben stehen in `bookIdentity.ts`. Leinen statt Leder
-   * dazu, damit die beiden Bände im Regal auch von weitem zwei sind.
-   */
-  coverColor: 'nachtblau' as const,
-  emblemType: 'preset' as const,
-  emblemId: 'sonne',
-};
+
 
 export function riesen(bookId: string, worldId: string): Bauteil {
   const jetzt = Date.now();

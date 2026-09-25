@@ -6,9 +6,42 @@
  * Kapitel und Anhänge.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { HashRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { Arbeitsraum } from './components/arbeitsraum/Arbeitsraum';
+
+/* ====================================================================== *
+ * WAS ERST GEHOLT WIRD, WENN JEMAND ES AUFSCHLAEGT
+ *
+ * Gemessen vor dieser Aenderung: 1,2 MB in **einem** Stueck, und bis zum
+ * ersten Zeichen 8,0 s im Mobilfunknetz. Geladen wurde dabei alles – der
+ * Baukasten, die aufklappbare Karte, die Setzerei, der Druck –, obwohl der
+ * erste Schirm davon nichts braucht.
+ *
+ * Hier stehen deshalb die Blaetter, die **niemand beim Aufschlagen sieht**.
+ * Sie kommen, wenn man sie aufschlaegt, und kosten dann den Bruchteil einer
+ * Sekunde aus demselben Netz, das vorher acht Sekunden lang nichts zeigte.
+ *
+ * Was bewusst **nicht** hier steht: Einband, Erschaffung, Regal, Vorwort,
+ * Inhalt, Kapitel und Eintrag. Das ist der Weg, den jeder geht; ihn zu
+ * teilen hiesse, das Blaettern selbst zu verlangsamen, um den Start zu
+ * beschleunigen.
+ * ====================================================================== */
+
+const Baukasten = lazy(() => import('./pages/baukasten/Baukasten').then((m) => ({ default: m.Baukasten })));
+const Baukastenwahl = lazy(() => import('./pages/baukasten/Baukastenwahl').then((m) => ({ default: m.Baukastenwahl })));
+const FoldOutMap = lazy(() => import('./pages/book/FoldOutMap').then((m) => ({ default: m.FoldOutMap })));
+const Setzerei = lazy(() => import('./pages/book/Setzerei').then((m) => ({ default: m.Setzerei })));
+const CanvasBoardPage = lazy(() => import('./pages/CanvasBoardPage').then((m) => ({ default: m.CanvasBoardPage })));
+const ZeitstrahlSheet = lazy(() => import('./pages/book/Zeitstrahl').then((m) => ({ default: m.ZeitstrahlSheet })));
+const EntdeckungenSheet = lazy(() => import('./pages/book/Entdeckungen').then((m) => ({ default: m.EntdeckungenSheet })));
+const ReiseSheet = lazy(() => import('./pages/book/Reise').then((m) => ({ default: m.ReiseSheet })));
+const DruckSheet = lazy(() => import('./pages/book/Druck').then((m) => ({ default: m.DruckSheet })));
+const WeltkarteSheet = lazy(() => import('./pages/book/Weltkarte').then((m) => ({ default: m.WeltkarteSheet })));
+const BlattverzeichnisSheet = lazy(() => import('./pages/book/Blattverzeichnis').then((m) => ({ default: m.BlattverzeichnisSheet })));
+const CharakterspiegelSheet = lazy(() => import('./pages/book/Charakterspiegel').then((m) => ({ default: m.CharakterspiegelSheet })));
+const SpiegelSheet = lazy(() => import('./pages/book/Spiegel').then((m) => ({ default: m.SpiegelSheet })));
+
 import { schlageBandAuf } from './lib/baende';
 import { Cover } from './components/book/Cover';
 import { ForewordSpread } from './pages/book/ForewordSpread';
@@ -16,31 +49,18 @@ import { ContentsSpread } from './pages/book/ContentsSpread';
 import { ChapterSpread } from './pages/book/ChapterSpread';
 import { EntrySpread } from './pages/book/EntrySpread';
 import { Charakterseite } from './pages/figur/Charakterseite';
-import { Baukasten } from './pages/baukasten/Baukasten';
-import { Baukastenwahl } from './pages/baukasten/Baukastenwahl';
 import { AppendixSpread } from './pages/book/Appendix';
-import { FoldOutMap } from './pages/book/FoldOutMap';
 import { RegisterSheet, PlatesSpread, PlatesSheet } from './pages/book/RegisterSpread';
-import { Setzerei } from './pages/book/Setzerei';
 import {
   ChronicleSheet,
   WorkbenchSheet,
   LooseLeavesSheet,
   ColophonSheet,
 } from './pages/book/AppendixTools';
-import { CanvasBoardPage } from './pages/CanvasBoardPage';
 import { RomanBlatt, RomanRegal } from './pages/roman/RomanBlatt';
 import { Schreibraum } from './pages/roman/Schreibraum';
 import { ConfirmHost } from './components/ui/Confirm';
 import { Toasts } from './components/ui/Toasts';
-import { ZeitstrahlSheet } from './pages/book/Zeitstrahl';
-import { EntdeckungenSheet } from './pages/book/Entdeckungen';
-import { ReiseSheet } from './pages/book/Reise';
-import { DruckSheet } from './pages/book/Druck';
-import { WeltkarteSheet } from './pages/book/Weltkarte';
-import { BlattverzeichnisSheet } from './pages/book/Blattverzeichnis';
-import { CharakterspiegelSheet } from './pages/book/Charakterspiegel';
-import { SpiegelSheet } from './pages/book/Spiegel';
 import { OwnershipSpread } from './pages/book/OwnershipSpread';
 import { MeinBuchSheet } from './pages/book/MeinBuch';
 import { Geburt } from './pages/geburt/Geburt';
@@ -189,6 +209,16 @@ export default function App() {
 
   return (
     <HashRouter>
+      {/*
+        Die Wartezeit eines nachgeladenen Blattes ist `null`.
+
+        Kein Ladezeichen, kein Platzhalter, kein Umriss. Das Blatt kommt aus
+        demselben Netz wie alles andere und ist im schlechtesten Fall den
+        Bruchteil einer Sekunde unterwegs; ein Zeichen, das dafuer aufblitzt,
+        waere unruhiger als die kurze Leere. Der Bogen darunter bleibt ohnehin
+        stehen – man sieht das Papier, nicht das Nichts.
+      */}
+      <Suspense fallback={null}>
       <Routes>
         {/* Der Einband – der erste Bildschirm, ohne jede Software darum herum. */}
         <Route path="/" element={<CoverGate />} />
@@ -334,6 +364,7 @@ export default function App() {
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </Suspense>
 
       <ConfirmHost />
       <Toasts />

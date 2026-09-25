@@ -813,7 +813,7 @@ export const useStudio = create<StudioState>((set, get) => {
        * antritt.
        */
       const welt = neueWelt({ id: buch.worldId!, name: buch.worldName });
-      const { entries, relations } = band.baue(buch.id, buch.worldId!);
+      const { entries, relations } = await band.baue(buch.id, buch.worldId!);
 
       await db.transaction(
         'rw',

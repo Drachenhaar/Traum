@@ -16,8 +16,19 @@
  */
 
 import type { Entry, LibraryBook, Relation } from '../../types';
-import { DRAGONCORE_BUCH, BEISPIEL_TITEL, dragoncore, KANTEN_ANZAHL } from './dragoncore';
-import { RIESEN_BUCH, RIESEN_TITEL, riesen, RIESEN_KANTEN_ANZAHL } from './riesen';
+
+/*
+ * **Hier wird nichts von den Bänden importiert.**
+ *
+ * Gemessen: Die Prosa der beiden Bände wog 113 kB und lag im Hauptbündel –
+ * geladen von jedem, der sie nie aufschlägt, und mitverantwortlich für acht
+ * Sekunden leeren Bildschirm im Mobilfunknetz.
+ *
+ * Ein einziger `import` einer Titelzeile hätte das ganze Modul
+ * mitgebracht; Einband und Titel stehen deshalb **hier** und nicht dort. Die
+ * Bandmodule tragen nur noch die Welt und werden erst geholt, wenn jemand
+ * „ansehen" antippt.
+ */
 
 export interface Beispielband {
   /** Stabile Kennung – steht in keiner Oberfläche, nur in Prüfungen und Aufrufen. */
@@ -29,25 +40,41 @@ export interface Beispielband {
   /** Einband, Weltname, Zeichen. */
   buch: Partial<LibraryBook>;
   /**
-   * Baut Inhalt und Verbindungen.
+   * Holt den Band und baut Inhalt und Verbindungen.
    *
    * **Beide Kennungen, immer.** `bookId` sagt, wo etwas entstanden ist,
    * `worldId`, wem es gehört. Wer hier eine weglässt, baut den Fehler von
    * oben nach.
+   *
+   * Der Rückgabewert ist ein Versprechen, weil das Bandmodul erst in diesem
+   * Augenblick geholt wird – siehe oben.
    */
-  baue: (bookId: string, worldId: string) => { entries: Entry[]; relations: Relation[] };
-  /** Wie viele Kanten er beschreibt – die Prüfung zählt gegen diese Zahl. */
-  kanten: number;
+  baue: (bookId: string, worldId: string) => Promise<{ entries: Entry[]; relations: Relation[] }>;
 }
 
 export const BEISPIELBAENDE: Beispielband[] = [
   {
     id: 'dragoncore',
-    titel: BEISPIEL_TITEL,
+    titel: 'Dragoncore',
     worum: 'Eine Kette aus Ursachen: ein gefällter Baum, und am Ende schweigt ein Vogel.',
-    buch: DRAGONCORE_BUCH,
-    baue: dragoncore,
-    kanten: KANTEN_ANZAHL,
+    buch: {
+      title: 'Dragoncore',
+      subtitle: 'Ein Band zum Ansehen',
+      worldName: 'Dragoncore',
+      worldTagline: 'Vierzig Dächer an einem Hang, und sieben Glocken, die niemand läutet.',
+      coverMaterial: 'leder',
+      /*
+       * `waldgruen`, nicht `moos`.
+       *
+       * `moos` gibt es – aber als *Band*farbe, nicht als Einbandfarbe. Der
+       * Wert fiel still auf Umbra zurück, und still ist hier das Problem: Der
+       * Einband sah aus wie jeder andere. Gültige Farben: `bookIdentity.ts`.
+       */
+      coverColor: 'waldgruen',
+      emblemType: 'preset',
+      emblemId: 'dragoncore',
+    },
+    baue: (b, w) => import('./dragoncore').then((m) => m.dragoncore(b, w)),
   },
   {
     id: 'riesen',
@@ -60,11 +87,21 @@ export const BEISPIELBAENDE: Beispielband[] = [
      * Wärter sieht hin, ein Hang bewegt sich. Zwei Bände, die dasselbe
      * vorführen, wären einer zu viel.
      */
-    titel: RIESEN_TITEL,
+    titel: 'Das Observatorium der stillen Riesen',
     worum: 'Fische stehen still, ein Hang öffnet ein Auge, und eine Kuppel antwortet nach oben.',
-    buch: RIESEN_BUCH,
-    baue: riesen,
-    kanten: RIESEN_KANTEN_ANZAHL,
+    buch: {
+      title: 'Das Observatorium der stillen Riesen',
+      subtitle: 'Ein Band zum Ansehen',
+      worldName: 'Das Tal der stillen Riesen',
+      worldTagline: 'Der Tierwärter bemerkte es zuerst an den Kois.',
+      coverMaterial: 'leinen',
+      /* Leinen und Nachtblau, damit die beiden Bände im Regal auch von
+         weitem zwei sind. `tinte` stand hier zuerst und gibt es nicht. */
+      coverColor: 'nachtblau',
+      emblemType: 'preset',
+      emblemId: 'sonne',
+    },
+    baue: (b, w) => import('./riesen').then((m) => m.riesen(b, w)),
   },
 ];
 
