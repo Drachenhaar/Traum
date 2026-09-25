@@ -94,15 +94,27 @@ jobs:
         working-directory: studio
         run: npx tsc --noEmit
 
-      - name: Prüfungen
-        if: always()
-        working-directory: studio
-        run: npm test
-
+      # Der Bau steht jetzt auch vor den Prüfungen, aus demselben Grund wie
+      # vor den Klassen: **Zwei Prüfungen lesen ihn.**
+      #
+      # `dienstbote.test.mjs` führt den gebauten `dist/sw.js` wirklich aus –
+      # die Liste der vorzuhaltenden Dateien entsteht erst beim Bauen, und
+      # geprüft gehört die Liste, die ausgeliefert wird, nicht die Marke in
+      # der Vorlage. Ohne `dist/` baut die Prüfung sich ihren Gegenstand
+      # selbst; das läuft, kostet aber einen zweiten vollen Bau und verdeckt,
+      # woher ihr Gegenstand kommt.
+      #
+      # Damit dauert die erste Antwort länger. Das ist der Preis dafür, dass
+      # beide Prüfungen dasselbe lesen, was später veröffentlicht wird.
       - name: Bau
         if: always()
         working-directory: studio
         run: npm run build
+
+      - name: Prüfungen
+        if: always()
+        working-directory: studio
+        run: npm test
 
       # Braucht das Ergebnis des Baus – siehe oben.
       - name: Klassen

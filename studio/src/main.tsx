@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import { massAlsCss } from './lib/setzerei/mass';
 import { frageNachNeuanfang, neuanfangGewuenscht } from './lib/neuanfang';
+import { meldeDienstbotenAn } from './lib/dienstbote';
 
 /**
  * Ohne Fehlergrenze wird ein Renderfehler auf iOS bisher lautlos zur weißen
@@ -248,6 +249,19 @@ import('./App')
     );
     /* Ab hier ist das Buch offen – ein Fehler darf es nicht mehr zuschlagen. */
     appLaeuft = true;
+
+    /*
+     * Erst jetzt. Der Dienstbote hält vor, was gerade geladen wurde – und
+     * dass es geladen werden konnte, steht erst an dieser Stelle fest.
+     *
+     * Im `catch` unten hätte er nichts zu suchen: Wäre das Buch nicht
+     * aufgegangen, würde er eine Fassung vorhalten, die nicht startet, und
+     * sie bei jedem weiteren Besuch verlässlich wieder ausliefern.
+     *
+     * Und nicht im Zweig des Neuanfangs: Wer alles löschen will, will nicht,
+     * dass im selben Augenblick 1,4 MB hinterlegt werden.
+     */
+    meldeDienstbotenAn();
   })
   .catch((err) => showFatal('Die App konnte nicht geladen werden', String((err as { stack?: string })?.stack ?? err)));
 }
