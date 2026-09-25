@@ -13,7 +13,7 @@
  * Der Tisch bleibt ueber alle Szenen stehen. Nur was darauf liegt, wechselt.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useStudio } from '../../store/useStudio';
 import { neuesBuch } from '../../lib/bibliothek';
 import { BUCH_TEXTE } from '../../lib/bookTexts';
@@ -421,31 +421,72 @@ export function SzenenWeg({
   onWeiter,
   weiterLabel = BUCH_TEXTE.geburt.weiter,
   weiterAus = false,
+  weiterWarum,
 }: {
   onZurueck?: () => void;
   onWeiter: () => void;
   weiterLabel?: string;
   weiterAus?: boolean;
+  /**
+   * Was dem Buch noch fehlt – in seiner eigenen Sprache.
+   *
+   * Steht nur da, solange `weiterAus` gilt, und verschwindet in dem
+   * Augenblick, in dem der Satz nicht mehr stimmt. Die Sätze und ihre
+   * Begründung: `BUCH_TEXTE.geburt.warten`.
+   */
+  weiterWarum?: string;
 }) {
+  const grundId = useId();
+  const grund = weiterAus ? weiterWarum : undefined;
+
   return (
-    <div className="mt-9 flex items-center justify-center gap-8">
-      {onZurueck && (
+    <div className="mt-9">
+      <div className="flex items-center justify-center gap-8">
+        {onZurueck && (
+          <button
+            type="button"
+            onClick={onZurueck}
+            className="min-h-[44px] px-2 font-serif text-[14px] italic text-paper-400/45 transition-colors hover:text-paper-300/70 no-tap-highlight"
+          >
+            {BUCH_TEXTE.geburt.zurueck}
+          </button>
+        )}
         <button
           type="button"
-          onClick={onZurueck}
-          className="min-h-[44px] px-2 font-serif text-[14px] italic text-paper-400/45 transition-colors hover:text-paper-300/70 no-tap-highlight"
+          onClick={onWeiter}
+          disabled={weiterAus}
+          /*
+           * Auch für Vorleseprogramme.
+           *
+           * `disabled` allein sagt „nicht verfügbar" und verschweigt das
+           * Warum genauso wie die Deckkraft es dem Auge verschweigt. Der Satz
+           * steht ohnehin sichtbar darunter und in der Lesereihenfolge
+           * unmittelbar danach; der Verweis bringt ihn zusätzlich an den
+           * Knopf selbst, wo er gebraucht wird.
+           */
+          aria-describedby={grund ? grundId : undefined}
+          className="min-h-[44px] rounded-full border border-gild-500/35 px-6 font-serif text-[15px] text-gild-300 transition-colors duration-300 enabled:hover:border-gild-400/70 disabled:opacity-50 no-tap-highlight"
         >
-          {BUCH_TEXTE.geburt.zurueck}
+          {weiterLabel}
         </button>
+      </div>
+
+      {grund && (
+        /*
+         * Die Deckkraft ist gemessen, nicht geschätzt.
+         *
+         * Bei einer früheren Zeile dieser Art ergab `/45` gegen den dunklen
+         * Grund 2,65:1 – unter der Schwelle von 4,5:1 für kleine Schrift.
+         * Ein Satz, der eine Sackgasse erklärt und dabei selbst kaum zu
+         * lesen ist, erklärt nichts.
+         */
+        <p
+          id={grundId}
+          className="mx-auto mt-4 max-w-[36ch] text-center font-serif text-[12.5px] italic leading-relaxed text-paper-400/70"
+        >
+          {grund}
+        </p>
       )}
-      <button
-        type="button"
-        onClick={onWeiter}
-        disabled={weiterAus}
-        className="min-h-[44px] rounded-full border border-gild-500/35 px-6 font-serif text-[15px] text-gild-300 transition-colors duration-300 enabled:hover:border-gild-400/70 disabled:opacity-30 no-tap-highlight"
-      >
-        {weiterLabel}
-      </button>
     </div>
   );
 }

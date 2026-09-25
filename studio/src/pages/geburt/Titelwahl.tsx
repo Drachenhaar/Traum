@@ -81,7 +81,12 @@ export function Titelwahl({
         />
       </div>
 
-      <SzenenWeg onZurueck={onZurueck} onWeiter={onWeiter} weiterAus={!fertig} />
+      <SzenenWeg
+        onZurueck={onZurueck}
+        onWeiter={onWeiter}
+        weiterAus={!fertig}
+        weiterWarum={BUCH_TEXTE.geburt.warten.titel}
+      />
     </div>
   );
 }

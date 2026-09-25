@@ -105,6 +105,39 @@ export const BUCH_TEXTE = {
     },
     zurueck: 'Zurück',
     weiter: 'Weiter',
+
+    /**
+     * Warum „Weiter" gerade nicht geht.
+     *
+     * Gemessen, auf dem Telefon: Zwei der fünf Schritte sperren den Knopf,
+     * beide bei Deckkraft 0,3, beide ohne ein Wort dazu. Wer ihn drückt,
+     * bekommt nichts – keine Bewegung, keine Meldung. Und der aktive
+     * „Zurück" daneben sieht verfügbarer aus als der Weg nach vorn.
+     *
+     * Das Bittere daran: **Die Begründungen gibt es längst.** Sie stehen im
+     * Quelltext, ausführlich und gut, und richten sich an Programmierer:
+     *
+     *     „Ein Buch ohne Art hätte keinen Arbeitsraum, und dann stünde man
+     *      nach der Zeremonie vor einer Tür ohne Zimmer."   – Artwahl.tsx
+     *
+     *     „Trägt das Buch schon einen Namen? Daran – und nur daran – hängt
+     *      alles."                                      – bookIdentity.ts
+     *
+     * Der Leser bekam davon nichts. Hier stehen dieselben Gründe in der
+     * Sprache des Buches.
+     *
+     * **Und warum sie nicht mahnen.** Gesetz 3: nichts mahnt. Kein „bitte",
+     * kein „erforderlich", kein Ausrufezeichen. Zwei Sätze: Was gerade der
+     * Fall ist, und was daraus folgt – beides über das Buch, nicht über ein
+     * Formular. Sie stehen sofort da, nicht erst nach einem misslungenen
+     * Griff: Eine Sackgasse zu erklären, nachdem jemand hineingelaufen ist,
+     * ist schlechter, als sie gar nicht erst entstehen zu lassen. Und sie
+     * verschwinden in dem Augenblick, in dem sie nicht mehr stimmen.
+     */
+    warten: {
+      art: 'Noch ist keine Art gewählt. Ohne sie hat das Buch keinen Arbeitsraum.',
+      titel: 'Noch ohne Namen. Ein namenloses Buch lässt sich nicht wieder aufschlagen.',
+    },
   },
 
   besitz: {
