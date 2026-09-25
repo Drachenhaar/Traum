@@ -11,6 +11,7 @@ import { useStudio } from '../../store/useStudio';
 import { useCurrentSpread } from '../../components/book/BookShell';
 import { Spread, Plate } from '../../components/book/Spread';
 import { useImageUrl } from '../../components/images/Thumb';
+import { ErsteSeite } from '../../components/book/ErsteSeite';
 import { TEXTURES } from '../../lib/textures';
 import { cx } from '../../lib/utils';
 
@@ -18,6 +19,22 @@ export function ContentsSpread() {
   const { book, spread } = useCurrentSpread();
   const entries = useStudio((s) => s.entries);
   const settings = useStudio((s) => s.settings);
+
+  /*
+   * Wie viel schon dasteht.
+   *
+   * **Kapitel, nicht Einträge** – und das deckt sich, weil jeder Eintrag in
+   * einem Kapitel landet. Nachgemessen mit dem unscheinbarsten Fall, einem
+   * blossen Gedanken: Er erzeugt die Zeile „Notizen & Sammlungen". Mein
+   * erster Kommentar an dieser Stelle behauptete das Gegenteil, und die
+   * Messung hat ihn widerlegt.
+   *
+   * Damit heisst `noch === 0` genau das, wonach hier gefragt wird: Im
+   * Verzeichnis darüber steht ausser Vorwort und Anhängen nichts. Sobald
+   * irgendetwas im Buch steht, verschwindet das Feld – auch wenn es nur ein
+   * hingeworfener Satz war.
+   */
+  const noch = book.chapters.length;
 
   /* Ein Bild aus der Welt trägt die rechte Seite – bevorzugt ein Favorit. */
   const showpiece =
@@ -57,11 +74,25 @@ export function ContentsSpread() {
             />
           </ol>
 
-          {book.chapters.length === 0 && (
-            <p className="prose-book mt-8">
-              Das Buch ist noch leer. Es beginnt mit einer einzigen Seite – alles Weitere wächst
-              daran.
-            </p>
+          {/*
+           * Das leere Buch bekommt ein Feld, keine Liste.
+           *
+           * Hier standen bis eben beide Dinge zugleich: dieser Satz und
+           * darunter fünfzehn Kapitelnamen unter „Noch ungeschrieben".
+           * Gemessen ist das der erste Bildschirm, den ein neuer Leser im
+           * Buch sieht – fünfzehn leere Fächer als Begrüssung, und die
+           * Namen bei 2,51:1, also kaum lesbar.
+           *
+           * Die Begründung steht in `components/book/ErsteSeite.tsx`.
+           */}
+          {noch === 0 && (
+            <>
+              <p className="prose-book mt-8">
+                Das Buch ist noch leer. Es beginnt mit einer einzigen Seite – alles Weitere wächst
+                daran.
+              </p>
+              <ErsteSeite />
+            </>
           )}
 
           {/*
@@ -70,8 +101,14 @@ export function ContentsSpread() {
            * Ohne diese Zeilen könnte niemand entdecken, dass es sie geben
            * könnte. Sie stehen ohne Seitenzahl und ohne Lesezeichen da – als
            * Einladung, nicht als Mangel.
+           *
+           * **Und nur im schon begonnenen Buch.** Im leeren ist dieselbe
+           * Liste keine Einladung mehr: Wer noch nichts geschrieben hat,
+           * sieht nicht fünfzehn Möglichkeiten, sondern fünfzehn Lücken.
+           * Sobald eine einzige Seite dasteht, kippt es zurück – dann sind
+           * es Nachbarn dessen, was schon da ist.
            */}
-          {book.emptyChapters.length > 0 && (
+          {noch > 0 && book.emptyChapters.length > 0 && (
             <section className="mt-9 border-t border-line pt-5">
               <p className="rubric mb-2.5">Noch ungeschrieben</p>
               <ul className="flex flex-wrap gap-x-4 gap-y-1.5">
@@ -79,7 +116,28 @@ export function ContentsSpread() {
                   <li key={chapter.id}>
                     <Link
                       to={`/kapitel/${chapter.id}`}
-                      className="inline-flex min-h-[38px] items-center font-serif text-[15px] italic text-ink-faint transition-colors hover:text-gold no-tap-highlight"
+                      /*
+                       * `ink-muted`, nicht `ink-faint`.
+                       *
+                       * Gemessen auf der Inhaltsseite: `ink-faint` ergibt
+                       * gegen das Papier **2,51:1** – bei 15 px kursiv weit
+                       * unter der Schwelle von 4,5:1. Eine Einladung, die
+                       * man nicht lesen kann, lädt niemanden ein.
+                       * `ink-muted` misst an derselben Stelle **4,24:1**.
+                       *
+                       * **Und warum es dabei bleibt, obwohl 4,24 < 4,5.**
+                       * Eine feste Deckkraft (`text-ink/70` misst 4,6:1)
+                       * wäre auf genau einem Band richtig: Es gibt sechs,
+                       * jedes mit eigenem Dreiklang in `lib/baende.ts`, und
+                       * mehrere setzen helle Schrift auf dunklen Grund. Die
+                       * verbleibende Lücke gehört dort hinein, nicht hier
+                       * an diese eine Zeile.
+                       *
+                       * Am Farbton selbst wird ebenfalls nicht gedreht:
+                       * `ink-faint` steht an 336 Stellen in 67 Dateien.
+                       * Geändert wird diese eine Verwendung.
+                       */
+                      className="inline-flex min-h-[38px] items-center font-serif text-[15px] italic text-ink-muted transition-colors hover:text-gold no-tap-highlight"
                     >
                       {chapter.title}
                     </Link>
