@@ -49,6 +49,7 @@ import { baeume } from '../../lib/karte/wald';
 import { kuestensaum, namenslage } from '../../lib/karte/kartografie';
 import { neuerSeed } from '../../lib/karte/zufall';
 import { EBENEN, stilImBand } from '../../lib/karte/stil';
+import { federzug } from '../../lib/karte/feder';
 import { useBand } from '../../lib/raum/band';
 import { zeichneBaum } from './baumzeichnung';
 import { cx } from '../../lib/utils';
@@ -497,14 +498,39 @@ export function Weltkarte({
                      Zeilen, und das Wasser liegt plötzlich *in* der Karte. */
                   <path d={d} fill="none" stroke={stil.wasser.saum} strokeWidth={stil.strich * 5} />
                 )}
+                {/*
+                  * Die Fläche trägt keine Linie mehr – die kommt gleich als
+                  * eigener Zug. Der Fangbereich bleibt hier: Wer auf das Land
+                  * tippt, meint das Land, nicht seine Kante.
+                  */}
                 <path
                   d={d}
                   fill={c.flaeche}
-                  stroke={c.linie}
-                  strokeWidth={stil.strich}
                   onClick={() => {
                     if (!bewegt.current) onWaehle(f.id);
                   }}
+                />
+                {/*
+                  * Der Federzug statt `strokeWidth`.
+                  *
+                  * Eine gestrichene Linie ist überall gleich dick; eine Feder
+                  * wird in der Kurve dicker und im Schwung dünner. Das ist der
+                  * ganze Unterschied zwischen gezeichnet und gerechnet – und
+                  * es ist der einzige, den diese Änderung macht: keine
+                  * Windrose, kein Pergament, siehe `stil.ts`.
+                  *
+                  * `f.seed` sorgt dafür, dass dieselbe Küste jedes Mal
+                  * dieselbe Feder bekommt. Ohne ihn flimmerte sie beim
+                  * Verschieben.
+                  *
+                  * `pointerEvents="none"`, weil der Fangbereich oben schon
+                  * sitzt – sonst läge er zweimal übereinander und das Tippen
+                  * träfe mal die Fläche, mal den Strich.
+                  */}
+                <path
+                  d={federzug(f.punkte, stil.strich, f.seed ?? 1)}
+                  fill={c.linie}
+                  pointerEvents="none"
                 />
               </g>
             );
