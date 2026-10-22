@@ -37,27 +37,56 @@ export function Leitfaden() {
     [runde],
   );
 
+  /*
+   * **Einer pro Seite, nicht einer nach dem anderen.**
+   *
+   * Die Regel steht in `lib/leitfaden.ts` und war gemeint: „Einmal gesehen
+   * ist erledigt. Wer weiterblättert, hat verstanden." Gehalten wurde sie
+   * nicht. Nachgestellt auf dem Inhaltsverzeichnis eines frischen Buches:
+   * Lesebändchen, Gedankenfang und Suche stehen dort alle drei – also kam
+   * nach dem Wegklicken sofort der nächste Wegweiser, und der übernächste
+   * danach. Einer verdeckte die Überschrift der Seite.
+   *
+   * Das ist buchstäblich „nie zwei gleichzeitig" und trotzdem eine
+   * Bedienungsanleitung, die sich über das Buch gelegt hat – nur
+   * nacheinander statt nebeneinander.
+   *
+   * Der Merker ist mit Absicht **nicht** in den Einstellungen: Wer später
+   * auf diese Seite zurückkehrt, soll den nächsten Wegweiser bekommen. Er
+   * gilt für diesen Besuch, nicht für immer.
+   */
+  const [zuletztAuf, setZuletztAuf] = useState<string>();
+
   /* Nach jedem Seitenwechsel einmal neu fragen, wenn die Seite steht. */
   useState(() => 0);
   const [letzterPfad, setLetzterPfad] = useState(pathname);
   if (letzterPfad !== pathname) {
     setLetzterPfad(pathname);
+    /*
+     * Und der Merker von oben fällt mit. Ohne diese Zeile gilt die Sperre
+     * für immer statt für diesen Besuch – gemessen: Nach Weiterblättern und
+     * Zurückkehren kam kein Wegweiser mehr, obwohl der Kommentar darüber
+     * genau das versprach. Die Messung hat ihn widerlegt, nicht umgekehrt.
+     */
+    setZuletztAuf(undefined);
     window.setTimeout(() => setRunde((r) => r + 1), 500);
   }
 
   const stand = settings.leitfaden ?? LEITFADEN_START;
   const punkt = naechsterWegpunkt(stand, pathname, vorhanden);
   if (!punkt) return null;
+  if (zuletztAuf === pathname) return null;
 
   return (
     <Wegweiser
       ziel={punkt.ziel}
       text={punkt.text}
-      onVerstanden={() =>
+      onVerstanden={() => {
+        setZuletztAuf(pathname);
         updateSettings({
           leitfaden: { ...stand, erledigt: [...stand.erledigt, punkt.id] },
-        })
-      }
+        });
+      }}
       onGenug={() => updateSettings({ leitfaden: { ...stand, an: false } })}
     />
   );

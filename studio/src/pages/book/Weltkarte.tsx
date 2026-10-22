@@ -125,6 +125,22 @@ function Karte() {
   const [verlauf, setVerlauf] = useState<Kartenfeature[][]>([]);
 
   const lebende = useMemo(() => livingEntries(entries), [entries]);
+
+  /**
+   * Dieselben Seiten, nur andersherum sortiert: erst die ohne Ort.
+   *
+   * Die schon auf der Karte liegen, verschwinden nicht – sie rutschen nach
+   * unten. Eine Seite zweimal zu setzen ist erlaubt (ein Reich hat mehrere
+   * Inseln), es ist nur selten gemeint.
+   */
+  const geordnet = useMemo(() => {
+    const belegt = new Set(
+      karte.features.map((f) => f.entryId).filter((id): id is string => !!id),
+    );
+    const ohne = lebende.filter((e) => !belegt.has(e.id));
+    const mit = lebende.filter((e) => belegt.has(e.id));
+    return [...ohne, ...mit];
+  }, [lebende, karte.features]);
   /*
    * Die Namen kommen aus dem Buch, nicht aus der Karte.
    *
@@ -321,7 +337,25 @@ function Karte() {
             onChange={(e) => setzeEintrag(e.target.value)}
           >
             <option value="">— namenlos —</option>
-            {lebende.map((e) => (
+            {/*
+              * Wer noch keinen Ort hat, steht oben.
+              *
+              * **Gesetzt wird trotzdem nichts von selbst.** Eine Karte, die
+              * sich aus dem Buch füllt, erfindet Geografie – fünfzig Seiten
+              * landeten irgendwo, und „irgendwo" ist eine Behauptung über
+              * die Welt, die niemand aufgestellt hat (Gesetz 4). Jede Fläche
+              * bekommt ihre Seite durch eine Wahl.
+              *
+              * Geändert ist nur die **Reihenfolge**, nicht die Auswahl – wie
+              * bei den Registerblättern. Wer gerade eine Küste gemalt hat,
+              * sucht mit hoher Wahrscheinlichkeit eine Seite, die noch
+              * nirgends liegt; die steht jetzt vorn statt irgendwo zwischen
+              * neunzig anderen.
+              *
+              * Und es mahnt nicht: Kein Zähler, kein Hinweis, keine Trennung
+              * in „fehlt" und „erledigt". Nur zuerst, was näher liegt.
+              */}
+            {geordnet.map((e) => (
               <option key={e.id} value={e.id}>
                 {e.title}
               </option>

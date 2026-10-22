@@ -16,8 +16,20 @@ import type { EntryType } from '../../types';
 import { deskStyle } from '../../lib/textures';
 import { cx } from '../../lib/utils';
 
-/** Die fünf Anfänge – bewusst wenige, alles Weitere kennt die Setzerei. */
-const ANFAENGE: { type: EntryType; label: string }[] = [
+/**
+ * Die fünf Anfänge – bewusst wenige, alles Weitere kennt die Setzerei.
+ *
+ * **Ausgeführt, weil dieselbe Frage an zwei Stellen steht.** Sie erscheint
+ * hier einmal im Leben, unmittelbar nach dem Binden des Buches – und danach
+ * nie wieder. Wer sie damals übersprungen hat oder wer sein Buch wieder
+ * geleert hat, steht später vor einem leeren Inhaltsverzeichnis und bekommt
+ * sie nicht mehr angeboten. Deshalb steht sie jetzt auch dort (`components/
+ * book/ErsteSeite.tsx`).
+ *
+ * Zwei Listen von fünf Anfängen wären zwei Wahrheiten – Gesetz 5. Also eine,
+ * und sie steht hier, wo sie zuerst stand.
+ */
+export const ANFAENGE: { type: EntryType; label: string }[] = [
   { type: 'location', label: 'Ort' },
   { type: 'character', label: 'Figur' },
   { type: 'lore', label: 'Ereignis' },
