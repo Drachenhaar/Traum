@@ -60,7 +60,19 @@ export interface Maske {
  * liefert Punkte im Abstand von zwanzig Punkten, und ohne die Zwischenschritte
  * entstünde eine Perlenkette statt eines Strichs.
  */
-export function maskeAus(spur: Punkt[], radius: number, zelle = ZELLE): Maske | undefined {
+/**
+ * Wie breit der Pinsel an dieser Stelle des Zuges ist.
+ *
+ * `t` läuft von 0 am Anfang bis 1 am Ende. Eine Zahl heisst „überall
+ * gleich" – so war es, und so bleibt es für Land, Wasser und Wald.
+ */
+export type Pinselbreite = number | ((t: number) => number);
+
+export function maskeAus(
+  spur: Punkt[],
+  radius: Pinselbreite,
+  zelle = ZELLE,
+): Maske | undefined {
   if (!spur.length) return undefined;
   let x0 = Infinity,
     y0 = Infinity,
@@ -72,8 +84,17 @@ export function maskeAus(spur: Punkt[], radius: number, zelle = ZELLE): Maske | 
     x1 = Math.max(x1, x);
     y1 = Math.max(y1, y);
   }
-  /* Ein Rand von vier Zellen: für die Kontur, und für das Schließen darunter. */
-  const rand = radius + zelle * 4;
+  /*
+   * Der Rand richtet sich nach der **breitesten** Stelle.
+   *
+   * Bei einer festen Breite ist das dieselbe Zahl wie vorher. Bei einem
+   * wachsenden Pinsel wäre der Rand sonst an der Mündung zu knapp, und die
+   * Kontur liefe aus dem Raster – ein Fluss mit abgeschnittener Mündung.
+   */
+  const breiteBei = typeof radius === 'function' ? radius : () => radius;
+  let groesste = 0;
+  for (let i = 0; i < 24; i++) groesste = Math.max(groesste, breiteBei(i / 23));
+  const rand = groesste + zelle * 4;
   x0 -= rand;
   y0 -= rand;
   x1 += rand;
@@ -82,9 +103,8 @@ export function maskeAus(spur: Punkt[], radius: number, zelle = ZELLE): Maske | 
   const breite = Math.max(3, Math.ceil((x1 - x0) / zelle));
   const hoehe = Math.max(3, Math.ceil((y1 - y0) / zelle));
   const zellen = new Uint8Array(breite * hoehe);
-  const r = radius / zelle;
 
-  const tupfe = (cx: number, cy: number) => {
+  const tupfe = (cx: number, cy: number, r: number) => {
     const von = Math.max(0, Math.floor(cy - r));
     const bis = Math.min(hoehe - 1, Math.ceil(cy + r));
     for (let y = von; y <= bis; y++) {
@@ -96,6 +116,19 @@ export function maskeAus(spur: Punkt[], radius: number, zelle = ZELLE): Maske | 
     }
   };
 
+  /*
+   * Wie weit der Zug schon gelaufen ist – nicht, der wievielte Punkt es ist.
+   *
+   * Ein Finger setzt dort viele Punkte, wo er langsam war. Zählte man die
+   * Punkte, wüchse der Fluss dort am schnellsten, wo die Hand gezögert hat,
+   * und nicht dort, wo sie Weg zurückgelegt hat.
+   */
+  let gesamt = 0;
+  for (let i = 1; i < spur.length; i++) {
+    gesamt += Math.hypot(spur[i][0] - spur[i - 1][0], spur[i][1] - spur[i - 1][1]);
+  }
+  let gelaufen = 0;
+
   let vorher: Punkt | undefined;
   for (const p of spur) {
     const cx = (p[0] - x0) / zelle;
@@ -103,13 +136,16 @@ export function maskeAus(spur: Punkt[], radius: number, zelle = ZELLE): Maske | 
     if (vorher) {
       const vx = (vorher[0] - x0) / zelle;
       const vy = (vorher[1] - y0) / zelle;
+      const stueck = Math.hypot(p[0] - vorher[0], p[1] - vorher[1]);
       const schritte = Math.ceil(Math.hypot(cx - vx, cy - vy));
       for (let i = 1; i <= schritte; i++) {
         const t = i / schritte;
-        tupfe(vx + (cx - vx) * t, vy + (cy - vy) * t);
+        const weg = gesamt > 0 ? (gelaufen + stueck * t) / gesamt : 0;
+        tupfe(vx + (cx - vx) * t, vy + (cy - vy) * t, breiteBei(weg) / zelle);
       }
+      gelaufen += stueck;
     } else {
-      tupfe(cx, cy);
+      tupfe(cx, cy, breiteBei(0) / zelle);
     }
     vorher = p;
   }
@@ -415,6 +451,63 @@ export function verfeinere(punkte: Punkt[], seed: number, staerke = 0.03): Punkt
  * mit drei Punkten heraus, war es kein Fleck, sondern ein Tippen – dann
  * entsteht nichts, und das ist richtig.
  */
+/**
+ * Ein Fluss – dieselbe Fläche, nur schmal am Anfang und breit an der Mündung.
+ *
+ * ---
+ *
+ * **Warum das keine neue Art ist.**
+ *
+ * Ein Fluss *ist* Wasser. Ihn als eigene Bedeutung zu führen hiesse, an rund
+ * sechs Stellen eine Ausnahme einzubauen – im Küstensaum, im Relief, in der
+ * Ebenenfolge, bei der Namenslage –, und jede davon müsste wissen, dass
+ * `punkte` hier ausnahmsweise kein geschlossener Umriss ist. Das wäre ein
+ * zweiter Begriff für dasselbe und damit ein Bruch von Gesetz 5.
+ *
+ * Hier entsteht eine ganz gewöhnliche Wasserfläche. Alles, was Wasser kann,
+ * kann auch dieser Fluss: umfärben, benennen, an eine Seite hängen, mit
+ * einer Bucht anschneiden.
+ *
+ * ---
+ *
+ * **Und warum das nichts erfindet.**
+ *
+ * Gesetz 4: „Dragoncore ändert die Welt nie ungefragt." Ein Fluss, den das
+ * Programm selbst irgendwohin legt – etwa indem es ein Gefälle errechnet und
+ * das Wasser bergab laufen lässt –, wäre erfundene Geografie. Er stünde da,
+ * ohne dass jemand ihn gezogen hat.
+ *
+ * Dieser Fluss steht genau dort, wo jemand ihn zieht. Das Programm weiss
+ * nicht, *wo* ein Fluss hingehört; es weiss, *wie sich einer benimmt*: Er
+ * beginnt als Rinnsal und wird zur Mündung hin breiter. Welches Ende die
+ * Mündung ist, entscheidet die Richtung des Striches – dieselbe Regel wie
+ * bei Bucht und Landzunge, die auch „genau dort, wo du sie ziehst" liegen.
+ *
+ * Der Verfasser bekommt kein mächtigeres Werkzeug, sondern ein Wort mehr.
+ */
+export function flussAus(spur: Punkt[], radius: number, seed: number): Punkt[] | undefined {
+  /*
+   * Die Quelle ist ein Drittel des Pinsels, die Mündung anderthalb.
+   *
+   * Nicht null am Anfang: Eine Breite von null ergibt keine Fläche, und ein
+   * Fluss, der im Nichts beginnt, hat keine Quelle, sondern einen Fehler.
+   * Die Wurzel statt einer Geraden, weil ein Fluss oben schnell anschwillt
+   * und unten kaum noch – so sieht jedes Flussbett aus.
+   */
+  const breite = (t: number) => radius * (0.34 + 1.16 * Math.sqrt(t));
+
+  const k = kasten(spur);
+  if (!spur.length || Math.hypot(k.x1 - k.x0, k.y1 - k.y0) < radius) return undefined;
+
+  const m = maskeAus(spur, breite);
+  if (!m) return undefined;
+  const roh = konturAus(schliesse(m, 2));
+  if (roh.length < 4) return undefined;
+  const knapp = vereinfache(roh, ZELLE * 0.9);
+  if (knapp.length < 3) return undefined;
+  return verfeinere(glaette(knapp), seed);
+}
+
 export function flaecheAus(spur: Punkt[], radius: number, seed: number): Punkt[] | undefined {
   /*
    * Ein Tippen ist kein Fleck.

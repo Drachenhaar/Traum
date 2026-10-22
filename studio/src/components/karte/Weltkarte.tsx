@@ -42,7 +42,7 @@ import {
   type Kartenfeature,
   type Punkt,
 } from '../../lib/karte/modell';
-import { flaecheAus } from '../../lib/karte/kontur';
+import { flaecheAus, flussAus } from '../../lib/karte/kontur';
 import { buchtZiehen } from '../../lib/karte/bucht';
 import { landzungeZiehen } from '../../lib/karte/landzunge';
 import { baeume } from '../../lib/karte/wald';
@@ -74,7 +74,7 @@ import { cx } from '../../lib/utils';
  * wie das Malen und kommt als geschlossener Umriss zurück. Der Verfasser
  * bekommt kein mächtigeres Werkzeug, sondern ein Wort mehr.
  */
-export type Werkzeug = Bedeutung | 'waehlen' | 'bucht' | 'landzunge';
+export type Werkzeug = Bedeutung | 'waehlen' | 'bucht' | 'landzunge' | 'fluss';
 
 interface Sicht {
   x: number;
@@ -355,6 +355,23 @@ export function Weltkarte({
     if (werkzeug === 'waehlen') return;
     if (werkzeug === 'bucht') return formen(buchtZiehen, spur);
     if (werkzeug === 'landzunge') return formen(landzungeZiehen, spur);
+
+    /*
+     * Der Fluss ist Wasser, nur anders geformt.
+     *
+     * Deshalb steht er hier und nicht bei den Bedeutungen: Er entsteht aus
+     * einer eigenen Form – schmal an der Quelle, breit an der Mündung –, und
+     * kommt als ganz gewöhnliche Wasserfläche zurück. Welches Ende die
+     * Mündung ist, entscheidet die Richtung des Striches.
+     */
+    if (werkzeug === 'fluss') {
+      const saat = neuerSeed();
+      const lauf = flussAus(spur, pinsel(sicht), saat);
+      if (!lauf) return;
+      const w: Kartenfeature = { ...neuesFeature('wasser', lauf), seed: saat };
+      onChange({ ...karte, features: [...karte.features, w] });
+      return;
+    }
 
     /*
      * Der Startwert wird *vor* dem Verfeinern gezogen und dann behalten.
@@ -774,6 +791,7 @@ export function Werkzeugleiste({
       <div className="flex flex-wrap items-center gap-2">
         {knopf('bucht', 'Bucht')}
         {knopf('landzunge', 'Landzunge')}
+        {knopf('fluss', 'Fluss')}
       </div>
     </div>
   );
