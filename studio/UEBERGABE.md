@@ -267,7 +267,15 @@ Gespeichert wird nie eine Farbe und nie ein Baum.
   Folge würde bei jeder Randkorrektur den ganzen Wald neu würfeln; eine Funktion
   vom Ort antwortet für alte Orte weiterhin dasselbe. Kleine Geometrieänderung →
   kleine sichtbare Änderung, als Folge der Bauart und nicht als Absicht.
-- `modell.ts` – `Kartenfeature` (drei Bedeutungen: land/wasser/wald), `heileKarte`
+- `modell.ts` – `Kartenfeature` (drei Bedeutungen: land/wasser/wald),
+  `Kartenmarke` (Siedlungen), `heileKarte`
+- `siedlung.ts` – **Hütte, Dorf, Burg.** Drei Zeichen aus denselben vier
+  Strichen (Giebel, zwei Wände, Grundlinie), alle im Einheitsquadrat mit dem
+  Nullpunkt **auf der Grundlinie**. Das Modul weiss, *wie* eine Siedlung
+  aussieht, nie *wo* eine liegt: Die Lage kommt aus `Kartenmarke.bei`, und
+  dorthin kommt sie, weil jemand getippt hat (Gesetz 4). Eine Karte, die sich
+  ihre Dörfer selbst verteilt, erfindet Geografie – derselbe Einwand wie beim
+  Fluss.
 - `kontur.ts` – Strich → Maske → Lücken schließen → Kontur → vereinfachen →
   glätten → verfeinern. Das Verfeinern ist **hart gedeckelt** (`Math.min(groesse
   * staerke, 14)`): Die Küste darf unruhig werden, aber keine Buchten bekommen,

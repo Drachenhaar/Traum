@@ -42,12 +42,14 @@ import {
   RELIEF,
   deckflaeche,
   hoeheVon,
+  imPolygon,
   iso,
   reliefFolge,
   reliefKasten,
   reliefSicht,
   waende,
 } from '../../lib/karte/relief';
+import { alsSiedlungspfad } from '../../lib/karte/siedlung';
 
 /**
  * Wie viele Bäume das Relief höchstens trägt.
@@ -60,6 +62,16 @@ const HOECHSTENS_BAEUME = 1200;
 
 /** Ein Baum im Relief: Stamm senkrecht, Krone darüber. */
 const BAUM_HOEHE = 26;
+
+/**
+ * Wie hoch ein Siedlungszeichen im Relief steht.
+ *
+ * Grösser als ein Baum, und das muss es sein: Ein Dorf, das so hoch ist wie
+ * die Bäume um es herum, verschwindet darin. Auf der flachen Karte ist das
+ * Verhältnis dasselbe – dort sind es drei Hundertstel der Sichtbreite gegen
+ * zwei Hundertstel für einen Baum.
+ */
+const SIEDLUNG_HOEHE = 34;
 
 /**
  * Zwei Töne aus einem – heller im Licht, kühler im Schatten.
@@ -115,6 +127,24 @@ export function Relief({
       return f.art === 'wald' ? { ...k, y0: k.y0 - BAUM_HOEHE } : k;
     });
 
+    /*
+     * Und die Siedlungen zählen zum Rahmen.
+     *
+     * Eine Marke kann auf blankem Papier stehen – dann gehört sie zu keiner
+     * Fläche, und `reliefSicht` wüsste nichts von ihr. Gemessen am Bild wäre
+     * das eine Burg ausserhalb des Ausschnitts: vorhanden, gespeichert, nicht
+     * zu sehen. Ihr Kasten ist ein Punkt, nach oben um die Zeichenhöhe
+     * aufgeschlagen, denn das Zeichen steht auf diesem Punkt.
+     */
+    for (const m of karte.marken ?? []) {
+      let h = 0;
+      for (const f of folge) {
+        if (imPolygon(m.bei[0], m.bei[1], f.punkte)) h = hoehen.get(f.id) ?? 0;
+      }
+      const [px, py] = iso(m.bei[0], m.bei[1], h);
+      kaesten.push({ x0: px, y0: py - SIEDLUNG_HOEHE * 1.2, x1: px, y1: py });
+    }
+
     /* Die Bäume – dieselben wie flach, nur mit einem Grund unter den Füssen. */
     let gesamt = 0;
     const waelder = new Map<string, { baum: Baum; grund: number }[]>();
@@ -144,7 +174,7 @@ export function Relief({
     }
 
     return { folge, hoehen, sicht: reliefSicht(kaesten), waelder, ausgeduennt: schritt > 1 };
-  }, [karte.features]);
+  }, [karte.features, karte.marken]);
 
   const farben = (f: Kartenfeature) =>
     f.art === 'wasser' ? stil.wasser : f.art === 'wald' ? stil.wald : stil.land;
@@ -294,6 +324,68 @@ export function Relief({
           );
         })}
 
+        {/*
+          Die Siedlungen – senkrecht, wie die Bäume, und aus demselben Grund.
+
+          **Warum sie hier überhaupt stehen.** Das Relief ist dieselbe Karte,
+          nur anders angesehen (Gesetz 5). Fehlten die Dörfer, hiesse das
+          Aufrichten „deine Siedlungen sind weg" – und wer nachsieht, findet
+          sie flach wieder. Zwei Bilder derselben Welt, die sich
+          widersprechen, sind genau der Fehler, den dieses Buch nicht macht.
+
+          **Und auf welcher Höhe.** Unter einer Marke liegt vielleicht eine
+          Landmasse, vielleicht Wasser, vielleicht nichts. Gesucht wird die
+          **vorderste** Fläche, die sie enthält – `bild.folge` läuft von
+          hinten nach vorn, also ist die letzte Treffer die oberste. Ohne das
+          stünde ein Bergdorf auf Meereshöhe und schwebte unter seinem Berg.
+        */}
+        {(karte.marken ?? []).map((m) => {
+          let h = 0;
+          for (const f of bild.folge) {
+            if (imPolygon(m.bei[0], m.bei[1], f.punkte)) h = bild.hoehen.get(f.id) ?? 0;
+          }
+          const [px, py] = iso(m.bei[0], m.bei[1], h);
+          const name = m.entryId ? namen.get(m.entryId) : undefined;
+          return (
+            <g key={`m_${m.id}`}>
+              <path
+                d={alsSiedlungspfad(m.art, [px, py], SIEDLUNG_HOEHE)}
+                fill="none"
+                stroke={stil.papier}
+                strokeWidth={4.2}
+                strokeOpacity={0.85}
+                vectorEffect="non-scaling-stroke"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+              <path
+                d={alsSiedlungspfad(m.art, [px, py], SIEDLUNG_HOEHE)}
+                fill="none"
+                /* Die Markenfarbe, wie flach – siehe dort, mit der Messung. */
+                stroke={stil.marke}
+                strokeWidth={1.4}
+                vectorEffect="non-scaling-stroke"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+              {name && (
+                <text
+                  x={px}
+                  y={py + bild.sicht.w * 0.026}
+                  textAnchor="middle"
+                  fill={stil.marke}
+                  fontSize={bild.sicht.w * 0.02}
+                  stroke={stil.papier}
+                  strokeWidth={bild.sicht.w * 0.005}
+                  paintOrder="stroke"
+                >
+                  {name}
+                </text>
+              )}
+            </g>
+          );
+        })}
+
         {/* Die Namen – über den Bäumen, wie auf der flachen Karte. */}
         {bild.folge.map((f) => {
           const name = f.entryId ? namen.get(f.entryId) : undefined;
@@ -324,7 +416,8 @@ export function Relief({
         })}
       </svg>
 
-      {karte.features.length === 0 && (
+      {/* Leer heisst leer – Flächen *und* Siedlungen, wie auf der flachen Karte. */}
+      {karte.features.length === 0 && (karte.marken ?? []).length === 0 && (
         <p className="pointer-events-none absolute inset-x-6 bottom-6 text-center text-sm text-ink-muted">
           Noch ist nichts gemalt. Leg die Karte flach, dann kannst du anfangen.
         </p>

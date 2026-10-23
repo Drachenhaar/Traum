@@ -279,6 +279,19 @@ export function schreibeAb(
         id: newId('f'),
         entryId: f.entryId ? u.entries.get(f.entryId) : undefined,
       })),
+      /*
+       * Die Siedlungen: neue Kennung, umgeschriebene Seite.
+       *
+       * Der Spread darueber traegt sie mit – aber mit der Kennung und der
+       * `entryId` des Originalbuchs. Beides waere in der Abschrift falsch:
+       * zwei Marken mit derselben Kennung, und ein Dorf, das auf die Seite
+       * des Originals fuehrt.
+       */
+      marken: k.marken?.map((m) => ({
+        ...m,
+        id: newId('m'),
+        entryId: m.entryId ? u.entries.get(m.entryId) : undefined,
+      })),
     })),
 
     /*

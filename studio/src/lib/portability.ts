@@ -474,6 +474,18 @@ export async function importBackup(
           ...f,
           entryId: f.entryId ? neu.get(f.entryId) : undefined,
         })),
+        /*
+         * Die Siedlungen genauso.
+         *
+         * Der Spread darueber traegt sie zwar mit, aber *mit der alten*
+         * `entryId` – und die zeigt nach dem Einlesen auf einen Eintrag, den
+         * es in diesem Buch nicht gibt. Ein Dorf, das auf eine fremde Seite
+         * fuehrt, ist schlimmer als eines ohne Seite.
+         */
+        marken: k.marken?.map((m) => ({
+          ...m,
+          entryId: m.entryId ? neu.get(m.entryId) : undefined,
+        })),
       }));
     }
 

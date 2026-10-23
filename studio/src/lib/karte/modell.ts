@@ -26,6 +26,8 @@
  * Buch, wäre der Anfang von zwei Welten.
  */
 
+import { istSiedlung, type Siedlung } from './siedlung';
+
 import { neuerSeed } from './zufall';
 
 /**
@@ -80,6 +82,29 @@ export interface Kartenfeature {
   ende?: string;
 }
 
+/**
+ * Eine Siedlung auf der Karte.
+ *
+ * **Kein Feature.** Eine Fläche hat einen Umriss, eine Siedlung hat einen
+ * Ort – das ist nicht dieselbe Sorte Ding. Sie in `features` zu zwängen
+ * hiesse, dass `punkte` manchmal ein Umriss und manchmal ein einzelner
+ * Punkt ist, und jede Stelle, die Flächen liest – Küstensaum, Relief,
+ * Ebenenfolge, Namenslage –, müsste das wissen. Eine eigene Liste ist
+ * billiger und ehrlicher.
+ *
+ * Und sie steht genau dort, wo jemand getippt hat. Siehe `siedlung.ts`.
+ */
+export interface Kartenmarke {
+  id: string;
+  art: Siedlung;
+  /** Wo sie steht, im Kartenraum 0…1000 – wie `Kartenfeature.punkte`. */
+  bei: Punkt;
+  /** Fuer spaeteres: eine Hand zeichnet zweimal nicht genau gleich. */
+  seed: number;
+  /** Auf welche Seite des Buches sie zeigt. Darf fehlen. */
+  entryId?: string;
+}
+
 export interface Kartendokument {
   id: string;
   bookId: string;
@@ -89,6 +114,11 @@ export interface Kartendokument {
   seed: number;
   styleId: string;
   features: Kartenfeature[];
+  /**
+   * Die Siedlungen. Darf fehlen – jede Karte von vor dieser Runde hat keine,
+   * und eine Karte ohne Dörfer ist keine beschädigte Karte.
+   */
+  marken?: Kartenmarke[];
   createdAt: number;
   updatedAt: number;
 }
@@ -112,6 +142,7 @@ export function neueKarte(bookId: string): Kartendokument {
     seed: neuerSeed(),
     styleId: 'artbook',
     features: [],
+    marken: [],
     createdAt: jetzt,
     updatedAt: jetzt,
   };
@@ -119,6 +150,10 @@ export function neueKarte(bookId: string): Kartendokument {
 
 export function neuesFeature(art: Bedeutung, punkte: Punkt[]): Kartenfeature {
   return { id: neueId('f'), art, punkte, seed: neuerSeed() };
+}
+
+export function neueMarke(art: Siedlung, bei: Punkt): Kartenmarke {
+  return { id: neueId('m'), art, bei, seed: neuerSeed() };
 }
 
 /* ------------------------------------------------------------- Heilung ---- */
@@ -161,12 +196,39 @@ export function heileKarte(roh: unknown): Kartendokument | undefined {
     });
   }
 
+  /*
+   * Die Marken, Feld für Feld – dieselbe Vorsicht wie bei den Flächen.
+   *
+   * Eine Marke ohne gültige Art oder ohne Lage ist keine. Sie fällt weg
+   * statt mit einem Rückfall dazustehen: Ein Dorf, das plötzlich eine Burg
+   * ist, wäre eine Behauptung über die Welt, die niemand aufgestellt hat.
+   * Ein fehlender Startwert dagegen ist harmlos und bekommt einen.
+   */
+  const marken: Kartenmarke[] = [];
+  for (const roheMarke of Array.isArray(k.marken) ? k.marken : []) {
+    if (!roheMarke || typeof roheMarke !== 'object') continue;
+    const m = roheMarke as Record<string, unknown>;
+    if (typeof m.id !== 'string') continue;
+    if (!istSiedlung(m.art)) continue;
+    const bei = m.bei;
+    if (!Array.isArray(bei) || bei.length !== 2) continue;
+    if (!bei.every((z) => typeof z === 'number' && Number.isFinite(z))) continue;
+    marken.push({
+      id: m.id,
+      art: m.art,
+      bei: [bei[0] as number, bei[1] as number],
+      seed: zahl(m.seed, 1),
+      entryId: typeof m.entryId === 'string' ? m.entryId : undefined,
+    });
+  }
+
   return {
     id: k.id,
     bookId: k.bookId,
     seed: zahl(k.seed, 1) | 0,
     styleId: typeof k.styleId === 'string' ? k.styleId : 'artbook',
     features,
+    marken,
     createdAt: zahl(k.createdAt, Date.now()),
     updatedAt: zahl(k.updatedAt, Date.now()),
   };

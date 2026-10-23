@@ -157,6 +157,16 @@ const voll = {
     { id: 'f1', art: 'wasser', punkte: rechteck(10, 10, 90, 90), seed: 55, entryId: 'e_meer' },
     { id: 'f2', art: 'land', punkte: rechteck(100, 100, 200, 200), seed: 66 },
   ],
+  /*
+   * Die Siedlungen – leer, und das gehört hierher.
+   *
+   * Diese Karte hat keine, und `heileKarte` gibt deshalb `marken: []` zurück
+   * und nicht `undefined`: Sonst müsste jede Stelle, die Marken liest, den
+   * Fall ein zweites Mal kennen. Verglichen wird als Zeichenkette, also steht
+   * das Feld auch hier – an derselben Stelle wie dort. Siehe
+   * `siedlung.test.mjs`.
+   */
+  marken: [],
   createdAt: 1,
   updatedAt: 2,
 };
