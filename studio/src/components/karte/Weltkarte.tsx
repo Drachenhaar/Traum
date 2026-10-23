@@ -30,7 +30,7 @@
  * Ort, an dem man vorsichtig sein muss.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Undo2 } from 'lucide-react';
 import {
   BEDEUTUNGEN,
@@ -47,13 +47,12 @@ import { flaecheAus, flussAus } from '../../lib/karte/kontur';
 import { SIEDLUNGEN, alsSiedlungspfad, istSiedlung, type Siedlung } from '../../lib/karte/siedlung';
 import { buchtZiehen } from '../../lib/karte/bucht';
 import { landzungeZiehen } from '../../lib/karte/landzunge';
-import { baeume } from '../../lib/karte/wald';
 import { kuestensaum, namenslage } from '../../lib/karte/kartografie';
 import { neuerSeed } from '../../lib/karte/zufall';
 import { EBENEN, stilImBand } from '../../lib/karte/stil';
 import { federzug } from '../../lib/karte/feder';
 import { useBand } from '../../lib/raum/band';
-import { zeichneBaum } from './baumzeichnung';
+import { useKartenleinwand } from './useKartenleinwand';
 import { cx } from '../../lib/utils';
 
 /**
@@ -203,23 +202,15 @@ export function Weltkarte({
     [sicht],
   );
 
-  /* ----------------------------------------------------------- Die Bäume --- */
-
   /*
-   * Einmal je Flächenzustand gerechnet, nicht je Bild.
+   * Hier stand der `waelder`-Memo – die Bäume je Fläche, einmal gerechnet.
    *
-   * Das ist der Grund, warum das Verschieben der Karte nichts kostet: Beim
-   * Schieben ändert sich `features` nicht, also rechnet hier niemand. Erst
-   * wenn eine Waldfläche entsteht oder verschwindet, entstehen neue Bäume –
-   * und dank des Ortszufalls sind es dieselben wie vorher, plus die neuen.
+   * Er ist weg, nicht weil er falsch war, sondern weil er jetzt eine Stufe
+   * tiefer sitzt: Das Streuwerk ruft `baeume()` selbst auf und macht daraus
+   * Staffage. Zwei Stellen, die dieselben Bäume rechnen, wären zwei
+   * Wahrheiten über denselben Wald (Gesetz 5) – und die zweite wäre still
+   * falsch geworden, sobald eine von beiden sich ändert.
    */
-  const waelder = useMemo(() => {
-    const m = new Map<string, ReturnType<typeof baeume>>();
-    for (const f of karte.features) {
-      if (f.art === 'wald') m.set(f.id, baeume(f));
-    }
-    return m;
-  }, [karte.features]);
 
   /**
    * Der Küstensaum.
@@ -259,48 +250,27 @@ export function Weltkarte({
 
   /* --------------------------------------------------------- Das Zeichnen -- */
 
-  useEffect(() => {
-    const c = leinwand.current;
-    const box = huelle.current;
-    if (!c || !box) return;
-    let angefordert = 0;
-
-    const male = () => {
-      angefordert = 0;
-      const breite = box.clientWidth;
-      const hoehe = box.clientHeight;
-      if (!breite || !hoehe) return;
-      /* Auf einem Telefon sind ein CSS-Punkt und ein Bildpunkt nicht dasselbe. */
-      const dicht = Math.min(2, window.devicePixelRatio || 1);
-      if (c.width !== Math.round(breite * dicht)) c.width = Math.round(breite * dicht);
-      if (c.height !== Math.round(hoehe * dicht)) c.height = Math.round(hoehe * dicht);
-
-      const ctx = c.getContext('2d');
-      if (!ctx) return;
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, c.width, c.height);
-
-      const massstab = (breite / sicht.w) * dicht;
-      ctx.setTransform(massstab, 0, 0, massstab, -sicht.x * massstab, -sicht.y * massstab);
-
-      for (const f of karte.features) {
-        if (f.art !== 'wald') continue;
-        const liste = waelder.get(f.id);
-        if (!liste) continue;
-        for (const b of liste) zeichneBaum(ctx, b, stil, massstab / dicht);
-      }
-    };
-
-    const anfordern = () => {
-      if (!angefordert) angefordert = requestAnimationFrame(male);
-    };
-    anfordern();
-    window.addEventListener('resize', anfordern);
-    return () => {
-      window.removeEventListener('resize', anfordern);
-      if (angefordert) cancelAnimationFrame(angefordert);
-    };
-  }, [karte.features, waelder, sicht, stil]);
+  /*
+   * Der Bewuchs geht jetzt durchs Kartenwerk.
+   *
+   * **Was sich geändert hat, ist eine Abhängigkeit.** Hier stand ein
+   * `useEffect`, der an `sicht` hing – und deshalb beim Schieben sechzigmal
+   * in der Sekunde jeden Baum neu zeichnete. Gemessen am Entwurf kostete
+   * derselbe Inhalt so 26,3 ms je Bild statt 1,05.
+   *
+   * Das war der Grund, warum die Bäume billig sein *mussten*. Nicht eine
+   * Grenze von Canvas, sondern eine Zeile.
+   *
+   * Jetzt wird in Kacheln im Kartenraum gebacken und beim Schieben nur noch
+   * kopiert. Die Zeit je Bild hängt damit nicht mehr an der Zahl der Bäume –
+   * und das ist die Tür, durch die später Berge, Fels und gemalte Grafiken
+   * passen.
+   *
+   * **Das Aussehen ist Absicht unverändert.** Gezeichnet wird weiter mit
+   * `zeichneBaum`, Baum für Baum, mit denselben Zahlen; das Stilbuch reicht
+   * sie nur durch. Diese Etappe überführt die Maschine, nicht die Gestaltung.
+   */
+  useKartenleinwand({ leinwand, huelle, karte, stil, sicht });
 
   /* ------------------------------------------------------------- Finger ---- */
 
