@@ -63,10 +63,12 @@ globalThis.OffscreenCanvas = class {
   }
 };
 
+baue('src/lib/kartenwerk/atlas.ts', 'atlas.mjs');
 baue('src/lib/kartenwerk/kachelwerk.ts', 'kachelwerk.mjs');
 baue('src/lib/kartenwerk/raster.ts', 'raster.mjs');
 baue('src/lib/kartenwerk/streuwerk.ts', 'streuwerk.mjs');
 
+const { bildEintrag } = await import(join(bau, 'atlas.mjs'));
 const K = await import(join(bau, 'kachelwerk.mjs'));
 const { Staffageraster, ZELLE } = await import(join(bau, 'raster.mjs'));
 const { staffageAus } = await import(join(bau, 'streuwerk.mjs'));
@@ -480,10 +482,163 @@ pruefe('eine wachsende Fläche behält ihre alten Bäume', () => {
 });
 
 /* =======================================================================
- * 5 · DIE ALTE MASCHINE IST WIRKLICH WEG
+ * 5 · DER ATLAS
  * ==================================================================== */
 
-console.log('\n5 · Die alte Maschine ist wirklich weg');
+console.log('\n5 · Der Atlas');
+
+const verzeichnis = JSON.parse(readFileSync(join(wurzel, 'public/karte/artbook/atlas.json'), 'utf8'));
+
+const falscherAtlas = {
+  bild: { breite: 1 },
+  verzeichnis: {
+    stil: 'probe', breite: 256, hoehe: 256,
+    arten: {
+      wald: {
+        varianten: 2, breiteZuHoehe: 0.8, ankerX: 0.5, ankerY: 0.96,
+        stufen: [1, 0.5, 0.25],
+        felder: [
+          [[0, 0, 80, 100], [0, 0, 40, 50], [0, 0, 20, 25]],
+          [[90, 0, 80, 100], [90, 0, 40, 50], [90, 0, 20, 25]],
+        ],
+      },
+    },
+  },
+};
+
+/** Ein Kontext, der mitschreibt, was gezeichnet wurde. */
+const schreiber = () => {
+  const befehle = [];
+  const ctx = {
+    save() {}, restore() {}, translate() {}, rotate() {}, scale() {},
+    drawImage(...a) { befehle.push(a); },
+  };
+  return { ctx, befehle };
+};
+
+const stueckM = (h, variante = 0) => ({
+  art: 'wald', variante, x: 100, y: 200, h, dreh: 0, spiegel: false,
+  lage: 'bewuchs', ebene: 1,
+});
+
+pruefe('der gebackene Bildersatz liegt bei und beschreibt sich selbst', () => {
+  /*
+   * Die Dateien sind eingecheckt, damit `npm run build` ohne Browser
+   * auskommt. Fehlten sie, liefe die Anwendung weiter – aber mit dem
+   * Pinsel, und niemand merkte, dass die Grafiken verschwunden sind.
+   */
+  const w = verzeichnis.arten.wald;
+  assert.ok(w, 'der Satz kennt keine Bäume');
+  assert.equal(w.felder.length, w.varianten);
+  for (const stufen of w.felder) {
+    assert.equal(stufen.length, w.stufen.length, 'eine Variante hat nicht alle Mipstufen');
+    for (let i = 1; i < stufen.length; i++) {
+      assert.ok(stufen[i][3] < stufen[i - 1][3], 'die Stufen werden nicht gröber');
+    }
+  }
+  /* Jedes Feld liegt im Bild. */
+  for (const stufen of w.felder) {
+    for (const [x, y, bw, bh] of stufen) {
+      assert.ok(x >= 0 && y >= 0 && x + bw <= verzeichnis.breite && y + bh <= verzeichnis.hoehe,
+        `ein Feld liegt ausserhalb des Atlas: ${x},${y},${bw},${bh}`);
+    }
+  }
+});
+
+pruefe('der Anker ist die Mitte der Unterkante', () => {
+  /*
+   * **Die wichtigste Zahl im Verzeichnis.** Ein Bild, das um seine Mitte
+   * verankert wäre, rutschte beim Vergrössern nach unten weg – und niemand
+   * sähe gleich, warum. Dieselbe Regel wie bei den Siedlungszeichen.
+   */
+  const w = verzeichnis.arten.wald;
+  assert.equal(w.ankerX, 0.5);
+  assert.ok(w.ankerY > 0.9, `der Anker sitzt bei ${w.ankerY} statt am Boden`);
+
+  /* Und der Maler hält sich daran. */
+  const e = bildEintrag(falscherAtlas, 'wald', 'bewuchs', 1);
+  const { ctx, befehle } = schreiber();
+  e.zeichne(ctx, stueckM(100), 1);
+  const [, , , , , zx, zy, zb, zh] = befehle[0];
+  assert.ok(Math.abs(zx + zb * 0.5) < 0.01, `waagerecht nicht zentriert: ${zx}`);
+  assert.ok(Math.abs(zy + zh * 0.96) < 0.01, `der Fuss sitzt bei ${zy + zh}, nicht am Boden`);
+});
+
+pruefe('die Mipstufe richtet sich nach der gezeichneten Grösse', () => {
+  /*
+   * Nicht nach dem Zoom allein: Ein kleiner Baum bei starker Vergrösserung
+   * braucht dieselbe Stufe wie ein grosser bei schwacher. Was zählt, ist,
+   * wie viele Bildpunkte dieses eine Bild am Ende bedeckt.
+   *
+   * Ohne das flimmert ein Wald beim Schieben, weil der Browser bei jedem
+   * Bild andere Quellpunkte trifft.
+   */
+  const e = bildEintrag(falscherAtlas, 'wald', 'bewuchs', 1);
+  const stufeBei = (hoehe, massstab) => {
+    const { ctx, befehle } = schreiber();
+    e.zeichne(ctx, stueckM(hoehe), massstab);
+    return befehle[0][4];
+  };
+  /* Gross gezeichnet – die feinste Stufe (Quellhöhe 100). */
+  assert.equal(stufeBei(100, 1), 100);
+  /* Winzig – die gröbste (25). */
+  assert.equal(stufeBei(10, 1), 25);
+  /* Klein, aber stark vergrössert: wieder die feinste. */
+  assert.equal(stufeBei(10, 10), 100);
+});
+
+pruefe('eine unbekannte Variante stürzt nicht ab', () => {
+  /*
+   * Das Stilbuch sagt, wie viele Varianten es gibt, und das Streuwerk hält
+   * sich daran. Trifft doch einmal eine Zahl daneben – ein älterer
+   * Bildersatz, ein halb geladener Atlas –, soll ein Baum erscheinen und
+   * nicht die Karte stehenbleiben.
+   */
+  const e = bildEintrag(falscherAtlas, 'wald', 'bewuchs', 1);
+  const { ctx, befehle } = schreiber();
+  e.zeichne(ctx, stueckM(100, 99), 1);
+  assert.equal(befehle.length, 1);
+});
+
+pruefe('eine Art, die der Atlas nicht kennt, gibt keinen Eintrag', () => {
+  /*
+   * Dann entscheidet das Stilbuch, ob es einen Pinsel dafür hat. Ein
+   * leerer Eintrag, der nichts zeichnet, wäre schlimmer: Er sähe aus wie
+   * eine fehlende Fläche statt wie eine fehlende Grafik.
+   */
+  assert.equal(bildEintrag(falscherAtlas, 'berge', 'fels', 2), undefined);
+});
+
+pruefe('ohne Atlas malt der Pinsel – die Karte bleibt nie leer', () => {
+  /*
+   * Beim ersten Bild, ohne Netz, bei einer kaputten Datei. Eine Karte, die
+   * ohne ihre Bilder weiss bleibt, wäre ein schlechter Tausch für etwas
+   * schöneres Laub.
+   */
+  const q = ohneProsa(lies('src/lib/kartenwerk/stilbuch.ts'));
+  assert.match(q, /const gemalt = atlas && bildEintrag\(atlas, 'wald', 'bewuchs', EBENE\.bewuchs\);/);
+  assert.match(q, /wald: gemalt \?\? \{/, 'der Pinsel ist kein Rückfallweg');
+
+  const a = ohneProsa(lies('src/lib/kartenwerk/atlas.ts'));
+  assert.match(a, /if \(!antwort\.ok\) return undefined;/, 'ein fehlender Atlas wirft');
+  assert.match(a, /\} catch \{\s*return undefined;/, 'ein Fehler beim Laden wirft');
+});
+
+pruefe('ein neuer Bildersatz leert den Kachelspeicher', () => {
+  /*
+   * Sonst stünden nach dem Eintreffen der Grafiken gemalte und gezeichnete
+   * Bäume nebeneinander – je nachdem, welche Kachel wann entstanden ist.
+   * Ein Fleck fremder Landschaft mitten in der neuen.
+   */
+  const q = ohneProsa(lies('src/components/karte/useKartenleinwand.ts'));
+  assert.match(q, /if \(vorigesBuch\.current && vorigesBuch\.current !== stilbuch\) \{\s*werk\.leere\(\);/);
+});
+
+/* =======================================================================
+ * 6 · DIE ALTE MASCHINE IST WIRKLICH WEG
+ * ==================================================================== */
+
+console.log('\n6 · Die alte Maschine ist wirklich weg');
 
 pruefe('es gibt keine zweite Kartenimplementierung', () => {
   /*
@@ -513,7 +668,7 @@ pruefe('die Zeichenschleife bricht ihr eigenes Bild nicht mehr ab', () => {
   const schleife = q.slice(q.indexOf('const male = () =>'));
   const ende = schleife.indexOf('}, [leinwand, huelle]);');
   assert.ok(ende > 0, 'die Zeichenschleife hängt wieder an der Sicht');
-  assert.match(q, /anfordernRef\.current\(\);\s*\}, \[sicht, raster, stil\]\);/,
+  assert.match(q, /anfordernRef\.current\(\);\s*\}, \[sicht, raster, stilbuch\]\);/,
     'niemand meldet ein Bild an, wenn sich etwas ändert');
 });
 

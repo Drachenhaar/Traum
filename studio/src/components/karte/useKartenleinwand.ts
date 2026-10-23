@@ -41,11 +41,12 @@
  * über die Welt, nur über die Maschine.
  */
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Kartendokument, Kartenfeature } from '../../lib/karte/modell';
 import { kasten } from '../../lib/karte/modell';
 import type { Kartenstil } from '../../lib/karte/stil';
 import { artbookStilbuch } from '../../lib/kartenwerk/stilbuch';
+import { ladeAtlas, type Atlas } from '../../lib/kartenwerk/atlas';
 import { staffageAus } from '../../lib/kartenwerk/streuwerk';
 import { Staffageraster } from '../../lib/kartenwerk/raster';
 import { Kachelwerk, WERKPLAN, stufeFuer, type Kasten } from '../../lib/kartenwerk/kachelwerk';
@@ -101,7 +102,24 @@ export function useKartenleinwand({
   stil: Kartenstil;
   sicht: Sichtfeld;
 }) {
-  const stilbuch = useMemo(() => artbookStilbuch(stil), [stil]);
+  /*
+   * Der Bildersatz, einmal je Sitzung.
+   *
+   * Er wird **nicht** erwartet: Bis er da ist, zeichnet der Pinsel. Kommt er
+   * an, entsteht ein neues Stilbuch, der Kachelspeicher wird geleert und die
+   * Karte zieht sich nach. Das dauert ein paar Bilder und sieht aus wie ein
+   * Nachschärfen – nicht wie ein Umbau.
+   */
+  const [atlas, setAtlas] = useState<Atlas | undefined>(undefined);
+  useEffect(() => {
+    let lebt = true;
+    void ladeAtlas('artbook', import.meta.env.BASE_URL).then((a) => {
+      if (lebt && a) setAtlas(a);
+    });
+    return () => { lebt = false; };
+  }, []);
+
+  const stilbuch = useMemo(() => artbookStilbuch(stil, atlas), [stil, atlas]);
 
   /*
    * Die Staffage, einmal je Flächenzustand.
@@ -134,7 +152,7 @@ export function useKartenleinwand({
   const werkRef = useRef<Kachelwerk | null>(null);
   const stufeRef = useRef<number | undefined>(undefined);
   const vorigeFeatures = useRef<Kartenfeature[] | null>(null);
-  const vorigerStil = useRef<Kartenstil | null>(null);
+  const vorigesBuch = useRef<ReturnType<typeof artbookStilbuch> | null>(null);
 
   if (!werkRef.current) {
     const dichte = Math.min(2, typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1);
@@ -177,11 +195,15 @@ export function useKartenleinwand({
     const werk = werkRef.current;
     if (!werk) return;
 
-    if (vorigerStil.current && vorigerStil.current !== stil) {
-      /* Ein anderer Stil ist ein anderes Bild – da hilft kein Entwerten. */
+    if (vorigesBuch.current && vorigesBuch.current !== stilbuch) {
+      /*
+       * Ein anderes Stilbuch ist ein anderes Bild – da hilft kein Entwerten
+       * nach Kasten. Das gilt für einen Stilwechsel genauso wie für den
+       * Augenblick, in dem die gemalten Grafiken eintreffen.
+       */
       werk.leere();
     }
-    vorigerStil.current = stil;
+    vorigesBuch.current = stilbuch;
 
     const vorher = vorigeFeatures.current;
     if (vorher === null) {
@@ -204,7 +226,7 @@ export function useKartenleinwand({
     }
 
     vorigeFeatures.current = karte.features;
-  }, [karte.features, stil]);
+  }, [karte.features, stilbuch]);
 
   /*
    * Das Malen – **eine Schleife, die stehen bleibt.**
@@ -306,7 +328,7 @@ export function useKartenleinwand({
   /* Wer etwas ändert, meldet ein Bild an – und bricht keines ab. */
   useEffect(() => {
     anfordernRef.current();
-  }, [sicht, raster, stil]);
+  }, [sicht, raster, stilbuch]);
 
   useEffect(() => {
     (window as unknown as { __kartenwerk?: Messung }).__kartenwerk = messung;

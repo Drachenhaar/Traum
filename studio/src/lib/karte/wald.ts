@@ -46,6 +46,19 @@ export interface Baum {
   neigung: number;
   /** Welche der wenigen Zeichnungen. */
   form: number;
+  /**
+   * Dieselbe Wahl, ungeteilt: eine Zahl zwischen 0 und 1.
+   *
+   * `form` teilt sie in drei, weil `baumzeichnung.ts` drei Formen kennt. Ein
+   * Stil mit acht gemalten Bäumen braucht acht – und soll dafür nicht den
+   * Streuer ändern müssen, denn das würde **jeden Baum verschieben**: Die
+   * Zahlen kommen aus einer Kette mit Salz, und ein zusätzlicher Griff
+   * verschöbe alle folgenden.
+   *
+   * Also bleibt die Zahl erhalten, und wer mehr Formen hat, teilt feiner.
+   * Bei drei ergibt das genau `form`.
+   */
+  rohform: number;
 }
 
 export interface Waldwerte {
@@ -130,6 +143,7 @@ export function baeume(feature: Kartenfeature, werte: Waldwerte = WALD_VORGABE):
           groesse: zwischen(feature.seed, spalte, zeile, 0.72, 1, k * 3 + 4) * (0.78 + 0.22 * naehe),
           neigung: zwischen(feature.seed, spalte, zeile, -0.12, 0.12, k * 3 + 5),
           form: Math.floor(zahl(feature.seed, spalte, zeile, k * 3 + 6) * 3),
+          rohform: zahl(feature.seed, spalte, zeile, k * 3 + 6),
         };
         aus.push(baum);
         const schluessel = `${spalte}:${zeile}`;

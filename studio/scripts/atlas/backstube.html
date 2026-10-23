@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="de">
+<head><meta charset="utf-8" /><title>Backstube</title></head>
+<body>
+<script type="module">
+/*
+ * Die Backstube im Browser.
+ *
+ * Node kennt keine Zeichenfläche. Der Browser schon – und er ist derselbe,
+ * der die Bilder später anzeigt. Dass hier mit genau der Maschine gebacken
+ * wird, die auch zeichnet, ist kein Zufall: Ein Bild, das im Backofen anders
+ * aussieht als auf der Karte, wäre der Anfang eines langen Nachmittags.
+ *
+ * `scripts/atlas-backen.mjs` öffnet diese Seite, ruft `backe()` und schreibt
+ * das Ergebnis in Dateien.
+ */
+import { SAETZE } from './pinsel.mjs';
+
+/** Die Mipstufen. Volle Größe, halb, viertel. */
+const MIPS = [1, 0.5, 0.25];
+
+/**
+ * Ein Regal packen.
+ *
+ * Keine kluge Packung – eine Reihe nach der anderen. Bei einigen Dutzend
+ * Feldern ist der Unterschied zu einer klugen Packung ein paar Prozent
+ * Fläche, und eine kluge Packung ist eine Fehlerquelle mehr.
+ */
+function packe(felder, breite) {
+  let spalte = 0, zeile = 0, zeilenhoehe = 0;
+  for (const f of felder) {
+    if (spalte + f.w > breite) { spalte = 0; zeile += zeilenhoehe + 2; zeilenhoehe = 0; }
+    f.x = spalte; f.y = zeile;
+    spalte += f.w + 2;
+    if (f.h > zeilenhoehe) zeilenhoehe = f.h;
+  }
+  return zeile + zeilenhoehe;
+}
+
+window.backe = (stil) => {
+  const satz = SAETZE[stil];
+  if (!satz) throw new Error(`kein Satz für ${stil}`);
+
+  /* Erst die Felder ausmessen, dann packen, dann zeichnen. */
+  const felder = [];
+  for (const [art, def] of Object.entries(satz)) {
+    for (let v = 0; v < def.varianten; v++) {
+      for (let m = 0; m < MIPS.length; m++) {
+        felder.push({
+          art, variante: v, stufe: m,
+          w: Math.max(2, Math.round(def.hoehe * def.breiteZuHoehe * MIPS[m])),
+          h: Math.max(2, Math.round(def.hoehe * MIPS[m])),
+        });
+      }
+    }
+  }
+
+  const breite = 1024;
+  const hoehe = packe(felder, breite);
+  /* Auf die nächste Zweierpotenz – manche Grafikwege mögen das lieber. */
+  const hoch = 2 ** Math.ceil(Math.log2(Math.max(16, hoehe)));
+
+  const c = document.createElement('canvas');
+  c.width = breite; c.height = hoch;
+  const ctx = c.getContext('2d');
+
+  for (const f of felder) {
+    const def = satz[f.art];
+    const vollB = def.hoehe * def.breiteZuHoehe;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(f.x, f.y, f.w, f.h);
+    ctx.clip();
+    ctx.translate(f.x, f.y);
+    ctx.scale(MIPS[f.stufe], MIPS[f.stufe]);
+    def.male(ctx, vollB, def.hoehe, def.palette, f.variante);
+    ctx.restore();
+  }
+
+  /*
+   * Das Verzeichnis.
+   *
+   * Es trägt den **Ankerpunkt** mit, und das ist die wichtigste Zahl darin:
+   * die Mitte der Unterkante, also die Stelle, mit der das Bild auf dem
+   * Boden steht. Ein Bild, das um seine Mitte verankert wäre, rutschte beim
+   * Vergrößern nach unten weg.
+   */
+  const arten = {};
+  for (const [art, def] of Object.entries(satz)) {
+    arten[art] = {
+      varianten: def.varianten,
+      breiteZuHoehe: def.breiteZuHoehe,
+      ankerX: 0.5,
+      ankerY: 0.96,
+      stufen: MIPS,
+      felder: [],
+    };
+    for (let v = 0; v < def.varianten; v++) {
+      arten[art].felder.push(
+        felder
+          .filter((f) => f.art === art && f.variante === v)
+          .sort((a, b) => a.stufe - b.stufe)
+          .map((f) => [f.x, f.y, f.w, f.h]),
+      );
+    }
+  }
+
+  return {
+    png: c.toDataURL('image/png'),
+    verzeichnis: { stil, breite, hoehe: hoch, arten },
+  };
+};
+
+document.title = 'bereit';
+</script>
+</body>
+</html>

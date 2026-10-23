@@ -55,15 +55,16 @@ export function staffageFuerFlaeche(f: Kartenfeature, stilbuch: Stilbuch): Staff
       /*
        * **Die Variantenzahl kommt vom Stilbuch, nicht von hier.**
        *
-       * `baeume()` vergibt `form` aus drei Formen, weil die heutige
-       * Zeichnung drei kennt. Ein Stil mit vierzig gemalten Bäumen soll
-       * vierzig bekommen, ohne dass das Streuwerk davon erfährt – also wird
-       * die Form hier auf den Bereich des Stilbuchs abgebildet.
+       * `baeume()` liefert `rohform` – dieselbe Wahl ungeteilt, zwischen 0
+       * und 1. Wer drei Formen hat, teilt in drei; wer acht gemalte Bäume
+       * hat, teilt in acht. Bei drei ist es genau `form`, also sieht der
+       * Wald aus wie vorher, Baum für Baum.
        *
-       * Bei drei und drei ist das die Identität: Der Wald sieht aus wie
-       * vorher, Baum für Baum.
+       * Der Umweg über `rohform` ist nötig, weil ein zusätzlicher Griff in
+       * die Zufallskette **jeden folgenden Baum verschöbe** – die Zahlen
+       * hängen am Salz, und das Salz zählt mit.
        */
-      variante: eintrag.varianten === 3 ? b.form : b.form % eintrag.varianten,
+      variante: Math.min(eintrag.varianten - 1, Math.floor(b.rohform * eintrag.varianten)),
       x: b.x,
       y: b.y,
       /* `GROESSE` aus `baumzeichnung.ts` ist 15 Karteneinheiten. */

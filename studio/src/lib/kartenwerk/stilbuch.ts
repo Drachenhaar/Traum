@@ -42,6 +42,7 @@ import { EBENE } from './staffage';
 import type { Kartenstil } from '../karte/stil';
 import { zeichneBaum } from '../../components/karte/baumzeichnung';
 import type { Baum } from '../karte/wald';
+import { bildEintrag, type Atlas } from './atlas';
 
 /**
  * Wie eine Art in einem Stil aussieht.
@@ -101,9 +102,22 @@ export function stilbuchAus(id: string, tabelle: Record<string, Stileintrag>): S
  * Dass es drei sind und nicht acht, ist eine Angabe dieses Stilbuchs und
  * keine Grenze der Architektur.
  */
-export function artbookStilbuch(stil: Kartenstil): Stilbuch {
+export function artbookStilbuch(stil: Kartenstil, atlas?: Atlas): Stilbuch {
+  /*
+   * **Das Bild hat Vorrang, der Pinsel ist der Rückfallweg.**
+   *
+   * Nicht umgekehrt, und nicht als Einstellung. Solange die Grafiken nicht
+   * geladen sind – beim ersten Bild, ohne Netz, bei einer kaputten Datei –
+   * malt der Pinsel, und die Karte sieht aus wie immer. Kommen sie an, wird
+   * getauscht und der Kachelspeicher geleert.
+   *
+   * Eine Karte, die ohne ihre Bilder weiss bleibt, wäre ein schlechter
+   * Tausch für etwas schöneres Laub.
+   */
+  const gemalt = atlas && bildEintrag(atlas, 'wald', 'bewuchs', EBENE.bewuchs);
+
   return stilbuchAus('artbook', {
-    wald: {
+    wald: gemalt ?? {
       varianten: 3,
       lage: 'bewuchs',
       ebene: EBENE.bewuchs,
@@ -129,6 +143,12 @@ export function artbookStilbuch(stil: Kartenstil): Stilbuch {
           groesse: s.h / 15,
           neigung: s.dreh,
           form: s.variante,
+          /*
+           * `zeichneBaum` liest `rohform` nicht – es wählt über `form`. Der
+           * Wert steht hier nur, weil `Baum` ihn verlangt, und er bleibt
+           * ehrlich: dieselbe Wahl, ungeteilt.
+           */
+          rohform: (s.variante + 0.5) / 3,
         };
         zeichneBaum(ctx, baum, stil, massstab);
       },
