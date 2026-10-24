@@ -88,6 +88,17 @@ export interface Stileintrag {
    * Kachelgrenzen, zu groß heißt überflüssige Arbeit.
    */
   breiteZuHoehe: number;
+  /**
+   * Bildet diese Art zusammen eine **Masse**?
+   *
+   * Ein Wald schon: Seine Bäume gehören zu einem Blätterdach, werfen einen
+   * gemeinsamen Schatten und stehen auf einem gemeinsamen Boden. Ein Dorf
+   * nicht – es soll kein Kronendach bekommen.
+   *
+   * Arten mit dieser Angabe laufen durch das Waldwerk (`waldwerk.ts`), die
+   * übrigen werden einfach gezeichnet.
+   */
+  verdichtet?: boolean;
   /** Zeichnen. Der Maler fragt nicht, wie. */
   zeichne(ctx: CanvasRenderingContext2D, s: Staffage, massstab: number): void;
 }
@@ -130,8 +141,10 @@ export function stilbuchAus(id: string, tabelle: Record<string, Stileintrag>): S
  * Wald, auch wenn sie in jedem Stil anders aussieht. Lage und Reihenfolge
  * sind Bedeutung, nicht Gestaltung.
  */
-const ORDNUNG: Record<string, { lage: Lage; ebene: number; breiteZuHoehe: number }> = {
-  wald: { lage: 'bewuchs', ebene: EBENE.bewuchs, breiteZuHoehe: 1 },
+const ORDNUNG: Record<string, {
+  lage: Lage; ebene: number; breiteZuHoehe: number; verdichtet?: boolean;
+}> = {
+  wald: { lage: 'bewuchs', ebene: EBENE.bewuchs, breiteZuHoehe: 1, verdichtet: true },
   wiese: { lage: 'grund', ebene: EBENE.boden, breiteZuHoehe: 1 },
   fels: { lage: 'bewuchs', ebene: EBENE.fels, breiteZuHoehe: 1.4 },
   berge: { lage: 'bewuchs', ebene: EBENE.fels, breiteZuHoehe: 1.6 },
@@ -173,7 +186,20 @@ export function stilbuchFuer(stil: Kartenstil, atlas?: Atlas): Stilbuch {
      * ohne ihre Bilder weiss bleibt, waere ein schlechter Tausch fuer etwas
      * schoeneres Laub.
      */
-    if (gemalt) tabelle[art] = gemalt;
+    /*
+     * **Die Ordnung kommt aus der Tabelle, nicht aus dem Atlas.**
+     *
+     * `bildEintrag` weiss, wie ein Bild gezeichnet wird – Ausschnitt,
+     * Mipstufe, Anker. Es weiss nicht, ob diese Art eine Masse bildet; das
+     * ist Bedeutung und steht in `ORDNUNG`.
+     *
+     * Hier fehlte genau diese eine Zeile, und der Fehler war im Bild
+     * unsichtbar: Der gemalte Eintrag kam ohne `verdichtet` zurück, also
+     * lief **kein einziger Baum** durch das Waldwerk. Boden, Schatten und
+     * Kronendach wurden gerechnet und nie gezeichnet. Gefunden, indem die
+     * Bodenlage knallrot gemalt wurde – es war kein roter Bildpunkt da.
+     */
+    if (gemalt) tabelle[art] = { ...gemalt, verdichtet: o.verdichtet };
   }
 
   return stilbuchAus(stil.id, tabelle);

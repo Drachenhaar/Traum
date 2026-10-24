@@ -67,11 +67,19 @@ baue('src/lib/kartenwerk/atlas.ts', 'atlas.mjs');
 baue('src/lib/kartenwerk/kachelwerk.ts', 'kachelwerk.mjs');
 baue('src/lib/kartenwerk/raster.ts', 'raster.mjs');
 baue('src/lib/kartenwerk/streuwerk.ts', 'streuwerk.mjs');
+baue('src/lib/kartenwerk/stilbuch.ts', 'stilbuch.mjs');
+baue('src/lib/kartenwerk/waldwerk.ts', 'waldwerk.mjs');
+baue('src/lib/kartenwerk/maler.ts', 'maler.mjs');
+baue('src/lib/karte/stil.ts', 'stil.mjs');
 
 const { bildEintrag } = await import(join(bau, 'atlas.mjs'));
 const K = await import(join(bau, 'kachelwerk.mjs'));
 const { Staffageraster, ZELLE } = await import(join(bau, 'raster.mjs'));
 const { staffageAus } = await import(join(bau, 'streuwerk.mjs'));
+const { stilbuchFuer, stilbuchAus } = await import(join(bau, 'stilbuch.mjs'));
+const { maleStaffage } = await import(join(bau, 'waldwerk.mjs'));
+const { maleLage } = await import(join(bau, 'maler.mjs'));
+const { ARTBOOK: PROBESTIL } = await import(join(bau, 'stil.mjs'));
 
 let geprueft = 0;
 const pruefe = (was, fn) => { fn(); geprueft++; console.log(`  ✓ ${was}`); };
@@ -587,6 +595,34 @@ const schreiber = () => {
   return { ctx, befehle };
 };
 
+/**
+ * Ein vollständigerer Mitschreiber.
+ *
+ * `schreiber` kennt nur die Befehle, die ein Bild braucht. Der Federpinsel
+ * und das Waldwerk rufen ein Dutzend weitere auf; ein Proxy nimmt sie alle
+ * an und merkt sich, was zählt: die gesetzten Weichzeichner und jedes
+ * `drawImage` samt Zielrechteck.
+ */
+const werkzeug = () => {
+  const bilder = [];
+  const unschaerfen = [];
+  const roh = {
+    drawImage(...a) { bilder.push(a); },
+    createRadialGradient: () => ({ addColorStop() {} }),
+    createLinearGradient: () => ({ addColorStop() {} }),
+    canvas: { width: 0, height: 0 },
+  };
+  const ctx = new Proxy(roh, {
+    get: (z, name) => (name in z ? z[name] : () => {}),
+    set: (z, name, wert) => {
+      if (name === 'filter' && wert !== 'none') unschaerfen.push(wert);
+      z[name] = wert;
+      return true;
+    },
+  });
+  return { ctx, bilder, unschaerfen };
+};
+
 const stueckM = (h, variante = 0) => ({
   art: 'wald', variante, x: 100, y: 200, h, dreh: 0, spiegel: false,
   lage: 'bewuchs', ebene: 1,
@@ -685,14 +721,56 @@ pruefe('ohne Atlas malt der Pinsel – die Karte bleibt nie leer', () => {
    * Beim ersten Bild, ohne Netz, bei einer kaputten Datei. Eine Karte, die
    * ohne ihre Bilder weiss bleibt, wäre ein schlechter Tausch für etwas
    * schöneres Laub.
+   *
+   * Geprüft wird am Verhalten und nicht am Wortlaut: Die erste Fassung
+   * suchte die Zeile `tabelle[art] = gemalt;` im Quelltext. Sie schlug an,
+   * als dieselbe Zeile um die Ordnung ergänzt wurde – eine richtige
+   * Änderung, gemeldet als Fehler. Eine Prüfung, die nur den Wortlaut
+   * kennt, steht jeder Verbesserung im Weg.
    */
-  const q = ohneProsa(lies('src/lib/kartenwerk/stilbuch.ts'));
-  assert.match(q, /if \(gemalt\) tabelle\[art\] = gemalt;/, 'das Bild hat keinen Vorrang');
-  assert.match(q, /\{ \.\.\.pinselEintraege\(stil\) \}/, 'der Pinsel ist kein Rückfallweg');
+  const mitBild = stilbuchFuer(PROBESTIL, falscherAtlas);
+  /*
+   * `werkzeug` und nicht `schreiber`: Fällt das Bild aus, zeichnet hier der
+   * Pinsel, und der ruft ein Dutzend Befehle auf, die `schreiber` nicht
+   * kennt. Die Prüfung schlug dann zwar an – aber mit einem Absturz statt
+   * mit ihrem eigenen Urteil, und ein Absturz sagt nicht, was fehlt.
+   */
+  const { ctx, bilder } = werkzeug();
+  mitBild.eintrag('wald').zeichne(ctx, stueckM(100), 1);
+  assert.equal(bilder.length, 1, 'das Bild hat keinen Vorrang vor dem Pinsel');
+
+  const ohne = stilbuchFuer(PROBESTIL, undefined);
+  assert.ok(ohne.eintrag('wald'), 'ohne Atlas bleibt kein Wald übrig');
+  /* Und der Pinsel zeichnet – ohne `drawImage`, denn er hat kein Bild. */
+  const o = werkzeug();
+  ohne.eintrag('wald').zeichne(o.ctx, stueckM(15), 1);
+  assert.equal(o.bilder.length, 0, 'der Pinsel greift nach einem Bild');
 
   const a = ohneProsa(lies('src/lib/kartenwerk/atlas.ts'));
   assert.match(a, /if \(!antwort\.ok\) return undefined;/, 'ein fehlender Atlas wirft');
   assert.match(a, /\} catch \{\s*return undefined;/, 'ein Fehler beim Laden wirft');
+});
+
+pruefe('ein gemalter Eintrag bringt die Ordnung seiner Art mit', () => {
+  /*
+   * **Der Fehler, der das ganze Waldwerk unsichtbar machte.**
+   *
+   * `bildEintrag` weiss, wie ein Bild gezeichnet wird. Es weiss nicht, ob
+   * diese Art eine Masse bildet – das ist Bedeutung und steht in `ORDNUNG`.
+   * Fiel `verdichtet` beim Übernehmen heraus, lief **kein einziger Baum**
+   * durch das Waldwerk: Boden, Schatten und Kronendach wurden gerechnet und
+   * nie gezeichnet, und die Karte sah aus wie vorher.
+   *
+   * Im Bild war davon nichts zu sehen – es fehlte ja nur etwas. Gefunden
+   * wurde es, indem die Bodenlage knallrot gemalt und die roten Bildpunkte
+   * gezählt wurden: null.
+   */
+  const buch = stilbuchFuer(PROBESTIL, falscherAtlas);
+  assert.equal(buch.eintrag('wald').verdichtet, true,
+    'der gemalte Wald bildet keine Masse mehr');
+  /* Und der Pinselwald genauso – über dieselbe Tabelle. */
+  assert.equal(stilbuchFuer(PROBESTIL, undefined).eintrag('wald').verdichtet, true,
+    'der gezeichnete Wald bildet keine Masse');
 });
 
 pruefe('ein neuer Bildersatz leert den Kachelspeicher', () => {
@@ -957,6 +1035,230 @@ pruefe('die Zeichenschleife bricht ihr eigenes Bild nicht mehr ab', () => {
   assert.ok(ende > 0, 'die Zeichenschleife hängt wieder an der Sicht');
   assert.match(q, /anfordernRef\.current\(\);\s*\}, \[sicht, raster, stilbuch\]\);/,
     'niemand meldet ein Bild an, wenn sich etwas ändert');
+});
+
+/* =======================================================================
+ * 8 · DAS WALDWERK
+ * ==================================================================== */
+
+console.log('\n8 · Das Waldwerk');
+
+/*
+ * **Worum es in diesem Abschnitt geht.**
+ *
+ * Das Waldwerk setzt einen Wald aus mehreren Lagen zusammen – Boden,
+ * Schatten, Unterholz, Kronendach, Kronen. Jede davon wird **je Kachel**
+ * gerechnet. Daraus folgt die eine Bedingung, an der alles hängt:
+ *
+ *   Nichts, was gezeichnet wird, darf davon abhängen, in welcher Kachel
+ *   gerechnet wird.
+ *
+ * Jede Verletzung erzeugt dieselbe Art Fehler – ein feines Raster über dem
+ * ganzen Wald –, und drei verschiedene Ursachen haben es nacheinander
+ * erzeugt: die Unschärfe aus dem Kachelmedian, der gedehnte Puffer, das
+ * Licht als eigene Lage. Die Prüfungen hier bewachen alle drei.
+ */
+
+const PROBEKASTEN = { x0: 0, y0: 0, x1: 250, y1: 250 };
+const PLAN = { rand: 60, dichte: 2 };
+
+const baum = (x, y, h) => ({
+  art: 'wald', variante: 0, x, y, h, dreh: 0, spiegel: false,
+  lage: 'bewuchs', ebene: 1,
+});
+
+/* Ein Stilbuch ohne Bilder: Der Pinsel genügt, hier wird nicht gemalt,
+   sondern gemessen, was das Waldwerk an den Kontext gibt. */
+const WALDBUCH = stilbuchFuer(PROBESTIL, falscherAtlas);
+
+/**
+ * Das Waldwerk laufen lassen und mitschreiben, was dabei herauskommt.
+ *
+ * Die Zwischenpuffer sind `OffscreenCanvas` – in Node der Ersatz oben in
+ * dieser Datei. Für diese Prüfungen wird er vorübergehend gegen einen
+ * ausgetauscht, der mitschreibt, *was in den Puffer gemalt wird*. Nur so
+ * ist die Lichtlage überhaupt sichtbar: Sie entsteht im Puffer und kommt
+ * nie einzeln beim Hauptkontext an.
+ */
+const laufe = (kasten, liste, buch = WALDBUCH, massstab = 1) => {
+  const kreise = [];
+  const vorher = globalThis.OffscreenCanvas;
+  globalThis.OffscreenCanvas = class {
+    constructor(w, h) { this.width = w; this.height = h; }
+    getContext() {
+      const z = {
+        canvas: this,
+        createRadialGradient: () => ({ addColorStop() {} }),
+        arc: (x, y, r) => { kreise.push([x, y, r]); },
+      };
+      return new Proxy(z, {
+        get: (o, n) => (n in o ? o[n] : () => {}),
+        set: () => true,
+      });
+    }
+  };
+  const w = werkzeug();
+  try {
+    maleStaffage(w.ctx, kasten, massstab, liste, buch, PROBESTIL, PLAN);
+  } finally {
+    globalThis.OffscreenCanvas = vorher;
+  }
+  return { ...w, kreise };
+};
+
+pruefe('die Unschärfe hängt am Stilbuch, nicht an der Kachel', () => {
+  /*
+   * Der erste Anlauf nahm den Median der Bäume **in der Kachel**. Das
+   * klingt vernünftig und ist der sicherste Weg zu Kachelnähten: Jede
+   * Kachel bekommt eine andere Unschärfe, und im Bild liegt ein Raster aus
+   * hell und dunkel über dem Wald.
+   *
+   * Hier stehen zwei Kacheln mit völlig verschiedenem Inhalt – eine mit
+   * drei kleinen Bäumen, eine mit vierzig grossen. Die Weichzeichner
+   * müssen trotzdem dieselben sein.
+   */
+  const duenn = laufe(PROBEKASTEN, [baum(40, 40, 9), baum(60, 90, 11), baum(90, 60, 10)]);
+  const dicht = laufe(PROBEKASTEN, Array.from({ length: 40 }, (_, i) =>
+    baum(20 + (i % 8) * 28, 20 + Math.floor(i / 8) * 46, 30 + (i % 5) * 9)));
+
+  assert.ok(duenn.unschaerfen.length >= 3, 'es wird gar nicht verwischt');
+  assert.deepEqual(dicht.unschaerfen, duenn.unschaerfen,
+    `zwei Kacheln verwischen verschieden: ${duenn.unschaerfen} gegen ${dicht.unschaerfen}`);
+});
+
+pruefe('eine verwischte Lage sitzt am Überstand und wird nicht gedehnt', () => {
+  /*
+   * Zwei Fehler, beide an derselben Zeile, beide nur im Bild zu sehen.
+   *
+   * **Bei Null gesetzt** landet jede verwischte Lage um den Überstand
+   * verschoben – Boden und Schatten lagen neben ihren Bäumen, und es sah
+   * aus, als gäbe es sie gar nicht.
+   *
+   * **In Puffergrösse gesetzt** wird sie um den Aufrundungsrest gedehnt –
+   * je Kachel verschieden, also wieder ein Raster.
+   */
+  /*
+   * Ein **krummer** Maßstab, mit Absicht. Bei einem glatten geht die
+   * Puffergrösse von selbst auf, der Aufrundungsrest ist null, und die
+   * Gegenprobe zur Dehnung bliebe grün – die Prüfung träfe den Fall nicht,
+   * den sie zu treffen glaubt.
+   */
+  const M = 1.7;
+  const { bilder } = laufe(PROBEKASTEN, [baum(100, 100, 26), baum(150, 130, 24)], WALDBUCH, M);
+  /* Die verwischten Lagen kommen aus einem Puffer; Unterholz und Kronen
+     kommen aus dem Atlasbild und haben ebenfalls neun Argumente. */
+  const lagen = bilder.filter((b) => b.length === 9 && b[0] !== falscherAtlas.bild);
+  assert.ok(lagen.length >= 3, `nur ${lagen.length} verwischte Lagen`);
+
+  const breite = (PROBEKASTEN.x1 - PROBEKASTEN.x0 + PLAN.rand * 2) * M;
+  assert.notEqual(Math.ceil(breite * 0.5) / 0.5, breite,
+    'der Maßstab geht glatt auf – die Dehnung wäre nicht zu sehen');
+  for (const b of lagen) {
+    const [, , , , , zx, zy, zb, zh] = b;
+    assert.equal(zx, -PLAN.rand * M, `die Lage sitzt bei ${zx} statt am Überstand`);
+    assert.equal(zy, -PLAN.rand * M, `die Lage sitzt bei ${zy} statt am Überstand`);
+    assert.equal(zb, breite, `die Lage ist ${zb} breit statt ${breite} – gedehnt`);
+    assert.equal(zh, breite, `die Lage ist ${zh} hoch statt ${breite} – gedehnt`);
+  }
+});
+
+pruefe('das Licht sitzt am selben Ort, in welcher Kachel es auch gerechnet wird', () => {
+  /*
+   * **Die letzte Quelle von Kachelnähten.**
+   *
+   * Das Licht war eine eigene Lage und wurde nur gesetzt, wo Bäume stehen –
+   * und welche Bäume eine Kachel sieht, endet beim Überstand. Derselbe
+   * Fleck lag in der einen Kachel innerhalb und in der Nachbarkachel
+   * ausserhalb der Prüfung.
+   *
+   * Jetzt sitzt er auf einem raumfesten Gitter und wird mit `source-atop`
+   * in das Kronendach gelegt. Hier stehen zwei überlappende Kacheln: Jeder
+   * Fleck, den beide sehen, muss an derselben Stelle und gleich gross sein.
+   */
+  const baeume = Array.from({ length: 60 }, (_, i) =>
+    baum(30 + (i % 10) * 40, 30 + Math.floor(i / 10) * 42, 26));
+  const links = laufe({ x0: 0, y0: 0, x1: 250, y1: 250 }, baeume);
+  const rechts = laufe({ x0: 250, y0: 0, x1: 500, y1: 250 }, baeume);
+
+  assert.ok(links.kreise.length > 3, 'es gibt gar keine Lichtflecken');
+
+  /* Der gemeinsame Streifen: Überstand der einen über die Grenze hinweg. */
+  const imStreifen = (k) => k.filter(([x]) => x > 200 && x < 300);
+  const a = imStreifen(links.kreise).map((k) => k.join(','));
+  const b = new Set(imStreifen(rechts.kreise).map((k) => k.join(',')));
+  assert.ok(a.length > 0, 'der gemeinsame Streifen ist leer – die Prüfung trifft nichts');
+  for (const k of a) {
+    assert.ok(b.has(k), `der Fleck ${k} sitzt in der Nachbarkachel woanders`);
+  }
+});
+
+pruefe('nur verdichtete Arten bekommen ein Blätterdach', () => {
+  /*
+   * Ein Wald bildet eine Masse: gemeinsamer Boden, gemeinsamer Schatten,
+   * ein Blätterdach. Ein Dorf nicht. Liefe alles durch das Waldwerk, läge
+   * über jeder Siedlung eine grüne Decke.
+   */
+  const einzel = stilbuchAus('probe', {
+    ...Object.fromEntries(WALDBUCH.arten().map((a) => [a, WALDBUCH.eintrag(a)])),
+    bauwerk: { ...WALDBUCH.eintrag('wald'), verdichtet: undefined },
+  });
+  const haus = { ...baum(100, 100, 20), art: 'bauwerk' };
+
+  const nur = laufe(PROBEKASTEN, [haus], einzel);
+  assert.equal(nur.unschaerfen.length, 0, 'ein Bauwerk bekommt ein Blätterdach');
+  assert.equal(nur.bilder.length, 1, 'das Bauwerk wird nicht einfach gezeichnet');
+
+  const gemischt = laufe(PROBEKASTEN, [haus, baum(120, 140, 26)], einzel);
+  assert.ok(gemischt.unschaerfen.length >= 3, 'der Wald bekommt kein Blätterdach');
+});
+
+pruefe('Nachbarkacheln teilen genau dieselbe Kante', () => {
+  /*
+   * **Die Naht, die am längsten stehen blieb.**
+   *
+   * Der Maler setzte jede Kachel einen halben Bildpunkt zu gross. Solange
+   * eine Kachel undurchsichtig war, sah man davon nichts: Was zweimal
+   * übereinander gemalt wird, sieht aus wie einmal.
+   *
+   * Mit dem Waldwerk ist eine Kachel **nicht mehr undurchsichtig** – Boden,
+   * Schatten und Kronendach sind halbdurchsichtige Lagen über nichts.
+   * Zweimal gemalt ergeben sie einen dunkleren Streifen, und über dem
+   * ganzen Wald lag ein feines dunkles Gitter.
+   *
+   * Geprüft wird über viele krumme Maßstäbe: Die rechte Kante der einen
+   * Kachel muss **genau** die linke der nächsten sein – kein Überstand und
+   * keine Lücke.
+   */
+  const kachel = { leinwand: { width: 256, height: 256 } };
+  const werk = {
+    aktuelleStufe: 0,
+    nachsehen: () => ({ kachel, frisch: true }),
+    anfordern() {},
+    wartend: () => 0,
+  };
+
+  for (const w of [1000, 731.3, 410.7, 97.19]) {
+    for (const px of [900, 1131, 1920]) {
+      const { ctx, bilder } = werkzeug();
+      maleLage(ctx, werk, { x: 123.4, y: 57.9, w }, px, 3);
+      assert.ok(bilder.length > 1, 'es wird gar nicht gekachelt');
+
+      const rechtecke = bilder.map((b) => (b.length === 9 ? b.slice(5) : b.slice(1)));
+      for (const [x, y, b, h] of rechtecke) {
+        assert.equal(x, Math.round(x), `die Kante ${x} liegt zwischen zwei Bildpunkten`);
+        assert.equal(y, Math.round(y), `die Kante ${y} liegt zwischen zwei Bildpunkten`);
+        /* Und es gibt genau einen Nachbarn rechts – oder keinen. */
+        const rechts = rechtecke.filter((r) => r[1] === y && r[0] === x + b);
+        assert.ok(rechts.length <= 1, 'zwei Kacheln beginnen an derselben Kante');
+        const ueber = rechtecke.filter((r) => r[1] === y && r[0] > x && r[0] < x + b);
+        assert.equal(ueber.length, 0,
+          `eine Kachel ragt in die nächste: ${x}+${b} gegen ${ueber[0]?.[0]}`);
+        const lueck = rechtecke.filter((r) => r[1] === y && r[0] > x + b && r[0] < x + b + 2);
+        assert.equal(lueck.length, 0, `zwischen ${x + b} und ${lueck[0]?.[0]} klafft eine Lücke`);
+        assert.ok(h > 0 && b > 0);
+      }
+    }
+  }
 });
 
 console.log(`\n${geprueft} Prüfungen bestanden.\n`);

@@ -171,6 +171,57 @@ einem echten Telefon nachgemessen werden muss**, bevor das verbindlich wird.
 
 ---
 
+## 6a · Was der Einbau wirklich gekostet hat
+
+Eingebaut, gemessen, und drei der obigen Zahlen stimmen nicht mehr.
+
+**Die Kosten.** Geschätzt waren rund 19 ms je Kachel. Gemessen sind es
+**6,5 ms** — die Kachel hier ist 256 × 256 statt 512 × 512, und die drei
+verwischten Lagen werden in halber Auflösung gerechnet und beim Setzen wieder
+vergrössert. Was ohnehin verwischt wird, braucht keine volle Auflösung; man
+sieht es nicht, weil ein Weichzeichner genau das tut, was eine Vergrösserung
+auch tut. Der Anteil des Kartenwerks an einem Schiebebild liegt im Median bei
+**0,1 ms**, im Schlimmstfall bei 0,3.
+
+**Aus sechs Lagen wurden fünf.** Das Licht ist in das Kronendach gewandert.
+
+**Und der eigentliche Lehrsatz.** Jede Lage wird *je Kachel* gerechnet. Daraus
+folgt die eine Bedingung, an der alles hängt:
+
+> Nichts, was gezeichnet wird, darf davon abhängen, in welcher Kachel
+> gerechnet wird.
+
+Drei verschiedene Verletzungen haben nacheinander denselben Fehler erzeugt —
+ein feines Raster über dem ganzen Wald:
+
+1. **Die Unschärfe kam aus dem Median der Bäume in der Kachel.** Klingt
+   vernünftig, gibt jeder Kachel eine andere Unschärfe. Jetzt kommt sie aus
+   dem Stilbuch — dieselbe Zahl für die ganze Karte.
+2. **Das Licht war eine eigene Lage** und wurde nur gesetzt, wo Bäume stehen.
+   Welche Bäume eine Kachel sieht, endet beim Überstand; derselbe Fleck lag in
+   der einen Kachel innerhalb und in der nächsten ausserhalb der Prüfung.
+   Jetzt sitzt er auf einem raumfesten Gitter und wird mit `source-atop` in
+   das Kronendach gelegt.
+3. **Der Maler setzte jede Kachel einen halben Bildpunkt zu gross.** Das stand
+   dort seit der ersten Fassung und war richtig, solange eine Kachel
+   undurchsichtig war: Was zweimal übereinander gemalt wird, sieht aus wie
+   einmal. Mit dem Waldwerk ist eine Kachel **nicht mehr undurchsichtig** —
+   der doppelt gemalte Streifen wurde dunkler. Jetzt rasten die Kacheln auf
+   ganze Bildpunkte ein; die rechte Kante der einen wird aus derselben
+   Rechnung gewonnen wie die linke der nächsten.
+
+Dazu ein vierter Fehler, der nichts mit Nähten zu tun hatte und schlimmer war:
+`bildEintrag` gab den gemalten Eintrag **ohne `verdichtet`** zurück, also lief
+kein einziger Baum durch das Waldwerk. Boden, Schatten und Kronendach wurden
+gerechnet und nie gezeichnet, und die Karte sah aus wie vorher — es fehlte ja
+nur etwas. Gefunden, indem die Bodenlage knallrot gemalt und die roten
+Bildpunkte gezählt wurden: null.
+
+Alle vier sind gegengeprobt: Der Fehler wurde wieder eingebaut, bis die
+Prüfung anschlug.
+
+---
+
 ## 7 · Was sich dafür nicht ändert
 
 Nichts an den Kartendaten. Nichts am Streuwerk — es liefert weiterhin eine

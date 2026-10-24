@@ -565,9 +565,26 @@ export function Weltkarte({
                   * eigener Zug. Der Fangbereich bleibt hier: Wer auf das Land
                   * tippt, meint das Land, nicht seine Kante.
                   */}
+                {/*
+                  * **Ein Wald hat keine Kante.**
+                  *
+                  * Jede andere Fläche bekommt hier ihre Füllung und gleich
+                  * darunter ihren Federzug. Der Wald nicht mehr: Seit das
+                  * Waldwerk seinen Boden aus den Bäumen baut – weiche
+                  * Scheiben unter den Stämmen, zusammen verwischt – liefe
+                  * ein gezogener Umriss quer durch das, was auslaufen soll.
+                  * Zwei Ränder, einer hart und einer weich, und der harte
+                  * gewinnt.
+                  *
+                  * Der Pfad bleibt trotzdem stehen: An ihm hängt der
+                  * **Fangbereich**. `fill="transparent"` nimmt Finger an,
+                  * `fill="none"` nicht – der Unterschied ist genau diese
+                  * eine Zeile, und ohne sie liesse sich ein Wald nicht mehr
+                  * antippen.
+                  */}
                 <path
                   d={d}
-                  fill={c.flaeche}
+                  fill={f.art === 'wald' ? 'transparent' : c.flaeche}
                   onClick={() => {
                     if (!bewegt.current && !verbraucht.current) onWaehle(f.id);
                   }}
@@ -589,11 +606,13 @@ export function Weltkarte({
                   * sitzt – sonst läge er zweimal übereinander und das Tippen
                   * träfe mal die Fläche, mal den Strich.
                   */}
-                <path
-                  d={federzug(f.punkte, stil.strich, f.seed ?? 1)}
-                  fill={c.linie}
-                  pointerEvents="none"
-                />
+                {f.art !== 'wald' && (
+                  <path
+                    d={federzug(f.punkte, stil.strich, f.seed ?? 1)}
+                    fill={c.linie}
+                    pointerEvents="none"
+                  />
+                )}
               </g>
             );
           })}

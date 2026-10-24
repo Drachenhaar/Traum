@@ -51,6 +51,7 @@ import { staffageAus } from '../../lib/kartenwerk/streuwerk';
 import { Staffageraster } from '../../lib/kartenwerk/raster';
 import { Kachelwerk, WERKPLAN, stufeFuer, type Kasten } from '../../lib/kartenwerk/kachelwerk';
 import { maleLage, type Sichtfeld } from '../../lib/kartenwerk/maler';
+import { maleStaffage } from '../../lib/kartenwerk/waldwerk';
 
 export interface Messung {
   /** Wie viele Stücke Staffage die Karte trägt. */
@@ -155,6 +156,9 @@ export function useKartenleinwand({
   rasterRef.current = raster;
   const stilbuchRef = useRef(stilbuch);
   stilbuchRef.current = stilbuch;
+  /* Die Lagen des Waldwerks mischen ihre Töne aus dem Stil. */
+  const stilRef = useRef(stil);
+  stilRef.current = stil;
 
   const werkRef = useRef<Kachelwerk | null>(null);
   const stufeRef = useRef<number | undefined>(undefined);
@@ -181,10 +185,21 @@ export function useKartenleinwand({
         const liste = rasterRef.current.imKasten(
           kach.x0 - rand, kach.y0 - rand, kach.x1 + rand, kach.y1 + rand,
         );
-        for (const s of liste) {
-          const e = buch.eintrag(s.art);
-          if (e) e.zeichne(ctx, s, massstab);
-        }
+        /*
+         * **Nicht mehr Stück für Stück, sondern komponiert.**
+         *
+         * Arten, die eine Masse bilden – heute der Wald –, laufen durch die
+         * sechs Lagen des Waldwerks: Boden, Schatten, Unterholz,
+         * Kronendach, Kronen, Licht. Alles andere wird gezeichnet wie
+         * bisher.
+         *
+         * Dass das hier steht und nicht im Maler, ist Absicht: Der Maler
+         * kopiert Kacheln und weiss nichts von Wäldern.
+         */
+        maleStaffage(ctx, kach, massstab, liste, buch, stilRef.current, {
+          rand,
+          dichte,
+        });
       },
       { ...WERKPLAN, dichte },
     );

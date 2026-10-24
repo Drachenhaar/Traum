@@ -79,7 +79,8 @@ export function maleLage(
       const da = werk.nachsehen(i, j, stufe);
 
       if (da) {
-        zeichneGanz(ctx, da.kachel.leinwand, i * mass, j * mass, mass, sicht, massstab);
+        const r = rahmen(i, j, mass, sicht, massstab);
+        ctx.drawImage(da.kachel.leinwand as CanvasImageSource, r.x, r.y, r.b, r.h);
         kacheln++;
         if (!da.frisch) {
           veraltet++;
@@ -116,12 +117,8 @@ export function maleLage(
         const q = oben.kachel.leinwand.width / teil;
         const sx = (i - gi * teil) * q;
         const sy = (j - gj * teil) * q;
-        ctx.drawImage(
-          oben.kachel.leinwand as CanvasImageSource,
-          sx, sy, q, q,
-          (i * mass - sicht.x) * massstab, (j * mass - sicht.y) * massstab,
-          mass * massstab, mass * massstab,
-        );
+        const r = rahmen(i, j, mass, sicht, massstab);
+        ctx.drawImage(oben.kachel.leinwand as CanvasImageSource, sx, sy, q, q, r.x, r.y, r.b, r.h);
         kacheln++;
         vorschau++;
         gemalt = true;
@@ -133,29 +130,41 @@ export function maleLage(
   return { stufe, kacheln, vorschau, veraltet, offen: werk.wartend() > 0 };
 }
 
-function zeichneGanz(
-  ctx: CanvasRenderingContext2D,
-  bild: HTMLCanvasElement | OffscreenCanvas,
-  x0: number,
-  y0: number,
+/**
+ * Der Platz einer Kachel in der Sicht, **auf ganze Bildpunkte eingerastet**.
+ *
+ * ---
+ *
+ * **Warum eingerastet und nicht überlappt.**
+ *
+ * Hier stand ein halber Bildpunkt Übermaß. Zwei Kacheln, die genau
+ * aneinanderstoßen, lassen beim Vergrößern sonst eine haarfeine Lücke – der
+ * Browser rundet die eine Kante nach unten und die andere nach oben. Eine
+ * halbe Überlappung schloss sie, und solange eine Kachel undurchsichtig war,
+ * sah man davon nichts: Was zweimal übereinander gemalt wird, sieht aus wie
+ * einmal.
+ *
+ * Mit dem Waldwerk ist eine Kachel **nicht mehr undurchsichtig**. Boden,
+ * Schatten und Kronendach sind halbdurchsichtige Lagen über nichts. Zweimal
+ * übereinander gemalt ergeben sie einen dunkleren Streifen – und weil das an
+ * jeder Kachelgrenze passiert, lag über dem ganzen Wald ein feines dunkles
+ * Gitter. Im Bild gut sichtbar, sobald man einmal darauf geachtet hat.
+ *
+ * Statt zu überlappen, wird nun gerundet: Die rechte Kante der Kachel `i`
+ * wird aus **derselben Rechnung** gewonnen wie die linke Kante der Kachel
+ * `i+1`. Zwei Nachbarn können sich also gar nicht uneinig sein – keine
+ * Lücke, kein doppelter Streifen.
+ */
+function rahmen(
+  i: number,
+  j: number,
   mass: number,
   sicht: Sichtfeld,
   massstab: number,
-) {
-  /*
-   * **Ein halber Bildpunkt Übermaß.**
-   *
-   * Zwei Kacheln, die genau aneinanderstoßen, lassen beim Vergrößern eine
-   * haarfeine Lücke – der Browser rundet die eine Kante nach unten und die
-   * andere nach oben. Ein halber Punkt Überlappung schließt sie, und weil
-   * beide Kacheln an ihrer Grenze dasselbe zeigen, sieht man die Überlappung
-   * nicht.
-   */
-  ctx.drawImage(
-    bild as CanvasImageSource,
-    (x0 - sicht.x) * massstab - 0.5,
-    (y0 - sicht.y) * massstab - 0.5,
-    mass * massstab + 1,
-    mass * massstab + 1,
-  );
+): { x: number; y: number; b: number; h: number } {
+  const links = Math.round((i * mass - sicht.x) * massstab);
+  const oben = Math.round((j * mass - sicht.y) * massstab);
+  const rechts = Math.round(((i + 1) * mass - sicht.x) * massstab);
+  const unten = Math.round(((j + 1) * mass - sicht.y) * massstab);
+  return { x: links, y: oben, b: rechts - links, h: unten - oben };
 }
