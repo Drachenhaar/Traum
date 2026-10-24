@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="de">
+<head><meta charset="utf-8" /><title>Freisteller</title></head>
+<body>
+<script type="module">
+/*
+ * Der Freisteller – von ChatGPT zu einem Bild, das den Vertrag hält.
+ *
+ * ---
+ *
+ * **Das Problem.**
+ *
+ * Ein Bildmodell liefert ein Rechteck mit Hintergrund. Der Vertrag will ein
+ * freigestelltes Ding, das mit dem Fuß auf der Unterkante steht, ringsum Luft
+ * hat und ein bestimmtes Seitenverhältnis einhält. Beides von Hand zu
+ * überbrücken ist genau die Sorte Arbeit, bei der nach dem dritten Bild die
+ * Sorgfalt nachlässt – und Ungleichmäßigkeit ist der eine Fehler, den eine
+ * Karte aus hundert Bildern nicht verzeiht.
+ *
+ * ---
+ *
+ * **Warum Flutfüllung und nicht „alle Punkte dieser Farbe".**
+ *
+ * Ein Baum vor hellgrauem Grund hat selbst hellgraue Stellen – Lichtkanten,
+ * Dunst, Schnee. Wer global nach Farbe löscht, stanzt Löcher ins Motiv. Die
+ * Flutfüllung läuft vom **Rand** nach innen und hört auf, wo das Motiv
+ * beginnt; was innen liegt und zufällig dieselbe Farbe hat, bleibt stehen.
+ *
+ * ---
+ *
+ * **Und warum weiche Kanten.**
+ *
+ * Eine harte Alphakante sieht auf Papier aus wie ausgeschnitten. Punkte am
+ * Übergang bekommen deshalb Teildeckung, abgestuft nach ihrem Abstand zur
+ * Hintergrundfarbe.
+ */
+
+/** Farbabstand, grob aber ausreichend. */
+function abstand(d, i, r, g, b) {
+  return Math.abs(d[i] - r) + Math.abs(d[i + 1] - g) + Math.abs(d[i + 2] - b);
+}
+
+/**
+ * Den Hintergrund fortnehmen.
+ *
+ * `toleranz` ist der Abstand, bis zu dem ein Punkt noch als Hintergrund
+ * gilt; bis `weich` darüber wird er teildurchsichtig.
+ */
+function freistellen(ctx, w, h, toleranz, weich) {
+  const bild = ctx.getImageData(0, 0, w, h);
+  const d = bild.data;
+
+  /*
+   * Die Hintergrundfarbe aus den vier Ecken – der Mittelwert, nicht eine
+   * einzelne Ecke. Ein Modell legt gern einen leichten Verlauf an, und eine
+   * einzelne Ecke trifft dann die andere Seite nicht.
+   */
+  const ecken = [[0, 0], [w - 1, 0], [0, h - 1], [w - 1, h - 1]];
+  let r = 0, g = 0, b = 0;
+  for (const [x, y] of ecken) {
+    const i = (y * w + x) * 4;
+    r += d[i]; g += d[i + 1]; b += d[i + 2];
+  }
+  r /= 4; g /= 4; b /= 4;
+
+  /* Flutfüllung vom Rand nach innen. */
+  const aussen = new Uint8Array(w * h);
+  const stapel = [];
+  for (let x = 0; x < w; x++) { stapel.push(x, (h - 1) * w + x); }
+  for (let y = 0; y < h; y++) { stapel.push(y * w, y * w + w - 1); }
+
+  while (stapel.length) {
+    const p = stapel.pop();
+    if (aussen[p]) continue;
+    if (abstand(d, p * 4, r, g, b) > toleranz + weich) continue;
+    aussen[p] = 1;
+    const x = p % w, y = (p - x) / w;
+    if (x > 0) stapel.push(p - 1);
+    if (x < w - 1) stapel.push(p + 1);
+    if (y > 0) stapel.push(p - w);
+    if (y < h - 1) stapel.push(p + w);
+  }
+
+  for (let p = 0; p < w * h; p++) {
+    if (!aussen[p]) continue;
+    const i = p * 4;
+    const ab = abstand(d, i, r, g, b);
+    if (ab <= toleranz) d[i + 3] = 0;
+    else d[i + 3] = Math.round(d[i + 3] * Math.min(1, (ab - toleranz) / Math.max(1, weich)));
+  }
+
+  ctx.putImageData(bild, 0, 0);
+  return { r: Math.round(r), g: Math.round(g), b: Math.round(b) };
+}
+
+/** Der Kasten, in dem das Bild deckt. */
+function kasten(ctx, w, h) {
+  const d = ctx.getImageData(0, 0, w, h).data;
+  let x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (d[(y * w + x) * 4 + 3] < 12) continue;
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
+    }
+  }
+  return x1 < 0 ? undefined : { x0, y0, x1, y1 };
+}
+
+/**
+ * Zuschneiden und einpassen.
+ *
+ * ---
+ *
+ * **Hier wird der Vertrag erfüllt, nicht nur geprüft.**
+ *
+ * Die Rechnung ist umgekehrt gedacht: Nicht „wie schneide ich zu", sondern
+ * „welche Leinwand braucht dieses Motiv, damit sein Fuß bei `ankerY` steht
+ * und oben `randFrei` Luft bleibt". Daraus folgt die Höhe, daraus die Breite
+ * über das Seitenverhältnis. Passt das Motiv seitlich nicht hinein, wird es
+ * verkleinert – lieber ein kleineres Ding im richtigen Rahmen als ein
+ * richtig großes im falschen.
+ */
+function einpassen(quelle, k, soll, vertrag, hoechstens) {
+  let mw = k.x1 - k.x0 + 1;
+  let mh = k.y1 - k.y0 + 1;
+
+  const obenLuft = vertrag.randFrei * 1.6;
+  let H = mh / (soll.ankerY - obenLuft);
+  let W = H * soll.breiteZuHoehe;
+  const platzBreite = W * (1 - vertrag.randFrei * 3);
+  let massstab = 1;
+  if (mw > platzBreite) {
+    massstab = platzBreite / mw;
+    mw *= massstab;
+    mh *= massstab;
+    H = mh / (soll.ankerY - obenLuft);
+    W = H * soll.breiteZuHoehe;
+  }
+
+  if (H > hoechstens) {
+    const s = hoechstens / H;
+    H = hoechstens;
+    W = H * soll.breiteZuHoehe;
+    massstab *= s;
+    mw *= s;
+    mh *= s;
+  }
+
+  const ziel = document.createElement('canvas');
+  ziel.width = Math.max(4, Math.round(W));
+  ziel.height = Math.max(4, Math.round(H));
+  const zctx = ziel.getContext('2d');
+  zctx.imageSmoothingEnabled = true;
+  zctx.imageSmoothingQuality = 'high';
+
+  const zx = (ziel.width - mw) / 2;
+  const zy = ziel.height * soll.ankerY - mh;
+  zctx.drawImage(
+    quelle,
+    k.x0, k.y0, k.x1 - k.x0 + 1, k.y1 - k.y0 + 1,
+    zx, zy, mw, mh,
+  );
+  return ziel;
+}
+
+/**
+ * Ein Rohbild zu einem oder mehreren vertragsgemäßen Bildern machen.
+ *
+ * `spalten` und `zeilen` schneiden ein **Blatt** auf: Ein Bildmodell liefert
+ * acht Bäume in einem Bild viel gleichförmiger als acht Bäume in acht
+ * Bildern – gleiches Licht, gleicher Strich, gleiche Größe, weil es sie
+ * nebeneinander sieht. Das ist der einzige verlässliche Weg zu einem Satz,
+ * der zusammengehört.
+ */
+window.freistelle = async (url, { spalten = 1, zeilen = 1, soll, vertrag, toleranz, weich, hoechstens }) => {
+  const bild = await new Promise((fertig, scheitern) => {
+    const i = new Image();
+    i.onload = () => fertig(i);
+    i.onerror = () => scheitern(new Error(`konnte ${url} nicht laden`));
+    i.src = url;
+  });
+
+  const tw = Math.floor(bild.width / spalten);
+  const th = Math.floor(bild.height / zeilen);
+  const aus = [];
+  let grund = null;
+
+  for (let z = 0; z < zeilen; z++) {
+    for (let s = 0; s < spalten; s++) {
+      const c = document.createElement('canvas');
+      c.width = tw; c.height = th;
+      const ctx = c.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(bild, s * tw, z * th, tw, th, 0, 0, tw, th);
+
+      grund = freistellen(ctx, tw, th, toleranz, weich);
+      const k = kasten(ctx, tw, th);
+      if (!k) { aus.push(null); continue; }
+      aus.push(einpassen(c, k, soll, vertrag, hoechstens).toDataURL('image/png'));
+    }
+  }
+  return { bilder: aus, grund, teilbreite: tw, teilhoehe: th };
+};
+
+document.title = 'bereit';
+</script>
+</body>
+</html>

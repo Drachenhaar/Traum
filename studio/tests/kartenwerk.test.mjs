@@ -741,6 +741,56 @@ pruefe('der Vertrag steht an einer Stelle und wird wirklich geprüft', () => {
     'Beanstandungen brechen das Backen nicht ab');
 });
 
+pruefe('der Freisteller passt ein, statt nur zu beschneiden', () => {
+  /*
+   * **Was ein Bildmodell liefert, hält den Vertrag nie von selbst.**
+   *
+   * Es liefert ein Rechteck mit Hintergrund, und die Fußlinien stehen dort,
+   * wo sie gerade standen. Nachgestellt mit acht Bäumen auf einem Blatt,
+   * deren Fußlinien um ±15 Punkte streuten: Nach dem Freistellen hielten
+   * **alle acht** die Fußpunktprüfung – weil der Einpasser nicht
+   * beschneidet, sondern rechnet, welche Leinwand das Motiv braucht, damit
+   * sein Fuß bei `ankerY` sitzt.
+   *
+   * Die Lichtrichtung kann er nicht geraderücken. Die muss aus dem Bild
+   * kommen, und dafür gibt es `BILDANWEISUNG.md`.
+   */
+  const f = ohneProsa(lies('scripts/atlas/freisteller.html'));
+  assert.match(f, /let H = mh \/ \(soll\.ankerY - obenLuft\);/,
+    'die Leinwandhöhe folgt nicht dem Ankerpunkt');
+  assert.match(f, /const zy = ziel\.height \* soll\.ankerY - mh;/,
+    'der Fuß wird nicht auf den Anker gesetzt');
+  assert.match(f, /let W = H \* soll\.breiteZuHoehe;/,
+    'die Breite folgt nicht dem Seitenverhältnis');
+
+  /* Und er flutet vom Rand, statt global nach Farbe zu löschen. */
+  assert.match(f, /for \(let x = 0; x < w; x\+\+\) \{ stapel\.push\(x, \(h - 1\) \* w \+ x\); \}/,
+    'die Flutfüllung startet nicht am Rand');
+
+  const m = ohneProsa(lies('scripts/freistellen.mjs'));
+  assert.match(m, /soll: masse, vertrag: VERTRAG,/,
+    'der Freisteller liest den Vertrag nicht');
+});
+
+pruefe('die Bildanweisung nennt dieselben Zahlen wie der Vertrag', () => {
+  /*
+   * Zwei Wahrheiten über dieselbe Regel sind der Anfang eines Satzes, der
+   * nicht zusammenpasst: Wer nach dem Blatt arbeitet und am Prüfer
+   * scheitert, hat kein Bild zu wenig, sondern eine Anweisung zu viel.
+   */
+  const a = lies('BILDANWEISUNG.md');
+  assert.match(a, /acht Bäumen nebeneinander/, 'das Blatt wird nicht verlangt');
+  assert.match(a, /links oben/, 'die Lichtrichtung fehlt');
+  assert.match(a, /#EDEDE9/, 'der Hintergrundton fehlt');
+  assert.match(a, /npm run freistellen -- <satz> <art> 8 --blatt/, 'der Weg fehlt');
+  /* Die Farben müssen die des Satzes sein. */
+  const v = ohneProsa(lies('scripts/atlas/saetze.mjs'));
+  for (const ton of ['#7A8467', '#99A484', '#5C6749', '#6B6047']) {
+    assert.ok(v.includes(ton), `${ton} steht nicht im Satz`);
+    assert.ok(a.includes(ton), `${ton} fehlt in der Bildanweisung`);
+  }
+});
+
 /* =======================================================================
  * 7 · DIE ALTE MASCHINE IST WIRKLICH WEG
  * ==================================================================== */
