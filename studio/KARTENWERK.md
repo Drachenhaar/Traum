@@ -250,10 +250,18 @@ Hand. Was zählt, ist das Seitenverhältnis.
 
 ### Maße (volle Stufe; die Mipstufen backt die Pipeline selbst)
 
+Die volle Stufe ist **keine freie Wahl**. Sie ergibt sich aus dem engsten
+Zoom: Beim höchsten Kachelgrad hat eine Kachel den Maßstab
+`KACHEL_PX × Dichte ÷ Kachelmass`, heute 16,4 Bildpunkte je Karteneinheit.
+Ein Baum von 26 Karteneinheiten wird dort **426 Punkte** hoch gezeichnet —
+also muss das Bild mindestens so gross sein. Hier stand 190, und man sah es:
+matschig statt scharf. `tests/kartenwerk.test.mjs` rechnet das jetzt nach,
+statt es einem Kommentar zu überlassen.
+
 | Art | Höhe | Verhältnis B:H | Varianten |
 |---|---|---|---|
-| Berge | 420 px | 1,2 – 1,9 (streuend) | 8 |
-| Bäume | 190 px | 0,7 – 0,9 | 8 |
+| Berge | 430 px | 1,2 – 1,9 (streuend) | 8 |
+| Bäume | 430 px | 0,7 – 0,9 | 8 |
 | Felsen | 150 px | 1,0 – 1,4 | 6 |
 | Gebäude | 260 px | 0,9 – 1,2 | 6 |
 | Schilf / Gras | *nicht als Bild* | — | Pinsel |

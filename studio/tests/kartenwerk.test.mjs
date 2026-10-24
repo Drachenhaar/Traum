@@ -25,7 +25,7 @@
 import { strict as assert } from 'node:assert';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
-import { readFileSync, mkdirSync, rmSync } from 'node:fs';
+import { readFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
 import { ARBEIT } from './arbeit.mjs';
 
 const wurzel = join(import.meta.dirname, '..');
@@ -650,6 +650,89 @@ pruefe('der gebackene Bildersatz liegt bei und beschreibt sich selbst', () => {
         `ein Feld liegt ausserhalb des Atlas: ${x},${y},${bw},${bh}`);
     }
   }
+});
+
+pruefe('ein Baum wird nie aus einem zu kleinen Bild geholt', () => {
+  /*
+   * **Die Lücke, durch die der Matsch kam.**
+   *
+   * Gebacken wurde auf 190 Bildpunkte Höhe. Gezeichnet wird ein Baum beim
+   * engsten Zoom auf **426** – zweieinviertelfach vergrössert, und genau so
+   * sah er aus. Keine Prüfung hat das bemerkt, weil keine die beiden Zahlen
+   * je nebeneinandergelegt hat. Sie standen in verschiedenen Dateien und
+   * waren einzeln jede plausibel.
+   *
+   * Die Rechnung hängt nicht am Zoom, sondern an der Kachel: Ein Bild wird
+   * in eine Kachel gemalt, und die feinste Kachelstufe hat einen festen
+   * Maßstab.
+   *
+   *     Maßstab = KACHEL_PX × Dichte ÷ Kachelmass(höchste Stufe)
+   *
+   * Das ist die obere Schranke, mehr kann nie verlangt werden. Was der
+   * Atlas liefert, muss mindestens so gross sein.
+   */
+  const dichteDeckel = Number(
+    ohneProsa(lies('src/components/karte/useKartenleinwand.ts'))
+      .match(/Math\.min\((\d+), *(?:typeof window[^)]*\)?[^)]*|window)\.devicePixelRatio/)?.[1],
+  );
+  assert.ok(dichteDeckel >= 1, 'der Deckel für die Gerätedichte ist nicht zu finden');
+
+  const massstab = (K.KACHEL_PX * dichteDeckel) / K.kachelmass(K.HOECHSTE_STUFE);
+
+  for (const [art, a] of Object.entries(verzeichnis.arten)) {
+    const gezeichnet = (a.karteHoehe ?? 15) * massstab;
+    const feinste = Math.max(...a.felder.map((st) => st[0][3]));
+    assert.ok(
+      feinste >= gezeichnet * 0.98,
+      `${art}: gezeichnet bis ${Math.round(gezeichnet)} Punkte, gebacken nur ${feinste}`,
+    );
+  }
+});
+
+pruefe('die gröbste Stufe bleibt klein genug, um nicht zu flimmern', () => {
+  /*
+   * Die andere Seite derselben Schranke. Ein Baum in der Übersicht ist ein
+   * paar Punkte gross; holte er sich die aus einem viermal zu grossen Bild,
+   * flimmerte er beim Schieben, weil der Browser bei jedem Bild andere
+   * Quellpunkte trifft.
+   *
+   * Als die volle Grösse von 190 auf 430 stieg, wäre genau das passiert –
+   * deshalb kam eine vierte Mipstufe dazu. Diese Prüfung ist der Grund,
+   * warum man sie nicht wieder wegnehmen kann, ohne es zu merken.
+   */
+  const uebersicht = (K.KACHEL_PX * 1) / K.kachelmass(0);
+  for (const [art, a] of Object.entries(verzeichnis.arten)) {
+    const klein = (a.karteHoehe ?? 15) * uebersicht;
+    const groebste = Math.min(...a.felder.map((st) => st[st.length - 1][3]));
+    assert.ok(groebste <= Math.max(8, klein * 2.2),
+      `${art}: in der Übersicht ${klein.toFixed(1)} Punkte gross, gröbste Stufe ${groebste}`);
+  }
+});
+
+pruefe('der Lader holt die Datei, die der Backofen schreibt', () => {
+  /*
+   * Zwei Dateinamen in zwei Dateien. Gehen sie auseinander, lädt der Atlas
+   * nicht – und die Karte zeichnet klaglos weiter mit dem Pinsel, weil
+   * genau das der vorgesehene Rückfallweg ist. Ein Fehler, der sich als
+   * Vorsichtsmassnahme tarnt.
+   */
+  const ofen = lies('scripts/atlas-backen.mjs').match(/'(atlas\.\w+)'/g) ?? [];
+  /*
+   * **Die Bildzeile, nicht irgendeine.** Der erste Anlauf nahm das erste
+   * `atlas.…` im Quelltext – und das ist `atlas.json`, das der Backofen
+   * natürlich auch schreibt. Die Prüfung verglich die Verzeichnisdatei mit
+   * sich selbst und blieb grün, während Lader und Backofen beim Bild
+   * auseinandergingen.
+   */
+  const lader = ohneProsa(lies('src/lib/kartenwerk/atlas.ts'))
+    .match(/i\.src = `\$\{ordner\}atlas\.(\w+)`/)?.[1];
+  assert.ok(lader, 'der Lader nennt keine Bilddatei');
+  assert.notEqual(lader, 'json', 'der Lader holt das Verzeichnis statt des Bildes');
+  assert.ok(ofen.includes(`'atlas.${lader}'`),
+    `der Lader holt atlas.${lader}, der Backofen schreibt ${ofen.join(', ')}`);
+  /* Und sie liegt wirklich da. */
+  assert.ok(existsSync(join(wurzel, `public/karte/artbook/atlas.${lader}`)),
+    `public/karte/artbook/atlas.${lader} fehlt`);
 });
 
 pruefe('der Anker ist die Mitte der Unterkante', () => {

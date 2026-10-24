@@ -90,7 +90,7 @@ export async function ladeAtlas(stil: string, basis: string): Promise<Atlas | un
       const i = new Image();
       i.onload = () => fertig(i);
       i.onerror = () => fertig(undefined);
-      i.src = `${ordner}atlas.png`;
+      i.src = `${ordner}atlas.webp`;
     });
     if (!bild) return undefined;
     return { bild, verzeichnis };

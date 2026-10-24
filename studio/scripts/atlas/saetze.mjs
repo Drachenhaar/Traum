@@ -70,7 +70,21 @@ export const SAETZE = {
     name: 'Clean Artbook',
     arten: {
       wald: {
-        hoehe: 190,
+        /*
+         * **Die Auflösung der gebackenen Datei.**
+         *
+         * Hier stand 190, und das war zu wenig. Gerechnet: Beim engsten
+         * Zoom (`ENGSTE = FELD / 8`, also 125 Einheiten quer) bedeckt die
+         * Leinwand auf einem Gerät mit doppelter Dichte 1800 Bildpunkte.
+         * Ein Baum von 26 Karteneinheiten wird dort **426 Bildpunkte**
+         * hoch gezeichnet – aus einer Quelle von 190. Zweieinviertelfach
+         * vergrössert, und genau so sah es aus: matschig statt scharf.
+         *
+         * Die Rohblätter geben 440 bis 530 Punkte je Baum her. Davon wurde
+         * also das Zweieinhalbfache weggeworfen, bevor das Bild je auf die
+         * Karte kam. 430 schöpft die Quelle aus und deckt den engsten Zoom.
+         */
+        hoehe: 430,
         /*
          * Wie hoch ein Baum **auf der Karte** steht, im Kartenmass 0…1000.
          *
@@ -97,8 +111,23 @@ export const SAETZE = {
   },
 };
 
-/** Die Mipstufen. Volle Größe, halb, viertel. */
-export const MIPS = [1, 0.5, 0.25];
+/**
+ * Die Mipstufen – die ganze Spanne, von der Nahsicht bis zur Übersicht.
+ *
+ * ---
+ *
+ * Drei Stufen waren es, und sie deckten nur das obere Ende ab. Am unteren
+ * klaffte eine Lücke, die älter ist als die höhere Auflösung: In der
+ * Übersicht ist ein Baum **6,7 Bildpunkte** gross und wurde aus einem Bild
+ * von 47 geholt – siebenfach heruntergerechnet. Das flimmert beim
+ * Schieben, weil der Browser bei jedem Bild andere Quellpunkte trifft, und
+ * es ist die Ansicht, in der man die Karte am häufigsten sieht.
+ *
+ * Sechs Stufen spannen jetzt von 430 bis 13 Punkten. Die feinen Stufen
+ * kosten den Platz, die groben kosten nichts – zusammen sind die drei
+ * neuen weniger als ein Zwanzigstel des Atlas.
+ */
+export const MIPS = [1, 0.5, 0.25, 0.125, 0.0625, 0.03125];
 
 /** Wo eine gemalte Datei liegen müsste. */
 export function bildpfad(satz, art, nr) {

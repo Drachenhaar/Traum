@@ -82,11 +82,11 @@ await seite.waitForFunction(() => document.title === 'bereit', null, { timeout: 
 
 let beanstandet = 0;
 for (const stil of welche) {
-  const { png, verzeichnis, bericht } = await seite.evaluate((s) => window.backe(s), stil);
+  const { bild, verzeichnis, bericht } = await seite.evaluate((s) => window.backe(s), stil);
   const ordner = join(wurzel, 'public/karte', stil);
   mkdirSync(ordner, { recursive: true });
-  const daten = Buffer.from(png.split(',')[1], 'base64');
-  writeFileSync(join(ordner, 'atlas.png'), daten);
+  const daten = Buffer.from(bild.split(',')[1], 'base64');
+  writeFileSync(join(ordner, 'atlas.webp'), daten);
   writeFileSync(join(ordner, 'atlas.json'), `${JSON.stringify(verzeichnis, null, 1)}\n`);
 
   const felder = Object.values(verzeichnis.arten)
