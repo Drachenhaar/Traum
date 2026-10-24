@@ -1,5 +1,5 @@
 {
- "stil": "artbook",
+ "satz": "artbook",
  "breite": 1024,
  "hoehe": 1024,
  "arten": {
@@ -12,6 +12,16 @@
     1,
     0.5,
     0.25
+   ],
+   "herkunft": [
+    "gemalt",
+    "gebacken",
+    "gebacken",
+    "gebacken",
+    "gebacken",
+    "gebacken",
+    "gebacken",
+    "gebacken"
    ],
    "felder": [
     [

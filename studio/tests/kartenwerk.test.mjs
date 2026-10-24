@@ -616,8 +616,8 @@ pruefe('ohne Atlas malt der Pinsel – die Karte bleibt nie leer', () => {
    * schöneres Laub.
    */
   const q = ohneProsa(lies('src/lib/kartenwerk/stilbuch.ts'));
-  assert.match(q, /const gemalt = atlas && bildEintrag\(atlas, 'wald', 'bewuchs', EBENE\.bewuchs\);/);
-  assert.match(q, /wald: gemalt \?\? \{/, 'der Pinsel ist kein Rückfallweg');
+  assert.match(q, /if \(gemalt\) tabelle\[art\] = gemalt;/, 'das Bild hat keinen Vorrang');
+  assert.match(q, /\{ \.\.\.pinselEintraege\(stil\) \}/, 'der Pinsel ist kein Rückfallweg');
 
   const a = ohneProsa(lies('src/lib/kartenwerk/atlas.ts'));
   assert.match(a, /if \(!antwort\.ok\) return undefined;/, 'ein fehlender Atlas wirft');
@@ -635,10 +635,117 @@ pruefe('ein neuer Bildersatz leert den Kachelspeicher', () => {
 });
 
 /* =======================================================================
- * 6 · DIE ALTE MASCHINE IST WIRKLICH WEG
+ * 6 · DIE GRAFIKEN SIND AUSTAUSCHBAR
+ *
+ * Die gebackene Kunst ist Stufe eins, nicht das Ziel. Was hier geprüft
+ * wird, ist nicht, wie sie aussieht, sondern dass sie sich ersetzen
+ * lässt – ohne Änderung am Programm und ohne Änderung an den
+ * Kartendaten.
  * ==================================================================== */
 
-console.log('\n6 · Die alte Maschine ist wirklich weg');
+console.log('\n6 · Die Grafiken sind austauschbar');
+
+pruefe('keine Stelle im Kartenwerk nennt eine Art beim Namen', () => {
+  /*
+   * **Die Zusage „neue Landschaftstypen ohne Umbau der Engine".**
+   *
+   * Sie wäre gebrochen, stünde irgendwo `if (art === 'berge')`. Das Stilbuch
+   * geht über das durch, was der Bildersatz mitbringt; welche Arten das
+   * sind, erfährt es erst zur Laufzeit.
+   *
+   * Das Streuwerk ist ausgenommen: Dort steht *wie* eine Art verteilt wird,
+   * und ein Wald wird anders gestreut als eine Gebirgskette. Das ist
+   * Bedeutung, nicht Gestaltung.
+   */
+  const q = ohneProsa(lies('src/lib/kartenwerk/stilbuch.ts'));
+  assert.match(q, /for \(const art of Object\.keys\(atlas\?\.verzeichnis\.arten \?\? \{\}\)\)/,
+    'das Stilbuch geht die Arten des Satzes nicht durch');
+  /*
+   * Nur `stilbuchFuer` – die **Pinseltabelle** darf ihre Arten nennen. Sie
+   * ist das, was dieser Stil aus Code zeichnen kann, und das ist
+   * Gestaltung. Generisch sein muss der Weg, auf dem Bilder hereinkommen.
+   */
+  const anfang = q.indexOf('export function stilbuchFuer');
+  const generisch = q.slice(anfang, q.indexOf('function pinselEintraege', anfang));
+  assert.ok(generisch.length > 200, 'stilbuchFuer nicht gefunden');
+  assert.doesNotMatch(generisch, /'wald'|"wald"/, 'stilbuchFuer nennt eine Art beim Namen');
+});
+
+pruefe('der Bildersatz hängt am Stil, nicht an einer festen Zeichenkette', () => {
+  /*
+   * Sonst bekäme jeder spätere Stil die Bäume von Artbook. Und der dunkle
+   * Band teilt den Satz mit dem hellen: Laub und Stamm sind in beiden
+   * gleich, was sich ändert, ist Papier und Tinte.
+   */
+  const q = ohneProsa(lies('src/components/karte/useKartenleinwand.ts'));
+  assert.match(q, /const satz = stil\.bildsatz;/);
+  assert.match(q, /ladeAtlas\(satz, import\.meta\.env\.BASE_URL\)/);
+  assert.doesNotMatch(q, /ladeAtlas\('artbook'/, 'der Satz ist fest verdrahtet');
+
+  const st = ohneProsa(lies('src/lib/karte/stil.ts'));
+  assert.match(st, /id: 'artbook-dunkel',[\s\S]{0,200}?bildsatz: 'artbook',/,
+    'der dunkle Band hat einen eigenen Satz');
+});
+
+pruefe('eine gemalte Datei verdrängt die gebackene', () => {
+  /*
+   * **Der Austauschweg, an der Wirkung gemessen.** Unter
+   * `assets/karte/artbook/wald_00.png` liegt eine Illustration; im
+   * Verzeichnis muss Variante 0 deshalb als `gemalt` stehen und der Rest
+   * als `gebacken`.
+   *
+   * Das ist der ganze Weg: Datei hinlegen, `npm run atlas`. Kein
+   * Programmteil, keine Kartendaten.
+   */
+  const v = JSON.parse(readFileSync(join(wurzel, 'public/karte/artbook/atlas.json'), 'utf8'));
+  const h = v.arten.wald.herkunft;
+  assert.ok(Array.isArray(h), 'das Verzeichnis sagt nicht, woher die Bilder stammen');
+  assert.equal(h.length, v.arten.wald.varianten);
+  assert.equal(h[0], 'gemalt', 'die hinterlegte Illustration wurde nicht genommen');
+  assert.ok(h.includes('gebacken'), 'kein einziges Bild stammt mehr aus dem Pinsel');
+
+  /*
+   * **Und der Ofen muss es auch tun.** Das Erzeugnis allein genügt nicht:
+   * Es liegt eingecheckt im Verzeichnis und bliebe richtig, auch wenn der
+   * Weg dorthin kaputtginge. Erst beim nächsten Backen fiele es auf – also
+   * genau dann, wenn jemand eine neue Illustration ausprobiert.
+   */
+  const b = ohneProsa(lies('scripts/atlas/backstube.html'));
+  assert.match(b, /const bild = await lade\(bildpfad\(satzName, art, v\)\);/,
+    'die Backstube sucht keine gemalten Dateien');
+  assert.match(b, /herkunft: quellen\[art\]\.map\(\(q\) => \(q\.bild \? 'gemalt' : 'gebacken'\)\)/,
+    'die Herkunft wird nicht aus der Quelle abgeleitet');
+});
+
+pruefe('der Vertrag steht an einer Stelle und wird wirklich geprüft', () => {
+  /*
+   * Einheitliche Perspektive, Lichtrichtung und Größenverhältnisse sind
+   * keine Bitte an den Zeichner, sondern eine Bedingung, die das Backen
+   * durchsetzt. Gemessen an einem Bild mit Licht von rechts:
+   *
+   *   ✗ wald_03.png: das Licht kommt nicht von links oben:
+   *     links 90, rechts 154 – Vorsprung −52,7 %, nötig 1,5 %
+   *   ✗ wald: im Satz leuchtet es teils von links, teils von rechts
+   *
+   * und `npm run atlas` endet mit 1.
+   */
+  const v = ohneProsa(lies('scripts/atlas/saetze.mjs'));
+  for (const regel of ['fussAb', 'randFrei', 'verhaeltnisAbweichung', 'lichtVonLinks', 'mindestensDeckung']) {
+    assert.match(v, new RegExp(`${regel}:`), `der Vertrag kennt ${regel} nicht`);
+  }
+  const b = ohneProsa(lies('scripts/atlas/backstube.html'));
+  assert.match(b, /pruefe\(mass, def, VERTRAG\)/, 'einzelne Bilder werden nicht geprüft');
+  assert.match(b, /pruefeSatz\(masse, VERTRAG\)/, 'der Satz als ganzer wird nicht geprüft');
+  const a = ohneProsa(lies('scripts/atlas-backen.mjs'));
+  assert.match(a, /if \(beanstandet\) \{[\s\S]{0,300}?process\.exit\(1\);/,
+    'Beanstandungen brechen das Backen nicht ab');
+});
+
+/* =======================================================================
+ * 7 · DIE ALTE MASCHINE IST WIRKLICH WEG
+ * ==================================================================== */
+
+console.log('\n7 · Die alte Maschine ist wirklich weg');
 
 pruefe('es gibt keine zweite Kartenimplementierung', () => {
   /*

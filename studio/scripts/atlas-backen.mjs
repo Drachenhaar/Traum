@@ -36,10 +36,21 @@ const welche = STILE.length ? STILE : ['artbook'];
 
 /* Ein Modulskript braucht einen Server – über `file://` greift die
    Ursprungsregel des Browsers. */
-const typen = { '.html': 'text/html', '.mjs': 'text/javascript', '.js': 'text/javascript' };
+const typen = {
+  '.html': 'text/html', '.mjs': 'text/javascript', '.js': 'text/javascript',
+  '.png': 'image/png', '.webp': 'image/webp',
+};
+/*
+ * Zwei Ordner: die Backstube und die gemalten Grafiken.
+ *
+ * `/assets/...` zeigt auf `assets/` im Projekt – dort legt man die
+ * Illustrationen hin. Alles andere kommt aus `scripts/atlas`.
+ */
 const server = createServer((anfrage, antwort) => {
-  const pfad = join(wurzel, 'scripts/atlas', (anfrage.url ?? '/').split('?')[0]);
-  if (!pfad.startsWith(join(wurzel, 'scripts/atlas')) || !existsSync(pfad)) {
+  const url = (anfrage.url ?? '/').split('?')[0];
+  const wurzelOrdner = url.startsWith('/assets/') ? wurzel : join(wurzel, 'scripts/atlas');
+  const pfad = url.startsWith('/assets/') ? join(wurzel, url) : join(wurzelOrdner, url);
+  if (!pfad.startsWith(wurzelOrdner) || !existsSync(pfad)) {
     antwort.writeHead(404).end();
     return;
   }
@@ -69,8 +80,9 @@ seite.on('pageerror', (e) => fehler.push(e.message));
 await seite.goto(`http://localhost:${hafen}/backstube.html`);
 await seite.waitForFunction(() => document.title === 'bereit', null, { timeout: 30000 });
 
+let beanstandet = 0;
 for (const stil of welche) {
-  const { png, verzeichnis } = await seite.evaluate((s) => window.backe(s), stil);
+  const { png, verzeichnis, bericht } = await seite.evaluate((s) => window.backe(s), stil);
   const ordner = join(wurzel, 'public/karte', stil);
   mkdirSync(ordner, { recursive: true });
   const daten = Buffer.from(png.split(',')[1], 'base64');
@@ -80,14 +92,30 @@ for (const stil of welche) {
   const felder = Object.values(verzeichnis.arten)
     .reduce((n, a) => n + a.varianten * a.stufen.length, 0);
   console.log(
-    `  ${stil}: ${verzeichnis.breite}×${verzeichnis.hoehe}, ` +
-    `${felder} Felder, ${(daten.length / 1024).toFixed(0)} kB`,
+    `  ${stil}: ${verzeichnis.breite}×${verzeichnis.hoehe}, ${felder} Felder, ` +
+    `${(daten.length / 1024).toFixed(0)} kB  ` +
+    `(${bericht.gemalt} gemalt, ${bericht.gebacken} gebacken)`,
   );
+
+  /*
+   * **Beanstandungen brechen das Backen ab.**
+   *
+   * Nicht als Warnung: Eine Grafik, die den Vertrag verletzt, sieht einzeln
+   * tadellos aus und fällt erst zwischen zweihundert anderen auf – und dann
+   * weiss niemand mehr, welche es war. Hier ist der einzige Augenblick, in
+   * dem es noch billig zu finden ist.
+   */
+  for (const k of bericht.klagen) console.error(`  ✗ ${k}`);
+  beanstandet += bericht.klagen.length;
 }
 
 await browser.close();
 server.close();
 if (fehler.length) {
   console.error('Fehler in der Backstube:', fehler);
+  process.exit(1);
+}
+if (beanstandet) {
+  console.error(`\n  ${beanstandet} Beanstandung(en) – der Satz wurde geschrieben, aber er hält den Vertrag nicht.`);
   process.exit(1);
 }

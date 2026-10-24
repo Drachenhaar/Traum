@@ -102,56 +102,94 @@ export function stilbuchAus(id: string, tabelle: Record<string, Stileintrag>): S
  * Dass es drei sind und nicht acht, ist eine Angabe dieses Stilbuchs und
  * keine Grenze der Architektur.
  */
-export function artbookStilbuch(stil: Kartenstil, atlas?: Atlas): Stilbuch {
-  /*
-   * **Das Bild hat Vorrang, der Pinsel ist der Rückfallweg.**
-   *
-   * Nicht umgekehrt, und nicht als Einstellung. Solange die Grafiken nicht
-   * geladen sind – beim ersten Bild, ohne Netz, bei einer kaputten Datei –
-   * malt der Pinsel, und die Karte sieht aus wie immer. Kommen sie an, wird
-   * getauscht und der Kachelspeicher geleert.
-   *
-   * Eine Karte, die ohne ihre Bilder weiss bleibt, wäre ein schlechter
-   * Tausch für etwas schöneres Laub.
-   */
-  const gemalt = atlas && bildEintrag(atlas, 'wald', 'bewuchs', EBENE.bewuchs);
+/**
+ * Wo eine Art hingehoert und wie sie einsortiert wird.
+ *
+ * Steht hier und nicht im Atlas: Eine Siedlung liegt in jedem Stil ueber dem
+ * Wald, auch wenn sie in jedem Stil anders aussieht. Lage und Reihenfolge
+ * sind Bedeutung, nicht Gestaltung.
+ */
+const ORDNUNG: Record<string, { lage: Lage; ebene: number; breiteZuHoehe: number }> = {
+  wald: { lage: 'bewuchs', ebene: EBENE.bewuchs, breiteZuHoehe: 1 },
+  wiese: { lage: 'grund', ebene: EBENE.boden, breiteZuHoehe: 1 },
+  fels: { lage: 'bewuchs', ebene: EBENE.fels, breiteZuHoehe: 1.4 },
+  berge: { lage: 'bewuchs', ebene: EBENE.fels, breiteZuHoehe: 1.6 },
+  bauwerk: { lage: 'bewuchs', ebene: EBENE.bauwerk, breiteZuHoehe: 1.2 },
+};
 
-  return stilbuchAus('artbook', {
-    wald: gemalt ?? {
+function ordnung(art: string) {
+  return ORDNUNG[art] ?? { lage: 'bewuchs' as Lage, ebene: EBENE.bewuchs, breiteZuHoehe: 1.2 };
+}
+
+/**
+ * Das Stilbuch eines Stils.
+ *
+ * ---
+ *
+ * **Zwei Quellen, eine Tabelle.**
+ *
+ * Zuerst die Pinsel – das, was dieser Stil aus Code zeichnen kann. Darueber
+ * jede Art, die der Bildersatz mitbringt. Ein Bild hat also Vorrang, und wo
+ * keines liegt, bleibt der Pinsel.
+ *
+ * **Nichts hier nennt eine Art beim Namen.** Wer dem Satz morgen Felsen
+ * hinzufuegt, legt die Dateien dazu und backt neu; dieses Modul aendert sich
+ * nicht. Das war die Zusage „neue Landschaftstypen ohne Umbau der Engine",
+ * und sie waere gebrochen, stuende hier `if (art === 'berge')`.
+ */
+export function stilbuchFuer(stil: Kartenstil, atlas?: Atlas): Stilbuch {
+  const tabelle: Record<string, Stileintrag> = { ...pinselEintraege(stil) };
+
+  for (const art of Object.keys(atlas?.verzeichnis.arten ?? {})) {
+    const o = ordnung(art);
+    const gemalt = atlas && bildEintrag(atlas, art, o.lage, o.ebene);
+    /*
+     * **Das Bild hat Vorrang, der Pinsel ist der Rueckfallweg.**
+     *
+     * Nicht umgekehrt, und nicht als Einstellung. Solange die Grafiken nicht
+     * geladen sind – beim ersten Bild, ohne Netz, bei einer kaputten Datei –
+     * malt der Pinsel, und die Karte sieht aus wie immer. Eine Karte, die
+     * ohne ihre Bilder weiss bleibt, waere ein schlechter Tausch fuer etwas
+     * schoeneres Laub.
+     */
+    if (gemalt) tabelle[art] = gemalt;
+  }
+
+  return stilbuchAus(stil.id, tabelle);
+}
+
+/**
+ * Was dieser Stil ohne Bilder zeichnen kann.
+ *
+ * Fuer Artbook ist das der Federbaum aus `baumzeichnung.ts` – unveraendert,
+ * mit denselben Zahlen. Ein spaeterer Stil bringt hier seine eigenen Pinsel
+ * mit oder gar keine.
+ */
+function pinselEintraege(stil: Kartenstil): Record<string, Stileintrag> {
+  return {
+    wald: {
       varianten: 3,
-      lage: 'bewuchs',
-      ebene: EBENE.bewuchs,
-      /*
-       * Eine Baumkrone ist etwa 0,8 so breit wie der Baum hoch – gemessen an
-       * den drei Formen in `baumzeichnung.ts` (die breiteste ist der Busch
-       * mit 2 × 0,3 + 0,22). Ein Viertel Zuschlag für die Neigung.
-       */
-      breiteZuHoehe: 1,
+      ...ordnung('wald'),
       zeichne(ctx, s, massstab) {
         /*
-         * Zurück in die Form, die `zeichneBaum` kennt.
+         * Zurueck in die Form, die `zeichneBaum` kennt.
          *
-         * Diese Übersetzung ist der ganze Preis dafür, dass die alte
-         * Zeichenfunktion unverändert bleibt – und sie ist es wert: Jede
-         * Änderung an ihr wäre eine Änderung am Aussehen, und das war in
-         * dieser Etappe ausdrücklich nicht die Aufgabe.
+         * Diese Uebersetzung ist der ganze Preis dafuer, dass die alte
+         * Zeichenfunktion unveraendert bleibt – und sie ist es wert: Jede
+         * Aenderung an ihr waere eine Aenderung am Aussehen.
          */
         const baum: Baum = {
           x: s.x,
           y: s.y,
-          /* `zeichneBaum` rechnet die Höhe aus GROESSE × groesse. */
+          /* `zeichneBaum` rechnet die Hoehe aus GROESSE × groesse. */
           groesse: s.h / 15,
           neigung: s.dreh,
           form: s.variante,
-          /*
-           * `zeichneBaum` liest `rohform` nicht – es wählt über `form`. Der
-           * Wert steht hier nur, weil `Baum` ihn verlangt, und er bleibt
-           * ehrlich: dieselbe Wahl, ungeteilt.
-           */
+          /* `zeichneBaum` liest `rohform` nicht – es waehlt ueber `form`. */
           rohform: (s.variante + 0.5) / 3,
         };
         zeichneBaum(ctx, baum, stil, massstab);
       },
     },
-  });
+  };
 }

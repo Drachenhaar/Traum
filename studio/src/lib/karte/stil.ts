@@ -20,6 +20,18 @@
 export interface Kartenstil {
   id: string;
   name: string;
+  /**
+   * Welcher Bildersatz zu diesem Stil gehoert.
+   *
+   * Nicht dasselbe wie `id`: Der dunkle Band ist ein eigener Stil, benutzt
+   * aber **dieselben** Baeume. Laub und Stamm sind in beiden Baendern
+   * identisch; was sich aendert, ist Papier und Tinte. Zwei Saetze derselben
+   * Grafiken waeren zweimal dieselbe Arbeit und zweimal derselbe Speicher.
+   *
+   * Fehlt die Angabe, gibt es fuer diesen Stil keine gemalten Grafiken – dann
+   * zeichnet der Pinsel, und das ist eine gueltige Wahl und kein Mangel.
+   */
+  bildsatz?: string;
   /** Der Grund, auf dem alles liegt. */
   papier: string;
   /** Ein Hauch Struktur darauf – sehr schwach, sonst wird es Textur. */
@@ -49,6 +61,7 @@ export interface Kartenstil {
 export const ARTBOOK: Kartenstil = {
   id: 'artbook',
   name: 'Clean Artbook',
+  bildsatz: 'artbook',
   papier: '#F7F2E8',
   koernung: '#E8DECB',
   land: { flaeche: '#EFE7D4', linie: '#D8CCB4' },
@@ -81,6 +94,8 @@ export const ARTBOOK: Kartenstil = {
 export const ARTBOOK_DUNKEL: Kartenstil = {
   id: 'artbook-dunkel',
   name: 'Clean Artbook (dunkler Band)',
+  /* Derselbe Satz: der Band aendert das Papier, nicht die Baeume. */
+  bildsatz: 'artbook',
   papier: '#17130F',
   koernung: '#241C15',
   land: { flaeche: '#221B15', linie: '#3A2F22' },

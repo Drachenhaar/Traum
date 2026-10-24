@@ -45,7 +45,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Kartendokument, Kartenfeature } from '../../lib/karte/modell';
 import { kasten } from '../../lib/karte/modell';
 import type { Kartenstil } from '../../lib/karte/stil';
-import { artbookStilbuch } from '../../lib/kartenwerk/stilbuch';
+import { stilbuchFuer } from '../../lib/kartenwerk/stilbuch';
 import { ladeAtlas, type Atlas } from '../../lib/kartenwerk/atlas';
 import { staffageAus } from '../../lib/kartenwerk/streuwerk';
 import { Staffageraster } from '../../lib/kartenwerk/raster';
@@ -113,13 +113,20 @@ export function useKartenleinwand({
   const [atlas, setAtlas] = useState<Atlas | undefined>(undefined);
   useEffect(() => {
     let lebt = true;
-    void ladeAtlas('artbook', import.meta.env.BASE_URL).then((a) => {
+    const satz = stil.bildsatz;
+    if (!satz) return undefined;
+    void ladeAtlas(satz, import.meta.env.BASE_URL).then((a) => {
       if (lebt && a) setAtlas(a);
     });
     return () => { lebt = false; };
-  }, []);
+    /*
+     * Am **Bildersatz**, nicht am Stil: Der dunkle Band ist ein eigener Stil
+     * und benutzt dieselben Bäume. Zwei Sätze derselben Grafiken wären
+     * zweimal derselbe Speicher.
+     */
+  }, [stil.bildsatz]);
 
-  const stilbuch = useMemo(() => artbookStilbuch(stil, atlas), [stil, atlas]);
+  const stilbuch = useMemo(() => stilbuchFuer(stil, atlas), [stil, atlas]);
 
   /*
    * Die Staffage, einmal je Flächenzustand.
@@ -152,7 +159,7 @@ export function useKartenleinwand({
   const werkRef = useRef<Kachelwerk | null>(null);
   const stufeRef = useRef<number | undefined>(undefined);
   const vorigeFeatures = useRef<Kartenfeature[] | null>(null);
-  const vorigesBuch = useRef<ReturnType<typeof artbookStilbuch> | null>(null);
+  const vorigesBuch = useRef<ReturnType<typeof stilbuchFuer> | null>(null);
 
   if (!werkRef.current) {
     const dichte = Math.min(2, typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1);

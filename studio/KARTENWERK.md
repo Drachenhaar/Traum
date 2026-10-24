@@ -185,11 +185,43 @@ gar nicht. Ohne Fehlermeldung. Der Atlas zählt jetzt mit und sagt es.
 
 ---
 
-## 4 · Was an Grafiken gebraucht wird — die Spezifikation
+## 4 · Was an Grafiken gebraucht wird — der Vertrag
 
 Dies ist die Vorgabe für eine KI-Erzeugung oder einen Illustrator. Sie ist
 absichtlich eng: Zusammengehörigkeit entsteht aus gleichen Regeln, nicht aus
 gutem Willen.
+
+> **Seit Etappe 4 ist das kein Papier mehr, sondern Code.** Die Regeln stehen
+> in `scripts/atlas/saetze.mjs` (`VERTRAG`), geprüft werden sie in
+> `scripts/atlas/pruefer.mjs`, und `npm run atlas` endet mit 1, wenn ein Bild
+> sie verletzt. Gemessen an einem Baum, dessen Licht von rechts kam:
+>
+> ```
+> ✗ wald_03.png: das Licht kommt nicht von links oben:
+>   links 90, rechts 154 – Vorsprung −52,7 %, nötig 1,5 %
+> ✗ wald: im Satz leuchtet es teils von links, teils von rechts
+> ```
+>
+> Ein Bild, das den Vertrag bricht, sieht **einzeln tadellos** aus und fällt
+> erst zwischen zweihundert anderen auf – und dann weiß niemand mehr, welches
+> es war. Das Backen ist der einzige Augenblick, in dem es billig zu finden
+> ist.
+
+### So tauscht man eine Grafik aus
+
+```
+studio/assets/karte/<satz>/<art>_<nr>.png     ← die Illustration hierhin
+npm run atlas                                  ← backen und prüfen
+```
+
+Mehr nicht. **Kein Programmteil ändert sich, keine Kartendaten ändern sich.**
+Wo eine Datei liegt, wird sie genommen; wo keine liegt, zeichnet der Pinsel
+weiter. Das Verzeichnis vermerkt je Variante `gemalt` oder `gebacken`, damit
+später noch nachvollziehbar ist, was woher kam.
+
+Die Quellauflösung darf **höher** sein als die Tabelle unten: Gepackt wird auf
+die Mipstufen herunter, und das kann der Browser besser als jede Rechnung von
+Hand. Was zählt, ist das Seitenverhältnis.
 
 ### Format
 
@@ -233,6 +265,10 @@ gelieferte Berge ergeben sechzehn Silhouetten.
 
 * **Ein Satz je Stil, in einem Durchgang erzeugt.** Gleiches Licht, gleiche
   Strichstärke, gleicher Detailgrad, gleiche Sättigung.
+* Geprüft wird das als **Satz**, nicht nur je Bild: Die Fußpunkte dürfen
+  höchstens 6 % auseinanderliegen, kein Bild darf mehr als das 2,2-fache oder
+  weniger als das 0,45-fache der mittleren Deckung haben, und im selben Satz
+  darf es nicht teils von links und teils von rechts leuchten.
 * **Gleiches Größenverhältnis:** Die Stammdicke eines Baumes muss über alle
   Varianten stimmen, sonst wirkt der Wald wie aus zwei Wäldern.
 * Die Farben müssen in der Palette des Stils liegen. **Der Renderer färbt
@@ -335,5 +371,9 @@ kostet, aber keine Architektur mehr.
 * **Kein Ersetzen des Artbook-Stils.** Er wird einer von mehreren. Der Satz in
   `stil.ts` über den Mittelaltermarkt wird dabei von einem Verbot zur
   Beschreibung *eines* Stils.
+* **Kein Festlegen auf die gebackene Optik.** Sie ist Stufe eins und steht
+  unter `scripts/atlas/pinsel.mjs` – einer *Quelle*, keinem Programmteil. Der
+  Weg daneben, über gemalte Dateien, ist gebaut und geprüft; welcher von
+  beiden eine Variante liefert, entscheidet allein, ob eine Datei da liegt.
 * **Kein Bruch der Daten.** `Kartendokument` bekommt neue Bedeutungen und
   später Flächeneigenschaften. Alles Gespeicherte bleibt lesbar.
