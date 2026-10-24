@@ -70,7 +70,24 @@ export interface Waldwerte {
   jeZelle: number;
 }
 
-export const WALD_VORGABE: Waldwerte = { abstand: 15, saum: 34, jeZelle: 2 };
+/**
+ * **Elf statt fünfzehn.**
+ *
+ * Der alte Wert stammt aus der Zeit der angedeuteten Bäume, und der
+ * Kommentar darüber sagt auch, warum: *„Sind sie größer, verschmelzen sie
+ * zu einem Fleck."* Für drei Striche stimmt das.
+ *
+ * Für gezeichnete Bäume ist es umgekehrt. Gemessen am Bild: Krone zwölf
+ * Einheiten breit bei fünfzehn Einheiten Abstand – drei Einheiten Lücke um
+ * jeden Baum, und auf der ganzen Karte sah der Wald **zerstreut** aus. Ein
+ * Wald besteht aber nicht aus Bäumen mit Abstand; er besteht aus Kronen,
+ * die einander berühren.
+ *
+ * Elf Einheiten bei sechsundzwanzig Einheiten Höhe heisst: Jede Krone
+ * überlappt ihre Nachbarn. Erst dann liest das Auge eine Fläche statt
+ * einzelner Zeichen.
+ */
+export const WALD_VORGABE: Waldwerte = { abstand: 11, saum: 34, jeZelle: 2 };
 
 /**
  * Die Bäume einer Fläche.

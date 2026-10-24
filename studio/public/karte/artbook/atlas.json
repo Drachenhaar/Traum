@@ -6,6 +6,7 @@
   "wald": {
    "varianten": 8,
    "breiteZuHoehe": 0.8,
+   "karteHoehe": 26,
    "ankerX": 0.5,
    "ankerY": 0.96,
    "stufen": [

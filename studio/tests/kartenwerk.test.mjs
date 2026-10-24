@@ -387,7 +387,7 @@ const kreis = (cx, cy, r, n = 40) => {
 const buch = {
   id: 'probe',
   eintrag: (art) => (art === 'wald'
-    ? { varianten: 3, lage: 'bewuchs', ebene: 1, breiteZuHoehe: 1, zeichne() {} }
+    ? { varianten: 3, hoehe: 15, lage: 'bewuchs', ebene: 1, breiteZuHoehe: 1, zeichne() {} }
     : undefined),
   arten: () => ['wald'],
 };
@@ -453,6 +453,77 @@ pruefe('die Staffage ist global sortiert, nicht je Fläche', () => {
   }
   /* Und beide Flächen kommen vor. */
   assert.ok(liste.some((s) => s.y < 400) && liste.some((s) => s.y > 600));
+});
+
+pruefe('wie gross ein Baum ist, sagt das Stilbuch', () => {
+  /*
+   * **Hier stand fest `15`** – das Mass aus `baumzeichnung.ts`. Für drei
+   * Striche war es richtig; eine gezeichnete Illustration will das
+   * Gegenteil. Bei fünfzehn Einheiten sieht man weder Rinde noch Blatt, und
+   * die Kronen berühren sich nicht.
+   *
+   * Also sagt der Stil, wie gross seine Bilder sind. Dieselbe Trennung wie
+   * überall: Das Streuwerk sagt *wo*, das Stilbuch *wie* – und wie gross,
+   * gehört zum Aussehen.
+   */
+  const f = [{ id: 'a', art: 'wald', punkte: kreis(500, 500, 150), seed: 7 }];
+  const klein = staffageAus(f, buch);
+  const gross = staffageAus(f, { ...buch, eintrag: (art) => (art === 'wald'
+    ? { varianten: 3, hoehe: 26, lage: 'bewuchs', ebene: 1, breiteZuHoehe: 1, zeichne() {} }
+    : undefined) });
+  assert.ok(klein.length > 10);
+  assert.equal(klein.length, gross.length, 'die Höhe ändert die Verteilung');
+  const mittel = (l) => l.reduce((s2, x) => s2 + x.h, 0) / l.length;
+  assert.ok(Math.abs(mittel(gross) / mittel(klein) - 26 / 15) < 0.02,
+    `${mittel(klein).toFixed(1)} → ${mittel(gross).toFixed(1)}`);
+
+  /* Und der Bild-Eintrag nimmt die Zahl aus dem Verzeichnis. */
+  const v = JSON.parse(readFileSync(join(wurzel, 'public/karte/artbook/atlas.json'), 'utf8'));
+  assert.ok(v.arten.wald.karteHoehe > 15,
+    'das Verzeichnis nennt keine eigene Kartenhöhe');
+  const a = ohneProsa(lies('src/lib/kartenwerk/atlas.ts'));
+  assert.match(a, /hoehe: a\.karteHoehe \?\? 15,/, 'der Bild-Eintrag ignoriert sie');
+});
+
+pruefe('der Wald steht dicht genug, dass sich die Kronen berühren', () => {
+  /*
+   * **Das „zerstreut" war eine Zahl, kein Grafikproblem.**
+   *
+   * Gemessen am Bild: Krone zwölf Einheiten breit bei fünfzehn Einheiten
+   * Abstand – drei Einheiten Lücke um jeden Baum. Auf der ganzen Karte sah
+   * der Wald aus wie verstreute Zeichen.
+   *
+   * Ein Wald besteht nicht aus Bäumen mit Abstand; er besteht aus Kronen,
+   * die einander berühren. Geprüft wird deshalb das Verhältnis: Die Breite
+   * einer Krone muss grösser sein als der Abstand zum Nachbarn.
+   */
+  const v = JSON.parse(readFileSync(join(wurzel, 'public/karte/artbook/atlas.json'), 'utf8'));
+  const kronenbreite = v.arten.wald.karteHoehe * v.arten.wald.breiteZuHoehe;
+  const w = ohneProsa(lies('src/lib/karte/wald.ts'));
+  const treffer = w.match(/WALD_VORGABE: Waldwerte = \{ abstand: (\d+)/);
+  assert.ok(treffer, 'der Mindestabstand steht nicht mehr in WALD_VORGABE');
+  const abstand = Number(treffer[1]);
+  assert.ok(kronenbreite > abstand * 1.4,
+    `Krone ${kronenbreite.toFixed(1)} breit bei ${abstand} Abstand – der Wald bleibt zerstreut`);
+});
+
+pruefe('gespiegelt wird ohne neuen Griff in die Zufallskette', () => {
+  /*
+   * Spiegeln verdoppelt die Silhouetten und kostet nichts. Ein **neuer**
+   * Griff in die Kette verschöbe aber jeden folgenden Baum – die Zahlen
+   * hängen am Salz, und das Salz zählt mit. Also wird `rohform`
+   * weiterverwendet.
+   */
+  const q = ohneProsa(lies('src/lib/kartenwerk/streuwerk.ts'));
+  assert.match(q, /spiegel: Math\.floor\(b\.rohform \* 1000\) % 2 === 1,/);
+  assert.doesNotMatch(q, /zahl\(|neuerSeed\(/, 'das Streuwerk würfelt selbst');
+
+  /* Und es spiegelt wirklich beide Richtungen. */
+  const f = [{ id: 'a', art: 'wald', punkte: kreis(500, 500, 190), seed: 7 }];
+  const liste = staffageAus(f, buch);
+  const ja = liste.filter((s2) => s2.spiegel).length;
+  assert.ok(ja > liste.length * 0.3 && ja < liste.length * 0.7,
+    `${ja} von ${liste.length} gespiegelt`);
 });
 
 pruefe('eine wachsende Fläche behält ihre alten Bäume', () => {

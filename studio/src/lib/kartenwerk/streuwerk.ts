@@ -67,10 +67,19 @@ export function staffageFuerFlaeche(f: Kartenfeature, stilbuch: Stilbuch): Staff
       variante: Math.min(eintrag.varianten - 1, Math.floor(b.rohform * eintrag.varianten)),
       x: b.x,
       y: b.y,
-      /* `GROESSE` aus `baumzeichnung.ts` ist 15 Karteneinheiten. */
-      h: b.groesse * 15,
+      /* Wie gross, sagt das Stilbuch – siehe `Stileintrag.hoehe`. */
+      h: b.groesse * eintrag.hoehe,
       dreh: b.neigung,
-      spiegel: false,
+      /*
+       * Spiegeln verdoppelt die Silhouetten und kostet nichts.
+       *
+       * Aus `rohform` abgeleitet und nicht aus einem neuen Griff in die
+       * Zufallskette – ein zusätzlicher Griff verschöbe jeden folgenden
+       * Baum. Die zweite Nachkommastelle ist von der Formwahl unabhängig
+       * genug, dass gespiegelte und ungespiegelte sich nicht entlang der
+       * Varianten sortieren.
+       */
+      spiegel: Math.floor(b.rohform * 1000) % 2 === 1,
       lage: eintrag.lage,
       ebene: eintrag.ebene,
     }));

@@ -121,7 +121,23 @@ let engste = Infinity;
 for (let i = 0; i < a.length; i++)
   for (let j = i + 1; j < a.length; j++)
     engste = Math.min(engste, Math.hypot(a[i].x - a[j].x, a[i].y - a[j].y));
-wahr(`  keiner steht im anderen (engster Abstand ${engste.toFixed(1)})`, engste >= 14.9);
+/*
+ * **Die Schranke kommt aus `WALD_VORGABE`, nicht aus einer Zahl hier.**
+ *
+ * Hier stand fest `14.9` – der damalige Abstand minus ein Zehntel. Als der
+ * Wald dichter gestellt wurde (15 → 11, weil gezeichnete Bäume einander
+ * berühren sollen), schlug diese Prüfung an, obwohl nichts kaputt war: Sie
+ * prüfte nicht die Zusage, sondern eine abgeschriebene Zahl. Zwei Wahrheiten
+ * über denselben Abstand, und die zweite war die falsche.
+ *
+ * Die Zusage lautet: Kein Baum steht näher an einem anderen als der
+ * Mindestabstand. Welcher das ist, sagt der Streuer selbst.
+ */
+wahr(
+  `  keiner steht im anderen (engster Abstand ${engste.toFixed(1)}, ` +
+  `Vorgabe ${W.WALD_VORGABE.abstand})`,
+  engste >= W.WALD_VORGABE.abstand - 0.1,
+);
 
 /* -------------------------------------------------------- 3. Die Semantik -- */
 

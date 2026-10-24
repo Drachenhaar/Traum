@@ -71,6 +71,15 @@ export const SAETZE = {
     arten: {
       wald: {
         hoehe: 190,
+        /*
+         * Wie hoch ein Baum **auf der Karte** steht, im Kartenmass 0…1000.
+         *
+         * Nicht dasselbe wie `hoehe` – das ist die Auflösung der Datei.
+         * Sechsundzwanzig bei elf Einheiten Abstand heisst: Die Kronen
+         * überlappen. Mit fünfzehn, dem Mass der gezeichneten Feder, stand
+         * jeder Baum für sich und der Wald sah zerstreut aus.
+         */
+        karteHoehe: 26,
         breiteZuHoehe: 0.8,
         varianten: 8,
         ankerX: 0.5,

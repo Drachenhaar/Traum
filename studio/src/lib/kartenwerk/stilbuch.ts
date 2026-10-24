@@ -54,6 +54,27 @@ import { bildEintrag, type Atlas } from './atlas';
 export interface Stileintrag {
   /** Wie viele Ausprägungen es gibt. Nach oben offen. */
   varianten: number;
+  /**
+   * Wie hoch dieses Ding im **Kartenmaß** ist, bei voller Grösse.
+   *
+   * ---
+   *
+   * **Warum das eine Angabe des Stils ist und keine des Streuwerks.**
+   *
+   * Hier stand fest `15` – die Zahl aus `baumzeichnung.ts`, und für drei
+   * Striche war sie richtig: Ein angedeuteter Baum soll klein bleiben, sonst
+   * sieht man, dass er aus drei Strichen besteht.
+   *
+   * Eine gezeichnete Illustration will das Gegenteil. Sie hat Rinde, Äste
+   * und einzelne Blätter, und bei fünfzehn Einheiten sieht man davon nichts.
+   * Zugleich stand jeder Baum dann für sich: Krone zwölf breit, Abstand
+   * fünfzehn – drei Einheiten Lücke, und der Wald wirkte **zerstreut**.
+   *
+   * Also sagt der Stil, wie gross seine Bilder sind. Dieselbe Trennung wie
+   * überall: Das Streuwerk sagt, *wo* etwas steht, das Stilbuch, *wie* es
+   * aussieht – und wie gross es ist, gehört zum Aussehen.
+   */
+  hoehe: number;
   /** Welche Lage; entscheidet den Zwischenspeicher. */
   lage: Lage;
   /** Grobe Malreihenfolge innerhalb der Lage. */
@@ -169,6 +190,8 @@ function pinselEintraege(stil: Kartenstil): Record<string, Stileintrag> {
   return {
     wald: {
       varianten: 3,
+      /* `GROESSE` aus `baumzeichnung.ts`. Der Federbaum bleibt, wie er war. */
+      hoehe: 15,
       ...ordnung('wald'),
       zeichne(ctx, s, massstab) {
         /*

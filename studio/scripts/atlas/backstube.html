@@ -142,6 +142,8 @@ window.backe = async (satzName) => {
     arten[art] = {
       varianten: def.varianten,
       breiteZuHoehe: def.breiteZuHoehe,
+      /* Wie hoch auf der Karte – siehe `saetze.mjs`. */
+      karteHoehe: def.karteHoehe ?? 15,
       /*
        * Der **Ankerpunkt** – die wichtigste Zahl hier: die Mitte der
        * Unterkante, also die Stelle, mit der das Bild auf dem Boden steht.

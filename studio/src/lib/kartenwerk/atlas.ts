@@ -48,6 +48,8 @@ export type Ausschnitt = [number, number, number, number];
 export interface Atlasart {
   varianten: number;
   breiteZuHoehe: number;
+  /** Wie hoch dieses Ding auf der Karte steht, im Kartenmass. */
+  karteHoehe?: number;
   /** Der Ankerpunkt, als Anteil der Bildmaße. */
   ankerX: number;
   ankerY: number;
@@ -114,6 +116,12 @@ export function bildEintrag(
 
   return {
     varianten: a.varianten,
+    /*
+     * Eine gezeichnete Illustration will grösser sein als eine Feder aus
+     * drei Strichen – sonst sieht man weder Rinde noch Blatt, und die
+     * Kronen berühren sich nicht. Siehe `Stileintrag.hoehe`.
+     */
+    hoehe: a.karteHoehe ?? 15,
     lage,
     ebene,
     breiteZuHoehe: a.breiteZuHoehe,
