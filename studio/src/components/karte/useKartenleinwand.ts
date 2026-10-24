@@ -147,6 +147,17 @@ export function useKartenleinwand({
   const stilbuch = useMemo(() => stilbuchFuer(stil, atlas), [stil, atlas]);
 
   /*
+   * Die Gebirgszüge, auch sie über ein Ref.
+   *
+   * Aus demselben Grund wie die Staffage: Ein neues Kachelwerk je Änderung
+   * würfe den ganzen Zwischenspeicher weg – auch für die Kacheln, die gar
+   * kein Gebirge tragen.
+   */
+  const kaemme = karte.kaemme ?? LEER;
+  const kaemmeRef = useRef(kaemme);
+  kaemmeRef.current = kaemme;
+
+  /*
    * Die Staffage, einmal je Flächenzustand.
    *
    * Nicht je Bild – das war der alte Fehler, nur eine Stufe höher. Das
@@ -155,11 +166,18 @@ export function useKartenleinwand({
    */
   const staffage = useMemo(() => {
     const t0 = performance.now();
-    const liste = staffageAus(karte.features, stilbuch);
+    /*
+     * **Die Gebirge gehen mit ein.** Oberhalb der Baumgrenze steht kein
+     * Baum mehr; wo er steht, entscheidet also auch die Höhe. Hinge die
+     * Liste nicht an den Kämmen, bliebe nach einer Kammänderung der alte
+     * Wald auf dem neuen Berg stehen – und zwar still, denn die Kacheln
+     * sähen vollständig aus.
+     */
+    const liste = staffageAus(karte.features, stilbuch, kaemme);
     messung.msStreuen = performance.now() - t0;
     messung.staffage = liste.length;
     return liste;
-  }, [karte.features, stilbuch]);
+  }, [karte.features, stilbuch, kaemme]);
 
   /*
    * Der Maler liest die Staffage aus einem Ref und nicht aus dem Abschluss.
@@ -176,17 +194,6 @@ export function useKartenleinwand({
   /* Die Lagen des Waldwerks mischen ihre Töne aus dem Stil. */
   const stilRef = useRef(stil);
   stilRef.current = stil;
-
-  /*
-   * Die Gebirgszüge, auch sie über ein Ref.
-   *
-   * Aus demselben Grund wie die Staffage: Ein neues Kachelwerk je Änderung
-   * würfe den ganzen Zwischenspeicher weg – auch für die Kacheln, die gar
-   * kein Gebirge tragen.
-   */
-  const kaemme = karte.kaemme ?? LEER;
-  const kaemmeRef = useRef(kaemme);
-  kaemmeRef.current = kaemme;
 
   const werkRef = useRef<Kachelwerk | null>(null);
   const grundRef = useRef<Kachelwerk | null>(null);
@@ -307,6 +314,7 @@ export function useKartenleinwand({
    */
   useEffect(() => {
     const werk = grundRef.current;
+    const bewuchs = werkRef.current;
     if (!werk) return;
 
     if (vorigerStil.current && vorigerStil.current !== stil) werk.leere();
@@ -319,16 +327,30 @@ export function useKartenleinwand({
     }
     if (vorher === kaemme) return;
 
+    /*
+     * **Beide Werke, nicht nur das Relief.**
+     *
+     * Hier stand nur `werk` – und das war still falsch, seit es eine
+     * Baumgrenze gibt: Ein verschobener Kamm ändert auch, welche Bäume
+     * oben noch stehen. Die Bewuchskacheln blieben mit ihrem alten Wald
+     * liegen, und weil sie vollständig aussahen, forderte sie niemand neu
+     * an. Ein Wald, der auf einem Berg steht, den es dort nicht mehr gibt.
+     */
+    const beide = (kasten: ReturnType<typeof gebirgskasten>) => {
+      werk.entwerte(kasten);
+      bewuchs?.entwerte(kasten);
+    };
+
     const alt = new Map(vorher.map((k) => [k.id, k]));
     const neu = new Map(kaemme.map((k) => [k.id, k]));
     for (const [id, k] of neu) {
       const a = alt.get(id);
       if (a === k) continue;
-      werk.entwerte(gebirgskasten(k));
-      if (a) werk.entwerte(gebirgskasten(a));
+      beide(gebirgskasten(k));
+      if (a) beide(gebirgskasten(a));
     }
     for (const [id, k] of alt) {
-      if (!neu.has(id)) werk.entwerte(gebirgskasten(k));
+      if (!neu.has(id)) beide(gebirgskasten(k));
     }
     vorigeKaemme.current = kaemme;
   }, [kaemme, stil]);

@@ -148,6 +148,44 @@ Rückgängig, Speichern und Wiederherstellen tragen die Gebirge mit.
 
 ---
 
+## 4a · Die Baumgrenze
+
+Wälder und Gebirge wussten nichts voneinander: Ein Wald lief ungerührt über
+einen Gipfel. Jetzt fragt das Streuwerk für jeden Baum die Höhe an seinem
+Ort und dünnt oberhalb einer Grenze aus, lässt die verbliebenen kümmern und
+hört darüber ganz auf.
+
+**Eine Höhe und kein Anteil.** Das ist der Unterschied zwischen einer
+Landschaft und einer Zeichnung: Ein Hügel trägt bis zum Gipfel Wald, ein
+hoher Zug wird oben kahl. Als Anteil gerechnet wäre jeder Gipfel gleich
+kahl, egal wie hoch er ist — und zwei Berge nebeneinander sähen aus wie zwei
+Kopien desselben.
+
+**Eine Rampe und keine Kante.** Oben stehen zuerst weniger Bäume, dann
+kleinere, dann keine. Eine Kante ergäbe eine saubere Höhenlinie quer durch
+den Wald, und so etwas gibt es in der Natur nicht.
+
+**Es steht im Streuwerk und nicht im Stilbuch.** Das Streuwerk sagt, *wo*
+etwas steht; dass oberhalb einer Höhe keine Bäume mehr stehen, ist eine
+Aussage über den Ort und in jedem Stil dieselbe.
+
+**Ohne Gebirge ändert sich nichts.** `hoeheUeberall` gibt ohne Kämme überall
+null zurück; jede Karte, die es schon gibt, sieht aus wie vorher — Baum für
+Baum, bitgenau geprüft.
+
+Dabei kam ein stiller Fehler heraus: Eine Kammänderung entwertete nur die
+**Reliefkacheln**. Seit es eine Baumgrenze gibt, ändert ein verschobener
+Kamm aber auch, welche Bäume oben noch stehen — die Bewuchskacheln blieben
+mit ihrem alten Wald liegen, und weil sie vollständig aussahen, forderte sie
+niemand neu an. Ein Wald auf einem Berg, den es dort nicht mehr gibt.
+
+Und eine Zeile ist verschwunden, die nichts tat: `if (ueber >= 1) continue;`
+vor der Ausdünnung. `zahl` liegt immer unter eins, also entfernt der Wurf
+bei voller Höhe ohnehin jeden Baum. Die Gegenprobe hat es gezeigt — sie
+konnte nicht scheitern, also prüfte nichts sie.
+
+---
+
 ## 5 · Die Erweiterungsstelle für gemalte Berge
 
 `gratpunkte(kamm)` in `gebirgswerk.ts` liefert je Abschnitt einen Ort auf dem

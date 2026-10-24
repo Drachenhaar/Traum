@@ -67,6 +67,7 @@ baue('src/lib/kartenwerk/atlas.ts', 'atlas.mjs');
 baue('src/lib/kartenwerk/kachelwerk.ts', 'kachelwerk.mjs');
 baue('src/lib/kartenwerk/raster.ts', 'raster.mjs');
 baue('src/lib/kartenwerk/streuwerk.ts', 'streuwerk.mjs');
+baue('src/lib/karte/gebirge.ts', 'gebirge.mjs');
 baue('src/lib/kartenwerk/stilbuch.ts', 'stilbuch.mjs');
 baue('src/lib/kartenwerk/waldwerk.ts', 'waldwerk.mjs');
 baue('src/lib/kartenwerk/maler.ts', 'maler.mjs');
@@ -75,7 +76,8 @@ baue('src/lib/karte/stil.ts', 'stil.mjs');
 const { bildEintrag } = await import(join(bau, 'atlas.mjs'));
 const K = await import(join(bau, 'kachelwerk.mjs'));
 const { Staffageraster, ZELLE } = await import(join(bau, 'raster.mjs'));
-const { staffageAus } = await import(join(bau, 'streuwerk.mjs'));
+const { staffageAus, BAUMGRENZE } = await import(join(bau, 'streuwerk.mjs'));
+const { hoeheUeberall } = await import(join(bau, 'gebirge.mjs'));
 const { stilbuchFuer, stilbuchAus } = await import(join(bau, 'stilbuch.mjs'));
 const { maleStaffage } = await import(join(bau, 'waldwerk.mjs'));
 const { maleLage } = await import(join(bau, 'maler.mjs'));
@@ -524,7 +526,28 @@ pruefe('gespiegelt wird ohne neuen Griff in die Zufallskette', () => {
    */
   const q = ohneProsa(lies('src/lib/kartenwerk/streuwerk.ts'));
   assert.match(q, /spiegel: Math\.floor\(b\.rohform \* 1000\) % 2 === 1,/);
-  assert.doesNotMatch(q, /zahl\(|neuerSeed\(/, 'das Streuwerk würfelt selbst');
+
+  /*
+   * **Kein Griff in die Kette – nicht: kein Zufall.**
+   *
+   * Hier stand `doesNotMatch(/zahl\(/)`, ein grober Stellvertreter für die
+   * eigentliche Zusage. Er schlug an, als die Baumgrenze dazukam, und das
+   * war ein Fehlalarm: Ein Wurf, der am **Ort** hängt, kann gar nichts
+   * verschieben; nur einer, der in `wald.ts` die Salze weiterzählt, könnte
+   * es.
+   *
+   * Geprüft wird deshalb, was wirklich gilt: Jeder Wurf hier nennt eine
+   * gerundete Lage und ein Salz weit jenseits der Zählung in `wald.ts`
+   * (dort 1 bis 9). `neuerSeed` bleibt verboten – der wäre bei jedem Aufruf
+   * ein anderer.
+   */
+  assert.doesNotMatch(q, /neuerSeed\(/, 'das Streuwerk zieht einen neuen Startwert');
+  /* Eine Klammerebene tief – `Math.round(b.x)` steckt im Aufruf drin. */
+  for (const wurf of q.match(/zahl\((?:[^()]|\([^()]*\))*\)/g) ?? []) {
+    assert.match(wurf, /Math\.round\(/, `${wurf} hängt nicht am Ort`);
+    const salz = Number(wurf.match(/,\s*(\d+)\s*\)$/)?.[1]);
+    assert.ok(salz >= 100, `${wurf} benutzt ein Salz aus der Kette von wald.ts`);
+  }
 
   /* Und es spiegelt wirklich beide Richtungen. */
   const f = [{ id: 'a', art: 'wald', punkte: kreis(500, 500, 190), seed: 7 }];
@@ -563,6 +586,162 @@ pruefe('eine wachsende Fläche behält ihre alten Bäume', () => {
 /* =======================================================================
  * 5 · DER ATLAS
  * ==================================================================== */
+
+/* =======================================================================
+ * 4a · DIE BAUMGRENZE
+ * ==================================================================== */
+
+console.log('\n4a · Die Baumgrenze');
+
+/*
+ * Wälder und Gebirge wussten nichts voneinander: Ein Wald lief ungerührt
+ * über einen Gipfel. Dass oberhalb einer Höhe keine Bäume mehr stehen, ist
+ * eine Aussage über den **Ort** – deshalb steht sie im Streuwerk und nicht
+ * im Stilbuch.
+ */
+
+const BERG = {
+  id: 'g1', seed: 4711, breite: 150, hoehe: 0.9, zerkluftung: 0.4,
+  punkte: [[200, 500], [400, 470], [600, 505], [800, 475]],
+};
+const WALD = [{ id: 'a', art: 'wald', punkte: kreis(500, 540, 230, 64), seed: 7 }];
+
+pruefe('ohne Gebirge ändert sich kein einziger Baum', () => {
+  /*
+   * **Die wichtigste der Zusagen.** Jede Karte, die es schon gibt, hat
+   * keine Kämme – und muss Baum für Baum aussehen wie vorher. Verglichen
+   * wird deshalb die ganze Liste und nicht ihre Länge.
+   */
+  const ohne = staffageAus(WALD, buch);
+  assert.deepEqual(staffageAus(WALD, buch, []), ohne);
+  assert.ok(ohne.length > 100, `nur ${ohne.length} Bäume`);
+});
+
+pruefe('über der Grenze steht kein Baum mehr', () => {
+  const mit = staffageAus(WALD, buch, [BERG]);
+  assert.ok(mit.length > 20, `nur ${mit.length} Bäume übrig`);
+  for (const s of mit) {
+    const h = hoeheUeberall(s.x, s.y, [BERG]);
+    assert.ok(h < BAUMGRENZE.ende,
+      `ein Baum steht bei Höhe ${h.toFixed(3)}, die Grenze liegt bei ${BAUMGRENZE.ende}`);
+  }
+});
+
+pruefe('unterhalb der Grenze bleibt alles, wie es war', () => {
+  /*
+   * Ein Gebirge im Norden darf den Wald im Süden nicht anfassen – und zwar
+   * bitgenau. Sonst wäre jede Kammänderung eine Änderung am ganzen Wald.
+   */
+  const ohne = new Map(staffageAus(WALD, buch).map((s) => [`${s.x},${s.y}`, s]));
+  const mit = staffageAus(WALD, buch, [BERG]);
+  let tief = 0;
+  for (const s of mit) {
+    if (hoeheUeberall(s.x, s.y, [BERG]) > 0) continue;
+    tief++;
+    assert.deepEqual(s, ohne.get(`${s.x},${s.y}`), `ein Baum bei ${s.x},${s.y} hat sich geändert`);
+  }
+  assert.ok(tief > 50, `nur ${tief} Bäume stehen ausserhalb des Gebirges`);
+});
+
+pruefe('die Grenze ist eine Höhe und kein Anteil des Berges', () => {
+  /*
+   * **Der Unterschied zwischen einer Landschaft und einer Zeichnung.**
+   *
+   * Ein Hügel trägt bis zum Gipfel Wald, ein hoher Zug wird oben kahl. Als
+   * Anteil gerechnet wäre jeder Gipfel gleich kahl, egal wie hoch er ist –
+   * und zwei Berge nebeneinander sähen aus wie zwei Kopien desselben.
+   */
+  const ohne = staffageAus(WALD, buch).length;
+  const huegel = staffageAus(WALD, buch, [{ ...BERG, hoehe: 0.22 }]).length;
+  const zug = staffageAus(WALD, buch, [{ ...BERG, hoehe: 0.9 }]).length;
+  /*
+   * Der Hügel kostet **nichts** – das ist die eigentliche Aussage. Als
+   * Anteil gerechnet wäre auch er oben kahl, und genau daran scheitert die
+   * Gegenprobe.
+   */
+  assert.equal(huegel, ohne, `der Hügel hat ${ohne - huegel} Bäume gekostet`);
+  assert.ok(ohne - zug > 50,
+    `der hohe Zug hat nur ${ohne - zug} von ${ohne} Bäumen gekostet`);
+});
+
+pruefe('die Grenze verläuft, sie schneidet nicht', () => {
+  /*
+   * Eine Kante ergäbe eine saubere Höhenlinie quer durch den Wald, und so
+   * etwas gibt es in der Natur nicht: Oben stehen zuerst weniger Bäume,
+   * dann kleinere, dann keine.
+   */
+  const ohne = new Map(staffageAus(WALD, buch).map((s) => [`${s.x},${s.y}`, s]));
+  const mit = staffageAus(WALD, buch, [BERG]);
+  let imBand = 0;
+  let kleiner = 0;
+  for (const s of mit) {
+    const h = hoeheUeberall(s.x, s.y, [BERG]);
+    if (h <= BAUMGRENZE.beginn) continue;
+    imBand++;
+    const vorher = ohne.get(`${s.x},${s.y}`);
+    if (s.h < vorher.h - 1e-9) kleiner++;
+  }
+  assert.ok(imBand > 10, `nur ${imBand} Bäume stehen im Übergang – trifft die Prüfung?`);
+  assert.equal(kleiner, imBand, `nur ${kleiner} von ${imBand} Bäumen sind gekümmert`);
+
+  /* Und es sind welche verschwunden, aber nicht alle. */
+  let weg = 0;
+  for (const [, s] of ohne) {
+    const h = hoeheUeberall(s.x, s.y, [BERG]);
+    if (h > BAUMGRENZE.beginn && h < BAUMGRENZE.ende) weg++;
+  }
+  assert.ok(weg > imBand * 0.15,
+    `im Übergangsband stehen ${imBand} von ${weg} – es wird kaum ausgedünnt`);
+});
+
+pruefe('ein verschobener Kamm ändert den Wald nur dort', () => {
+  /*
+   * Gewürfelt wird am Ort und nicht in einer Folge. Eine Folge verschöbe
+   * jeden Baum dahinter, sobald sich ein Berg bewegt – aus einer
+   * verschobenen Bergflanke würde ein neu gewürfelter Wald.
+   */
+  /*
+   * **Der westliche Endpunkt, nicht ein mittlerer.**
+   *
+   * Der erste Anlauf verschob den Punkt bei x = 400 und nannte alles
+   * jenseits von 560 „fern" – das liegt aber mitten im Abschnitt 400→600,
+   * den dieser Punkt trägt. Die Prüfung schlug zu Recht an, und sie hatte
+   * recht gegen mich: Fern ist, was ausserhalb der angefassten Abschnitte
+   * liegt, samt der Weite, über die der Fusspunkt gemittelt wird.
+   */
+  const a = new Map(staffageAus(WALD, buch, [BERG]).map((s) => [`${s.x},${s.y}`, s]));
+  const b = staffageAus(WALD, buch, [
+    { ...BERG, punkte: BERG.punkte.map((p, i) => (i === 0 ? [200, 430] : p)) },
+  ]);
+  let fern = 0;
+  for (const s of b) {
+    if (s.x > 600) {
+      assert.deepEqual(s, a.get(`${s.x},${s.y}`), `ein ferner Baum bei ${s.x},${s.y} hat sich geändert`);
+      fern++;
+    }
+  }
+  assert.ok(fern > 30, `nur ${fern} ferne Bäume`);
+});
+
+pruefe('eine Kammänderung entwertet auch den Bewuchs', () => {
+  /*
+   * **Der stille Fehler, der mit der Baumgrenze entstand.**
+   *
+   * Entwertet wurde nur das Relief. Ein verschobener Kamm ändert aber auch,
+   * welche Bäume oben noch stehen; die Bewuchskacheln blieben mit ihrem
+   * alten Wald liegen, und weil sie vollständig aussahen, forderte sie
+   * niemand neu an. Ein Wald auf einem Berg, den es dort nicht mehr gibt.
+   */
+  const q = ohneProsa(lies('src/components/karte/useKartenleinwand.ts'));
+  assert.match(q, /const beide = \(kasten[\s\S]{0,220}?bewuchs\?\.entwerte\(kasten\);/,
+    'eine Kammänderung entwertet den Bewuchs nicht');
+  /* Und die Staffage hängt überhaupt an den Kämmen. */
+  assert.match(q, /staffageAus\(karte\.features, stilbuch, kaemme\)/,
+    'das Streuwerk bekommt die Gebirge nicht');
+  const memo = q.match(/messung\.staffage = liste\.length;\s*return liste;\s*\}, \[([^\]]*)\]\);/);
+  assert.ok(memo && memo[1].includes('kaemme'),
+    'die Staffage wird bei einer Kammänderung nicht neu gestreut');
+});
 
 console.log('\n5 · Der Atlas');
 
