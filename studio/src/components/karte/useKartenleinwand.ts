@@ -14,21 +14,25 @@
  *
  * ---
  *
- * **Die zwei Lagen, und warum heute nur eine läuft.**
+ * **Die zwei Lagen.**
  *
  * `staffage.ts` kennt `grund` und `bewuchs`, und das Kachelwerk ist je Lage
- * eines. Angeschlossen ist vorerst nur `bewuchs` – das Gelände liegt weiter
- * in SVG.
+ * eines. Lange lief nur `bewuchs`; hier stand an dieser Stelle der Satz, ein
+ * zweites Kachelwerk für `grund` anzulegen sei „eine Ergänzung, keine
+ * Änderung". Das Gebirge hat ihn eingelöst – es ist genau das geworden: ein
+ * zweiter Zwischenspeicher mit einem zweiten Pinsel, und keine Zeile des
+ * ersten hat sich dafür geändert.
  *
- * Das ist kein Versäumnis, sondern eine Abwägung: In der SVG-Lage sitzen die
- * **Fangbereiche**. Wer auf eine Waldfläche tippt, trifft einen Pfad im
- * Dokument, und daran hängen Auswahl, Bedeutung und Seitenzuordnung. Das
- * Gelände auf eine Leinwand zu verlegen hieße, die Treffererkennung von Hand
- * nachzubauen – eine eigene Etappe mit eigenem Risiko, und sie gehört nicht
- * in dieselbe wie der Umbau der Zeichenmaschine.
+ * Die Flächen des Geländes liegen weiterhin in SVG, und das bleibt so. Dort
+ * sitzen die **Fangbereiche**: Wer auf eine Waldfläche tippt, trifft einen
+ * Pfad im Dokument, und daran hängen Auswahl, Bedeutung und Seitenzuordnung.
  *
- * Die Naht ist da und sie ist geprüft: Ein zweites Kachelwerk für `grund`
- * anzulegen und seinen Maler zu schreiben ist eine Ergänzung, keine Änderung.
+ * ```
+ * SVG        Land, Wasser, Wald als Flächen – und alle Fangbereiche
+ * grund      das Gebirgsrelief                      (Leinwand, gekachelt)
+ * bewuchs    Bäume, Unterholz, Kronendach           (Leinwand, gekachelt)
+ * SVG        Namen, Siedlungszeichen, Auswahl
+ * ```
  *
  * ---
  *
@@ -52,6 +56,9 @@ import { Staffageraster } from '../../lib/kartenwerk/raster';
 import { Kachelwerk, WERKPLAN, stufeFuer, type Kasten } from '../../lib/kartenwerk/kachelwerk';
 import { maleLage, type Sichtfeld } from '../../lib/kartenwerk/maler';
 import { maleStaffage } from '../../lib/kartenwerk/waldwerk';
+import { maleGebirge } from '../../lib/kartenwerk/gebirgswerk';
+import { gebirgskasten } from '../../lib/karte/gebirge';
+import type { Gebirgskamm } from '../../lib/karte/modell';
 
 export interface Messung {
   /** Wie viele Stücke Staffage die Karte trägt. */
@@ -78,12 +85,22 @@ export interface Messung {
   msLetztesBild: number;
   /** Wie viele Malvorgänge es gab. */
   bilder: number;
+  /** Kacheln im Reliefspeicher. */
+  grundkacheln: number;
+  /** Gesamte Backzeit des Reliefs. */
+  msGrund: number;
+  /** Insgesamt gebackene Reliefkacheln. */
+  grundGebacken: number;
 }
 
 export const messung: Messung = {
   staffage: 0, msStreuen: 0, kacheln: 0, bytes: 0, gebacken: 0, msGebacken: 0,
   verdraengt: 0, veraltet: 0, vorschau: 0, stufe: 0, msLetztesBild: 0, bilder: 0,
+  grundkacheln: 0, msGrund: 0, grundGebacken: 0,
 };
+
+/** Damit „keine Gebirge" nicht bei jedem Bild eine neue leere Liste ist. */
+const LEER: Gebirgskamm[] = [];
 
 /** Der Kasten, den eine Fläche samt Bewuchs einnimmt. */
 function flaechenkasten(f: Kartenfeature): Kasten {
@@ -160,10 +177,24 @@ export function useKartenleinwand({
   const stilRef = useRef(stil);
   stilRef.current = stil;
 
+  /*
+   * Die Gebirgszüge, auch sie über ein Ref.
+   *
+   * Aus demselben Grund wie die Staffage: Ein neues Kachelwerk je Änderung
+   * würfe den ganzen Zwischenspeicher weg – auch für die Kacheln, die gar
+   * kein Gebirge tragen.
+   */
+  const kaemme = karte.kaemme ?? LEER;
+  const kaemmeRef = useRef(kaemme);
+  kaemmeRef.current = kaemme;
+
   const werkRef = useRef<Kachelwerk | null>(null);
+  const grundRef = useRef<Kachelwerk | null>(null);
+  const vorigeKaemme = useRef<Gebirgskamm[] | null>(null);
   const stufeRef = useRef<number | undefined>(undefined);
   const vorigeFeatures = useRef<Kartenfeature[] | null>(null);
   const vorigesBuch = useRef<ReturnType<typeof stilbuchFuer> | null>(null);
+  const vorigerStil = useRef<Kartenstil | null>(null);
 
   if (!werkRef.current) {
     const dichte = Math.min(2, typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1);
@@ -202,6 +233,23 @@ export function useKartenleinwand({
         });
       },
       { ...WERKPLAN, dichte },
+    );
+    /*
+     * **Die Grundlage: das Gebirgsrelief.**
+     *
+     * Ein eigenes Werk, weil es sich anders verhält. Ein Gebirge ändert
+     * sich selten und kostet beim Backen mehr als ein Wald; es gehört
+     * deshalb in einen Speicher, den eine Waldänderung nicht anfasst.
+     *
+     * Der Überstand ist null: Das Relief ragt nicht über seine Kachel
+     * hinaus, denn es wird Ort für Ort gerechnet und nicht gestempelt.
+     */
+    grundRef.current = new Kachelwerk(
+      'grund',
+      (ctx, kach, massstab) => {
+        maleGebirge(ctx, kach, massstab, kaemmeRef.current, stilRef.current, { dichte });
+      },
+      { ...WERKPLAN, ueberstand: 0, dichte },
     );
   }
 
@@ -249,6 +297,41 @@ export function useKartenleinwand({
 
     vorigeFeatures.current = karte.features;
   }, [karte.features, stilbuch]);
+
+  /*
+   * Dasselbe für die Gebirge – getrennt, weil sie ein eigenes Werk haben.
+   *
+   * **Beide Kästen entwerten, den alten und den neuen.** Wer einen Kamm
+   * verschiebt, macht an seinem alten Platz etwas frei und an seinem neuen
+   * etwas voll; nur den neuen zu entwerten liesse ein Gespenst stehen.
+   */
+  useEffect(() => {
+    const werk = grundRef.current;
+    if (!werk) return;
+
+    if (vorigerStil.current && vorigerStil.current !== stil) werk.leere();
+    vorigerStil.current = stil;
+
+    const vorher = vorigeKaemme.current;
+    if (vorher === null) {
+      vorigeKaemme.current = kaemme;
+      return;
+    }
+    if (vorher === kaemme) return;
+
+    const alt = new Map(vorher.map((k) => [k.id, k]));
+    const neu = new Map(kaemme.map((k) => [k.id, k]));
+    for (const [id, k] of neu) {
+      const a = alt.get(id);
+      if (a === k) continue;
+      werk.entwerte(gebirgskasten(k));
+      if (a) werk.entwerte(gebirgskasten(a));
+    }
+    for (const [id, k] of alt) {
+      if (!neu.has(id)) werk.entwerte(gebirgskasten(k));
+    }
+    vorigeKaemme.current = kaemme;
+  }, [kaemme, stil]);
 
   /*
    * Das Malen – **eine Schleife, die stehen bleibt.**
@@ -314,11 +397,30 @@ export function useKartenleinwand({
        */
       const stufe = stufeFuer(breite, sichtJetzt.w, stufeRef.current);
       stufeRef.current = stufe;
+      /*
+       * **Erst der Grund, dann der Bewuchs.** Die Reihenfolge ist die
+       * Landschaft: Bäume stehen auf Bergen, nicht darunter.
+       */
+      const grund = grundRef.current;
+      const grundbericht = grund
+        ? maleLage(ctx, grund, sichtJetzt, breite * dichte, stufe)
+        : undefined;
       const bericht = maleLage(ctx, werk, sichtJetzt, breite * dichte, stufe);
 
-      /* Noch etwas im Ofen? Dann backen und gleich wiederkommen. */
+      /*
+       * Noch etwas im Ofen? Dann backen und gleich wiederkommen.
+       *
+       * **Der Grund zuerst.** Sein Budget ist dasselbe; wer es sich mit dem
+       * Bewuchs teilt, bekommt in jedem Bild ein bisschen von beidem, und
+       * das Gebirge erscheint zuletzt. Da es *unter* dem Wald liegt, sähe
+       * man dann Bäume auf dem leeren Land schweben.
+       */
+      const offenGrund = grund ? grund.backeBudgetiert() : false;
       const offen = werk.backeBudgetiert();
-      if (offen || bericht.vorschau > 0 || bericht.veraltet > 0) anfordern();
+      if (
+        offen || offenGrund || bericht.vorschau > 0 || bericht.veraltet > 0 ||
+        (grundbericht && (grundbericht.vorschau > 0 || grundbericht.veraltet > 0))
+      ) anfordern();
 
       messung.kacheln = werk.anzahl();
       messung.bytes = werk.bytes();
@@ -331,6 +433,11 @@ export function useKartenleinwand({
       messung.stufe = bericht.stufe;
       messung.msLetztesBild = performance.now() - t0;
       messung.bilder++;
+      if (grund) {
+        messung.grundkacheln = grund.anzahl();
+        messung.msGrund = grund.msGebacken;
+        messung.grundGebacken = grund.gebacken;
+      }
     };
 
     const anfordern = () => {
@@ -350,7 +457,7 @@ export function useKartenleinwand({
   /* Wer etwas ändert, meldet ein Bild an – und bricht keines ab. */
   useEffect(() => {
     anfordernRef.current();
-  }, [sicht, raster, stilbuch]);
+  }, [sicht, raster, stilbuch, kaemme]);
 
   useEffect(() => {
     (window as unknown as { __kartenwerk?: Messung }).__kartenwerk = messung;

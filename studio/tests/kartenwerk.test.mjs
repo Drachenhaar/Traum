@@ -1149,8 +1149,16 @@ pruefe('die Zeichenschleife bricht ihr eigenes Bild nicht mehr ab', () => {
   const schleife = q.slice(q.indexOf('const male = () =>'));
   const ende = schleife.indexOf('}, [leinwand, huelle]);');
   assert.ok(ende > 0, 'die Zeichenschleife hängt wieder an der Sicht');
-  assert.match(q, /anfordernRef\.current\(\);\s*\}, \[sicht, raster, stilbuch\]\);/,
-    'niemand meldet ein Bild an, wenn sich etwas ändert');
+  /*
+   * Die Liste wächst mit – inzwischen stehen die Gebirge mit drin. Geprüft
+   * wird deshalb, dass Sicht, Raster und Stilbuch **dabei** sind, nicht
+   * dass sie allein dastehen.
+   */
+  const anmeldung = q.match(/anfordernRef\.current\(\);\s*\}, \[([^\]]*)\]\);/);
+  assert.ok(anmeldung, 'niemand meldet ein Bild an, wenn sich etwas ändert');
+  for (const was of ['sicht', 'raster', 'stilbuch']) {
+    assert.ok(anmeldung[1].includes(was), `eine Änderung an \`${was}\` meldet kein Bild an`);
+  }
 });
 
 /* =======================================================================

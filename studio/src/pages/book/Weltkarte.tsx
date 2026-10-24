@@ -41,6 +41,7 @@ import {
   type Kartendokument,
   type Kartenfeature,
   type Kartenmarke,
+  type Gebirgskamm,
 } from '../../lib/karte/modell';
 import { SIEDLUNGEN, type Siedlung } from '../../lib/karte/siedlung';
 import { cx } from '../../lib/utils';
@@ -82,7 +83,17 @@ const KARTE_MS = 560;
  *
  * Ein Schritt ist deshalb der ganze Zustand, den eine Handlung ändern kann.
  */
-type Schritt = { features: Kartenfeature[]; marken: Kartenmarke[] };
+type Schritt = {
+  features: Kartenfeature[];
+  marken: Kartenmarke[];
+  /*
+   * Und die Gebirge dazu. Dieselbe Überlegung wie bei den Marken, und
+   * derselbe stille Fehler, wenn sie fehlten: Wer einen Kamm zieht und
+   * „Zurücknehmen" drückt, bekäme ihn nicht weg – und wer danach eine Küste
+   * zurücknähme, bekäme Flächen von vorhin und Gebirge von jetzt.
+   */
+  kaemme: Gebirgskamm[];
+};
 
 function Karte() {
   const entries = useStudio((s) => s.entries);
@@ -184,7 +195,7 @@ function Karte() {
   const aendere = (naechste: Kartendokument) => {
     setVerlauf((v) => [
       ...v.slice(-(SCHRITTE - 1)),
-      { features: karte.features, marken: karte.marken ?? [] },
+      { features: karte.features, marken: karte.marken ?? [], kaemme: karte.kaemme ?? [] },
     ]);
     setEntwurf(naechste);
     void speichereKarte(naechste);
@@ -194,7 +205,12 @@ function Karte() {
     const vorher = verlauf[verlauf.length - 1];
     if (!vorher) return;
     setVerlauf((v) => v.slice(0, -1));
-    const naechste = { ...karte, features: vorher.features, marken: vorher.marken };
+    const naechste = {
+      ...karte,
+      features: vorher.features,
+      marken: vorher.marken,
+      kaemme: vorher.kaemme,
+    };
     setEntwurf(naechste);
     setGewaehlt(undefined);
     void speichereKarte(naechste);
@@ -240,6 +256,28 @@ function Karte() {
    * Was gewählt ist, bestimmt, was man damit tun kann.
    */
   const marke = (karte.marken ?? []).find((m) => m.id === gewaehlt);
+
+  /*
+   * Und ein drittes Bedienfeld, aus demselben Grund wie das zweite.
+   *
+   * Ein Gebirge hat keine Bedeutung zum Umschalten – es *ist* ein Gebirge.
+   * Es hat stattdessen drei Zahlen, und die sind der eigentliche Grund für
+   * ein eigenes Feld: Was gewählt ist, bestimmt, was man damit tun kann.
+   */
+  const kamm = (karte.kaemme ?? []).find((g) => g.id === gewaehlt);
+
+  const mitKaemmen = (naechste: Gebirgskamm[]) => aendere({ ...karte, kaemme: naechste });
+
+  const setzeKamm = (teil: Partial<Gebirgskamm>) => {
+    if (!kamm) return;
+    mitKaemmen((karte.kaemme ?? []).map((g) => (g.id === kamm.id ? { ...g, ...teil } : g)));
+  };
+
+  const loescheKamm = () => {
+    if (!kamm) return;
+    mitKaemmen((karte.kaemme ?? []).filter((g) => g.id !== kamm.id));
+    setGewaehlt(undefined);
+  };
 
   const mitMarken = (naechste: Kartenmarke[]) =>
     aendere({ ...karte, marken: naechste });
@@ -453,6 +491,75 @@ function Karte() {
           >
             <Trash2 size={16} aria-hidden />
             Fläche entfernen
+          </button>
+        </section>
+      )}
+
+      {kamm && (
+        <section className="card mt-4 p-4">
+          <h2 className="font-serif text-lg">Dieses Gebirge</h2>
+          {/*
+            * Drei Regler und kein Formular.
+            *
+            * Die Zahlen dahinter – 8 bis 320 Karteneinheiten, 0 bis 1 – sagen
+            * niemandem etwas, und sie stünden auch nirgends richtig: Wie breit
+            * „breit" ist, hängt davon ab, wie gross die Karte daneben ist. Ein
+            * Regler beantwortet die einzige Frage, die hier zählt, nämlich
+            * „mehr oder weniger als jetzt", und er beantwortet sie, während
+            * man zusieht.
+            */}
+          {(
+            [
+              ['breite', 'Breite', 8, 320, 2],
+              ['hoehe', 'Höhe', 0.05, 1, 0.01],
+              ['zerkluftung', 'Zerklüftung', 0, 1, 0.01],
+            ] as const
+          ).map(([feld, name, min, max, schritt]) => (
+            <label key={feld} className="mt-3 block text-sm text-ink-muted">
+              {name}
+              <input
+                type="range"
+                className="mt-1 w-full"
+                min={min}
+                max={max}
+                step={schritt}
+                value={kamm[feld]}
+                onChange={(e) => setzeKamm({ [feld]: Number(e.target.value) })}
+              />
+            </label>
+          ))}
+
+          <label className="mt-4 block text-sm text-ink-muted" htmlFor="karte-kamm-eintrag">
+            Gehört zu einer Seite
+          </label>
+          <select
+            id="karte-kamm-eintrag"
+            className="input-base mt-1 w-full"
+            value={kamm.entryId ?? ''}
+            onChange={(e) => setzeKamm({ entryId: e.target.value || undefined })}
+          >
+            <option value="">— namenlos —</option>
+            {geordnet.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.title}
+              </option>
+            ))}
+          </select>
+          {kamm.entryId && (
+            <p className="mt-2 text-sm">
+              <Link className="text-brass-600 underline" to={`/eintrag/${kamm.entryId}`}>
+                {namen.get(kamm.entryId) ?? 'Zur Seite'}
+              </Link>
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={loescheKamm}
+            className="touch-target mt-4 flex items-center gap-2 text-sm text-ink-muted"
+          >
+            <Trash2 size={16} aria-hidden />
+            Gebirge entfernen
           </button>
         </section>
       )}

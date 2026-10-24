@@ -315,10 +315,15 @@ pruefe('das Rückgängig nimmt auch Siedlungen zurück', () => {
    * Bild, und niemand fände heraus, warum.
    */
   const q = ohneProsa(lies('src/pages/book/Weltkarte.tsx'));
-  assert.match(q, /type Schritt = \{ features: Kartenfeature\[\]; marken: Kartenmarke\[\] \}/);
-  assert.match(q, /\{ features: karte\.features, marken: karte\.marken \?\? \[\] \}/,
+  /*
+   * Geprüft wird auf die Felder und nicht auf die ganze Zeile: Der Schritt
+   * trägt inzwischen auch die Gebirge, und eine Prüfung, die am Wortlaut
+   * hängt, meldet jede richtige Erweiterung als Fehler.
+   */
+  assert.match(q, /type Schritt = \{[\s\S]{0,400}?marken: Kartenmarke\[\];/);
+  assert.match(q, /\{ features: karte\.features, marken: karte\.marken \?\? \[\]/,
     'der Schritt legt die Marken nicht ab');
-  assert.match(q, /features: vorher\.features, marken: vorher\.marken/,
+  assert.match(q, /features: vorher\.features,\s*marken: vorher\.marken/,
     'das Zurücknehmen holt die Marken nicht');
 });
 

@@ -37,6 +37,7 @@ import {
   FELD,
   alsPfad,
   neueMarke,
+  neuerKamm,
   neuesFeature,
   type Bedeutung,
   type Kartendokument,
@@ -51,6 +52,7 @@ import { kuestensaum, namenslage } from '../../lib/karte/kartografie';
 import { neuerSeed } from '../../lib/karte/zufall';
 import { EBENEN, stilImBand } from '../../lib/karte/stil';
 import { federzug } from '../../lib/karte/feder';
+import { kammAus, kammPfad } from '../../lib/karte/gebirge';
 import { useBand } from '../../lib/raum/band';
 import { useKartenleinwand } from './useKartenleinwand';
 import { cx } from '../../lib/utils';
@@ -75,7 +77,8 @@ import { cx } from '../../lib/utils';
  * wie das Malen und kommt als geschlossener Umriss zurück. Der Verfasser
  * bekommt kein mächtigeres Werkzeug, sondern ein Wort mehr.
  */
-export type Werkzeug = Bedeutung | 'waehlen' | 'bucht' | 'landzunge' | 'fluss' | Siedlung;
+export type Werkzeug =
+  | Bedeutung | 'waehlen' | 'bucht' | 'landzunge' | 'fluss' | 'gebirge' | Siedlung;
 
 interface Sicht {
   x: number;
@@ -150,6 +153,19 @@ export function Weltkarte({
   const leinwand = useRef<HTMLCanvasElement>(null);
   const [sicht, setSicht] = useState<Sicht>(GANZ);
   const [spur, setSpur] = useState<Punkt[] | null>(null);
+  /*
+   * Ein Kammpunkt unter dem Finger.
+   *
+   * Im Zustand und nicht in einem Ref, weil man ihn beim Ziehen **sehen**
+   * muss – ein Griff, der erst beim Loslassen nachzieht, fühlt sich an, als
+   * reagiere die Karte nicht.
+   *
+   * Gespeichert wird erst beim Loslassen. Jedes `onChange` legt oben einen
+   * Eintrag im Rückgängig ab; bei sechzig Bildern in der Sekunde wären das
+   * sechzig Schritte für eine Handbewegung, und „Zurücknehmen" wäre
+   * unbrauchbar.
+   */
+  const [zieht, setZieht] = useState<{ id: string; i: number; p: Punkt } | null>(null);
 
   /*
    * Die Finger.
@@ -282,6 +298,12 @@ export function Weltkarte({
     };
   };
 
+  /** Die Punkte eines Kamms – samt dem, der gerade unter dem Finger liegt. */
+  const punkteVon = (g: { id: string; punkte: Punkt[] }): Punkt[] =>
+    zieht && zieht.id === g.id
+      ? g.punkte.map((p, i) => (i === zieht.i ? zieht.p : p))
+      : g.punkte;
+
   const runter = (e: React.PointerEvent) => {
     finger.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     bewegt.current = false;
@@ -311,6 +333,16 @@ export function Weltkarte({
     finger.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     const r = huelle.current?.getBoundingClientRect();
     if (!r || !r.width) return;
+
+    /*
+     * **Ein Griff am Kamm hat Vorrang vor allem.** Wer einen Punkt gefasst
+     * hat, will ihn bewegen und nicht die Karte – und schon gar nichts malen.
+     */
+    if (zieht && finger.current.size === 1) {
+      bewegt.current = true;
+      setZieht({ ...zieht, p: zuKarte(e.clientX, e.clientY) });
+      return;
+    }
     if (Math.hypot(e.clientX - vorher.x, e.clientY - vorher.y) > 1) bewegt.current = true;
 
     if (finger.current.size >= 2 && geste.current) {
@@ -349,6 +381,31 @@ export function Weltkarte({
     finger.current.delete(e.pointerId);
     if (finger.current.size >= 1) return;
     geste.current = null;
+
+    /*
+     * Der gezogene Punkt wird **einmal** gespeichert, hier.
+     *
+     * Und nur, wenn er sich wirklich bewegt hat: Ein Tippen auf einen Griff
+     * ist kein Verschieben, und ein Schritt im Rückgängig, der nichts
+     * ändert, ist einer, den niemand erklären kann.
+     */
+    if (zieht) {
+      const g = (karte.kaemme ?? []).find((k) => k.id === zieht.id);
+      const alt = g?.punkte[zieht.i];
+      setZieht(null);
+      if (g && alt && (alt[0] !== zieht.p[0] || alt[1] !== zieht.p[1])) {
+        onChange({
+          ...karte,
+          kaemme: (karte.kaemme ?? []).map((k) =>
+            k.id === g.id
+              ? { ...k, punkte: k.punkte.map((p, i) => (i === zieht.i ? zieht.p : p)) }
+              : k,
+          ),
+        });
+      }
+      return;
+    }
+
     if (!spur) return;
     setSpur(null);
     if (werkzeug === 'waehlen') return;
@@ -402,6 +459,23 @@ export function Weltkarte({
       if (!lauf) return;
       const w: Kartenfeature = { ...neuesFeature('wasser', lauf), seed: saat };
       onChange({ ...karte, features: [...karte.features, w] });
+      return;
+    }
+
+    /*
+     * Das Gebirge ist ein **Verlauf** und keine Fläche.
+     *
+     * Deshalb entsteht hier kein Feature, sondern ein Kamm in einer eigenen
+     * Liste – dieselbe Überlegung wie bei der Siedlung, siehe `modell.ts`.
+     * Der Strich wird ausgedünnt, bevor er gespeichert wird: Die Zacken
+     * einer zitternden Hand sind keine Gestaltung.
+     */
+    if (werkzeug === 'gebirge') {
+      const punkte = kammAus(spur, 24);
+      if (!punkte) return;
+      const g = neuerKamm(punkte);
+      onChange({ ...karte, kaemme: [...(karte.kaemme ?? []), g] });
+      onWaehle(g.id);
       return;
     }
 
@@ -618,6 +692,69 @@ export function Weltkarte({
           })}
 
           {/*
+            * **Der Fangbereich eines Gebirges ist sein Kamm.**
+            *
+            * Ein breiter, durchsichtiger Strich entlang der Linie – kein
+            * Umriss des ganzen Höhenzuges. Das ist nicht Bequemlichkeit: Ein
+            * Gebirge *ist* seine Linie, und wer es anfassen will, zielt auf
+            * den Grat. Auf den Hang zu tippen, wo sonst nur Land steht, wäre
+            * eine Behauptung über etwas, das man dort nicht sieht.
+            *
+            * `strokeWidth` wächst mit der Sicht, damit der Bereich beim
+            * Herauszoomen nicht zum Haar wird – wie beim Siedlungszeichen.
+            */}
+          {(karte.kaemme ?? []).map((g) => (
+            <path
+              key={`fang_${g.id}`}
+              d={kammPfad(punkteVon(g))}
+              fill="none"
+              stroke="transparent"
+              strokeWidth={Math.max(sicht.w * 0.022, 6)}
+              strokeLinecap="round"
+              onClick={() => {
+                if (!bewegt.current && !verbraucht.current) onWaehle(g.id);
+              }}
+            />
+          ))}
+
+          {/*
+            * **Die Griffe am gewählten Kamm.**
+            *
+            * Hier, in der unteren Ebene, denn sie müssen Finger annehmen –
+            * und vor den Siedlungen, damit ein Griff, der über einem Dorf
+            * liegt, den Griff meint. Wer einen Kamm bearbeitet, zielt auf
+            * seine Punkte.
+            *
+            * `stopPropagation` ist die eine Zeile, ohne die nichts
+            * funktioniert: Sonst zählte die Karte den Finger als Beginn
+            * einer Schiebegeste und der Griff bliebe liegen.
+            */}
+          {(karte.kaemme ?? [])
+            .filter((g) => gewaehlt === g.id)
+            .flatMap((g) =>
+              punkteVon(g).map((p, i) => (
+                <circle
+                  key={`gr_${g.id}_${i}`}
+                  cx={p[0]}
+                  cy={p[1]}
+                  r={Math.max(sicht.w * 0.012, 3)}
+                  fill={stil.papier}
+                  stroke={stil.wahl}
+                  strokeWidth={stil.strich}
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    finger.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                    bewegt.current = false;
+                    verbraucht.current = false;
+                    geste.current = null;
+                    setSpur(null);
+                    setZieht({ id: g.id, i, p });
+                  }}
+                />
+              )),
+            )}
+
+          {/*
             * Die Fangflächen der Siedlungen – hier, das Zeichen selbst oben.
             *
             * **Warum getrennt.** Das Zeichen gehört über die Bäume, und die
@@ -712,6 +849,28 @@ export function Weltkarte({
           viewBox={`${sicht.x} ${sicht.y} ${sicht.w} ${sicht.w}`}
           aria-hidden
         >
+          {/*
+            * Der gewählte Kamm zeigt sich.
+            *
+            * **Nur dann.** Ein Gebirge soll als Relief dastehen und nicht als
+            * Linie mit Relief daneben; die Linie ist Werkzeug und nicht
+            * Landschaft. Sichtbar wird sie, wenn jemand sie bearbeitet – dann
+            * ist sie genau das, was er anfasst.
+            */}
+          {(karte.kaemme ?? []).map((g) =>
+            gewaehlt === g.id ? (
+              <path
+                key={`wk_${g.id}`}
+                d={kammPfad(punkteVon(g))}
+                fill="none"
+                stroke={stil.wahl}
+                strokeWidth={stil.strich * 2}
+                strokeLinecap="round"
+                strokeDasharray={`${sicht.w * 0.014} ${sicht.w * 0.01}`}
+              />
+            ) : null,
+          )}
+
           {geordnet.map((f) => {
             if (gewaehlt !== f.id) return null;
             return (
@@ -1009,6 +1168,7 @@ export function Werkzeugleiste({
         {knopf('bucht', 'Bucht')}
         {knopf('landzunge', 'Landzunge')}
         {knopf('fluss', 'Fluss')}
+        {knopf('gebirge', 'Gebirge')}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         {SIEDLUNGEN.map((o) => knopf(o.id, o.name))}

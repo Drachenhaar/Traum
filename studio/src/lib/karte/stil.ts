@@ -39,6 +39,15 @@ export interface Kartenstil {
   land: { flaeche: string; linie: string };
   wasser: { flaeche: string; linie: string; saum: string };
   wald: { flaeche: string; linie: string; laub: string; stamm: string };
+  /**
+   * Das Gebirge.
+   *
+   * Vier Töne, weil eine Schattierung vier braucht: den Grund, auf dem der
+   * Zug steht, die beschienene und die abgewandte Flanke, und den Ton für
+   * die höchsten Lagen. Kein Weiss und kein Schnee – „ruhig, hell, wenige
+   * gedeckte Töne" gilt auch für Berge.
+   */
+  fels: { flaeche: string; licht: string; schatten: string; hoehe: string };
   /** Was noch nicht fertig ist, während der Finger malt. */
   entwurf: string;
   /** Die Auswahl – nie eine Farbe, immer nur ein Rahmen. */
@@ -67,6 +76,7 @@ export const ARTBOOK: Kartenstil = {
   land: { flaeche: '#EFE7D4', linie: '#D8CCB4' },
   wasser: { flaeche: '#DCE6E6', linie: '#A9BFC2', saum: '#EDF2F1' },
   wald: { flaeche: '#DFE5D2', linie: '#B4C0A0', laub: '#7A8467', stamm: '#6B6047' },
+  fels: { flaeche: '#DED4C0', licht: '#EFE6D3', schatten: '#8A8171', hoehe: '#CBC1AD' },
   entwurf: '#A8853F',
   wahl: '#B8860B',
   marke: '#8C6D31',
@@ -101,6 +111,7 @@ export const ARTBOOK_DUNKEL: Kartenstil = {
   land: { flaeche: '#221B15', linie: '#3A2F22' },
   wasser: { flaeche: '#182226', linie: '#33474C', saum: '#101A1D' },
   wald: { flaeche: '#1A2118', linie: '#33422C', laub: '#7A8467', stamm: '#6B6047' },
+  fels: { flaeche: '#241E17', licht: '#473E31', schatten: '#0C0A07', hoehe: '#352E23' },
   entwurf: '#C9A15F',
   wahl: '#E3C878',
   marke: '#C0A468',

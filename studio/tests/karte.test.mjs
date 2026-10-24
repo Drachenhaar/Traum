@@ -183,6 +183,12 @@ const voll = {
    * `siedlung.test.mjs`.
    */
   marken: [],
+  /*
+   * Und die Gebirge, aus demselben Grund. Dieselbe Überlegung, dieselbe
+   * Stelle – wer eine Liste manchmal als `undefined` zurückgibt, zwingt
+   * jeden Leser, den Fall ein zweites Mal zu kennen.
+   */
+  kaemme: [],
   createdAt: 1,
   updatedAt: 2,
 };

@@ -105,6 +105,52 @@ export interface Kartenmarke {
   entryId?: string;
 }
 
+/**
+ * Ein Gebirgszug auf der Karte.
+ *
+ * ---
+ *
+ * **Eine Linie, keine Fläche.** Dieselbe Überlegung wie bei der Siedlung,
+ * nur andersherum: Eine Siedlung hat einen Ort, eine Fläche einen Umriss –
+ * und ein Gebirge hat einen **Verlauf**. Es in `features` zu zwängen hiesse,
+ * dass `punkte` mal ein geschlossener Umriss und mal ein offener Kamm ist,
+ * und jede Stelle, die Flächen liest – Küstensaum, Relief, Ebenenfolge,
+ * Namenslage, Streuwerk –, müsste das unterscheiden.
+ *
+ * ---
+ *
+ * **Was hier nicht steht.** Keine Gipfel, keine Hänge, kein Bild. Gespeichert
+ * wird der Kamm und vier Zahlen; woraus daraus ein Gebirge wird, rechnet
+ * `gebirge.ts` bei jedem Öffnen neu – und wegen des Ortszufalls jedes Mal
+ * gleich.
+ *
+ * Gespeicherte Gipfelpositionen wären eine zweite Wahrheit: Wer den Kamm
+ * verschöbe, hätte dann Berge, die nicht mehr auf ihrem Kamm stehen.
+ */
+export interface Gebirgskamm {
+  id: string;
+  /** Der Verlauf des Kamms, im Kartenraum 0…1000. Offen, nicht geschlossen. */
+  punkte: Punkt[];
+  /**
+   * Wie weit der Höhenzug zu beiden Seiten des Kamms reicht, im Kartenmaß.
+   *
+   * Eine halbe Breite und keine ganze: Gerechnet wird überall vom Abstand
+   * zum Kamm aus, und ein Mass, das man vor jedem Gebrauch halbieren muss,
+   * wird irgendwann einmal nicht halbiert.
+   */
+  breite: number;
+  /** Wie hoch, 0…1. Der Stil entscheidet, wie viel Schatten das ergibt. */
+  hoehe: number;
+  /** Von weichen Rücken (0) bis zu zerrissenen Graten (1). */
+  zerkluftung: number;
+  /** Einmal gezogen, danach unveränderlich – wie bei einer Fläche. */
+  seed: number;
+  /** Auf welche Seite des Buches dieser Zug zeigt. Darf fehlen. */
+  entryId?: string;
+  beginn?: string;
+  ende?: string;
+}
+
 export interface Kartendokument {
   id: string;
   bookId: string;
@@ -119,6 +165,11 @@ export interface Kartendokument {
    * und eine Karte ohne Dörfer ist keine beschädigte Karte.
    */
   marken?: Kartenmarke[];
+  /**
+   * Die Gebirgszüge. Darf fehlen – jede Karte von vor dieser Runde hat
+   * keine, und eine Karte ohne Berge ist keine beschädigte Karte.
+   */
+  kaemme?: Gebirgskamm[];
   createdAt: number;
   updatedAt: number;
 }
@@ -143,6 +194,7 @@ export function neueKarte(bookId: string): Kartendokument {
     styleId: 'artbook',
     features: [],
     marken: [],
+    kaemme: [],
     createdAt: jetzt,
     updatedAt: jetzt,
   };
@@ -154,6 +206,18 @@ export function neuesFeature(art: Bedeutung, punkte: Punkt[]): Kartenfeature {
 
 export function neueMarke(art: Siedlung, bei: Punkt): Kartenmarke {
   return { id: neueId('m'), art, bei, seed: neuerSeed() };
+}
+
+/**
+ * Die Vorgabewerte eines frisch gezogenen Gebirges.
+ *
+ * Sie stehen hier und nicht im Werkzeug, weil sie zum Datentyp gehören: Wer
+ * einen Kamm ohne Breite speichert, hat kein Gebirge gespeichert.
+ */
+export const GEBIRGE_VORGABE = { breite: 110, hoehe: 0.78, zerkluftung: 0.5 };
+
+export function neuerKamm(punkte: Punkt[]): Gebirgskamm {
+  return { id: neueId('g'), punkte, ...GEBIRGE_VORGABE, seed: neuerSeed() };
 }
 
 /* ------------------------------------------------------------- Heilung ---- */
@@ -222,13 +286,72 @@ export function heileKarte(roh: unknown): Kartendokument | undefined {
     });
   }
 
+  /*
+   * Die Gebirgszüge, Feld für Feld.
+   *
+   * Ein Kamm braucht **zwei** Punkte, nicht drei: Eine Fläche mit zwei
+   * Punkten ist keine Fläche, eine Linie mit zwei Punkten ist eine Linie.
+   *
+   * Die drei Zahlen werden geklemmt statt verworfen. Eine Breite von null
+   * ergäbe ein unsichtbares Gebirge, das trotzdem dasteht – schlimmer als
+   * ein schmales, denn man sähe nicht, was fehlt.
+   */
+  const klemme = (v: unknown, min: number, max: number, rueck: number) => {
+    const n = typeof v === 'number' && Number.isFinite(v) ? v : rueck;
+    return Math.max(min, Math.min(max, n));
+  };
+  const kaemme: Gebirgskamm[] = [];
+  for (const roherKamm of Array.isArray(k.kaemme) ? k.kaemme : []) {
+    if (!roherKamm || typeof roherKamm !== 'object') continue;
+    const g = roherKamm as Record<string, unknown>;
+    const punkte = (Array.isArray(g.punkte) ? g.punkte : [])
+      .filter(
+        (p): p is Punkt =>
+          Array.isArray(p) && p.length === 2 &&
+          p.every((n) => typeof n === 'number' && Number.isFinite(n)),
+      )
+      .map(([x, y]) => [x, y] as Punkt);
+    if (punkte.length < 2) continue;
+    kaemme.push({
+      id: typeof g.id === 'string' ? g.id : neueId('g'),
+      punkte,
+      breite: klemme(g.breite, 8, 320, GEBIRGE_VORGABE.breite),
+      hoehe: klemme(g.hoehe, 0.05, 1, GEBIRGE_VORGABE.hoehe),
+      zerkluftung: klemme(g.zerkluftung, 0, 1, GEBIRGE_VORGABE.zerkluftung),
+      seed: zahl(g.seed, neuerSeed()) | 0,
+      entryId: typeof g.entryId === 'string' ? g.entryId : undefined,
+      beginn: typeof g.beginn === 'string' ? g.beginn : undefined,
+      ende: typeof g.ende === 'string' ? g.ende : undefined,
+    });
+  }
+
   return {
     id: k.id,
     bookId: k.bookId,
+    /*
+     * **Die Welt muss mit.**
+     *
+     * Hier fehlte sie, und der Verlust war still: Der Laden holt Karten mit
+     * `db.karten.where('worldId')`. Eine geheilte Karte kam ohne Welt
+     * zurück, wurde beim nächsten Strich so gespeichert – und war beim
+     * nächsten Öffnen **weg**. Nicht gelöscht, nur unauffindbar, was
+     * schlimmer ist.
+     *
+     * Gemessen mit der Gebirgssonde: Nach dem Zeichnen stand in der
+     * Datenbank `{id:'k_mess', book:'b1', world:undefined, f:3, g:1}` – alle
+     * Daten da, die Karte trotzdem leer.
+     *
+     * Dass es bisher niemandem auffiel, liegt an der Heimatpflege beim
+     * Start (`useStudio.ts`), die heimatlose Karten der aktiven Welt
+     * zuschlägt. Sie repariert den Schaden einen Start später; richtig ist,
+     * ihn nicht anzurichten.
+     */
+    worldId: typeof k.worldId === 'string' ? k.worldId : undefined,
     seed: zahl(k.seed, 1) | 0,
     styleId: typeof k.styleId === 'string' ? k.styleId : 'artbook',
     features,
     marken,
+    kaemme,
     createdAt: zahl(k.createdAt, Date.now()),
     updatedAt: zahl(k.updatedAt, Date.now()),
   };
