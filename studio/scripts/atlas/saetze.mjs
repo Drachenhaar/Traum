@@ -107,6 +107,33 @@ export const SAETZE = {
         palette: { laub: '#7A8467', laubLicht: '#99A484', laubSchatten: '#5C6749', stamm: '#6B6047' },
         male: backeBaum,
       },
+
+      /*
+       * Das Unterholz – Farne, Blattwerk, Gräser, Beerensträucher.
+       *
+       * ---
+       *
+       * **Warum es eine eigene Art ist.**
+       *
+       * Das Waldwerk hatte diese Lage schon, aber ohne eigene Bilder: Es
+       * nahm **verkleinerte Baumbilder**. Aus zwei Schritten Entfernung
+       * geht das durch, aus der Nähe steht da ein Kiefernwäldchen in
+       * Kniehöhe. Ein Behelf, und er war als solcher gedacht.
+       *
+       * **Die Grössen.** Acht Karteneinheiten hoch, bei 16,4 Bildpunkten je
+       * Einheit also 131 Punkte – gebacken wird auf 140. Das Rohblatt
+       * liefert 63 bis 122; damit ist diese Art die einzige, bei der die
+       * Vorlage knapp ist statt üppig. Für etwas, das halb hinter Stämmen
+       * steht, reicht es.
+       */
+      unterholz: {
+        hoehe: 140,
+        karteHoehe: 8,
+        breiteZuHoehe: 1.4,
+        varianten: 15,
+        ankerX: 0.5,
+        ankerY: 0.97,
+      },
     },
   },
 };

@@ -99,6 +99,19 @@ export interface Stileintrag {
    * übrigen werden einfach gezeichnet.
    */
   verdichtet?: boolean;
+  /**
+   * Was unter dieser Art wächst – der Name einer anderen Art.
+   *
+   * Das Waldwerk füllt die Stammzone mit kleinen Dingen. Bisher nahm es
+   * dafür **verkleinerte Baumbilder**: Aus zwei Schritten Entfernung geht
+   * das durch, aus der Nähe steht da ein Kiefernwäldchen in Kniehöhe.
+   *
+   * Mit dieser Angabe holt es sich stattdessen die Art, die hier steht –
+   * und weiss dabei nicht, dass es „unterholz" gibt. Es weiss nur, dass
+   * diese Art einen Unterwuchs hat und wie er heisst. Fehlt die Art im
+   * Bildersatz, bleibt es beim alten Behelf.
+   */
+  unterwuchs?: string;
   /** Zeichnen. Der Maler fragt nicht, wie. */
   zeichne(ctx: CanvasRenderingContext2D, s: Staffage, massstab: number): void;
 }
@@ -142,9 +155,19 @@ export function stilbuchAus(id: string, tabelle: Record<string, Stileintrag>): S
  * sind Bedeutung, nicht Gestaltung.
  */
 const ORDNUNG: Record<string, {
-  lage: Lage; ebene: number; breiteZuHoehe: number; verdichtet?: boolean;
+  lage: Lage; ebene: number; breiteZuHoehe: number;
+  verdichtet?: boolean; unterwuchs?: string;
 }> = {
-  wald: { lage: 'bewuchs', ebene: EBENE.bewuchs, breiteZuHoehe: 1, verdichtet: true },
+  /*
+   * Dass ein Wald Unterholz hat, gilt in jedem Stil – *wie* das Unterholz
+   * aussieht, sagt der Bildersatz. Deshalb steht die Beziehung hier und
+   * nicht dort.
+   */
+  wald: {
+    lage: 'bewuchs', ebene: EBENE.bewuchs, breiteZuHoehe: 1,
+    verdichtet: true, unterwuchs: 'unterholz',
+  },
+  unterholz: { lage: 'bewuchs', ebene: EBENE.bewuchs, breiteZuHoehe: 1.4 },
   wiese: { lage: 'grund', ebene: EBENE.boden, breiteZuHoehe: 1 },
   fels: { lage: 'bewuchs', ebene: EBENE.fels, breiteZuHoehe: 1.4 },
   berge: { lage: 'bewuchs', ebene: EBENE.fels, breiteZuHoehe: 1.6 },
@@ -199,7 +222,7 @@ export function stilbuchFuer(stil: Kartenstil, atlas?: Atlas): Stilbuch {
      * Kronendach wurden gerechnet und nie gezeichnet. Gefunden, indem die
      * Bodenlage knallrot gemalt wurde – es war kein roter Bildpunkt da.
      */
-    if (gemalt) tabelle[art] = { ...gemalt, verdichtet: o.verdichtet };
+    if (gemalt) tabelle[art] = { ...gemalt, verdichtet: o.verdichtet, unterwuchs: o.unterwuchs };
   }
 
   return stilbuchAus(stil.id, tabelle);

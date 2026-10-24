@@ -20,7 +20,7 @@
  * 4  Kronen         die Bäume selbst, nach y sortiert
  * 3  Kronendach     die Vereinigung aller Kronen, verwischt, dahinter –
  *                   und darin das Licht, mit `source-atop` eingelegt
- * 2  Unterholz      dieselben Bilder, klein und dunkel
+ * 2  Unterholz      eigene Bilder – Farne, Blattwerk, Gräser
  * 1  Schattenwurf   alle Schatten zusammen, dann verwischt
  * 0  Waldboden      weiche Scheiben unter den Stämmen, verwischt
  * ```
@@ -292,15 +292,44 @@ function maleDicht(
      Zwei je Baum und nur bei jedem zweiten – mehr kostet mehr, als es
      bringt, und ein Wald ohne Lücken sieht gestopft aus. */
   for (const s of baeume) {
+    const e = stilbuch.eintrag(s.art);
+    if (!e) continue;
+    /*
+     * **Eigene Bilder, wenn es welche gibt – sonst der alte Behelf.**
+     *
+     * Hier stand nur die zweite Hälfte: dasselbe Baumbild, auf ein Fünftel
+     * verkleinert. Aus zwei Schritten Entfernung geht das durch, aus der
+     * Nähe steht da ein Kiefernwäldchen in Kniehöhe.
+     *
+     * Welche Art der Unterwuchs ist, sagt der Stileintrag (`unterwuchs`).
+     * Dieses Modul nennt keine Art beim Namen – und es muss auch keine
+     * kennen: Fehlt die Art im Bildersatz, ist `unten` undefiniert und es
+     * bleibt beim Behelf. Eine Karte ohne Unterholzbilder sieht dann aus
+     * wie vorher und nicht kahl.
+     */
+    const unten = e.unterwuchs ? stilbuch.eintrag(e.unterwuchs) : undefined;
+    const malt = unten ?? e;
+
     for (let k = 0; k < 2; k++) {
       if (amOrt(s.x + k * 37, s.y - k * 23, 601) > 0.5) continue;
-      const e = stilbuch.eintrag(s.art);
-      if (!e) continue;
-      e.zeichne(ctx, {
+      const wuchs = amOrt(s.x, s.y + k, 719);
+      malt.zeichne(ctx, {
         ...s,
         x: s.x + (amOrt(s.x, s.y + k, 701) - 0.5) * s.h * 0.75,
         y: s.y + (amOrt(s.y, s.x + k, 709) - 0.2) * s.h * 0.14,
-        h: s.h * (0.2 + amOrt(s.x, s.y + k, 719) * 0.16),
+        /*
+         * **Nie grösser als die Art sich selbst erklärt.**
+         *
+         * `hoehe` ist die Grösse, für die der Bildersatz gebacken wurde;
+         * wer darüber hinausgeht, holt sich dieselbe Unschärfe zurück, die
+         * die Bäume hatten. Deshalb nach unten gestreut und nicht nach
+         * oben.
+         */
+        h: unten ? unten.hoehe * (0.6 + wuchs * 0.4) : s.h * (0.2 + wuchs * 0.16),
+        variante: unten
+          ? Math.floor(amOrt(s.y + k, s.x, 727) * unten.varianten)
+          : s.variante,
+        spiegel: amOrt(s.x + k, s.y, 733) > 0.5,
       }, massstab);
     }
   }

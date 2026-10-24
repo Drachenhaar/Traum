@@ -44,11 +44,29 @@ const args = process.argv.slice(2).filter((a) => a !== '--');
 const alsBlatt = args.includes('--blatt');
 /* Das Rohbild bringt seine Durchsichtigkeit schon mit. */
 const schonFrei = args.includes('--frei');
+/*
+ * `--teile` trennt nach **Zusammenhang** statt an senkrechten Lücken.
+ *
+ * Nötig für Blätter, auf denen die Motive sich berühren oder in mehreren
+ * Reihen stehen – dort gibt es keine durchgehende leere Spalte, und das
+ * Spaltenverfahren liefert folgerichtig ein einziges Stück: das ganze Blatt.
+ *
+ * `--auswahl=27,28,…` nimmt nur diese Stücke, in dieser Reihenfolge. Die
+ * Nummern stammen aus `window.zerlege`, das dasselbe Blatt nummeriert
+ * zeigt. Welcher Busch als Unterholz taugt und welcher Felsbrocken nicht,
+ * ist eine Entscheidung und keine Rechnung.
+ */
+const nachTeilen = args.includes('--teile');
+/* `--spiegeln` dreht jedes Motiv um – für ein Blatt, dessen Licht von der
+   falschen Seite kommt. Der Prüfer sagt, ob es nötig ist. */
+const spiegeln = args.includes('--spiegeln');
+const auswahl = (args.find((a) => a.startsWith('--auswahl='))?.slice(10) ?? '')
+  .split(',').map(Number).filter((n) => Number.isInteger(n) && n >= 0);
 const [satzName, artName, anzahlRoh] = args.filter((a) => !a.startsWith('--'));
 const anzahl = Number(anzahlRoh) || 8;
 
 if (!satzName || !artName) {
-  console.error('  npm run freistellen -- <satz> <art> [anzahl] [--blatt] [--frei]');
+  console.error('  npm run freistellen -- <satz> <art> [anzahl] [--blatt|--teile] [--frei] [--spiegeln] [--auswahl=0,3,7]');
   process.exit(2);
 }
 
@@ -124,7 +142,7 @@ const einstellungen = {
 };
 
 let geschrieben = 0;
-if (alsBlatt) {
+if (alsBlatt || nachTeilen) {
   const quelle = `/assets/karte/${satzName}/roh/${artName}_blatt.png`;
   if (!existsSync(join(wurzel, quelle))) {
     console.error(`  ${quelle} fehlt`);
@@ -132,9 +150,11 @@ if (alsBlatt) {
   }
   const { bilder, grund, gruppen } = await seite.evaluate(
     ([u, e]) => window.freistelle(u, e),
-    [quelle, { ...einstellungen, spalten: anzahl, zeilen: 1, nachLuecken: true, schonFrei }],
+    [quelle, nachTeilen
+      ? { ...einstellungen, nachTeilen: true, auswahl, schonFrei, spiegeln }
+      : { ...einstellungen, spalten: anzahl, zeilen: 1, nachLuecken: true, schonFrei, spiegeln }],
   );
-  console.log(`  Blatt: ${gruppen} Motive an den Lücken gefunden` +
+  console.log(`  Blatt: ${gruppen} Motive ${nachTeilen ? 'am Zusammenhang' : 'an den Lücken'} gefunden` +
     (schonFrei ? ' (schon freigestellt)' : `, Grund rgb(${grund.r},${grund.g},${grund.b})`));
   if (gruppen !== anzahl) {
     /*

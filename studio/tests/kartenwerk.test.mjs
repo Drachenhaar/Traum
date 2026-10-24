@@ -581,6 +581,20 @@ const falscherAtlas = {
           [[90, 0, 80, 100], [90, 0, 40, 50], [90, 0, 20, 25]],
         ],
       },
+      /*
+       * Das Unterholz liegt im Probeatlas **weit rechts**, ab x = 500. So
+       * lässt sich an jedem `drawImage` ablesen, welche Art gezeichnet hat
+       * – ohne dass die Prüfung dafür in das Waldwerk hineingreifen müsste.
+       */
+      unterholz: {
+        varianten: 3, breiteZuHoehe: 1.4, karteHoehe: 8, ankerX: 0.5, ankerY: 0.97,
+        stufen: [1, 0.5],
+        felder: [
+          [[500, 0, 56, 40], [500, 0, 28, 20]],
+          [[600, 0, 56, 40], [600, 0, 28, 20]],
+          [[700, 0, 56, 40], [700, 0, 28, 20]],
+        ],
+      },
     },
   },
 };
@@ -990,12 +1004,31 @@ pruefe('der Freisteller passt ein, statt nur zu beschneiden', () => {
    * beschneidet, sondern rechnet, welche Leinwand das Motiv braucht, damit
    * sein Fuß bei `ankerY` sitzt.
    *
-   * Die Lichtrichtung kann er nicht geraderücken. Die muss aus dem Bild
-   * kommen, und dafür gibt es `BILDANWEISUNG.md`.
+   * Die Lichtrichtung kann er geraderücken, aber nur durch Spiegeln –
+   * umzumalen kann er nicht. Dafür gibt es `BILDANWEISUNG.md`.
+   *
+   * ---
+   *
+   * **Und er hält beide Bedingungen zugleich.**
+   *
+   * Hier stand `let H = mh / (soll.ankerY - obenLuft)` allein, und wenn das
+   * Motiv seitlich nicht hineinpasste, wurde es verkleinert. Das kann nicht
+   * aufgehen: Mit dem Motiv schrumpft die Höhe, mit der Höhe die Breite,
+   * und der Rahmen ist am Ende genauso zu eng. Bei Bäumen fiel es nie auf –
+   * hoch und schmal, die Breite war nie die enge Bedingung. Beim ersten
+   * breiten Motiv schlug der Prüfer sofort an: „seitlich kein freier Rand
+   * (links 0,0 %, rechts 0,0 %)", bei vier von fünfzehn.
+   *
+   * Richtig ist das Maximum aus beiden Forderungen, und das Motiv bleibt
+   * unangetastet: Luft kostet nichts, Auflösung schon.
    */
   const f = ohneProsa(lies('scripts/atlas/freisteller.html'));
-  assert.match(f, /let H = mh \/ \(soll\.ankerY - obenLuft\);/,
-    'die Leinwandhöhe folgt nicht dem Ankerpunkt');
+  assert.match(
+    f,
+    /let H = Math\.max\(mh \/ \(soll\.ankerY - obenLuft\), mw \/ \(platz \* soll\.breiteZuHoehe\)\);/,
+    'die Leinwandhöhe folgt nicht beiden Bedingungen',
+  );
+  assert.doesNotMatch(f, /if \(mw > platzBreite\)/, 'das Motiv wird wieder verkleinert');
   assert.match(f, /const zy = ziel\.height \* soll\.ankerY - mh;/,
     'der Fuß wird nicht auf den Anker gesetzt');
   assert.match(f, /let W = H \* soll\.breiteZuHoehe;/,
@@ -1293,6 +1326,114 @@ pruefe('nur verdichtete Arten bekommen ein Blätterdach', () => {
 
   const gemischt = laufe(PROBEKASTEN, [haus, baum(120, 140, 26)], einzel);
   assert.ok(gemischt.unschaerfen.length >= 3, 'der Wald bekommt kein Blätterdach');
+});
+
+const AUS_ATLAS = (b) => b.length === 9 && b[0] === falscherAtlas.bild;
+/* Unterholz erkennt man an der Quelle: Es liegt ab x = 500 im Probeatlas. */
+const istUnterholz = (b) => AUS_ATLAS(b) && b[1] >= 500;
+
+pruefe('das Zerteilen findet jedes Motiv einzeln', () => {
+  /*
+   * **Die einzige Stelle, an der eine Rechnung des Freistellers wirklich
+   * läuft.** Alles andere an ihm ist im Browser zu Hause; diese Funktion
+   * ist reine Rechnerei und lässt sich herausziehen.
+   *
+   * Sie musste sein, weil das Spaltenverfahren hier versagt: Auf einem
+   * Blatt mit achtzig Büschen in acht Reihen gibt es keine durchgehende
+   * leere Spalte – gemessen fünfundzwanzig leere Zeilen auf tausend –, und
+   * es lieferte folgerichtig genau ein Stück: das ganze Blatt.
+   *
+   * Geprüft wird an einem gebauten Bild: drei Flecken, einer davon oben
+   * rechts, zwei darunter. Erwartet werden drei Stücke **in Leserichtung**.
+   */
+  const quelle = lies('scripts/atlas/freisteller.html');
+  const an = quelle.indexOf('function zerteile(');
+  const aus = quelle.indexOf('\n}', quelle.indexOf('return gross.sort'));
+  assert.ok(an > 0 && aus > an, 'zerteile ist nicht mehr zu finden');
+  const zerteile = new Function(`${quelle.slice(an, aus + 2)}; return zerteile;`)();
+
+  const W = 60, H = 40;
+  const d = new Uint8ClampedArray(W * H * 4);
+  const fleck = (x0, y0, x1, y1) => {
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) d[(y * W + x) * 4 + 3] = 255;
+  };
+  fleck(40, 2, 55, 12);   /* oben rechts */
+  fleck(3, 20, 18, 34);   /* unten links */
+  fleck(25, 22, 38, 33);  /* unten mitte */
+  const ctx = { getImageData: () => ({ data: d }) };
+
+  const stuecke = zerteile(ctx, W, H, 50);
+  assert.equal(stuecke.length, 3, `${stuecke.length} Stücke statt drei`);
+  /* Leserichtung: erst das obere, dann links, dann mitte. */
+  assert.deepEqual(stuecke.map((t) => t.x0), [40, 3, 25]);
+  assert.deepEqual(stuecke.map((t) => [t.x1 - t.x0 + 1, t.y1 - t.y0 + 1]),
+    [[16, 11], [16, 15], [14, 12]]);
+
+  /* Was unter der Mindestgrösse liegt, zählt nicht als Motiv. */
+  fleck(1, 1, 3, 3);
+  assert.equal(zerteile(ctx, W, H, 50).length, 3, 'ein Streupunkt wurde zum Motiv');
+});
+
+pruefe('der Unterwuchs kommt aus dem Stilbuch, nicht aus dem Baum', () => {
+  /*
+   * **Der Behelf, der zu lange stand.**
+   *
+   * Die Unterholzlage nahm dasselbe Baumbild, auf ein Fünftel verkleinert.
+   * Aus zwei Schritten Entfernung geht das durch, aus der Nähe steht da ein
+   * Kiefernwäldchen in Kniehöhe.
+   *
+   * Welche Art der Unterwuchs ist, sagt jetzt der Stileintrag. Das Waldwerk
+   * nennt keine Art beim Namen – es liest `unterwuchs` und schlägt nach.
+   */
+  const { bilder } = laufe(PROBEKASTEN, Array.from({ length: 24 }, (_, i) =>
+    baum(30 + (i % 6) * 35, 40 + Math.floor(i / 6) * 50, 26)));
+
+  const unten = bilder.filter(istUnterholz);
+  assert.ok(unten.length > 6, `nur ${unten.length} Unterholzbilder – es wächst nichts`);
+  /* Und die Bäume selbst stehen immer noch da. */
+  assert.ok(bilder.filter((b) => AUS_ATLAS(b) && b[1] < 500).length > 20,
+    'der Wald hat seine Bäume verloren');
+});
+
+pruefe('der Unterwuchs wird nie grösser, als seine Art sich erklärt', () => {
+  /*
+   * `hoehe` ist die Grösse, für die der Bildersatz gebacken wurde. Wer
+   * darüber hinausgeht, holt sich genau die Unschärfe zurück, die die Bäume
+   * hatten – und die Prüfung „ein Baum wird nie aus einem zu kleinen Bild
+   * geholt" wäre nichts mehr wert, weil sie nur `karteHoehe` kennt.
+   *
+   * Deshalb streut das Waldwerk nach unten und nicht nach oben.
+   */
+  const { bilder } = laufe(PROBEKASTEN, Array.from({ length: 30 }, (_, i) =>
+    baum(25 + (i % 6) * 38, 30 + Math.floor(i / 6) * 44, 26)), WALDBUCH, 3);
+  const buchHoehe = WALDBUCH.eintrag('unterholz').hoehe;
+  const unten = bilder.filter(istUnterholz);
+  assert.ok(unten.length > 6, 'die Prüfung trifft kein Unterholz');
+  /*
+   * **Im Kartenmass, nicht in Bildpunkten.** Der erste Anlauf verglich mit
+   * `hoehe × Maßstab` – und weil `zeichne` in Kartenkoordinaten zeichnet,
+   * war die Schranke dreimal zu weit. Die Gegenprobe liess den Unterwuchs
+   * auf das Achtzehnfache wachsen und blieb grün.
+   */
+  for (const b of unten) {
+    assert.ok(b[8] <= buchHoehe + 0.001,
+      `ein Unterwuchs ist ${b[8].toFixed(1)} Einheiten hoch, erklärt sind ${buchHoehe}`);
+  }
+});
+
+pruefe('ohne Unterholz im Bildersatz bleibt der Wald trotzdem bewachsen', () => {
+  /*
+   * Ein älterer Bildersatz, ein Stil ohne diese Art, ein halb geladener
+   * Atlas: Dann soll die Stammzone mit dem alten Behelf gefüllt werden und
+   * nicht leer bleiben. Kahl aussehen wäre schlimmer als behelfsmässig.
+   */
+  const ohne = stilbuchAus('probe', {
+    wald: { ...WALDBUCH.eintrag('wald'), unterwuchs: undefined },
+  });
+  const { bilder } = laufe(PROBEKASTEN, Array.from({ length: 24 }, (_, i) =>
+    baum(30 + (i % 6) * 35, 40 + Math.floor(i / 6) * 50, 26)), ohne);
+  const klein = bilder.filter((b) => AUS_ATLAS(b) && b[8] < 26 * 0.5);
+  assert.ok(klein.length > 6, `nur ${klein.length} Behelfsbilder – die Stammzone bleibt kahl`);
 });
 
 pruefe('Nachbarkacheln teilen genau dieselbe Kante', () => {

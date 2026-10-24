@@ -27,10 +27,27 @@ Durchsichtigkeit schon mit. Der Weg von dort hierher:
 trotzdem – ein Blatt mit acht Bäumen ist auch freigestellt noch kein Satz
 aus acht Dateien.
 
+## Das Unterholz
+
+    unterholz_00.png … unterholz_14.png
+
+Fünfzehn Stück aus `roh/unterholz_blatt.png`, geschnitten mit
+
+    npm run freistellen -- artbook unterholz 15 --blatt --teile --frei --spiegeln \
+      --auswahl=19,21,27,28,29,30,31,32,33,34,36,38,44,48,54
+
+`--teile` trennt nach Zusammenhang statt an leeren Spalten – auf diesem
+Blatt gibt es keine. `--spiegeln`, weil der Prüfer bei allen fünfzehn
+dasselbe meldete: Das Licht kam von rechts, um 9 bis 30 %.
+
+Die Nummern stammen aus `window.zerlege`, das dasselbe Blatt nummeriert
+zeigt. Felsbrocken, Totholz und Jungbäume sind bewusst nicht dabei: Diese
+Art füllt die Stammzone, und was höher ist als ein Knie, gehört nicht
+hinein.
+
 ## Was noch hier liegt und noch nicht verwendet wird
 
     roh/wald_blatt_zwei.png    Einzelbäume, Waldgruppen, Unterholz
-    roh/unterholz_blatt.png    Unterholz, Felsen, Pilze, Totholz
 
 Beide sind sauber freigestellt. Gemessen wurde, wie gross die einzelnen
 Stücke darin sind – denn das entscheidet, wofür sie taugen.
