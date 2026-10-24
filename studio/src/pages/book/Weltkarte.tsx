@@ -40,7 +40,10 @@ import {
   type Bedeutung,
   type Kartendokument,
   type Kartenfeature,
+  type Kartenmarke,
+  type Gebirgskamm,
 } from '../../lib/karte/modell';
+import { SIEDLUNGEN, type Siedlung } from '../../lib/karte/siedlung';
 import { cx } from '../../lib/utils';
 
 export function WeltkarteSheet() {
@@ -66,6 +69,31 @@ const SCHRITTE = 24;
  * Dieselbe Bindung wie `UEBERGANG_MS` im BookShell, aus demselben Grund.
  */
 const KARTE_MS = 560;
+
+/**
+ * Ein Schritt im Rückgängig.
+ *
+ * **Flächen und Marken zusammen, nicht nur Flächen.**
+ *
+ * Hier stand `Kartenfeature[][]` – der Verlauf merkte sich die Flächen und
+ * sonst nichts. Mit den Siedlungen wäre das still falsch geworden: Wer ein
+ * Dorf setzt und „Zurücknehmen" drückt, bekäme sein Dorf nicht weg, und wer
+ * danach eine Küste zurücknimmt, bekäme die Flächen von vorher und die
+ * Marken von jetzt – zwei Zeitpunkte in einem Bild.
+ *
+ * Ein Schritt ist deshalb der ganze Zustand, den eine Handlung ändern kann.
+ */
+type Schritt = {
+  features: Kartenfeature[];
+  marken: Kartenmarke[];
+  /*
+   * Und die Gebirge dazu. Dieselbe Überlegung wie bei den Marken, und
+   * derselbe stille Fehler, wenn sie fehlten: Wer einen Kamm zieht und
+   * „Zurücknehmen" drückt, bekäme ihn nicht weg – und wer danach eine Küste
+   * zurücknähme, bekäme Flächen von vorhin und Gebirge von jetzt.
+   */
+  kaemme: Gebirgskamm[];
+};
 
 function Karte() {
   const entries = useStudio((s) => s.entries);
@@ -122,7 +150,7 @@ function Karte() {
   const dunkel = useBand();
   const stil = stilImBand(karte?.styleId, dunkel);
   const [gewaehlt, setGewaehlt] = useState<string | undefined>();
-  const [verlauf, setVerlauf] = useState<Kartenfeature[][]>([]);
+  const [verlauf, setVerlauf] = useState<Schritt[]>([]);
 
   const lebende = useMemo(() => livingEntries(entries), [entries]);
 
@@ -134,13 +162,23 @@ function Karte() {
    * Inseln), es ist nur selten gemeint.
    */
   const geordnet = useMemo(() => {
+    /*
+     * „Liegt schon auf der Karte" heisst: als Fläche **oder** als Siedlung.
+     *
+     * Beides ist ein Ort. Zählte nur die Fläche, stünde eine Seite, deren
+     * Dorf längst steht, weiter oben unter „hat noch keinen Ort" – und die
+     * Reihenfolge behauptete etwas Falsches über das Buch.
+     */
     const belegt = new Set(
-      karte.features.map((f) => f.entryId).filter((id): id is string => !!id),
+      [
+        ...karte.features.map((f) => f.entryId),
+        ...(karte.marken ?? []).map((m) => m.entryId),
+      ].filter((id): id is string => !!id),
     );
     const ohne = lebende.filter((e) => !belegt.has(e.id));
     const mit = lebende.filter((e) => belegt.has(e.id));
     return [...ohne, ...mit];
-  }, [lebende, karte.features]);
+  }, [lebende, karte.features, karte.marken]);
   /*
    * Die Namen kommen aus dem Buch, nicht aus der Karte.
    *
@@ -155,7 +193,10 @@ function Karte() {
 
   /** Jede bedeutungstragende Änderung geht hier durch – und nur hier. */
   const aendere = (naechste: Kartendokument) => {
-    setVerlauf((v) => [...v.slice(-(SCHRITTE - 1)), karte.features]);
+    setVerlauf((v) => [
+      ...v.slice(-(SCHRITTE - 1)),
+      { features: karte.features, marken: karte.marken ?? [], kaemme: karte.kaemme ?? [] },
+    ]);
     setEntwurf(naechste);
     void speichereKarte(naechste);
   };
@@ -164,7 +205,12 @@ function Karte() {
     const vorher = verlauf[verlauf.length - 1];
     if (!vorher) return;
     setVerlauf((v) => v.slice(0, -1));
-    const naechste = { ...karte, features: vorher };
+    const naechste = {
+      ...karte,
+      features: vorher.features,
+      marken: vorher.marken,
+      kaemme: vorher.kaemme,
+    };
     setEntwurf(naechste);
     setGewaehlt(undefined);
     void speichereKarte(naechste);
@@ -196,13 +242,75 @@ function Karte() {
     setGewaehlt(undefined);
   };
 
+  /*
+   * Und dasselbe nochmal für die Siedlungen.
+   *
+   * **Warum nicht ein gemeinsames Bedienfeld.** Der Gedanke lag nahe: Beides
+   * hat eine Art, eine Seite und ein „entfernen". Er ist falsch, weil die
+   * *Arten* nicht zusammengehören. „Land, Wasser, Wald, Hütte, Dorf, Burg" in
+   * einer Reihe liest sich wie sechs gleichwertige Wahlmöglichkeiten – und
+   * dann tippt jemand auf seiner Küste „Burg" und sie verschwindet. Eine
+   * Fläche kann keine Burg werden; sie hat einen Umriss, keinen Ort.
+   *
+   * Zwei Bedienfelder, von denen immer nur eines dasteht, sagen die Wahrheit:
+   * Was gewählt ist, bestimmt, was man damit tun kann.
+   */
+  const marke = (karte.marken ?? []).find((m) => m.id === gewaehlt);
+
+  /*
+   * Und ein drittes Bedienfeld, aus demselben Grund wie das zweite.
+   *
+   * Ein Gebirge hat keine Bedeutung zum Umschalten – es *ist* ein Gebirge.
+   * Es hat stattdessen drei Zahlen, und die sind der eigentliche Grund für
+   * ein eigenes Feld: Was gewählt ist, bestimmt, was man damit tun kann.
+   */
+  const kamm = (karte.kaemme ?? []).find((g) => g.id === gewaehlt);
+
+  const mitKaemmen = (naechste: Gebirgskamm[]) => aendere({ ...karte, kaemme: naechste });
+
+  const setzeKamm = (teil: Partial<Gebirgskamm>) => {
+    if (!kamm) return;
+    mitKaemmen((karte.kaemme ?? []).map((g) => (g.id === kamm.id ? { ...g, ...teil } : g)));
+  };
+
+  const loescheKamm = () => {
+    if (!kamm) return;
+    mitKaemmen((karte.kaemme ?? []).filter((g) => g.id !== kamm.id));
+    setGewaehlt(undefined);
+  };
+
+  const mitMarken = (naechste: Kartenmarke[]) =>
+    aendere({ ...karte, marken: naechste });
+
+  const setzeMarkenArt = (art: Siedlung) => {
+    if (!marke) return;
+    mitMarken((karte.marken ?? []).map((m) => (m.id === marke.id ? { ...m, art } : m)));
+  };
+
+  const setzeMarkenEintrag = (entryId: string) => {
+    if (!marke) return;
+    mitMarken(
+      (karte.marken ?? []).map((m) =>
+        m.id === marke.id ? { ...m, entryId: entryId || undefined } : m,
+      ),
+    );
+  };
+
+  const loescheMarke = () => {
+    if (!marke) return;
+    mitMarken((karte.marken ?? []).filter((m) => m.id !== marke.id));
+    setGewaehlt(undefined);
+  };
+
   return (
     <div className="mx-auto max-w-2xl">
       <p className="mb-4 text-sm text-ink-muted">
         Male grob, was wo ist. Land, Wasser, Wald – mehr Bedeutungen gibt es noch nicht, und
         mehr braucht eine Küste nicht, um eine zu sein. Zwei Wörter formen um, was schon
         dasteht: Die <em>Bucht</em> frisst sich ins Land, die <em>Landzunge</em> wächst aus
-        der Küste hinaus – beide genau dort, wo du sie ziehst.
+        der Küste hinaus – beide genau dort, wo du sie ziehst. Und <em>Hütte</em>,{' '}
+        <em>Dorf</em> und <em>Burg</em> werden nicht gemalt, sondern getippt: Sie stehen
+        genau da, wo du hintippst, und nirgends sonst.
       </p>
 
       {/*
@@ -383,6 +491,133 @@ function Karte() {
           >
             <Trash2 size={16} aria-hidden />
             Fläche entfernen
+          </button>
+        </section>
+      )}
+
+      {kamm && (
+        <section className="card mt-4 p-4">
+          <h2 className="font-serif text-lg">Dieses Gebirge</h2>
+          {/*
+            * Drei Regler und kein Formular.
+            *
+            * Die Zahlen dahinter – 8 bis 320 Karteneinheiten, 0 bis 1 – sagen
+            * niemandem etwas, und sie stünden auch nirgends richtig: Wie breit
+            * „breit" ist, hängt davon ab, wie gross die Karte daneben ist. Ein
+            * Regler beantwortet die einzige Frage, die hier zählt, nämlich
+            * „mehr oder weniger als jetzt", und er beantwortet sie, während
+            * man zusieht.
+            */}
+          {(
+            [
+              ['breite', 'Breite', 8, 320, 2],
+              ['hoehe', 'Höhe', 0.05, 1, 0.01],
+              ['zerkluftung', 'Zerklüftung', 0, 1, 0.01],
+            ] as const
+          ).map(([feld, name, min, max, schritt]) => (
+            <label key={feld} className="mt-3 block text-sm text-ink-muted">
+              {name}
+              <input
+                type="range"
+                className="mt-1 w-full"
+                min={min}
+                max={max}
+                step={schritt}
+                value={kamm[feld]}
+                onChange={(e) => setzeKamm({ [feld]: Number(e.target.value) })}
+              />
+            </label>
+          ))}
+
+          <label className="mt-4 block text-sm text-ink-muted" htmlFor="karte-kamm-eintrag">
+            Gehört zu einer Seite
+          </label>
+          <select
+            id="karte-kamm-eintrag"
+            className="input-base mt-1 w-full"
+            value={kamm.entryId ?? ''}
+            onChange={(e) => setzeKamm({ entryId: e.target.value || undefined })}
+          >
+            <option value="">— namenlos —</option>
+            {geordnet.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.title}
+              </option>
+            ))}
+          </select>
+          {kamm.entryId && (
+            <p className="mt-2 text-sm">
+              <Link className="text-brass-600 underline" to={`/eintrag/${kamm.entryId}`}>
+                {namen.get(kamm.entryId) ?? 'Zur Seite'}
+              </Link>
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={loescheKamm}
+            className="touch-target mt-4 flex items-center gap-2 text-sm text-ink-muted"
+          >
+            <Trash2 size={16} aria-hidden />
+            Gebirge entfernen
+          </button>
+        </section>
+      )}
+
+      {marke && (
+        <section className="card mt-4 p-4">
+          <h2 className="font-serif text-lg">Diese Siedlung</h2>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            {SIEDLUNGEN.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setzeMarkenArt(s.id)}
+                aria-pressed={marke.art === s.id}
+                className={cx(
+                  'touch-target rounded-full border px-4 text-sm',
+                  marke.art === s.id
+                    ? 'border-brass-500 bg-brass-500 text-paper-50'
+                    : 'border-line bg-cream-50 text-ink-muted',
+                )}
+              >
+                {s.name}
+              </button>
+            ))}
+          </div>
+
+          <label className="mt-4 block text-sm text-ink-muted" htmlFor="karte-marke-eintrag">
+            Gehört zu einer Seite
+          </label>
+          <select
+            id="karte-marke-eintrag"
+            className="input-base mt-1 w-full"
+            value={marke.entryId ?? ''}
+            onChange={(e) => setzeMarkenEintrag(e.target.value)}
+          >
+            <option value="">— namenlos —</option>
+            {geordnet.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.title}
+              </option>
+            ))}
+          </select>
+          {marke.entryId && (
+            <p className="mt-2 text-sm">
+              <Link className="text-brass-600 underline" to={`/eintrag/${marke.entryId}`}>
+                {namen.get(marke.entryId) ?? 'Zur Seite'}
+              </Link>
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={loescheMarke}
+            className="touch-target mt-4 flex items-center gap-2 text-sm text-ink-muted"
+          >
+            <Trash2 size={16} aria-hidden />
+            Siedlung entfernen
           </button>
         </section>
       )}

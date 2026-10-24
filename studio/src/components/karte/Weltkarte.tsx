@@ -30,12 +30,14 @@
  * Ort, an dem man vorsichtig sein muss.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Undo2 } from 'lucide-react';
 import {
   BEDEUTUNGEN,
   FELD,
   alsPfad,
+  neueMarke,
+  neuerKamm,
   neuesFeature,
   type Bedeutung,
   type Kartendokument,
@@ -43,15 +45,16 @@ import {
   type Punkt,
 } from '../../lib/karte/modell';
 import { flaecheAus, flussAus } from '../../lib/karte/kontur';
+import { SIEDLUNGEN, alsSiedlungspfad, istSiedlung, type Siedlung } from '../../lib/karte/siedlung';
 import { buchtZiehen } from '../../lib/karte/bucht';
 import { landzungeZiehen } from '../../lib/karte/landzunge';
-import { baeume } from '../../lib/karte/wald';
 import { kuestensaum, namenslage } from '../../lib/karte/kartografie';
 import { neuerSeed } from '../../lib/karte/zufall';
 import { EBENEN, stilImBand } from '../../lib/karte/stil';
 import { federzug } from '../../lib/karte/feder';
+import { kammAus, kammlage, kammPfad } from '../../lib/karte/gebirge';
 import { useBand } from '../../lib/raum/band';
-import { zeichneBaum } from './baumzeichnung';
+import { useKartenleinwand } from './useKartenleinwand';
 import { cx } from '../../lib/utils';
 
 /**
@@ -74,7 +77,8 @@ import { cx } from '../../lib/utils';
  * wie das Malen und kommt als geschlossener Umriss zurück. Der Verfasser
  * bekommt kein mächtigeres Werkzeug, sondern ein Wort mehr.
  */
-export type Werkzeug = Bedeutung | 'waehlen' | 'bucht' | 'landzunge' | 'fluss';
+export type Werkzeug =
+  | Bedeutung | 'waehlen' | 'bucht' | 'landzunge' | 'fluss' | 'gebirge' | Siedlung;
 
 interface Sicht {
   x: number;
@@ -149,6 +153,19 @@ export function Weltkarte({
   const leinwand = useRef<HTMLCanvasElement>(null);
   const [sicht, setSicht] = useState<Sicht>(GANZ);
   const [spur, setSpur] = useState<Punkt[] | null>(null);
+  /*
+   * Ein Kammpunkt unter dem Finger.
+   *
+   * Im Zustand und nicht in einem Ref, weil man ihn beim Ziehen **sehen**
+   * muss – ein Griff, der erst beim Loslassen nachzieht, fühlt sich an, als
+   * reagiere die Karte nicht.
+   *
+   * Gespeichert wird erst beim Loslassen. Jedes `onChange` legt oben einen
+   * Eintrag im Rückgängig ab; bei sechzig Bildern in der Sekunde wären das
+   * sechzig Schritte für eine Handbewegung, und „Zurücknehmen" wäre
+   * unbrauchbar.
+   */
+  const [zieht, setZieht] = useState<{ id: string; i: number; p: Punkt } | null>(null);
 
   /*
    * Die Finger.
@@ -160,6 +177,32 @@ export function Weltkarte({
   const finger = useRef(new Map<number, { x: number; y: number }>());
   const geste = useRef<{ abstand: number; mitte: Punkt; sicht: Sicht } | null>(null);
   const bewegt = useRef(false);
+  /**
+   * Ob dieser Tipp schon etwas getan hat.
+   *
+   * ---
+   *
+   * **Der Fehler, den es verhindert, war im Bild zu sehen und im Quelltext
+   * nicht.**
+   *
+   * Eine Fläche wird ausgewählt, wenn man auf sie tippt – das steht unten als
+   * `onClick` am Füllpfad, und es fragt bisher nur: „war der Finger in
+   * Bewegung?". Beim Malen stimmt das: Ein Strich bewegt sich, also wird
+   * nichts ausgewählt.
+   *
+   * Eine Siedlung zu setzen ist aber ein *Tipp*. Der Finger bewegt sich
+   * nicht – und nach dem Loslassen schickt der Browser über demselben Punkt
+   * noch einen Klick. Der traf die Landfläche darunter, deren `onClick` die
+   * eben gesetzte Marke aus der Auswahl warf. Gemessen: Nach dem Setzen
+   * eines Dorfs stand „Diese **Fläche**" da, mit der Küste darin.
+   *
+   * Der Fangkreis der Marke half nicht – ihn gibt es in dem Augenblick noch
+   * nicht, denn die Marke entsteht erst beim Loslassen.
+   *
+   * Hier steht deshalb: Dieser Tipp ist verbraucht. Jeder neue Fingerdruck
+   * setzt es zurück.
+   */
+  const verbraucht = useRef(false);
 
   /* ------------------------------------------------------ Bildschirm ↔ Karte */
 
@@ -175,23 +218,15 @@ export function Weltkarte({
     [sicht],
   );
 
-  /* ----------------------------------------------------------- Die Bäume --- */
-
   /*
-   * Einmal je Flächenzustand gerechnet, nicht je Bild.
+   * Hier stand der `waelder`-Memo – die Bäume je Fläche, einmal gerechnet.
    *
-   * Das ist der Grund, warum das Verschieben der Karte nichts kostet: Beim
-   * Schieben ändert sich `features` nicht, also rechnet hier niemand. Erst
-   * wenn eine Waldfläche entsteht oder verschwindet, entstehen neue Bäume –
-   * und dank des Ortszufalls sind es dieselben wie vorher, plus die neuen.
+   * Er ist weg, nicht weil er falsch war, sondern weil er jetzt eine Stufe
+   * tiefer sitzt: Das Streuwerk ruft `baeume()` selbst auf und macht daraus
+   * Staffage. Zwei Stellen, die dieselben Bäume rechnen, wären zwei
+   * Wahrheiten über denselben Wald (Gesetz 5) – und die zweite wäre still
+   * falsch geworden, sobald eine von beiden sich ändert.
    */
-  const waelder = useMemo(() => {
-    const m = new Map<string, ReturnType<typeof baeume>>();
-    for (const f of karte.features) {
-      if (f.art === 'wald') m.set(f.id, baeume(f));
-    }
-    return m;
-  }, [karte.features]);
 
   /**
    * Der Küstensaum.
@@ -231,48 +266,27 @@ export function Weltkarte({
 
   /* --------------------------------------------------------- Das Zeichnen -- */
 
-  useEffect(() => {
-    const c = leinwand.current;
-    const box = huelle.current;
-    if (!c || !box) return;
-    let angefordert = 0;
-
-    const male = () => {
-      angefordert = 0;
-      const breite = box.clientWidth;
-      const hoehe = box.clientHeight;
-      if (!breite || !hoehe) return;
-      /* Auf einem Telefon sind ein CSS-Punkt und ein Bildpunkt nicht dasselbe. */
-      const dicht = Math.min(2, window.devicePixelRatio || 1);
-      if (c.width !== Math.round(breite * dicht)) c.width = Math.round(breite * dicht);
-      if (c.height !== Math.round(hoehe * dicht)) c.height = Math.round(hoehe * dicht);
-
-      const ctx = c.getContext('2d');
-      if (!ctx) return;
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, c.width, c.height);
-
-      const massstab = (breite / sicht.w) * dicht;
-      ctx.setTransform(massstab, 0, 0, massstab, -sicht.x * massstab, -sicht.y * massstab);
-
-      for (const f of karte.features) {
-        if (f.art !== 'wald') continue;
-        const liste = waelder.get(f.id);
-        if (!liste) continue;
-        for (const b of liste) zeichneBaum(ctx, b, stil, massstab / dicht);
-      }
-    };
-
-    const anfordern = () => {
-      if (!angefordert) angefordert = requestAnimationFrame(male);
-    };
-    anfordern();
-    window.addEventListener('resize', anfordern);
-    return () => {
-      window.removeEventListener('resize', anfordern);
-      if (angefordert) cancelAnimationFrame(angefordert);
-    };
-  }, [karte.features, waelder, sicht, stil]);
+  /*
+   * Der Bewuchs geht jetzt durchs Kartenwerk.
+   *
+   * **Was sich geändert hat, ist eine Abhängigkeit.** Hier stand ein
+   * `useEffect`, der an `sicht` hing – und deshalb beim Schieben sechzigmal
+   * in der Sekunde jeden Baum neu zeichnete. Gemessen am Entwurf kostete
+   * derselbe Inhalt so 26,3 ms je Bild statt 1,05.
+   *
+   * Das war der Grund, warum die Bäume billig sein *mussten*. Nicht eine
+   * Grenze von Canvas, sondern eine Zeile.
+   *
+   * Jetzt wird in Kacheln im Kartenraum gebacken und beim Schieben nur noch
+   * kopiert. Die Zeit je Bild hängt damit nicht mehr an der Zahl der Bäume –
+   * und das ist die Tür, durch die später Berge, Fels und gemalte Grafiken
+   * passen.
+   *
+   * **Das Aussehen ist Absicht unverändert.** Gezeichnet wird weiter mit
+   * `zeichneBaum`, Baum für Baum, mit denselben Zahlen; das Stilbuch reicht
+   * sie nur durch. Diese Etappe überführt die Maschine, nicht die Gestaltung.
+   */
+  useKartenleinwand({ leinwand, huelle, karte, stil, sicht });
 
   /* ------------------------------------------------------------- Finger ---- */
 
@@ -284,9 +298,16 @@ export function Weltkarte({
     };
   };
 
+  /** Die Punkte eines Kamms – samt dem, der gerade unter dem Finger liegt. */
+  const punkteVon = (g: { id: string; punkte: Punkt[] }): Punkt[] =>
+    zieht && zieht.id === g.id
+      ? g.punkte.map((p, i) => (i === zieht.i ? zieht.p : p))
+      : g.punkte;
+
   const runter = (e: React.PointerEvent) => {
     finger.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     bewegt.current = false;
+    verbraucht.current = false;
 
     if (finger.current.size >= 2) {
       /*
@@ -312,6 +333,16 @@ export function Weltkarte({
     finger.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     const r = huelle.current?.getBoundingClientRect();
     if (!r || !r.width) return;
+
+    /*
+     * **Ein Griff am Kamm hat Vorrang vor allem.** Wer einen Punkt gefasst
+     * hat, will ihn bewegen und nicht die Karte – und schon gar nichts malen.
+     */
+    if (zieht && finger.current.size === 1) {
+      bewegt.current = true;
+      setZieht({ ...zieht, p: zuKarte(e.clientX, e.clientY) });
+      return;
+    }
     if (Math.hypot(e.clientX - vorher.x, e.clientY - vorher.y) > 1) bewegt.current = true;
 
     if (finger.current.size >= 2 && geste.current) {
@@ -350,11 +381,69 @@ export function Weltkarte({
     finger.current.delete(e.pointerId);
     if (finger.current.size >= 1) return;
     geste.current = null;
+
+    /*
+     * Der gezogene Punkt wird **einmal** gespeichert, hier.
+     *
+     * Und nur, wenn er sich wirklich bewegt hat: Ein Tippen auf einen Griff
+     * ist kein Verschieben, und ein Schritt im Rückgängig, der nichts
+     * ändert, ist einer, den niemand erklären kann.
+     */
+    if (zieht) {
+      const g = (karte.kaemme ?? []).find((k) => k.id === zieht.id);
+      const alt = g?.punkte[zieht.i];
+      setZieht(null);
+      if (g && alt && (alt[0] !== zieht.p[0] || alt[1] !== zieht.p[1])) {
+        onChange({
+          ...karte,
+          kaemme: (karte.kaemme ?? []).map((k) =>
+            k.id === g.id
+              ? { ...k, punkte: k.punkte.map((p, i) => (i === zieht.i ? zieht.p : p)) }
+              : k,
+          ),
+        });
+      }
+      return;
+    }
+
     if (!spur) return;
     setSpur(null);
     if (werkzeug === 'waehlen') return;
     if (werkzeug === 'bucht') return formen(buchtZiehen, spur);
     if (werkzeug === 'landzunge') return formen(landzungeZiehen, spur);
+
+    /*
+     * Eine Siedlung ist ein Tippen, kein Strich.
+     *
+     * Deshalb steht sie vor den Flächen: Was hier gesetzt wird, braucht
+     * keinen Umriss und keine Form – nur einen Ort. Und sie steht genau da,
+     * wo der Finger war; nichts verteilt sie (Gesetz 4).
+     *
+     * **Der Mittelwert des Zuges und nicht sein Anfang.** Wer tippt, rutscht
+     * ein paar Punkte weit. Der Anfang wäre die Stelle, an der der Finger
+     * aufsetzte, der Mittelwert die, die er meinte.
+     *
+     * Und anders als eine Bucht wird eine Siedlung auch aus einem einzigen
+     * Punkt etwas. Ein Tippen ist für eine Fläche zu wenig – für einen Ort
+     * ist es genau richtig.
+     */
+    if (istSiedlung(werkzeug)) {
+      const mitte: Punkt = [
+        spur.reduce((a, p) => a + p[0], 0) / spur.length,
+        spur.reduce((a, p) => a + p[1], 0) / spur.length,
+      ];
+      const marke = neueMarke(werkzeug, mitte);
+      onChange({ ...karte, marken: [...(karte.marken ?? []), marke] });
+      /*
+       * Dieselbe Wahl wie beim Malen einer Fläche: Was eben entstand, liegt
+       * danach unter dem Bedienfeld. Wer ein Dorf setzt, will ihm als
+       * Nächstes einen Namen geben – und der Name steht im Buch.
+       */
+      onWaehle(marke.id);
+      /* Und der Klick, der gleich noch kommt, darf sie nicht wieder abwählen. */
+      verbraucht.current = true;
+      return;
+    }
 
     /*
      * Der Fluss ist Wasser, nur anders geformt.
@@ -370,6 +459,23 @@ export function Weltkarte({
       if (!lauf) return;
       const w: Kartenfeature = { ...neuesFeature('wasser', lauf), seed: saat };
       onChange({ ...karte, features: [...karte.features, w] });
+      return;
+    }
+
+    /*
+     * Das Gebirge ist ein **Verlauf** und keine Fläche.
+     *
+     * Deshalb entsteht hier kein Feature, sondern ein Kamm in einer eigenen
+     * Liste – dieselbe Überlegung wie bei der Siedlung, siehe `modell.ts`.
+     * Der Strich wird ausgedünnt, bevor er gespeichert wird: Die Zacken
+     * einer zitternden Hand sind keine Gestaltung.
+     */
+    if (werkzeug === 'gebirge') {
+      const punkte = kammAus(spur, 24);
+      if (!punkte) return;
+      const g = neuerKamm(punkte);
+      onChange({ ...karte, kaemme: [...(karte.kaemme ?? []), g] });
+      onWaehle(g.id);
       return;
     }
 
@@ -427,6 +533,19 @@ export function Weltkarte({
 
   const farben = (art: Bedeutung) =>
     art === 'wasser' ? stil.wasser : art === 'wald' ? stil.wald : stil.land;
+
+  /**
+   * Die Höhe eines Siedlungszeichens – **einmal**, für drei Stellen.
+   *
+   * Fangbereich, Auswahlring und Zeichen müssen übereinanderliegen; stünde
+   * die Zahl dreimal da, wäre der Ring beim nächsten Nachjustieren neben dem
+   * Dorf und der Fangbereich daneben (Gesetz 5).
+   *
+   * `0.03` von der Sichtbreite: knapp drei Hundertstel der Karte. Gemessen
+   * an der ganzen Karte sind das 30 Einheiten – ein Zeichen, das man erkennt,
+   * ohne dass es die Küste verdeckt, an der es liegt.
+   */
+  const zeichenGr = sicht.w * 0.03;
 
   return (
     <div className="relative w-full">
@@ -520,11 +639,28 @@ export function Weltkarte({
                   * eigener Zug. Der Fangbereich bleibt hier: Wer auf das Land
                   * tippt, meint das Land, nicht seine Kante.
                   */}
+                {/*
+                  * **Ein Wald hat keine Kante.**
+                  *
+                  * Jede andere Fläche bekommt hier ihre Füllung und gleich
+                  * darunter ihren Federzug. Der Wald nicht mehr: Seit das
+                  * Waldwerk seinen Boden aus den Bäumen baut – weiche
+                  * Scheiben unter den Stämmen, zusammen verwischt – liefe
+                  * ein gezogener Umriss quer durch das, was auslaufen soll.
+                  * Zwei Ränder, einer hart und einer weich, und der harte
+                  * gewinnt.
+                  *
+                  * Der Pfad bleibt trotzdem stehen: An ihm hängt der
+                  * **Fangbereich**. `fill="transparent"` nimmt Finger an,
+                  * `fill="none"` nicht – der Unterschied ist genau diese
+                  * eine Zeile, und ohne sie liesse sich ein Wald nicht mehr
+                  * antippen.
+                  */}
                 <path
                   d={d}
-                  fill={c.flaeche}
+                  fill={f.art === 'wald' ? 'transparent' : c.flaeche}
                   onClick={() => {
-                    if (!bewegt.current) onWaehle(f.id);
+                    if (!bewegt.current && !verbraucht.current) onWaehle(f.id);
                   }}
                 />
                 {/*
@@ -544,14 +680,115 @@ export function Weltkarte({
                   * sitzt – sonst läge er zweimal übereinander und das Tippen
                   * träfe mal die Fläche, mal den Strich.
                   */}
-                <path
-                  d={federzug(f.punkte, stil.strich, f.seed ?? 1)}
-                  fill={c.linie}
-                  pointerEvents="none"
-                />
+                {f.art !== 'wald' && (
+                  <path
+                    d={federzug(f.punkte, stil.strich, f.seed ?? 1)}
+                    fill={c.linie}
+                    pointerEvents="none"
+                  />
+                )}
               </g>
             );
           })}
+
+          {/*
+            * **Der Fangbereich eines Gebirges ist sein Kamm.**
+            *
+            * Ein breiter, durchsichtiger Strich entlang der Linie – kein
+            * Umriss des ganzen Höhenzuges. Das ist nicht Bequemlichkeit: Ein
+            * Gebirge *ist* seine Linie, und wer es anfassen will, zielt auf
+            * den Grat. Auf den Hang zu tippen, wo sonst nur Land steht, wäre
+            * eine Behauptung über etwas, das man dort nicht sieht.
+            *
+            * `strokeWidth` wächst mit der Sicht, damit der Bereich beim
+            * Herauszoomen nicht zum Haar wird – wie beim Siedlungszeichen.
+            */}
+          {(karte.kaemme ?? []).map((g) => (
+            <path
+              key={`fang_${g.id}`}
+              d={kammPfad(punkteVon(g))}
+              fill="none"
+              stroke="transparent"
+              strokeWidth={Math.max(sicht.w * 0.022, 6)}
+              strokeLinecap="round"
+              onClick={() => {
+                if (!bewegt.current && !verbraucht.current) onWaehle(g.id);
+              }}
+            />
+          ))}
+
+          {/*
+            * **Die Griffe am gewählten Kamm.**
+            *
+            * Hier, in der unteren Ebene, denn sie müssen Finger annehmen –
+            * und vor den Siedlungen, damit ein Griff, der über einem Dorf
+            * liegt, den Griff meint. Wer einen Kamm bearbeitet, zielt auf
+            * seine Punkte.
+            *
+            * `stopPropagation` ist die eine Zeile, ohne die nichts
+            * funktioniert: Sonst zählte die Karte den Finger als Beginn
+            * einer Schiebegeste und der Griff bliebe liegen.
+            */}
+          {(karte.kaemme ?? [])
+            .filter((g) => gewaehlt === g.id)
+            .flatMap((g) =>
+              punkteVon(g).map((p, i) => (
+                <circle
+                  key={`gr_${g.id}_${i}`}
+                  cx={p[0]}
+                  cy={p[1]}
+                  r={Math.max(sicht.w * 0.012, 3)}
+                  fill={stil.papier}
+                  stroke={stil.wahl}
+                  strokeWidth={stil.strich}
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    finger.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                    bewegt.current = false;
+                    verbraucht.current = false;
+                    geste.current = null;
+                    setSpur(null);
+                    setZieht({ id: g.id, i, p });
+                  }}
+                />
+              )),
+            )}
+
+          {/*
+            * Die Fangflächen der Siedlungen – hier, das Zeichen selbst oben.
+            *
+            * **Warum getrennt.** Das Zeichen gehört über die Bäume, und die
+            * Bäume liegen auf der Leinwand *über* diesem Bild; es steht
+            * deshalb in der dritten Lage, zusammen mit den Namen. Die dritte
+            * Lage nimmt aber keine Finger an (`pointer-events-none`) – also
+            * liegt der Fangbereich hier, genau wie bei den Flächen, deren
+            * Auswahlmarkierung auch oben und deren Fangbereich auch hier
+            * liegt.
+            *
+            * **Und warum ein Kreis.** Ein Strich von 1,4 Bildpunkten trifft
+            * kein Finger. Der Kreis sitzt um die Mitte des Zeichens – also
+            * ein halbes Zeichen über dem Fusspunkt, denn der Nullpunkt eines
+            * Siedlungszeichens liegt auf der Grundlinie (siehe
+            * `siedlung.ts`).
+            *
+            * Er liegt **nach** den Flächen, damit er sie überdeckt: Wer ein
+            * Dorf antippt, meint das Dorf und nicht das Land darunter. Das
+            * kleinere, bestimmtere Ziel gewinnt.
+            */}
+          <g aria-hidden>
+            {(karte.marken ?? []).map((m) => (
+              <circle
+                key={`fang_${m.id}`}
+                cx={m.bei[0]}
+                cy={m.bei[1] - zeichenGr * 0.5}
+                r={zeichenGr * 0.8}
+                fill="transparent"
+                onClick={() => {
+                  if (!bewegt.current) onWaehle(m.id);
+                }}
+              />
+            ))}
+          </g>
 
           {/*
             Was gerade unter dem Finger entsteht.
@@ -612,6 +849,28 @@ export function Weltkarte({
           viewBox={`${sicht.x} ${sicht.y} ${sicht.w} ${sicht.w}`}
           aria-hidden
         >
+          {/*
+            * Der gewählte Kamm zeigt sich.
+            *
+            * **Nur dann.** Ein Gebirge soll als Relief dastehen und nicht als
+            * Linie mit Relief daneben; die Linie ist Werkzeug und nicht
+            * Landschaft. Sichtbar wird sie, wenn jemand sie bearbeitet – dann
+            * ist sie genau das, was er anfasst.
+            */}
+          {(karte.kaemme ?? []).map((g) =>
+            gewaehlt === g.id ? (
+              <path
+                key={`wk_${g.id}`}
+                d={kammPfad(punkteVon(g))}
+                fill="none"
+                stroke={stil.wahl}
+                strokeWidth={stil.strich * 2}
+                strokeLinecap="round"
+                strokeDasharray={`${sicht.w * 0.014} ${sicht.w * 0.01}`}
+              />
+            ) : null,
+          )}
+
           {geordnet.map((f) => {
             if (gewaehlt !== f.id) return null;
             return (
@@ -625,6 +884,142 @@ export function Weltkarte({
               />
             );
           })}
+
+          {/*
+            * Die Siedlungszeichen – über den Bäumen, neben den Namen.
+            *
+            * **Feste Breite in Bildpunkten.** Dieselbe Begründung wie beim
+            * Küstensaum weiter oben: Eine Küste gehört zur Fläche und wächst
+            * mit ihr; ein Siedlungszeichen ist ein *Zeichen* und hat die
+            * Breite, die eine Feder ihm gibt. Beim Heranzoomen würde ein
+            * mitwachsendes Dorf zum Gebäude, und die Karte verlöre ihren
+            * Massstab.
+            *
+            * Die **Grösse** des Zeichens wächst dagegen mit – `zeichenGr`
+            * hängt an `sicht.w`, also bleibt ein Dorf auf seinem Fleck
+            * Landes gleich gross, egal wie weit man heranzoomt. Das ist der
+            * Unterschied zwischen Strichbreite und Mass: Die Feder bleibt,
+            * die Welt wächst.
+            */}
+          {(karte.marken ?? []).map((m) => (
+            <g key={`m_${m.id}`}>
+              {gewaehlt === m.id && (
+                /* Dieselbe gestrichelte Wahl wie bei einer Fläche, nur rund. */
+                <circle
+                  cx={m.bei[0]}
+                  cy={m.bei[1] - zeichenGr * 0.5}
+                  r={zeichenGr * 0.95}
+                  fill="none"
+                  stroke={stil.wahl}
+                  strokeWidth={stil.strich * 2}
+                  strokeDasharray={`${sicht.w * 0.014} ${sicht.w * 0.01}`}
+                />
+              )}
+              {/*
+                * Derselbe Zug zweimal: erst hell und breit, dann dunkel.
+                *
+                * `paint-order` hilft hier nicht – es ordnet Füllung und
+                * Strich *eines* Pfades, und dieser Pfad hat keine Füllung.
+                * Ein Saum braucht deshalb einen zweiten Zug darunter,
+                * genauso wie die Namen einen bekommen. Ohne ihn verschwindet
+                * ein Dorf, das im Wald steht, zwischen den Baumkronen – und
+                * genau dort stehen Dörfer.
+                */}
+              <path
+                d={alsSiedlungspfad(m.art, m.bei, zeichenGr)}
+                fill="none"
+                stroke={stil.papier}
+                strokeWidth={4.2}
+                strokeOpacity={0.85}
+                vectorEffect="non-scaling-stroke"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+              <path
+                d={alsSiedlungspfad(m.art, m.bei, zeichenGr)}
+                fill="none"
+                /*
+                 * **Die Markenfarbe, nicht die Küstenlinie.**
+                 *
+                 * Der erste Anlauf nahm `stil.land.linie` – die Farbe, in der
+                 * eine Küste gezeichnet wird. Im gerenderten Bild war davon
+                 * fast nichts zu sehen, und gemessen ist klar warum: auf Land
+                 * **1,29 : 1**, auf Wald 1,23 : 1. Das ist keine Zeichnung,
+                 * das ist ein Gerücht.
+                 *
+                 * Eine Küstenlinie liegt zwischen zwei Flächen und muss leise
+                 * sein; ein Siedlungszeichen liegt *auf* einer Fläche und muss
+                 * gelesen werden. `stil.marke` bringt 3,92 : 1 hell und
+                 * 7,08 : 1 dunkel – und es ist dieselbe Tinte, in der der
+                 * Name daneben steht. Das ist auch inhaltlich die Wahrheit:
+                 * Zeichen und Name sind **eine** Marke.
+                 */
+                stroke={stil.marke}
+                strokeWidth={1.4}
+                vectorEffect="non-scaling-stroke"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+              {m.entryId && namen.get(m.entryId) && (
+                <text
+                  x={m.bei[0]}
+                  /*
+                   * Unterhalb des Auswahlrings, nicht hinein.
+                   *
+                   * Der Ring endet bei 0,45 Zeichenhöhen unter dem Fusspunkt;
+                   * die Oberkante dieser Schrift liegt rund 0,49 Höhen über
+                   * ihrer Grundlinie. Bei 0,52 schnitt der Ring durch den
+                   * Namen – im Bild gesehen, nicht gerechnet. Eine ganze
+                   * Zeichenhöhe lässt beide nebeneinander stehen.
+                   */
+                  y={m.bei[1] + zeichenGr}
+                  textAnchor="middle"
+                  fill={stil.marke}
+                  fontSize={sicht.w * 0.021}
+                  stroke={stil.papier}
+                  strokeWidth={sicht.w * 0.005}
+                  paintOrder="stroke"
+                >
+                  {namen.get(m.entryId)}
+                </text>
+              )}
+            </g>
+          ))}
+          {/*
+            * **Der Name eines Gebirges.**
+            *
+            * Er fehlte, und die Lücke war von der leisen Sorte: Im
+            * Bedienfeld liess sich ein Zug mit einer Seite verknüpfen, auf
+            * der Karte stand davon nie etwas. Ein halber Faden – man merkt
+            * ihn erst, wenn man danach sucht.
+            *
+            * Gesperrt wie ein Gebietsname und nicht wie ein Ortsname: Ein
+            * Gebirge ist eine Ausdehnung, und die Sperrung zeigt sie.
+            */}
+          {(karte.kaemme ?? []).map((g) => {
+            const name = g.entryId ? namen.get(g.entryId) : undefined;
+            if (!name) return null;
+            const lage = kammlage(punkteVon(g), g.breite);
+            if (!lage) return null;
+            return (
+              <text
+                key={`gn_${g.id}`}
+                x={lage.mx}
+                y={lage.my}
+                textAnchor="middle"
+                fill={stil.marke}
+                fontSize={sicht.w * 0.026}
+                letterSpacing={sicht.w * 0.026 * 0.28}
+                transform={`rotate(${lage.grad.toFixed(1)} ${lage.mx.toFixed(1)} ${lage.my.toFixed(1)})`}
+                stroke={stil.papier}
+                strokeWidth={sicht.w * 0.006}
+                paintOrder="stroke"
+              >
+                {name}
+              </text>
+            );
+          })}
+
           {geordnet.map((f) => {
             const name = f.entryId ? namen.get(f.entryId) : undefined;
             if (!name) return null;
@@ -663,7 +1058,16 @@ export function Weltkarte({
           })}
         </svg>
 
-        {karte.features.length === 0 && !spur && (
+        {/*
+          * Leer heisst leer – auch ohne Flächen.
+          *
+          * Hier stand `karte.features.length === 0`. Mit den Siedlungen wäre
+          * das still falsch geworden: Eine Karte mit drei Dörfern und ohne
+          * Küste hätte weiter „Mal einen Fleck" unter den Dörfern stehen –
+          * ein Hinweis, der etwas über das Bild behauptet, was man im Bild
+          * widerlegt sieht.
+          */}
+        {karte.features.length === 0 && (karte.marken ?? []).length === 0 && !spur && (
           <p className="pointer-events-none absolute inset-x-6 bottom-6 text-center text-sm text-ink-muted">
             {/*
               Auf der leeren Karte hat die Bucht nichts, worin sie liegen
@@ -725,16 +1129,23 @@ export function Weltkarte({
 /**
  * Die Leiste darunter.
  *
- * Vier Knöpfe und ein Rückgängig – mehr nicht. Jede Erweiterung dieser Leiste
- * ist der Anfang eines Kartenprogramms, und Dragoncore baut kein
- * Kartenprogramm.
+ * Jede Erweiterung dieser Leiste ist der Anfang eines Kartenprogramms, und
+ * Dragoncore baut kein Kartenprogramm. Was dazukommt, muss deshalb eine
+ * *Bedeutung* dazubringen und nicht eine Einstellung.
  *
  * ---
  *
- * **Zwei Reihen, und die Trennung ist die Reihe selbst.**
+ * **Drei Reihen, und die Trennung ist die Reihe selbst.**
  *
- *   oben   ansehen und malen       – Ansehen, Land, Wasser, Wald
- *   unten  umformen und zurück     – Bucht, Landzunge, Zurücknehmen
+ *   oben   ansehen und malen   – Ansehen, Land, Wasser, Wald
+ *   mitte  umformen            – Bucht, Landzunge, Fluss
+ *   unten  setzen              – Hütte, Dorf, Burg
+ *
+ * Die dritte Reihe kam mit den Siedlungen, und sie ist eine eigene, weil sie
+ * eine eigene Geste hat: Die obere malt eine Fläche, die mittlere formt eine
+ * vorhandene um, die untere **setzt einen Punkt**. Wer „Dorf" für ein
+ * Malwerkzeug hält und eine Küste zieht, bekommt ein Dorf in der Mitte seines
+ * Striches – einmal, und danach weiss er es.
  *
  * Ein Knopf, der neben seinen Nachbarn steht und etwas grundsätzlich anderes
  * tut, wird genau einmal aus Versehen gedrückt – auf einem Telefon liegen sie
@@ -792,6 +1203,10 @@ export function Werkzeugleiste({
         {knopf('bucht', 'Bucht')}
         {knopf('landzunge', 'Landzunge')}
         {knopf('fluss', 'Fluss')}
+        {knopf('gebirge', 'Gebirge')}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {SIEDLUNGEN.map((o) => knopf(o.id, o.name))}
       </div>
     </div>
   );

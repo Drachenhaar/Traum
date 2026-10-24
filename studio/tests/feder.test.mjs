@@ -267,9 +267,30 @@ pruefe('die Fläche trägt keine zweite Linie mehr', () => {
    * Stellen.
    */
   const q = ohneProsa(lies('src/components/karte/Weltkarte.tsx'));
-  const flaeche = q.match(/<path\s+d=\{d\}\s+fill=\{c\.flaeche\}[\s\S]{0,200}?\/>/);
+  const flaeche = q.match(/<path\s+d=\{d\}\s+fill=\{[^}]+\}[\s\S]{0,300}?\/>/);
   assert.ok(flaeche, 'die Fläche sieht anders aus als erwartet');
   assert.doesNotMatch(flaeche[0], /stroke/, 'die Fläche wird wieder gestrichen');
+});
+
+pruefe('ein Wald bekommt keine Feder, bleibt aber antippbar', () => {
+  /*
+   * **Ein Wald hat keine Kante.**
+   *
+   * Seit das Waldwerk ihn malt, läuft er nach aussen aus – ein Blätterdach
+   * und weiche Scheiben unter den Stämmen, zusammen verwischt. Ein
+   * gezogener Umriss liefe quer durch das, was auslaufen soll; zwei Ränder,
+   * einer hart und einer weich, und der harte gewinnt.
+   *
+   * Der Pfad bleibt trotzdem stehen, denn an ihm hängt der **Fangbereich**.
+   * Und das ist die Stelle, an der es still schiefgeht: `fill="none"` nimmt
+   * keine Finger an, `fill="transparent"` schon. Ein Wald liesse sich sonst
+   * nicht mehr antippen – unsichtbar im Bild, deutlich beim Benutzen.
+   */
+  const q = ohneProsa(lies('src/components/karte/Weltkarte.tsx'));
+  assert.match(q, /f\.art !== 'wald' && \(\s*<path\s+d=\{federzug\(/,
+    'der Wald bekommt wieder einen Federzug');
+  assert.match(q, /fill=\{f\.art === 'wald' \? 'transparent' : c\.flaeche\}/,
+    'der Wald hat keinen Fangbereich mehr');
 });
 
 console.log(`\n${geprueft} Prüfungen bestanden.\n`);

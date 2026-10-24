@@ -46,6 +46,19 @@ export interface Baum {
   neigung: number;
   /** Welche der wenigen Zeichnungen. */
   form: number;
+  /**
+   * Dieselbe Wahl, ungeteilt: eine Zahl zwischen 0 und 1.
+   *
+   * `form` teilt sie in drei, weil `baumzeichnung.ts` drei Formen kennt. Ein
+   * Stil mit acht gemalten Bäumen braucht acht – und soll dafür nicht den
+   * Streuer ändern müssen, denn das würde **jeden Baum verschieben**: Die
+   * Zahlen kommen aus einer Kette mit Salz, und ein zusätzlicher Griff
+   * verschöbe alle folgenden.
+   *
+   * Also bleibt die Zahl erhalten, und wer mehr Formen hat, teilt feiner.
+   * Bei drei ergibt das genau `form`.
+   */
+  rohform: number;
 }
 
 export interface Waldwerte {
@@ -57,7 +70,24 @@ export interface Waldwerte {
   jeZelle: number;
 }
 
-export const WALD_VORGABE: Waldwerte = { abstand: 15, saum: 34, jeZelle: 2 };
+/**
+ * **Elf statt fünfzehn.**
+ *
+ * Der alte Wert stammt aus der Zeit der angedeuteten Bäume, und der
+ * Kommentar darüber sagt auch, warum: *„Sind sie größer, verschmelzen sie
+ * zu einem Fleck."* Für drei Striche stimmt das.
+ *
+ * Für gezeichnete Bäume ist es umgekehrt. Gemessen am Bild: Krone zwölf
+ * Einheiten breit bei fünfzehn Einheiten Abstand – drei Einheiten Lücke um
+ * jeden Baum, und auf der ganzen Karte sah der Wald **zerstreut** aus. Ein
+ * Wald besteht aber nicht aus Bäumen mit Abstand; er besteht aus Kronen,
+ * die einander berühren.
+ *
+ * Elf Einheiten bei sechsundzwanzig Einheiten Höhe heisst: Jede Krone
+ * überlappt ihre Nachbarn. Erst dann liest das Auge eine Fläche statt
+ * einzelner Zeichen.
+ */
+export const WALD_VORGABE: Waldwerte = { abstand: 11, saum: 34, jeZelle: 2 };
 
 /**
  * Die Bäume einer Fläche.
@@ -130,6 +160,7 @@ export function baeume(feature: Kartenfeature, werte: Waldwerte = WALD_VORGABE):
           groesse: zwischen(feature.seed, spalte, zeile, 0.72, 1, k * 3 + 4) * (0.78 + 0.22 * naehe),
           neigung: zwischen(feature.seed, spalte, zeile, -0.12, 0.12, k * 3 + 5),
           form: Math.floor(zahl(feature.seed, spalte, zeile, k * 3 + 6) * 3),
+          rohform: zahl(feature.seed, spalte, zeile, k * 3 + 6),
         };
         aus.push(baum);
         const schluessel = `${spalte}:${zeile}`;

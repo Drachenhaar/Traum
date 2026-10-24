@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="de">
+<head><meta charset="utf-8" /><title>Freisteller</title></head>
+<body>
+<script type="module">
+/*
+ * Der Freisteller – von ChatGPT zu einem Bild, das den Vertrag hält.
+ *
+ * ---
+ *
+ * **Das Problem.**
+ *
+ * Ein Bildmodell liefert ein Rechteck mit Hintergrund. Der Vertrag will ein
+ * freigestelltes Ding, das mit dem Fuß auf der Unterkante steht, ringsum Luft
+ * hat und ein bestimmtes Seitenverhältnis einhält. Beides von Hand zu
+ * überbrücken ist genau die Sorte Arbeit, bei der nach dem dritten Bild die
+ * Sorgfalt nachlässt – und Ungleichmäßigkeit ist der eine Fehler, den eine
+ * Karte aus hundert Bildern nicht verzeiht.
+ *
+ * ---
+ *
+ * **Warum Flutfüllung und nicht „alle Punkte dieser Farbe".**
+ *
+ * Ein Baum vor hellgrauem Grund hat selbst hellgraue Stellen – Lichtkanten,
+ * Dunst, Schnee. Wer global nach Farbe löscht, stanzt Löcher ins Motiv. Die
+ * Flutfüllung läuft vom **Rand** nach innen und hört auf, wo das Motiv
+ * beginnt; was innen liegt und zufällig dieselbe Farbe hat, bleibt stehen.
+ *
+ * ---
+ *
+ * **Und warum weiche Kanten.**
+ *
+ * Eine harte Alphakante sieht auf Papier aus wie ausgeschnitten. Punkte am
+ * Übergang bekommen deshalb Teildeckung, abgestuft nach ihrem Abstand zur
+ * Hintergrundfarbe.
+ */
+
+/** Farbabstand, grob aber ausreichend. */
+function abstand(d, i, r, g, b) {
+  return Math.abs(d[i] - r) + Math.abs(d[i + 1] - g) + Math.abs(d[i + 2] - b);
+}
+
+/**
+ * Den Hintergrund fortnehmen.
+ *
+ * `toleranz` ist der Abstand, bis zu dem ein Punkt noch als Hintergrund
+ * gilt; bis `weich` darüber wird er teildurchsichtig.
+ */
+function freistellen(ctx, w, h, toleranz, weich) {
+  const bild = ctx.getImageData(0, 0, w, h);
+  const d = bild.data;
+
+  /*
+   * Die Hintergrundfarbe aus den vier Ecken – der Mittelwert, nicht eine
+   * einzelne Ecke. Ein Modell legt gern einen leichten Verlauf an, und eine
+   * einzelne Ecke trifft dann die andere Seite nicht.
+   */
+  const ecken = [[0, 0], [w - 1, 0], [0, h - 1], [w - 1, h - 1]];
+  let r = 0, g = 0, b = 0;
+  for (const [x, y] of ecken) {
+    const i = (y * w + x) * 4;
+    r += d[i]; g += d[i + 1]; b += d[i + 2];
+  }
+  r /= 4; g /= 4; b /= 4;
+
+  /* Flutfüllung vom Rand nach innen. */
+  const aussen = new Uint8Array(w * h);
+  const stapel = [];
+  for (let x = 0; x < w; x++) { stapel.push(x, (h - 1) * w + x); }
+  for (let y = 0; y < h; y++) { stapel.push(y * w, y * w + w - 1); }
+
+  while (stapel.length) {
+    const p = stapel.pop();
+    if (aussen[p]) continue;
+    if (abstand(d, p * 4, r, g, b) > toleranz + weich) continue;
+    aussen[p] = 1;
+    const x = p % w, y = (p - x) / w;
+    if (x > 0) stapel.push(p - 1);
+    if (x < w - 1) stapel.push(p + 1);
+    if (y > 0) stapel.push(p - w);
+    if (y < h - 1) stapel.push(p + w);
+  }
+
+  for (let p = 0; p < w * h; p++) {
+    if (!aussen[p]) continue;
+    const i = p * 4;
+    const ab = abstand(d, i, r, g, b);
+    if (ab <= toleranz) d[i + 3] = 0;
+    else d[i + 3] = Math.round(d[i + 3] * Math.min(1, (ab - toleranz) / Math.max(1, weich)));
+  }
+
+  ctx.putImageData(bild, 0, 0);
+  return { r: Math.round(r), g: Math.round(g), b: Math.round(b) };
+}
+
+/**
+ * Wo das Blatt leer ist – und damit, wo ein Baum aufhört.
+ *
+ * ---
+ *
+ * **Der Fehler, den das behebt, stand im gebackenen Atlas.**
+ *
+ * Der erste Anlauf teilte das Blatt in acht gleich breite Spalten. Ein
+ * Modell zeichnet die Bäume aber verschieden breit: Die Eiche war breiter
+ * als ihre Spalte und bekam eine **glatt abgeschnittene Krone**, und in die
+ * Nachbarspalten ragten Splitter von ihr hinein.
+ *
+ * Also wird nicht gerechnet, sondern nachgesehen: Welche Bildspalten sind
+ * vollständig durchsichtig? Dazwischen liegt je ein Baum. Das ist zugleich
+ * nachsichtig gegen ungleiche Abstände – das Modell muss nicht ausmessen.
+ */
+function luecken(ctx, w, h, erwartet) {
+  const d = ctx.getImageData(0, 0, w, h).data;
+  const deckung = new Int32Array(w);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 16) deckung[x]++;
+  }
+  /* Eine Spalte gilt als leer, wenn fast nichts darin steht – ein paar
+     Streupunkte aus der weichen Kante sollen keine Lücke schliessen. */
+  const schwelle = Math.max(1, Math.round(h * 0.004));
+  const gruppen = [];
+  let von = -1;
+  for (let x = 0; x < w; x++) {
+    const voll = deckung[x] > schwelle;
+    if (voll && von < 0) von = x;
+    if (!voll && von >= 0) { gruppen.push([von, x - 1]); von = -1; }
+  }
+  if (von >= 0) gruppen.push([von, w - 1]);
+  /* Winzige Reste – Blattspitzen, die allein stehen – an den Nachbarn
+     anschliessen, statt sie als eigenen Baum zu zählen. */
+  let breit = gruppen.filter(([a, b]) => b - a > w * 0.01);
+
+  /*
+   * **Und wenn sich zwei Kronen berühren, gibt es keine Lücke.**
+   *
+   * Gemessen an einem gelieferten Blatt: acht Bäume, aber nur **sechs**
+   * Gruppen – zweimal griffen benachbarte Kronen ineinander. Eine Lücke von
+   * null Bildpunkten Breite findet keine Schwelle.
+   *
+   * Dann wird nicht gesucht, sondern geteilt: Die breiteste Gruppe bekommt
+   * einen Schnitt an ihrer **dünnsten** Stelle – dort, wo am wenigsten Laub
+   * steht, also zwischen zwei Kronen und nicht mitten durch eine. Gesucht
+   * wird nur im mittleren Bereich, damit der Schnitt nicht am Rand einer
+   * Krone entlanggeht.
+   */
+  while (erwartet && breit.length < erwartet && breit.length > 0) {
+    let i = 0;
+    for (let k = 1; k < breit.length; k++) {
+      if (breit[k][1] - breit[k][0] > breit[i][1] - breit[i][0]) i = k;
+    }
+    const [a, b] = breit[i];
+    const rand = Math.round((b - a) * 0.2);
+    let bestX = -1, bestW = Infinity;
+    for (let x = a + rand; x <= b - rand; x++) {
+      if (deckung[x] < bestW) { bestW = deckung[x]; bestX = x; }
+    }
+    if (bestX < 0 || b - a < 8) break;
+    breit = [...breit.slice(0, i), [a, bestX - 1], [bestX, b], ...breit.slice(i + 1)];
+  }
+  return breit;
+}
+
+/**
+ * Zusammenhängende Stücke finden.
+ *
+ * ---
+ *
+ * **Warum `luecken` dafür nicht reicht.**
+ *
+ * Das Spaltenverfahren schneidet an senkrechten Lücken – richtig für ein
+ * Blatt, auf dem acht Bäume nebeneinanderstehen. Auf einem Blatt mit
+ * achtzig Büschen in acht Reihen gibt es keine durchgehende leere Spalte;
+ * gemessen hatte eines davon **fünfundzwanzig leere Zeilen auf tausend**.
+ * Das Verfahren lieferte folgerichtig genau ein Stück: das ganze Blatt.
+ *
+ * Hier wird stattdessen gefragt, was womit zusammenhängt – eine
+ * Flutfüllung über die Deckung, vier Nachbarn. Dasselbe Blatt zerfällt so
+ * in 79 Stücke.
+ *
+ * Zurückgegeben wird in **Leserichtung**: Die Bänder ergeben sich aus den
+ * Mitten, nicht aus festen Zeilen, denn ein hoher Busch und ein flacher
+ * Stein in derselben Reihe haben nichts gemein ausser ihrer Mitte.
+ */
+function zerteile(ctx, w, h, mindest = 1500) {
+  const d = ctx.getImageData(0, 0, w, h).data;
+  const an = new Uint8Array(w * h);
+  for (let k = 0; k < w * h; k++) an[k] = d[k * 4 + 3] > 24 ? 1 : 0;
+
+  const mark = new Int32Array(w * h).fill(-1);
+  const stapel = new Int32Array(w * h);
+  const stuecke = [];
+
+  for (let s = 0; s < w * h; s++) {
+    if (!an[s] || mark[s] >= 0) continue;
+    const id = stuecke.length;
+    let sp = 0;
+    stapel[sp++] = s;
+    mark[s] = id;
+    let x0 = w, x1 = 0, y0 = h, y1 = 0, n = 0;
+    while (sp > 0) {
+      const k = stapel[--sp];
+      const x = k % w;
+      const y = (k - x) / w;
+      n++;
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
+      if (x + 1 < w && an[k + 1] && mark[k + 1] < 0) { mark[k + 1] = id; stapel[sp++] = k + 1; }
+      if (x > 0 && an[k - 1] && mark[k - 1] < 0) { mark[k - 1] = id; stapel[sp++] = k - 1; }
+      if (y + 1 < h && an[k + w] && mark[k + w] < 0) { mark[k + w] = id; stapel[sp++] = k + w; }
+      if (y > 0 && an[k - w] && mark[k - w] < 0) { mark[k - w] = id; stapel[sp++] = k - w; }
+    }
+    stuecke.push({ x0, y0, x1, y1, n });
+  }
+
+  const gross = stuecke.filter((t) => t.n >= mindest);
+  if (!gross.length) return gross;
+  /* Die Bandhöhe aus den Stücken selbst – kein festes Raster. */
+  const hoehen = gross.map((t) => t.y1 - t.y0 + 1).sort((a, b) => a - b);
+  const band = Math.max(24, hoehen[Math.floor(hoehen.length / 2)]);
+  return gross.sort((a, b) => {
+    const ra = Math.round((a.y0 + a.y1) / 2 / band);
+    const rb = Math.round((b.y0 + b.y1) / 2 / band);
+    return ra !== rb ? ra - rb : a.x0 - b.x0;
+  });
+}
+
+/** Der Kasten, in dem das Bild deckt. */
+function kasten(ctx, w, h) {
+  const d = ctx.getImageData(0, 0, w, h).data;
+  let x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (d[(y * w + x) * 4 + 3] < 12) continue;
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
+    }
+  }
+  return x1 < 0 ? undefined : { x0, y0, x1, y1 };
+}
+
+/**
+ * Zuschneiden und einpassen.
+ *
+ * ---
+ *
+ * **Hier wird der Vertrag erfüllt, nicht nur geprüft.**
+ *
+ * Die Rechnung ist umgekehrt gedacht: Nicht „wie schneide ich zu", sondern
+ * „welche Leinwand braucht dieses Motiv, damit sein Fuß bei `ankerY` steht
+ * und oben `randFrei` Luft bleibt". Daraus folgt die Höhe, daraus die Breite
+ * über das Seitenverhältnis. Passt das Motiv seitlich nicht hinein, wird es
+ * verkleinert – lieber ein kleineres Ding im richtigen Rahmen als ein
+ * richtig großes im falschen.
+ */
+function einpassen(quelle, k, soll, vertrag, hoechstens, spiegeln = false) {
+  let mw = k.x1 - k.x0 + 1;
+  let mh = k.y1 - k.y0 + 1;
+
+  const obenLuft = vertrag.randFrei * 1.6;
+  const platz = 1 - vertrag.randFrei * 3;
+
+  /*
+   * **Beide Bedingungen auf einmal, nicht nacheinander.**
+   *
+   * Hier wurde erst die Höhe aus dem Motiv gerechnet, daraus die Breite –
+   * und wenn das Motiv seitlich nicht hineinpasste, wurde es verkleinert
+   * und die Rechnung wiederholt. Das kann nicht aufgehen: Mit dem Motiv
+   * schrumpft die Höhe, mit der Höhe die Breite, und am Ende ist der
+   * Rahmen genauso zu eng wie vorher. Ein Durchgang mehr hätte dasselbe
+   * ergeben.
+   *
+   * Bei Bäumen fiel es nie auf – sie sind hoch und schmal, die Breite war
+   * nie die enge Bedingung. Beim Unterholz schlug der Prüfer sofort an:
+   * „seitlich kein freier Rand (links 0,0 %, rechts 0,0 %)".
+   *
+   * Richtig ist, die Leinwand aus **beiden** Forderungen zu nehmen und das
+   * Motiv gar nicht anzutasten:
+   *
+   *     Höhe ≥ Motivhöhe ÷ (Anker − Luft)        damit der Fuss sitzt
+   *     Höhe ≥ Motivbreite ÷ (Platz × Verhältnis) damit es seitlich passt
+   *
+   * Ist die zweite die grössere, wird die Leinwand höher als nötig und das
+   * Motiv bekommt oben mehr Luft. Das ist der richtige Preis: Luft kostet
+   * nichts, Auflösung schon.
+   */
+  let H = Math.max(mh / (soll.ankerY - obenLuft), mw / (platz * soll.breiteZuHoehe));
+  let W = H * soll.breiteZuHoehe;
+
+  if (H > hoechstens) {
+    const s = hoechstens / H;
+    H = hoechstens;
+    W = H * soll.breiteZuHoehe;
+    mw *= s;
+    mh *= s;
+  }
+
+  const ziel = document.createElement('canvas');
+  ziel.width = Math.max(4, Math.round(W));
+  ziel.height = Math.max(4, Math.round(H));
+  const zctx = ziel.getContext('2d');
+  zctx.imageSmoothingEnabled = true;
+  zctx.imageSmoothingQuality = 'high';
+
+  const zx = (ziel.width - mw) / 2;
+  const zy = ziel.height * soll.ankerY - mh;
+  /*
+   * **Spiegeln, wenn das Licht von der falschen Seite kommt.**
+   *
+   * Ein ganzes Blatt, das von rechts beleuchtet ist, neben einem Satz, der
+   * von links beleuchtet ist, sieht auf der Karte aus wie zwei Sätze – egal
+   * wie gut jedes einzelne Bild ist. Umzumalen wäre viel; umzudrehen ist
+   * eine Zeile, und bei Büschen und Farnen sieht man es nicht.
+   */
+  if (spiegeln) {
+    zctx.translate(ziel.width, 0);
+    zctx.scale(-1, 1);
+  }
+  zctx.drawImage(
+    quelle,
+    k.x0, k.y0, k.x1 - k.x0 + 1, k.y1 - k.y0 + 1,
+    zx, zy, mw, mh,
+  );
+  return ziel;
+}
+
+/**
+ * Ein Rohbild zu einem oder mehreren vertragsgemäßen Bildern machen.
+ *
+ * `spalten` und `zeilen` schneiden ein **Blatt** auf: Ein Bildmodell liefert
+ * acht Bäume in einem Bild viel gleichförmiger als acht Bäume in acht
+ * Bildern – gleiches Licht, gleicher Strich, gleiche Größe, weil es sie
+ * nebeneinander sieht. Das ist der einzige verlässliche Weg zu einem Satz,
+ * der zusammengehört.
+ */
+/**
+ * Ein Blatt nur ansehen: Welche Stücke stecken darin?
+ *
+ * Gibt die Kästen in Leserichtung und ein nummeriertes Übersichtsbild
+ * zurück. Erst danach wird ausgewählt – welcher Busch taugt als Unterholz
+ * und welcher Felsbrocken nicht, ist eine Entscheidung und keine Rechnung.
+ */
+window.zerlege = async (url, { mindest = 1500 } = {}) => {
+  const bild = await new Promise((fertig, scheitern) => {
+    const i = new Image();
+    i.onload = () => fertig(i);
+    i.onerror = () => scheitern(new Error(`konnte ${url} nicht laden`));
+    i.src = url;
+  });
+  const c = document.createElement('canvas');
+  c.width = bild.width; c.height = bild.height;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(bild, 0, 0);
+  const stuecke = zerteile(ctx, bild.width, bild.height, mindest);
+
+  ctx.lineWidth = 3;
+  ctx.font = 'bold 34px monospace';
+  ctx.textBaseline = 'top';
+  stuecke.forEach((t, i) => {
+    ctx.strokeStyle = '#ff2d2d';
+    ctx.strokeRect(t.x0 - 1, t.y0 - 1, t.x1 - t.x0 + 3, t.y1 - t.y0 + 3);
+    ctx.fillStyle = '#ff2d2d';
+    ctx.fillRect(t.x0 - 1, t.y0 - 1, 54, 36);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(String(i), t.x0 + 4, t.y0 + 1);
+  });
+  return {
+    uebersicht: c.toDataURL('image/png'),
+    stuecke: stuecke.map((t) => ({ b: t.x1 - t.x0 + 1, h: t.y1 - t.y0 + 1, n: t.n })),
+  };
+};
+
+window.freistelle = async (url, { spalten = 1, zeilen = 1, soll, vertrag, toleranz, weich, hoechstens, nachLuecken = false, nachTeilen = false, auswahl, mindest = 1500, schonFrei = false, spiegeln = false }) => {
+  const bild = await new Promise((fertig, scheitern) => {
+    const i = new Image();
+    i.onload = () => fertig(i);
+    i.onerror = () => scheitern(new Error(`konnte ${url} nicht laden`));
+    i.src = url;
+  });
+
+  const aus = [];
+  let grund = null;
+
+  if (nachTeilen) {
+    /*
+     * **Nach Zusammenhang teilen.** Für Blätter, auf denen die Stücke sich
+     * berühren oder in mehreren Reihen stehen – siehe `zerteile`.
+     */
+    const ganz = document.createElement('canvas');
+    ganz.width = bild.width; ganz.height = bild.height;
+    const gctx = ganz.getContext('2d', { willReadFrequently: true });
+    gctx.drawImage(bild, 0, 0);
+    grund = schonFrei
+      ? { r: -1, g: -1, b: -1 }
+      : freistellen(gctx, bild.width, bild.height, toleranz, weich);
+
+    const alle = zerteile(gctx, bild.width, bild.height, mindest);
+    const gewaehlt = auswahl?.length ? auswahl.map((i) => alle[i]).filter(Boolean) : alle;
+    for (const t of gewaehlt) {
+      const bw = t.x1 - t.x0 + 1;
+      const bh = t.y1 - t.y0 + 1;
+      const teil = document.createElement('canvas');
+      teil.width = bw; teil.height = bh;
+      const tctx = teil.getContext('2d', { willReadFrequently: true });
+      tctx.drawImage(ganz, t.x0, t.y0, bw, bh, 0, 0, bw, bh);
+      aus.push(einpassen(teil, { x0: 0, y0: 0, x1: bw - 1, y1: bh - 1 }, soll, vertrag, hoechstens, spiegeln)
+        .toDataURL('image/png'));
+    }
+    return { bilder: aus, grund, gruppen: gewaehlt.length, teilbreite: 0, teilhoehe: bild.height };
+  }
+
+  if (nachLuecken) {
+    /*
+     * **Erst freistellen, dann teilen.**
+     *
+     * Umgekehrt ginge es nicht: Die Lücken sieht man erst, wenn der
+     * Hintergrund weg ist.
+     */
+    const ganz = document.createElement('canvas');
+    ganz.width = bild.width; ganz.height = bild.height;
+    const gctx = ganz.getContext('2d', { willReadFrequently: true });
+    gctx.drawImage(bild, 0, 0);
+    /*
+     * **Ein schon freigestelltes Bild wird nicht noch einmal freigestellt.**
+     *
+     * Wer die Durchsichtigkeit mitbringt, hat sie meist von einem Werkzeug,
+     * das mehr sieht als eine Flutfüllung – weiche Blattränder vor allem.
+     * Die Flutfüllung noch einmal darüberlaufen zu lassen, nähme nichts weg
+     * und liesse nur Reste stehen, wo der Rand schon halb durchsichtig ist.
+     *
+     * Geteilt und eingepasst wird trotzdem: Ein Blatt mit acht Bäumen ist
+     * auch freigestellt noch kein Satz aus acht Dateien.
+     */
+    grund = schonFrei
+      ? { r: -1, g: -1, b: -1 }
+      : freistellen(gctx, bild.width, bild.height, toleranz, weich);
+
+    const gruppen = luecken(gctx, bild.width, bild.height, spalten);
+    for (const [x0, x1] of gruppen) {
+      const bw = x1 - x0 + 1;
+      const teil = document.createElement('canvas');
+      teil.width = bw; teil.height = bild.height;
+      const tctx = teil.getContext('2d', { willReadFrequently: true });
+      tctx.drawImage(ganz, x0, 0, bw, bild.height, 0, 0, bw, bild.height);
+      const k = kasten(tctx, bw, bild.height);
+      if (!k) { aus.push(null); continue; }
+      aus.push(einpassen(teil, k, soll, vertrag, hoechstens, spiegeln).toDataURL('image/png'));
+    }
+    return { bilder: aus, grund, gruppen: gruppen.length, teilbreite: 0, teilhoehe: bild.height };
+  }
+
+  const tw = Math.floor(bild.width / spalten);
+  const th = Math.floor(bild.height / zeilen);
+
+  for (let z = 0; z < zeilen; z++) {
+    for (let s = 0; s < spalten; s++) {
+      const c = document.createElement('canvas');
+      c.width = tw; c.height = th;
+      const ctx = c.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(bild, s * tw, z * th, tw, th, 0, 0, tw, th);
+
+      grund = freistellen(ctx, tw, th, toleranz, weich);
+      const k = kasten(ctx, tw, th);
+      if (!k) { aus.push(null); continue; }
+      aus.push(einpassen(c, k, soll, vertrag, hoechstens, spiegeln).toDataURL('image/png'));
+    }
+  }
+  return { bilder: aus, grund, teilbreite: tw, teilhoehe: th };
+};
+
+document.title = 'bereit';
+</script>
+</body>
+</html>

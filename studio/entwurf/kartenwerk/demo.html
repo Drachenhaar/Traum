@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="de">
+<head><meta charset="utf-8" /><style>
+  html,body{margin:0;background:#100e0c;color:#D9CFB6;font:14px/1.5 "Iowan Old Style",Georgia,serif}
+  canvas{display:block}
+</style></head>
+<body>
+<canvas id="c" width="2560" height="1500"></canvas>
+<script type="module">
+import { gelaendeAus, staffageAus, Kachelwerk, male, KACHEL, amOrt, kasten } from './kartenwerk.js';
+import { backeStilbuch, ARTBOOK, PERGAMENT } from './stilbuch.js';
+
+/* =================================================================
+ * DIE SEMANTIK — ein Kartendokument, wie es heute schon gespeichert
+ * wird. Beide Stile bekommen genau dieses Objekt. Nichts daran ist
+ * stilabhängig, und alles daran bleibt editierbar.
+ * ============================================================== */
+function kueste(cx, cy, r, saat, n = 300, rauh = 0.3) {
+  const w = [];
+  for (let i = 0; i < 8; i++) w.push({ a: amOrt(i, saat, 11) * 6.28, f: 1 + i * 1.3, g: 1 / (1 + i * 0.85) });
+  const su = w.reduce((s, q) => s + q.g, 0);
+  const p = [];
+  for (let i = 0; i < n; i++) {
+    const t = (i / n) * 6.283185;
+    const d = w.reduce((s, q) => s + q.g * Math.sin(t * q.f + q.a), 0) / su;
+    const rr = r * (1 + d * rauh);
+    p.push([cx + Math.cos(t) * rr * 1.1, cy + Math.sin(t) * rr * 0.88]);
+  }
+  return p;
+}
+function lauf(von, bis, krumm, saat, n = 70) {
+  const a = amOrt(1, saat, 5) * 6, b = amOrt(2, saat, 5) * 6;
+  const p = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    const nx = -(bis[1] - von[1]), ny = bis[0] - von[0];
+    const l = Math.hypot(nx, ny) || 1;
+    const d = (Math.sin(t * 3.1 + a) * 0.6 + Math.sin(t * 7.3 + b) * 0.4) * krumm * Math.sin(t * Math.PI);
+    p.push([von[0] + (bis[0] - von[0]) * t + nx / l * d, von[1] + (bis[1] - von[1]) * t + ny / l * d]);
+  }
+  return p;
+}
+
+const DOKUMENT = {
+  id: 'k1', seed: 4711,
+  features: [
+    { id: 'f_land',  art: 'land',   punkte: kueste(500, 510, 400, 1337, 360, 0.34), seed: 1 },
+    { id: 'f_wald',  art: 'wald',   punkte: kueste(330, 520, 185, 404, 160, 0.38),  seed: 2 },
+    { id: 'f_berge', art: 'berge',  punkte: kueste(690, 300, 195, 77, 150, 0.30),   seed: 3 },
+    { id: 'f_wiese', art: 'wiese',  punkte: kueste(520, 760, 150, 55, 140, 0.34),   seed: 4 },
+    { id: 'f_sumpf', art: 'sumpf',  punkte: kueste(250, 760, 95, 61, 120, 0.4),     seed: 5 },
+  ],
+  marken: [{ id: 'm1', art: 'burg', bei: [640, 470], gr: 56 }],
+  /* Linienhafte Bedeutungen – heute als Wasserfläche, hier als Band. */
+  baender: [
+    { id: 'b_fluss', art: 'fluss', punkte: lauf([700, 300], [300, 830], 55, 91) },
+    { id: 'b_weg',   art: 'weg',   punkte: lauf([520, 760], [640, 470], 40, 12) },
+  ],
+};
+
+/* =================================================================
+ * DER GRUND — Geometrie, kein Bewuchs.
+ *
+ * Läuft je Kachel und zeichnet nur, was diese Kachel berührt. Flächen
+ * sind wenige; das kostet nichts.
+ * ============================================================== */
+function machGrund(def) {
+  return (ctx, kach, massstab) => {
+    const F = (id) => DOKUMENT.features.find((f) => f.id === id);
+    const pfad = (p) => { ctx.beginPath(); ctx.moveTo(p[0][0], p[0][1]); for (let i = 1; i < p.length; i++) ctx.lineTo(p[i][0], p[i][1]); ctx.closePath(); };
+    const versetzt = (p, d) => {
+      let cx = 0, cy = 0; for (const q of p) { cx += q[0]; cy += q[1]; } cx /= p.length; cy /= p.length;
+      return p.map(([x, y]) => { const l = Math.hypot(x - cx, y - cy) || 1; return [x + (x - cx) / l * d, y + (y - cy) / l * d]; });
+    };
+
+    /* Wasser als Grund der ganzen Welt */
+    ctx.fillStyle = def.wasser;
+    ctx.fillRect(kach.x0 - 4, kach.y0 - 4, KACHEL + 8, KACHEL + 8);
+
+    const land = F('f_land').punkte;
+
+    /* Tiefenstufen im Wasser */
+    for (let i = 3; i >= 1; i--) {
+      ctx.fillStyle = i === 3 ? def.wasserTief : def.wasser;
+      ctx.globalAlpha = i === 3 ? 0.45 : 0;
+      if (i === 3) { pfad(versetzt(land, 58)); ctx.fill(); }
+      ctx.globalAlpha = 1;
+    }
+    /* Brandung: helle Säume dicht an der Küste */
+    for (let i = 1; i <= 3; i++) {
+      ctx.strokeStyle = def.brandung;
+      ctx.globalAlpha = 0.75 - i * 0.18;
+      ctx.lineWidth = 3.4 - i * 0.7;
+      pfad(versetzt(land, i * 9)); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    /* Das Land */
+    ctx.fillStyle = def.land; pfad(land); ctx.fill();
+
+    /* Die Bedeutungsflächen als sehr leiser Ton – der Bewuchs macht
+       den Rest. Eine kräftige Fläche unter einem dichten Wald sieht
+       man nie und sie verfälscht die Farbe an den Lichtungen. */
+    for (const [id, ton] of [['f_wald', def.wald], ['f_wiese', def.wiese], ['f_sumpf', def.sumpf]]) {
+      ctx.fillStyle = ton; ctx.globalAlpha = 0.72; pfad(F(id).punkte); ctx.fill(); ctx.globalAlpha = 1;
+    }
+
+    /* Die Küstenlinie als Feder */
+    ctx.strokeStyle = def.landKante; ctx.lineCap = 'round';
+    for (let i = 1; i < land.length; i++) {
+      const t = i / land.length;
+      ctx.lineWidth = 1.5 + Math.sin(t * 23) * 0.7 + Math.sin(t * 6.1) * 0.5;
+      ctx.beginPath(); ctx.moveTo(land[i - 1][0], land[i - 1][1]); ctx.lineTo(land[i][0], land[i][1]); ctx.stroke();
+    }
+
+    /* Bänder: Fluss und Weg */
+    const band = (p, breiteVon, farbe, saum) => {
+      for (const [f, zu] of [[saum, 2.4], [farbe, 1]]) {
+        ctx.strokeStyle = f; ctx.lineCap = 'round';
+        for (let i = 1; i < p.length; i++) {
+          ctx.lineWidth = breiteVon(i / (p.length - 1)) * zu;
+          ctx.beginPath(); ctx.moveTo(p[i - 1][0], p[i - 1][1]); ctx.lineTo(p[i][0], p[i][1]); ctx.stroke();
+        }
+      }
+    };
+    const B = (id) => DOKUMENT.baender.find((b) => b.id === id).punkte;
+    band(B('b_fluss'), (t) => 1.8 + t * 8, def.wasser, def.wasserTief);
+    band(B('b_weg'), () => 3.2, def.weg, def.wegKante);
+
+    /* Körnung – im Pergament kräftig, im Artbook ein Hauch */
+    const k = def.koernung;
+    ctx.fillStyle = k.farbe;
+    const n = Math.round(90 * k.dichte);
+    for (let i = 0; i < n; i++) {
+      const x = kach.x0 + amOrt(i, kach.x0 + kach.y0, 3) * KACHEL;
+      const y = kach.y0 + amOrt(kach.y0, i + kach.x0, 7) * KACHEL;
+      ctx.globalAlpha = k.staerke * (0.3 + amOrt(i, i, 9) * 0.9);
+      ctx.beginPath(); ctx.arc(x, y, 1 + amOrt(y, x, 13) * 7, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  };
+}
+
+/* =================================================================
+ * AUFBAU
+ * ============================================================== */
+const C = document.getElementById('c');
+const X = C.getContext('2d');
+
+const tG0 = performance.now();
+const gelaende = gelaendeAus(DOKUMENT);
+const msGelaende = performance.now() - tG0;
+
+const tS0 = performance.now();
+const STAFFAGE = staffageAus(gelaende, DOKUMENT.seed);
+const msStaffage = performance.now() - tS0;
+
+const buecher = [backeStilbuch(ARTBOOK), backeStilbuch(PERGAMENT)];
+const werke = buecher.map((b) => new Kachelwerk(b));
+const gruende = buecher.map((b) => machGrund(b.def));
+
+const BREITE = 1230, HOEHE = 1230, OY = 196;
+const SICHT = { x: 15, y: 25, w: 970 };
+
+const zeichne = () => {
+  X.fillStyle = '#100e0c'; X.fillRect(0, 0, C.width, C.height);
+  const ergebnisse = [];
+  buecher.forEach((b, i) => {
+    const ox = 40 + i * (BREITE + 40);
+    X.save();
+    X.beginPath(); X.rect(ox, OY, BREITE, HOEHE); X.clip();
+    X.translate(ox, OY);
+    ergebnisse.push(male(X, SICHT, BREITE, werke[i], STAFFAGE, gruende[i]));
+    X.restore();
+    X.strokeStyle = 'rgba(0,0,0,.4)'; X.strokeRect(ox + .5, OY + .5, BREITE - 1, HOEHE - 1);
+    X.fillStyle = '#C9B88E'; X.font = '500 24px "Iowan Old Style",Georgia,serif'; X.textAlign = 'left';
+    X.fillText(b.def.name, ox, OY - 48);
+    X.fillStyle = '#7E745E'; X.font = '16px "Iowan Old Style",Georgia,serif';
+    if (b.uebergelaufen) console.error('Atlas übergelaufen:', b.def.name, b.uebergelaufen);
+    const bildArten = Object.keys(b.def.bilder).join(', ');
+    const pinselArten = Object.keys(b.def.pinselArten).join(', ');
+    X.fillText(`Bild: ${bildArten}   ·   Pinsel: ${pinselArten}   ·   ${b.felder} Atlasfelder, gebacken in ${b.msBacken.toFixed(0)} ms`, ox, OY - 24);
+  });
+  return ergebnisse;
+};
+
+const erg = zeichne();
+
+/* =================================================================
+ * MESSUNG — und zwar fair.
+ *
+ * Beide Wege zeichnen **dasselbe**: ein Panel, in dieselbe Leinwand
+ * derselben Größe, mit demselben Stilbuch. Der erste Anlauf verglich
+ * zwei Panels plus Kopfzeile gegen ein Panel in einer kleineren
+ * Leinwand und machte den Kachelweg künstlich schlecht.
+ *
+ * **Was diese Zahlen nicht sind:** iPhone-Zahlen. Dieser Browser läuft
+ * ohne Grafikkarte, jedes `drawImage` wird von der CPU gerechnet. Auf
+ * einem Gerät mit GPU ist das Blitten ein Vielfaches billiger, das
+ * Zeichnen der Staffage dagegen kaum. Das Verhältnis unten ist deshalb
+ * die **untere** Schranke dessen, was die Kacheln bringen.
+ * ============================================================== */
+const feld = new OffscreenCanvas(BREITE, HOEHE);
+const fctx = feld.getContext('2d');
+
+/* Zwischenspeicher warmlaufen lassen – gemessen wird der Dauerbetrieb. */
+male(fctx, SICHT, BREITE, werke[1], STAFFAGE, gruende[1]);
+const vorher = werke[1].gezeichnet;
+
+const BILDER = 60;
+const tNeu = performance.now();
+for (let n = 0; n < BILDER; n++) {
+  SICHT.x += 0.8; SICHT.y += 0.3;
+  fctx.setTransform(1, 0, 0, 1, 0, 0);
+  male(fctx, SICHT, BREITE, werke[1], STAFFAGE, gruende[1]);
+}
+const msNeu = (performance.now() - tNeu) / BILDER;
+const neuGezeichnet = werke[1].gezeichnet - vorher;
+
+const tAlt = performance.now();
+for (let n = 0; n < BILDER; n++) {
+  SICHT.x += 0.8; SICHT.y += 0.3;
+  fctx.setTransform(1, 0, 0, 1, 0, 0);
+  fctx.clearRect(0, 0, BREITE, HOEHE);
+  const m = BREITE / SICHT.w;
+  fctx.setTransform(m, 0, 0, m, -SICHT.x * m, -SICHT.y * m);
+  gruende[1](fctx, { x0: SICHT.x, y0: SICHT.y, x1: SICHT.x + SICHT.w, y1: SICHT.y + SICHT.w }, m);
+  for (const st of STAFFAGE) buecher[1].zeichne(fctx, st, m);
+}
+const msAlt = (performance.now() - tAlt) / BILDER;
+
+/* Und: was kostet eine Änderung an *einer* Fläche? */
+const kWald = kasten(DOKUMENT.features.find((f) => f.id === 'f_wald').punkte);
+const entwertet = werke[1].entwerte(kWald);
+const tAend = performance.now();
+male(fctx, SICHT, BREITE, werke[1], STAFFAGE, gruende[1]);
+const msAenderung = performance.now() - tAend;
+
+const msJeBild = msNeu;
+SICHT.x = 15; SICHT.y = 25;
+zeichne();
+
+/* ---- Kopfzeile ---- */
+X.fillStyle = '#EDE3CA'; X.font = '600 36px "Iowan Old Style",Georgia,serif'; X.textAlign = 'left';
+X.fillText('Kartenwerk — hybrider Renderer, vertikaler Prototyp', 40, 52);
+X.fillStyle = '#8E8268'; X.font = '18px "Iowan Old Style",Georgia,serif';
+X.fillText(
+  `Dieselben semantischen Daten in beiden Tafeln  ·  ${STAFFAGE.length} Staffage-Stücke  ·  ` +
+  `Gelände ${msGelaende.toFixed(0)} ms, Streuwerk ${msStaffage.toFixed(0)} ms, Atlas ${buecher[0].msBacken.toFixed(0)}/${buecher[1].msBacken.toFixed(0)} ms — alles einmalig`,
+  40, 84);
+X.fillText(
+  `Schieben, ein Panel, gleiche Leinwand:  mit Kacheln ${msNeu.toFixed(2)} ms/Bild  ·  ohne Kacheln ${msAlt.toFixed(2)} ms/Bild  ` +
+  `·  über ${BILDER} Bilder neu gebacken: ${neuGezeichnet} Kacheln  ·  eine Waldänderung entwertet ${entwertet} Kacheln und kostet ${msAenderung.toFixed(0)} ms`,
+  40, 110);
+
+window.MESSUNG = {
+  staffage: STAFFAGE.length, msGelaende, msStaffage,
+  msBacken: buecher.map((b) => b.msBacken), felder: buecher.map((b) => b.felder),
+  uebergelaufen: buecher.map((b) => b.uebergelaufen),
+  msJeBildKacheln: msNeu, msJeBildOhne: msAlt, neuGezeichnet, entwertet, msAenderung,
+  kachelnGesamt: werke.map((w) => w.kacheln.size),
+  msJeKachel: werke.map((w) => w.msGesamt / Math.max(1, w.gezeichnet)),
+};
+document.title = 'fertig';
+</script>
+</body>
+</html>

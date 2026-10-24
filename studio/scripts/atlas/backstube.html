@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="de">
+<head><meta charset="utf-8" /><title>Backstube</title></head>
+<body>
+<script type="module">
+/*
+ * Die Backstube im Browser.
+ *
+ * Node kennt keine Zeichenfläche. Der Browser schon – und er ist derselbe,
+ * der die Bilder später anzeigt. Dass hier mit genau der Maschine gebacken
+ * wird, die auch zeichnet, ist kein Zufall: Ein Bild, das im Backofen anders
+ * aussieht als auf der Karte, wäre der Anfang eines langen Nachmittags.
+ *
+ * ---
+ *
+ * **Zwei Quellen, eine Strecke.**
+ *
+ * Für jede Variante wird zuerst nach einer Datei gesucht
+ * (`assets/karte/<satz>/<art>_<nr>.png`). Liegt eine da, wird sie
+ * **vermessen, geprüft und genommen**. Liegt keine da, zeichnet der Pinsel.
+ *
+ * Das ist der ganze Austauschweg: Datei hinlegen, neu backen. Weder das
+ * Programm noch die Kartendaten erfahren davon.
+ */
+import { SAETZE, MIPS, VERTRAG, bildpfad } from './saetze.mjs';
+import { vermesse, pruefe, pruefeSatz } from './pruefer.mjs';
+
+function lade(pfad) {
+  return new Promise((fertig) => {
+    const i = new Image();
+    i.onload = () => fertig(i);
+    i.onerror = () => fertig(undefined);
+    i.src = pfad;
+  });
+}
+
+/**
+ * Ein Regal packen.
+ *
+ * Keine kluge Packung – eine Reihe nach der anderen. Bei einigen Dutzend
+ * Feldern ist der Unterschied zu einer klugen Packung ein paar Prozent
+ * Fläche, und eine kluge Packung ist eine Fehlerquelle mehr.
+ */
+function packe(felder, breite) {
+  let spalte = 0, zeile = 0, zeilenhoehe = 0;
+  for (const f of felder) {
+    if (spalte + f.w > breite) { spalte = 0; zeile += zeilenhoehe + 2; zeilenhoehe = 0; }
+    f.x = spalte; f.y = zeile;
+    spalte += f.w + 2;
+    if (f.h > zeilenhoehe) zeilenhoehe = f.h;
+  }
+  return zeile + zeilenhoehe;
+}
+
+window.backe = async (satzName) => {
+  const satz = SAETZE[satzName];
+  if (!satz) throw new Error(`kein Satz für ${satzName}`);
+
+  const bericht = { satz: satzName, gemalt: 0, gebacken: 0, klagen: [] };
+
+  /* ---- 1 · Quellen bestimmen und prüfen ---- */
+  const quellen = {};
+  for (const [art, def] of Object.entries(satz.arten)) {
+    quellen[art] = [];
+    const masse = [];
+    for (let v = 0; v < def.varianten; v++) {
+      const bild = await lade(bildpfad(satzName, art, v));
+      if (bild) {
+        const mass = vermesse(bild);
+        masse.push(mass);
+        const klagen = pruefe(mass, def, VERTRAG);
+        for (const k of klagen) bericht.klagen.push(`${art}_${String(v).padStart(2, '0')}.png: ${k}`);
+        quellen[art].push({ bild, mass });
+        bericht.gemalt++;
+      } else {
+        if (!def.male) {
+          bericht.klagen.push(
+            `${art}_${String(v).padStart(2, '0')}.png fehlt, und für ${art} gibt es keinen Pinsel`,
+          );
+        }
+        masse.push(null);
+        quellen[art].push({ bild: undefined });
+        bericht.gebacken++;
+      }
+    }
+    /* Und die Probe auf den Satz – nur über die gemalten. */
+    for (const k of pruefeSatz(masse, VERTRAG)) bericht.klagen.push(`${art}: ${k}`);
+  }
+
+  /* ---- 2 · Felder ausmessen und packen ---- */
+  const felder = [];
+  for (const [art, def] of Object.entries(satz.arten)) {
+    for (let v = 0; v < def.varianten; v++) {
+      for (let m = 0; m < MIPS.length; m++) {
+        felder.push({
+          art, variante: v, stufe: m,
+          w: Math.max(2, Math.round(def.hoehe * def.breiteZuHoehe * MIPS[m])),
+          h: Math.max(2, Math.round(def.hoehe * MIPS[m])),
+        });
+      }
+    }
+  }
+  /*
+   * Die Regalbreite. 1024 reichte, solange ein Baum 190 Punkte hoch war;
+   * bei 430 passten nur noch zwei nebeneinander und das Regal wurde hoch
+   * und schmal. Leerer Platz kostet im PNG fast nichts – ein zu kleines
+   * Regal dagegen schiebt Felder über den Rand, und das ist still.
+   */
+  const breite = 2048;
+  const hoehe = packe(felder, breite);
+  /* Auf die nächste Zweierpotenz – manche Grafikwege mögen das lieber. */
+  const hoch = 2 ** Math.ceil(Math.log2(Math.max(16, hoehe)));
+
+  /* ---- 3 · Zeichnen ---- */
+  const c = document.createElement('canvas');
+  c.width = breite; c.height = hoch;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
+  for (const f of felder) {
+    const def = satz.arten[f.art];
+    const quelle = quellen[f.art][f.variante];
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(f.x, f.y, f.w, f.h);
+    ctx.clip();
+    if (quelle.bild) {
+      /*
+       * Eine gemalte Datei wird **eingepasst, nicht nachgezeichnet**. Ihr
+       * Seitenverhältnis hat der Prüfer schon bestätigt; was hier bleibt,
+       * ist das Herunterrechnen auf die Mipstufe – und das kann der Browser
+       * besser als jede Rechnung von Hand.
+       */
+      ctx.drawImage(quelle.bild, f.x, f.y, f.w, f.h);
+    } else {
+      const vollB = def.hoehe * def.breiteZuHoehe;
+      ctx.translate(f.x, f.y);
+      ctx.scale(MIPS[f.stufe], MIPS[f.stufe]);
+      def.male(ctx, vollB, def.hoehe, def.palette, f.variante);
+    }
+    ctx.restore();
+  }
+
+  /* ---- 4 · Das Verzeichnis ---- */
+  const arten = {};
+  for (const [art, def] of Object.entries(satz.arten)) {
+    arten[art] = {
+      varianten: def.varianten,
+      breiteZuHoehe: def.breiteZuHoehe,
+      /* Wie hoch auf der Karte – siehe `saetze.mjs`. */
+      karteHoehe: def.karteHoehe ?? 15,
+      /*
+       * Der **Ankerpunkt** – die wichtigste Zahl hier: die Mitte der
+       * Unterkante, also die Stelle, mit der das Bild auf dem Boden steht.
+       * Ein Bild, das um seine Mitte verankert wäre, rutschte beim
+       * Vergrößern nach unten weg.
+       */
+      ankerX: def.ankerX,
+      ankerY: def.ankerY,
+      stufen: MIPS,
+      /* Woher jede Variante stammt – damit man es später noch weiss. */
+      herkunft: quellen[art].map((q) => (q.bild ? 'gemalt' : 'gebacken')),
+      felder: [],
+    };
+    for (let v = 0; v < def.varianten; v++) {
+      arten[art].felder.push(
+        felder
+          .filter((f) => f.art === art && f.variante === v)
+          .sort((a, b) => a.stufe - b.stufe)
+          .map((f) => [f.x, f.y, f.w, f.h]),
+      );
+    }
+  }
+
+  /*
+   * **WebP und nicht PNG.**
+   *
+   * Gemessen am selben Atlas: PNG 1896 kB, WebP bei 0,92 **628 kB**. Das
+   * ist kein Feilschen um Bytes – mit PNG hätte die höhere Auflösung
+   * anderthalb Megabyte gekostet, und ein Bildersatz, den niemand laden
+   * will, ist kein Bildersatz. Die Durchsichtigkeit bleibt dabei
+   * verlustfrei; verlustbehaftet ist nur die Farbe, und die ist gemalt
+   * und nicht fotografiert.
+   */
+  return {
+    bild: c.toDataURL('image/webp', 0.92),
+    verzeichnis: { satz: satzName, breite, hoehe: hoch, arten },
+    bericht,
+  };
+};
+
+document.title = 'bereit';
+</script>
+</body>
+</html>

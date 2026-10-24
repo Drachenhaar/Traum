@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="de">
+<head><meta charset="utf-8" /><style>html,body{margin:0;background:#0e0c0a}canvas{display:block}</style></head>
+<body>
+<canvas id="c" width="2560" height="1420"></canvas>
+<script type="module">
+/* =====================================================================
+ * WALDWERK — dieselben Bilder, zweimal gesetzt.
+ *
+ * Links: wie heute. Jeder Baum ein Stempel, gleichmäßig verteilt,
+ * nach y sortiert. Rechts: derselbe Bildersatz, dieselbe Fläche,
+ * dasselbe Streuwerk – nur komponiert.
+ *
+ * Der Unterschied ist **keine** bessere Grafik. Es ist die Anordnung.
+ * ================================================================== */
+
+const X = document.getElementById('c').getContext('2d');
+
+/* ---------------------------------------------------- Der Zufall ---- */
+function amOrt(x, y, saat) {
+  let h = Math.imul((Math.round(x * 16) | 0) ^ 0x9e3779b9, 0x85ebca6b);
+  h = Math.imul(h ^ (Math.round(y * 16) | 0), 0xc2b2ae35);
+  h ^= Math.imul((saat | 0) + 0x27d4eb2f, 0x165667b1);
+  h ^= h >>> 15; h = Math.imul(h, 0x2545f491); h ^= h >>> 13;
+  return ((h >>> 0) % 1000003) / 1000003;
+}
+const folge = (s0) => { let s = s0 >>> 0 || 1;
+  return () => { s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; };
+
+/* Ein weiches Feld aus überlagerten Schwingungen – für Lichtungen. */
+function feld(saat, mass) {
+  const r = folge(saat);
+  const w = [];
+  for (let i = 0; i < 5; i++) {
+    w.push({ a: r() * 6.283, b: r() * 6.283, fx: (1 + i * 1.7) / mass, fy: (1 + i * 1.3) / mass, g: 1 / (1 + i) });
+  }
+  const su = w.reduce((s, q) => s + q.g, 0);
+  return (x, y) => w.reduce((s, q) => s + q.g * Math.sin(x * q.fx + q.a) * Math.cos(y * q.fy + q.b), 0) / su * 0.5 + 0.5;
+}
+
+/* ---------------------------------------------------- Die Fläche ---- */
+function umriss(cx, cy, r, saat, n = 220) {
+  const z = folge(saat); const w = [];
+  for (let i = 0; i < 7; i++) w.push({ a: z() * 6.283, f: 1 + i * 1.4, g: 1 / (1 + i * 0.8) });
+  const su = w.reduce((s, q) => s + q.g, 0);
+  const p = [];
+  for (let i = 0; i < n; i++) {
+    const t = (i / n) * 6.283;
+    const d = w.reduce((s, q) => s + q.g * Math.sin(t * q.f + q.a), 0) / su;
+    const rr = r * (1 + d * 0.3);
+    p.push([cx + Math.cos(t) * rr * 1.08, cy + Math.sin(t) * rr * 0.84]);
+  }
+  return p;
+}
+const drin = (x, y, p) => {
+  let d = false;
+  for (let i = 0, j = p.length - 1; i < p.length; j = i++) {
+    if ((p[i][1] > y) !== (p[j][1] > y) &&
+        x < ((p[j][0] - p[i][0]) * (y - p[i][1])) / (p[j][1] - p[i][1]) + p[i][0]) d = !d;
+  }
+  return d;
+};
+function randAbstand(x, y, p) {
+  let m = Infinity;
+  for (let i = 0; i < p.length; i++) {
+    const a = p[i], b = p[(i + 1) % p.length];
+    const dx = b[0] - a[0], dy = b[1] - a[1];
+    const l2 = dx * dx + dy * dy || 1;
+    let t = ((x - a[0]) * dx + (y - a[1]) * dy) / l2;
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    const d = Math.hypot(x - (a[0] + dx * t), y - (a[1] + dy * t));
+    if (d < m) m = d;
+  }
+  return drin(x, y, p) ? m : -m;
+}
+
+/* ================================================================
+ * DER BILDERSATZ — der echte aus dem Projekt
+ * ============================================================= */
+async function ladeSatz(name) {
+  const verzeichnis = await (await fetch(`/karte/${name}/atlas.json`)).json();
+  const blatt = await new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = `/karte/${name}/atlas.png`; });
+  return { verzeichnis, blatt, ART: verzeichnis.arten.wald };
+}
+const SAETZE = { artbook: await ladeSatz('artbook'), fein: await ladeSatz('fein') };
+
+/**
+ * **Instanzenblätter: jede Variante in mehreren Stimmungen.**
+ *
+ * Acht Bilder, hundertmal gesetzt, liest das Auge als acht Bilder –
+ * egal wie gut sie sind. Was hilft, ist nicht ein neunter Baum,
+ * sondern derselbe Baum **anders gestimmt**: etwas kühler, etwas
+ * heller, etwas dunkler.
+ *
+ * Gerechnet wird das einmal beim Laden, nicht je Baum. Vier Stufen
+ * mal acht Varianten sind zweiunddreissig Bilder im Speicher – und
+ * aus acht sichtbaren Formen werden zweiunddreissig.
+ */
+const STUFEN = 5;
+for (const satz of Object.values(SAETZE)) {
+  const { ART, blatt } = satz;
+  satz.instanzen = [];
+  for (let v = 0; v < ART.varianten; v++) {
+  const [qx, qy, qw, qh] = ART.felder[v][0];
+  satz.instanzen.push([]);
+  for (let s = 0; s < STUFEN; s++) {
+    const c = new OffscreenCanvas(qw, qh);
+    const g = c.getContext('2d');
+    g.drawImage(blatt, qx, qy, qw, qh, 0, 0, qw, qh);
+    /* Dunst: nach hinten heller und kühler – das ist Luft zwischen
+       den Bäumen, und Luft ist der halbe Tiefeneindruck. */
+    const t = s / (STUFEN - 1);
+    g.globalCompositeOperation = 'source-atop';
+    g.fillStyle = `rgba(208,218,206,${(1 - t) * 0.07})`;
+    g.fillRect(0, 0, qw, qh);
+    /* Und nach vorn eine Spur satter. */
+    g.fillStyle = `rgba(38,50,30,${t * 0.14})`;
+    g.fillRect(0, 0, qw, qh);
+    satz.instanzen[v].push(c);
+  }
+  }
+}
+
+/* ================================================================
+ * DIE STAFFAGE — einmal gerechnet, beide Tafeln nehmen sie
+ * ============================================================= */
+const FLAECHE = umriss(0, 0, 430, 4711);
+const dichtefeld = feld(991, 120);
+
+function streue({ abstand, saum, komponiert }) {
+  const aus = [];
+  const k = { x0: -560, y0: -440, x1: 560, y1: 440 };
+  for (let zeile = Math.floor(k.y0 / abstand); zeile <= Math.ceil(k.y1 / abstand); zeile++) {
+    for (let spalte = Math.floor(k.x0 / abstand); spalte <= Math.ceil(k.x1 / abstand); spalte++) {
+      for (let k2 = 0; k2 < (komponiert ? 2 : 1); k2++) {
+        const bx = spalte * abstand, by = zeile * abstand;
+        const x = bx + amOrt(bx, by, 7 + k2 * 101) * abstand;
+        const y = by + amOrt(by, bx, 13 + k2 * 101) * abstand;
+        const d = randAbstand(x, y, FLAECHE);
+        if (d <= 0) continue;
+        const naehe = Math.min(1, d / saum);
+
+        if (!komponiert) {
+          /* Wie heute: Saumwahrscheinlichkeit im Quadrat, sonst gleichmässig. */
+          if (amOrt(x, y, 31) > 0.12 + 0.88 * naehe * naehe) continue;
+          aus.push({ x, y, g: 0.72 + amOrt(x, y, 53) * 0.28, v: Math.floor(amOrt(x, y, 71) * 8), s: 0 });
+          continue;
+        }
+
+        /*
+         * **Dichte aus einem Feld, nicht aus einer Zahl.**
+         *
+         * Ein Wald mit überall gleicher Dichte ist eine Matte. Erst
+         * Lichtungen und Dickichte machen daraus etwas Gewachsenes –
+         * und sie sind der Grund, warum man kein Muster mehr sieht:
+         * Das Auge sucht Regelmässigkeit und findet keine.
+         */
+        const dicht = dichtefeld(x, y);
+        const chance = (0.1 + 0.9 * naehe) * (0.35 + 0.95 * dicht);
+        if (amOrt(x, y, 31 + k2 * 7) > chance) continue;
+
+        /*
+         * **Die Variante hängt an einem anderen Salz als der Ort.**
+         *
+         * Nimmt man dasselbe, wandern gleiche Varianten in Streifen –
+         * das Auge sieht Reihen, auch wenn die Punkte unregelmässig
+         * liegen. Ein eigenes Salz entkoppelt beides.
+         */
+        const v = Math.floor(amOrt(x * 0.37, y * 0.41, 10007) * 8);
+        /* Nach hinten kleiner und dunstiger – Tiefe ohne Perspektive. */
+        const tiefe = (y + 300) / 640;
+        const stufe = Math.max(0, Math.min(STUFEN - 1, Math.round(tiefe * (STUFEN - 1) + (amOrt(x, y, 17) - 0.5))));
+        const g = (0.52 + 0.56 * tiefe) * (0.74 + amOrt(x, y, 53) * 0.4) * (0.78 + 0.3 * naehe);
+        aus.push({ x, y, g, v, s: stufe, spiegel: amOrt(x, y, 211) > 0.5 });
+      }
+    }
+  }
+  return aus.sort((a, b) => a.y - b.y);
+}
+
+/* ================================================================
+ * DIE TAFELN
+ * ============================================================= */
+/*
+ * **Nah heran.**
+ *
+ * Der erste Anlauf setzte zwölfhundert Bäume zu fünfundzwanzig
+ * Bildpunkten in eine Fläche. Komposition kann daran nichts ausrichten:
+ * Bei dieser Größe ist jeder Baum ein Fleck, und hundert Flecken sind
+ * eine Textur. Was man sehen will, sieht man erst, wenn ein Baum ein
+ * Baum ist.
+ */
+const GROESSE = 165;
+
+function zeichneBaum(ctx, b, mit, satz) {
+  const { ART, blatt } = satz;
+  const bild = mit ? satz.instanzen[b.v][b.s] : null;
+  const [qx, qy, qw, qh] = ART.felder[b.v][0];
+  const h = GROESSE * b.g;
+  const w = h * ART.breiteZuHoehe;
+  ctx.save();
+  ctx.translate(b.x, b.y);
+  if (b.spiegel) ctx.scale(-1, 1);
+  if (bild) ctx.drawImage(bild, -w * ART.ankerX, -h * ART.ankerY, w, h);
+  else ctx.drawImage(blatt, qx, qy, qw, qh, -w * ART.ankerX, -h * ART.ankerY, w, h);
+  ctx.restore();
+}
+
+const ZEITEN = {};
+function tafel(ox, oy, w, h, komponiert, titel, unten, satzName = 'artbook') {
+  const t0 = performance.now();
+  const satz = SAETZE[satzName];
+  const ART = satz.ART;
+  const c = new OffscreenCanvas(w, h);
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#F2ECDE';
+  ctx.fillRect(0, 0, w, h);
+  ctx.translate(w / 2, h / 2 + 20);
+
+  const baeume = streue(komponiert
+    ? { abstand: 64, saum: 150, komponiert: true }
+    : { abstand: 58, saum: 110, komponiert: false });
+
+  if (!komponiert) {
+    /* Wie heute: eine Fläche in Waldton, dann die Stempel. */
+    ctx.fillStyle = '#DFE5D2';
+    ctx.beginPath();
+    ctx.moveTo(FLAECHE[0][0], FLAECHE[0][1]);
+    for (const [x, y] of FLAECHE) ctx.lineTo(x, y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#B4C0A0';
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+    for (const b of baeume) zeichneBaum(ctx, b, false, satz);
+  } else {
+    /* ---- 1 · Der Waldboden, weich auslaufend ----
+       Keine Fläche mit Kante: dieselbe Form, stark verwischt. Dadurch
+       gibt es keinen Übergang, den man zeigen könnte – es gibt nur ein
+       Dichterwerden. Und darüber eine Sprenkelung, damit der Boden
+       nicht wie ein Farbfleck liegt. */
+    const boden = new OffscreenCanvas(w, h);
+    const bctx = boden.getContext('2d');
+    bctx.translate(w / 2, h / 2 + 20);
+    bctx.filter = 'blur(13px)';
+    bctx.fillStyle = '#5E6B46';
+    bctx.beginPath();
+    bctx.moveTo(FLAECHE[0][0], FLAECHE[0][1]);
+    for (const [x, y] of FLAECHE) bctx.lineTo(x, y);
+    bctx.closePath();
+    bctx.fill();
+    bctx.filter = 'none';
+    /* Sprenkelung, nur wo der Boden schon liegt. */
+    bctx.globalCompositeOperation = 'source-atop';
+    const sr = folge(4242);
+    for (let i = 0; i < 900; i++) {
+      const x = -520 + sr() * 1040, y = -420 + sr() * 840;
+      const n = dichtefeld(x * 1.6, y * 1.6);
+      bctx.fillStyle = `rgba(${44 + n * 36 | 0},${56 + n * 34 | 0},${34 + n * 26 | 0},${0.1 + sr() * 0.22})`;
+      bctx.beginPath();
+      bctx.ellipse(x, y, 10 + sr() * 42, 6 + sr() * 24, sr() * 3, 0, 7);
+      bctx.fill();
+    }
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 0.82;
+    ctx.drawImage(boden, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    /* ---- 2 · Der Schattenwurf, in einer eigenen Lage ----
+       Je Baum ein weicher Fleck, alle zusammen vorher gezeichnet und
+       verwischt. Einzeln unter jeden Baum gesetzt sähe jeder wie ein
+       Aufkleber mit Schlagschatten aus; gemeinsam ergeben sie das
+       Dunkel unter einem Blätterdach. */
+    const schatten = new OffscreenCanvas(w, h);
+    const sctx = schatten.getContext('2d');
+    sctx.translate(w / 2, h / 2 + 20);
+    for (const b of baeume) {
+      const g = GROESSE * b.g;
+      sctx.fillStyle = `rgba(26,34,20,${0.17 + b.s * 0.05})`;
+      sctx.beginPath();
+      sctx.ellipse(b.x + g * 0.2, b.y - g * 0.03, g * 0.4, g * 0.13, 0, 0, 7);
+      sctx.fill();
+    }
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.filter = 'blur(9px)';
+    ctx.globalAlpha = 0.95;
+    ctx.drawImage(schatten, 0, 0);
+    ctx.filter = 'none';
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    /* ---- 3 · Unterholz ----
+       Dieselben Bilder, klein und dunkel. Sie füllen die Lücken
+       zwischen den Stämmen, damit man nicht durch den Wald auf den
+       Boden sieht. */
+    for (const b of baeume) {
+      for (let k = 0; k < 3; k++) {
+        if (amOrt(b.x + k * 37, b.y - k * 23, 601) > 0.62) continue;
+        const g = GROESSE * b.g;
+        ctx.save();
+        ctx.globalAlpha = 0.9;
+        zeichneBaum(ctx, {
+          ...b,
+          x: b.x + (amOrt(b.x, b.y + k, 701) - 0.5) * g * 0.8,
+          y: b.y + (amOrt(b.y, b.x + k, 709) - 0.2) * g * 0.16,
+          g: b.g * (0.2 + amOrt(b.x, b.y + k, 719) * 0.16),
+          s: 4,
+        }, true, satz);
+        ctx.restore();
+      }
+    }
+
+    /* ---- 3b · Das Kronendach ----
+       Die Vereinigung aller Kronen, leicht verwischt, **hinter** den
+       Bäumen. Sie füllt die Lücken zwischen den Kronen, sodass man im
+       dichten Teil nicht mehr auf den Boden sieht – und genau das ist
+       der Unterschied zwischen einer Ansammlung von Bäumen und einem
+       Wald. Am Rand verschwindet sie von selbst, weil dort keine
+       Kronen mehr sind. */
+    const dach = new OffscreenCanvas(w, h);
+    const dctx = dach.getContext('2d');
+    dctx.translate(w / 2, h / 2 + 20);
+    for (const b of baeume) {
+      const g = GROESSE * b.g;
+      const n = dichtefeld(b.x * 2, b.y * 2);
+      dctx.fillStyle = `rgb(${86 + n * 22 | 0},${98 + n * 20 | 0},${70 + n * 16 | 0})`;
+      dctx.beginPath();
+      dctx.ellipse(b.x, b.y - g * 0.58, g * 0.33, g * 0.3, 0, 0, 7);
+      dctx.fill();
+    }
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.filter = 'blur(11px)';
+    ctx.globalAlpha = 0.9;
+    ctx.drawImage(dach, 0, 0);
+    ctx.filter = 'none';
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    /* ---- 4 · Die Kronen ---- */
+    for (const b of baeume) zeichneBaum(ctx, b, true, satz);
+
+    /* ---- 5 · Licht von links oben, als Letztes ----
+       Ein paar weiche helle Flecken über dem Blätterdach. Sie binden
+       die einzelnen Kronen zu einer Masse zusammen – das ist der
+       Schritt, nach dem man aufhört, Bäume zu zählen. */
+    const licht = new OffscreenCanvas(w, h);
+    const lctx = licht.getContext('2d');
+    lctx.translate(w / 2, h / 2 + 20);
+    const lr = folge(31337);
+    for (let i = 0; i < 14; i++) {
+      const x = -330 + lr() * 660, y = -260 + lr() * 520;
+      if (randAbstand(x, y, FLAECHE) < 30) continue;
+      const rr = 60 + lr() * 130;
+      const gr = lctx.createRadialGradient(x, y, 0, x, y, rr);
+      gr.addColorStop(0, `rgba(255,248,216,${0.06 + lr() * 0.09})`);
+      gr.addColorStop(1, 'rgba(255,250,228,0)');
+      lctx.fillStyle = gr;
+      lctx.beginPath(); lctx.arc(x, y, rr, 0, 7); lctx.fill();
+    }
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.filter = 'blur(16px)';
+    ctx.drawImage(licht, 0, 0);
+    ctx.filter = 'none';
+    ctx.restore();
+  }
+
+  ZEITEN[titel] = +(performance.now() - t0).toFixed(1);
+  X.drawImage(c, ox, oy);
+  X.strokeStyle = 'rgba(0,0,0,.35)';
+  X.strokeRect(ox + .5, oy + .5, w - 1, h - 1);
+  X.fillStyle = '#C9B88E';
+  X.font = '500 25px "Iowan Old Style",Georgia,serif';
+  X.textAlign = 'left';
+  X.fillText(titel, ox, oy - 42);
+  X.fillStyle = '#8E8268';
+  X.font = '17px "Iowan Old Style",Georgia,serif';
+  X.fillText(unten, ox, oy - 17);
+  return baeume.length;
+}
+
+const C = document.getElementById('c');
+C.width = 3820; C.height = 1420;
+X.fillStyle = '#0e0c0a';
+X.fillRect(0, 0, 3820, 1420);
+X.font = '600 36px "Iowan Old Style",Georgia,serif';
+X.fillStyle = '#EDE3CA';
+X.textAlign = 'left';
+X.fillText('Derselbe Bildersatz, zweimal gesetzt', 40, 54);
+
+const n1 = tafel(40, 150, 1220, 1200, false, '1 · Gestempelt — wie heute', 'Jeder Baum ein Bild, gleichmäßig verteilt, nach y sortiert.');
+const n2 = tafel(1300, 150, 1220, 1200, true, '2 · Komponiert, dieselben Bilder', 'Sechs Lagen: Boden · Schatten · Unterholz · Kronendach · Kronen · Licht.');
+const n3 = tafel(2560, 150, 1220, 1200, true, '3 · Komponiert, feinere Bilder', 'Dieselben sechs Lagen. Geändert hat sich nur der Bildersatz.', 'fein');
+
+X.font = '17px "Iowan Old Style",Georgia,serif';
+X.fillStyle = '#8E8268';
+X.fillText(`${n1} · ${n2} · ${n3} Bäume — Tafel 1 und 2 aus demselben Bildersatz, Tafel 3 aus einem feineren.`, 40, 86);
+
+window.MESSUNG = { n1, n2, n3, zeiten: ZEITEN, flaechePx: 1220 * 1200 };
+document.title = 'fertig';
+</script>
+</body>
+</html>

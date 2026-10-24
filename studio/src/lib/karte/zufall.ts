@@ -91,3 +91,77 @@ export function rauschen(seed: number, t: number, salz = 0): number {
   };
   return lage(1, 0.66, salz) + lage(0.5, 0.34, salz + 1);
 }
+
+/**
+ * Sanftes Rauschen in der **Fläche** – für alles, was zweidimensional
+ * zusammenhängen muss.
+ *
+ * ---
+ *
+ * **Warum es `rauschen` nicht tut.** Jenes läuft entlang *einer* Linie und
+ * ist damit an eine Bogenlänge gebunden. Für eine Küste ist das richtig; für
+ * ein Gebirge wäre es die Rückkehr zur Folge: Wer vorn einen Punkt des
+ * Kamms verschiebt, verschiebt jede Bogenlänge danach – und damit jeden
+ * Gipfel. Genau der Fehler, den der Kopf dieser Datei beschreibt.
+ *
+ * Deshalb wird am **Ort** gefragt. Vier Stützstellen eines Gitters, weich
+ * dazwischen – wer den Kamm im Norden verschiebt, bekommt im Süden dieselben
+ * Antworten wie vorher.
+ *
+ * `schritt` ist die Maschenweite im Kartenmaß: grosse Werte ergeben weite
+ * Wellen, kleine feine Unruhe. Der Rückgabewert liegt zwischen 0 und 1.
+ */
+export function rauschen2(
+  seed: number,
+  x: number,
+  y: number,
+  schritt: number,
+  salz = 0,
+): number {
+  const px = x / schritt;
+  const py = y / schritt;
+  const i = Math.floor(px);
+  const j = Math.floor(py);
+  const fx = px - i;
+  const fy = py - j;
+  /* Weich zwischen den Stützstellen – ohne Glättung sieht man das Gitter. */
+  const wx = fx * fx * (3 - 2 * fx);
+  const wy = fy * fy * (3 - 2 * fy);
+  const a = zahl(seed, i, j, salz);
+  const b = zahl(seed, i + 1, j, salz);
+  const c = zahl(seed, i, j + 1, salz);
+  const d = zahl(seed, i + 1, j + 1, salz);
+  const o = a + (b - a) * wx;
+  const u = c + (d - c) * wx;
+  return o + (u - o) * wy;
+}
+
+/**
+ * Dasselbe, aber mit **Graten** statt Wellen.
+ *
+ * `1 − |2n − 1|` faltet das Rauschen an seiner Mitte. Wo der glatte Wert
+ * durch die Hälfte geht, entsteht eine scharfe Kante statt eines sanften
+ * Übergangs – und genau daraus bestehen Berge. Mit gewöhnlichem Rauschen
+ * allein bekommt man Hügel, die aussehen wie Teig.
+ *
+ * Drei Lagen, jede halb so grob und halb so stark. Die Summe ist wieder auf
+ * 0…1 gebracht.
+ */
+export function grat(
+  seed: number,
+  x: number,
+  y: number,
+  schritt: number,
+  salz = 0,
+  lagen = 3,
+): number {
+  let summe = 0;
+  let gewicht = 0;
+  for (let l = 0; l < lagen; l++) {
+    const g = 1 / 2 ** l;
+    const n = rauschen2(seed, x, y, schritt * g, salz + l * 17);
+    summe += (1 - Math.abs(2 * n - 1)) * g;
+    gewicht += g;
+  }
+  return summe / gewicht;
+}
