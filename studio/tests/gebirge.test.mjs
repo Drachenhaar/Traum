@@ -434,6 +434,60 @@ pruefe('das Rückgängig nimmt die Gebirge mit', () => {
   assert.match(q, /kaemme: vorher\.kaemme/, 'beim Zurücknehmen fehlen sie');
 });
 
+pruefe('der Name steht auf der Mitte des Kamms und dreht sich mit', () => {
+  /*
+   * **Die Lücke, die erst beim Nachsehen auffiel.**
+   *
+   * Im Bedienfeld liess sich ein Zug mit einer Seite verknüpfen, auf der
+   * Karte stand davon nie etwas – Flächen und Siedlungen bekamen ihre
+   * Beschriftung, Gebirge nicht. Ein halber Faden: Er tut nichts Falsches,
+   * er tut nur nichts.
+   *
+   * Die Mitte wird nach **Bogenlänge** gemessen und nicht nach der Zahl der
+   * Punkte. Bei ungleich verteilten Punkten – und ein ausgedünnter
+   * Fingerzug ist genau das – liegt der mittlere Punkt nicht in der Mitte.
+   */
+  const gerade = [[100, 400], [900, 400]];
+  const l = G.kammlage(gerade, 100);
+  assert.ok(Math.abs(l.mx - 500) < 1, `die Mitte liegt bei ${l.mx}`);
+  assert.equal(l.grad, 0);
+  /* Zur beschienenen Seite gerückt – nach oben, nicht auf den Grat. */
+  assert.ok(l.my < 400 - 20, `der Name sitzt bei ${l.my} statt über dem Kamm`);
+
+  /* Ungleich verteilt: der mittlere Punkt ist nicht die Mitte. */
+  const schief = [[100, 400], [820, 400], [860, 400], [900, 400]];
+  assert.ok(Math.abs(G.kammlage(schief, 100).mx - 500) < 1,
+    'die Mitte folgt den Punkten statt der Länge');
+
+  /* Und er dreht sich mit dem Kamm. */
+  assert.ok(Math.abs(G.kammlage([[100, 100], [900, 900]], 100).grad - 45) < 1);
+});
+
+pruefe('der Name steht nie auf dem Kopf', () => {
+  /*
+   * Welche Richtung jemand gezogen hat, ist eine Sache der Hand und keine
+   * der Welt. Ein Zug von Ost nach West bekäme sonst einen Namen, den man
+   * nur über die Schulter liest.
+   */
+  for (const kamm of [
+    [[900, 400], [100, 400]],
+    [[900, 900], [100, 100]],
+    [[800, 200], [200, 700]],
+  ]) {
+    const grad = G.kammlage(kamm, 100).grad;
+    assert.ok(grad > -90.1 && grad < 90.1, `der Name steht auf ${grad} Grad`);
+  }
+});
+
+pruefe('das Bauteil zeichnet den Namen wirklich', () => {
+  const q = ohneProsa(lies('src/components/karte/Weltkarte.tsx'));
+  assert.match(q, /const lage = kammlage\(punkteVon\(g\), g\.breite\);/,
+    'der Gebirgsname wird nicht gesetzt');
+  /* Mit demselben Saum wie die anderen Namen – sonst steht er im Relief. */
+  const abschnitt = q.slice(q.indexOf('const lage = kammlage('));
+  assert.match(abschnitt.slice(0, 900), /paintOrder="stroke"/, 'dem Namen fehlt der Saum');
+});
+
 console.log('\n7 · Nur ergänzt, nichts ersetzt');
 
 pruefe('das Gebirge ist ein Kachelmaler und keine zweite Zeichenmaschine', () => {

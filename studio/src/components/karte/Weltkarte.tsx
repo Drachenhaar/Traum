@@ -52,7 +52,7 @@ import { kuestensaum, namenslage } from '../../lib/karte/kartografie';
 import { neuerSeed } from '../../lib/karte/zufall';
 import { EBENEN, stilImBand } from '../../lib/karte/stil';
 import { federzug } from '../../lib/karte/feder';
-import { kammAus, kammPfad } from '../../lib/karte/gebirge';
+import { kammAus, kammlage, kammPfad } from '../../lib/karte/gebirge';
 import { useBand } from '../../lib/raum/band';
 import { useKartenleinwand } from './useKartenleinwand';
 import { cx } from '../../lib/utils';
@@ -985,6 +985,41 @@ export function Weltkarte({
               )}
             </g>
           ))}
+          {/*
+            * **Der Name eines Gebirges.**
+            *
+            * Er fehlte, und die Lücke war von der leisen Sorte: Im
+            * Bedienfeld liess sich ein Zug mit einer Seite verknüpfen, auf
+            * der Karte stand davon nie etwas. Ein halber Faden – man merkt
+            * ihn erst, wenn man danach sucht.
+            *
+            * Gesperrt wie ein Gebietsname und nicht wie ein Ortsname: Ein
+            * Gebirge ist eine Ausdehnung, und die Sperrung zeigt sie.
+            */}
+          {(karte.kaemme ?? []).map((g) => {
+            const name = g.entryId ? namen.get(g.entryId) : undefined;
+            if (!name) return null;
+            const lage = kammlage(punkteVon(g), g.breite);
+            if (!lage) return null;
+            return (
+              <text
+                key={`gn_${g.id}`}
+                x={lage.mx}
+                y={lage.my}
+                textAnchor="middle"
+                fill={stil.marke}
+                fontSize={sicht.w * 0.026}
+                letterSpacing={sicht.w * 0.026 * 0.28}
+                transform={`rotate(${lage.grad.toFixed(1)} ${lage.mx.toFixed(1)} ${lage.my.toFixed(1)})`}
+                stroke={stil.papier}
+                strokeWidth={sicht.w * 0.006}
+                paintOrder="stroke"
+              >
+                {name}
+              </text>
+            );
+          })}
+
           {geordnet.map((f) => {
             const name = f.entryId ? namen.get(f.entryId) : undefined;
             if (!name) return null;

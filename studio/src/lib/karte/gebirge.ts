@@ -476,3 +476,73 @@ export function kammPfad(punkte: Punkt[]): string {
   if (punkte.length < 2) return '';
   return `M${punkte.map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join('L')}`;
 }
+
+/**
+ * Wo der Name eines Gebirges steht.
+ *
+ * ---
+ *
+ * **Ein Kamm hat eine Richtung, eine Fläche muss man danach fragen.**
+ *
+ * `namenslage` sucht für eine Fläche erst die Hauptachse und gibt auf,
+ * wenn die Fläche rundlich ist – bei einer Sichel läge der Name sonst im
+ * Leeren. Ein Gebirgszug braucht das nicht: Seine Richtung **ist** seine
+ * Linie. Der Name setzt sich auf die Mitte des Kamms, gemessen an der
+ * Bogenlänge und nicht an der Zahl der Punkte, und dreht sich mit.
+ *
+ * **Und er rückt zur Seite.** Auf dem Grat stünde er dort, wo der Zug am
+ * hellsten und unruhigsten ist. Ein Stück zur beschienenen Seite hin –
+ * nach Norden, dorthin, wo das Licht herkommt – liegt die ruhigste Fläche
+ * des ganzen Bildes.
+ */
+export function kammlage(
+  punkte: Punkt[],
+  breite: number,
+): { mx: number; my: number; grad: number } | undefined {
+  if (punkte.length < 2) return undefined;
+
+  const laengen: number[] = [];
+  let gesamt = 0;
+  for (let i = 1; i < punkte.length; i++) {
+    const l = Math.hypot(punkte[i][0] - punkte[i - 1][0], punkte[i][1] - punkte[i - 1][1]);
+    laengen.push(l);
+    gesamt += l;
+  }
+  if (gesamt <= 0) return undefined;
+
+  /* Die Mitte nach Bogenlänge: Bei ungleich verteilten Punkten ist der
+     mittlere Punkt nicht die Mitte des Zuges. */
+  let rest = gesamt / 2;
+  let i = 0;
+  while (i < laengen.length - 1 && rest > laengen[i]) {
+    rest -= laengen[i];
+    i++;
+  }
+  const t = laengen[i] > 0 ? rest / laengen[i] : 0;
+  const ax = punkte[i][0], ay = punkte[i][1];
+  const bx = punkte[i + 1][0], by = punkte[i + 1][1];
+  const mx = ax + (bx - ax) * t;
+  const my = ay + (by - ay) * t;
+
+  let winkel = Math.atan2(by - ay, bx - ax);
+  /*
+   * Nie auf dem Kopf. Ein Zug, den jemand von Ost nach West gezogen hat,
+   * bekäme sonst einen Namen, den man nur über die Schulter liest – und
+   * welche Richtung er gezogen hat, ist eine Sache der Hand und keine der
+   * Welt.
+   */
+  if (winkel > Math.PI / 2) winkel -= Math.PI;
+  if (winkel < -Math.PI / 2) winkel += Math.PI;
+
+  /* Senkrecht zum Kamm, zur beschienenen Seite – die mit dem kleineren y. */
+  const nx = Math.sin(winkel);
+  const ny = -Math.cos(winkel);
+  const seite = ny <= 0 ? 1 : -1;
+  const weg = breite * 0.45;
+
+  return {
+    mx: mx + nx * weg * seite,
+    my: my + ny * weg * seite,
+    grad: (winkel * 180) / Math.PI,
+  };
+}
