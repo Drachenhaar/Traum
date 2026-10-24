@@ -26,3 +26,41 @@ Durchsichtigkeit schon mit. Der Weg von dort hierher:
 `--frei` sagt: Nicht noch einmal freistellen. Geteilt und eingepasst wird
 trotzdem – ein Blatt mit acht Bäumen ist auch freigestellt noch kein Satz
 aus acht Dateien.
+
+## Was noch hier liegt und noch nicht verwendet wird
+
+    roh/wald_blatt_zwei.png    Einzelbäume, Waldgruppen, Unterholz
+    roh/unterholz_blatt.png    Unterholz, Felsen, Pilze, Totholz
+
+Beide sind sauber freigestellt. Gemessen wurde, wie gross die einzelnen
+Stücke darin sind – denn das entscheidet, wofür sie taugen.
+
+**Die Schranke.** Ein Bild wird in eine Kachel gemalt, und die feinste
+Kachelstufe hat einen festen Maßstab: `KACHEL_PX × Dichte ÷ Kachelmass`,
+heute **16,4 Bildpunkte je Karteneinheit**. Was auf der Karte `k`
+Einheiten hoch steht, braucht also `k × 16,4` Bildpunkte – sonst sieht man
+es, und zwar genau so, wie die Bäume bei 190 statt 430 aussahen.
+
+| Blatt | Stücke | Höhe in Punkten | reicht für |
+|---|---|---|---|
+| `wald_blatt_zwei` Einzelbäume | ~8 | bis 479 | 29 Einheiten – Bäume stehen auf 26 |
+| `wald_blatt_zwei` Waldgruppen | ~8 | 293 – 338 | **20 Einheiten** |
+| `unterholz_blatt` alles | 79 | 55 – 276, median 110 | **6,7 Einheiten** im Mittel |
+
+Daraus folgt dreierlei:
+
+* Die **Einzelbäume** reichen knapp, bringen aber nichts Neues –
+  `wald_blatt.png` gibt mit 440 bis 530 Punkten mehr her.
+* Die **Waldgruppen** sind zu klein. Eine Gruppe soll grösser sein als ein
+  Baum, also etwa 60 Einheiten; dafür bräuchte sie **rund 1000 Punkte** und
+  hat 338. Bei 20 Einheiten gezeichnet wäre sie kleiner als zwei Bäume und
+  damit sinnlos, bei 60 wäre sie Matsch.
+* Das **Unterholz** passt. Das Waldwerk zeichnet seine Unterholzlage auf
+  0,2 bis 0,36 der Baumhöhe, also 5 bis 9 Einheiten – genau die Spanne,
+  die 110 Punkte decken. Heute nimmt es dafür verkleinerte Baumbilder;
+  echte Büsche, Farne und Steine wären der nächste echte Gewinn.
+
+**Was der Freisteller dafür noch lernen muss.** Er trennt heute an leeren
+Spalten. Auf diesen Blättern gibt es keine: Sie haben 25 bzw. 36 leere
+Zeilen auf tausend, die Stücke berühren sich. Nötig ist eine
+Zusammenhangsanalyse – gemessen findet sie 31 bzw. 79 Stücke sauber.
