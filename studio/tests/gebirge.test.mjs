@@ -504,8 +504,13 @@ pruefe('das Gebirge ist ein Kachelmaler und keine zweite Zeichenmaschine', () =>
   const j = q.indexOf('maleLage(ctx, werk');
   assert.ok(i > 0 && j > i, 'der Bewuchs wird vor dem Grund gemalt');
 
-  /* Und es entwertet gezielt, statt alles wegzuwerfen. */
-  assert.match(q, /werk\.entwerte\(gebirgskasten\(k\)\);/, 'eine Kammänderung entwertet nicht gezielt');
+  /*
+   * Und es entwertet gezielt, statt alles wegzuwerfen – nach dem Kasten
+   * des Kamms. Seit es eine Baumgrenze gibt, geht das durch `beide`, weil
+   * auch die Bewuchskacheln betroffen sind; die Zusage ist dieselbe.
+   */
+  assert.match(q, /beide\(gebirgskasten\(k\)\);/, 'eine Kammänderung entwertet nicht gezielt');
+  assert.match(q, /werk\.entwerte\(kasten\);/, 'das Relief wird nicht nach Kasten entwertet');
 });
 
 pruefe('das Relief wird beim Schwenken nicht neu gerechnet', () => {
