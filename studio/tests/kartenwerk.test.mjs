@@ -690,19 +690,25 @@ pruefe('der Bildersatz hängt am Stil, nicht an einer festen Zeichenkette', () =
 pruefe('eine gemalte Datei verdrängt die gebackene', () => {
   /*
    * **Der Austauschweg, an der Wirkung gemessen.** Unter
-   * `assets/karte/artbook/wald_00.png` liegt eine Illustration; im
-   * Verzeichnis muss Variante 0 deshalb als `gemalt` stehen und der Rest
-   * als `gebacken`.
+   * `assets/karte/artbook/` liegen die Illustrationen; im Verzeichnis muss
+   * jede davon als `gemalt` stehen.
    *
-   * Das ist der ganze Weg: Datei hinlegen, `npm run atlas`. Kein
+   * Das ist der ganze Weg: Dateien hinlegen, `npm run atlas`. Kein
    * Programmteil, keine Kartendaten.
+   *
+   * **Hier stand einmal `h.includes('gebacken')`** – die Prüfung verlangte,
+   * dass mindestens ein Bild noch aus dem Pinsel kommt. Das war richtig,
+   * solange nur ein Platzhalter dalag, und wurde falsch, sobald der ganze
+   * Satz gezeichnet war: Sie hätte den Erfolg gemeldet als Fehler. Geprüft
+   * wird deshalb, was gemeint war – dass eine Datei das gebackene Bild
+   * verdrängt –, und nicht, wie viele es gerade sind.
    */
   const v = JSON.parse(readFileSync(join(wurzel, 'public/karte/artbook/atlas.json'), 'utf8'));
   const h = v.arten.wald.herkunft;
   assert.ok(Array.isArray(h), 'das Verzeichnis sagt nicht, woher die Bilder stammen');
   assert.equal(h.length, v.arten.wald.varianten);
+  assert.ok(h.every((q) => q === 'gemalt' || q === 'gebacken'), `fremde Herkunft: ${h}`);
   assert.equal(h[0], 'gemalt', 'die hinterlegte Illustration wurde nicht genommen');
-  assert.ok(h.includes('gebacken'), 'kein einziges Bild stammt mehr aus dem Pinsel');
 
   /*
    * **Und der Ofen muss es auch tun.** Das Erzeugnis allein genügt nicht:
@@ -770,6 +776,59 @@ pruefe('der Freisteller passt ein, statt nur zu beschneiden', () => {
   const m = ohneProsa(lies('scripts/freistellen.mjs'));
   assert.match(m, /soll: masse, vertrag: VERTRAG,/,
     'der Freisteller liest den Vertrag nicht');
+});
+
+pruefe('ein Blatt wird an den Lücken geteilt, nicht in gleiche Spalten', () => {
+  /*
+   * **Der Fehler stand im gebackenen Atlas.** Der erste Anlauf teilte in
+   * acht gleich breite Spalten. Ein Modell zeichnet die Bäume aber
+   * verschieden breit: Die Eiche war breiter als ihre Spalte, bekam eine
+   * **glatt abgeschnittene Krone**, und in die Nachbarspalten ragten
+   * Splitter von ihr hinein.
+   *
+   * Also wird nicht gerechnet, sondern nachgesehen: Welche Bildspalten sind
+   * vollständig durchsichtig? Dazwischen liegt je ein Baum.
+   */
+  const f = ohneProsa(lies('scripts/atlas/freisteller.html'));
+  assert.match(f, /function luecken\(ctx, w, h, erwartet\)/, 'es gibt keine Lückensuche');
+  assert.match(f, /const gruppen = luecken\(gctx, bild\.width, bild\.height, spalten\);/,
+    'das Blatt wird nicht an den Lücken geteilt');
+});
+
+pruefe('berühren sich zwei Kronen, wird an der dünnsten Stelle getrennt', () => {
+  /*
+   * Gemessen an einem gelieferten Blatt: acht Bäume, aber nur **sechs**
+   * Gruppen – zweimal griffen benachbarte Kronen ineinander, und eine Lücke
+   * von null Bildpunkten findet keine Schwelle.
+   *
+   * Dann wird geteilt statt gesucht: die breiteste Gruppe an ihrer
+   * dünnsten Stelle, und nur im mittleren Bereich – damit der Schnitt
+   * zwischen zwei Kronen läuft und nicht am Rand einer entlang.
+   */
+  const f = ohneProsa(lies('scripts/atlas/freisteller.html'));
+  assert.match(f, /while \(erwartet && breit\.length < erwartet && breit\.length > 0\)/,
+    'berührende Motive werden nicht getrennt');
+  assert.match(f, /if \(deckung\[x\] < bestW\)/, 'getrennt wird nicht an der dünnsten Stelle');
+  assert.match(f, /const rand = Math\.round\(\(b - a\) \* 0\.2\);/,
+    'der Schnitt darf auch am Rand liegen');
+});
+
+pruefe('ein schon freigestelltes Blatt wird nicht noch einmal freigestellt', () => {
+  /*
+   * Wer die Durchsichtigkeit mitbringt, hat sie meist von einem Werkzeug,
+   * das mehr sieht als eine Flutfüllung – weiche Blattränder vor allem. Die
+   * Flutfüllung noch einmal darüberlaufen zu lassen nähme nichts weg und
+   * liesse nur Reste stehen, wo der Rand schon halb durchsichtig ist.
+   *
+   * Geteilt und eingepasst wird trotzdem: Ein Blatt mit acht Bäumen ist
+   * auch freigestellt noch kein Satz aus acht Dateien.
+   */
+  const f = ohneProsa(lies('scripts/atlas/freisteller.html'));
+  assert.match(f, /grund = schonFrei\s*\?\s*\{ r: -1, g: -1, b: -1 \}\s*:\s*freistellen\(/,
+    'ein freigestelltes Blatt läuft trotzdem durch die Flutfüllung');
+  const m = ohneProsa(lies('scripts/freistellen.mjs'));
+  assert.match(m, /const schonFrei = args\.includes\('--frei'\);/, 'es gibt kein --frei');
+  assert.match(m, /nachLuecken: true, schonFrei/, '--frei wird nicht durchgereicht');
 });
 
 pruefe('die Bildanweisung nennt dieselben Zahlen wie der Vertrag', () => {

@@ -10,20 +10,19 @@ Was fehlt, zeichnet der Pinsel aus `scripts/atlas/pinsel.mjs`. Das Verzeichnis
 `public/karte/artbook/atlas.json` vermerkt je Variante `gemalt` oder
 `gebacken`.
 
-Die Regeln, die eine Datei einhalten muss, stehen in
-`scripts/atlas/saetze.mjs` (`VERTRAG`) und werden beim Backen gemessen. Der
-Weg von einem Rohbild dorthin:
+## Was hier liegt
 
-    assets/karte/artbook/roh/wald_blatt.png     das Rohbild
-    npm run freistellen -- artbook wald 8 --blatt
+Acht Baumzeichnungen – vier Nadel, vier Laub –, aus einem einzigen Blatt
+erzeugt und daraus geschnitten. **Alle acht halten den Vertrag** aus
+`scripts/atlas/saetze.mjs`: Fußpunkt auf der Unterkante, Licht von links
+oben, freier Rand, Seitenverhältnis 0,8 : 1.
+
+Das Rohbild liegt unter `roh/wald_blatt.png` und bringt seine
+Durchsichtigkeit schon mit. Der Weg von dort hierher:
+
+    npm run freistellen -- artbook wald 8 --blatt --frei
     npm run atlas
 
-## Was hier gerade liegt
-
-`wald_00.png` ist ein **Platzhalter**, von Hand gerechnet – kein Werk eines
-Bildmodells und nicht das Qualitätsziel. Sie steht hier, damit der
-Austauschweg an einer echten Datei geprüft ist.
-
-`roh/wald_blatt.png` ist ebenfalls ein Platzhalter: ein nachgestelltes
-Modellergebnis (acht Bäume nebeneinander auf einfarbigem Grund, mit
-absichtlich uneinheitlichen Fußlinien), an dem der Freisteller geprüft wird.
+`--frei` sagt: Nicht noch einmal freistellen. Geteilt und eingepasst wird
+trotzdem – ein Blatt mit acht Bäumen ist auch freigestellt noch kein Satz
+aus acht Dateien.

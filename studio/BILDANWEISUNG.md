@@ -9,9 +9,17 @@ Dieses Blatt ist zum Kopieren gedacht. Es übersetzt den Vertrag aus
 
 ```
 1.  Bild erzeugen lassen          →  assets/karte/<satz>/roh/<art>_blatt.png
-2.  npm run freistellen -- <satz> <art> 8 --blatt
+2.  npm run freistellen -- <satz> <art> 8 --blatt [--frei]
 3.  npm run atlas                 ←  hier fällt durch, was nicht passt
 ```
+
+**`--frei`, wenn das Blatt schon freigestellt ist.** ChatGPT kann das
+liefern, und sein Freistellen ist besser als eine Flutfüllung – es sieht
+weiche Blattränder, wo eine Farbschwelle nur Weiß stehen lässt. Dann wird
+hier nur noch geteilt und eingepasst.
+
+Ohne `--frei` wird der einfarbige Grund selbst entfernt. Das ist der
+Rückfallweg, nicht der bessere Weg.
 
 Mehr passiert nicht. Kein Programmteil ändert sich, keine Kartendaten ändern
 sich, und wo keine Datei liegt, zeichnet weiter der Pinsel.
@@ -38,10 +46,10 @@ kann, ist die Lichtrichtung. Die muss aus dem Bild kommen.
 > Erzeuge **ein einziges Bild** mit **acht Bäumen nebeneinander in einer
 > Reihe**, gleichmäßig verteilt, mit deutlichem Abstand zueinander.
 >
-> **Hintergrund:** ein vollkommen **einfarbiges, flaches Mittelgrau**
-> (#EDEDE9). Kein Himmel, kein Boden, keine Wiese, keine Wolken, kein
-> Farbverlauf, **kein Schlagschatten auf dem Boden**. Der Hintergrund muss
-> sich deutlich von jedem Ton im Motiv absetzen.
+> **Hintergrund:** durchsichtig, wenn möglich. Sonst ein vollkommen
+> **einfarbiges, flaches Mittelgrau** (#EDEDE9). Kein Himmel, kein Boden,
+> keine Wiese, keine Wolken, kein Farbverlauf, **kein Schlagschatten auf dem
+> Boden**.
 >
 > **Ansicht:** Schrägansicht von vorn, etwa 30° über dem Horizont — so, wie
 > man einen Baum sieht, wenn man zwanzig Schritte entfernt steht. Nicht von
@@ -78,7 +86,9 @@ kann, ist die Lichtrichtung. Die muss aus dem Bild kommen.
 | `der Fuß sitzt bei … % der Höhe` | Der Freisteller lief nicht, oder das Bild hat einen Schlagschatten, der als Motiv gilt. | Über `npm run freistellen` gehen; Schlagschatten aus der Anweisung streichen. |
 | `Seitenverhältnis … statt …` | Von Hand zugeschnitten. | Den Freisteller machen lassen. |
 | `Bild N deckt … %, der Satz im Mittel …` | Ein Baum ist viel dichter oder viel dünner gezeichnet. | Dieses Feld ersetzen. |
-| `Feld N ist leer – Hintergrund zu nah am Motiv?` | Der Grund ist zu ähnlich zum Laub. | Grauen Grund verlangen, nicht grünen. |
+| `Feld N ist leer – Hintergrund zu nah am Motiv?` | Der Grund ist zu ähnlich zum Laub. | Grauen Grund verlangen, nicht grünen – oder freigestellt liefern lassen und `--frei` nehmen. |
+| `erwartet waren 8` (weniger gefunden) | Zwei Kronen berühren sich. | Nichts tun: Die breiteste Gruppe wird an ihrer dünnsten Stelle getrennt. Nur nachsehen, ob es gestimmt hat. |
+| Kronen glatt abgeschnitten | Trat auf, solange in gleiche Spalten geteilt wurde. | Behoben – geschnitten wird an den Lücken. |
 
 ---
 

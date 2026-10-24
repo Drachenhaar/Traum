@@ -42,11 +42,13 @@ import { createServer } from 'node:http';
 const wurzel = join(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2).filter((a) => a !== '--');
 const alsBlatt = args.includes('--blatt');
+/* Das Rohbild bringt seine Durchsichtigkeit schon mit. */
+const schonFrei = args.includes('--frei');
 const [satzName, artName, anzahlRoh] = args.filter((a) => !a.startsWith('--'));
 const anzahl = Number(anzahlRoh) || 8;
 
 if (!satzName || !artName) {
-  console.error('  npm run freistellen -- <satz> <art> [anzahl] [--blatt]');
+  console.error('  npm run freistellen -- <satz> <art> [anzahl] [--blatt] [--frei]');
   process.exit(2);
 }
 
@@ -128,14 +130,20 @@ if (alsBlatt) {
     console.error(`  ${quelle} fehlt`);
     process.exit(2);
   }
-  const { bilder, grund, teilbreite, teilhoehe } = await seite.evaluate(
+  const { bilder, grund, gruppen } = await seite.evaluate(
     ([u, e]) => window.freistelle(u, e),
-    [quelle, { ...einstellungen, spalten: anzahl, zeilen: 1 }],
+    [quelle, { ...einstellungen, spalten: anzahl, zeilen: 1, nachLuecken: true, schonFrei }],
   );
-  console.log(
-    `  Blatt: ${anzahl} × ${teilbreite}×${teilhoehe}, ` +
-    `Grund rgb(${grund.r},${grund.g},${grund.b})`,
-  );
+  console.log(`  Blatt: ${gruppen} Motive an den Lücken gefunden` +
+    (schonFrei ? ' (schon freigestellt)' : `, Grund rgb(${grund.r},${grund.g},${grund.b})`));
+  if (gruppen !== anzahl) {
+    /*
+     * Nicht abbrechen: Vielleicht sind es wirklich neun, vielleicht
+     * berühren sich zwei. Beides sieht man am Ergebnis – und wer hier
+     * abbricht, zwingt zum Raten statt zum Nachsehen.
+     */
+    console.error(`  ! erwartet waren ${anzahl}. Berühren sich zwei Motive, oder ist eines zerfallen?`);
+  }
   for (let i = 0; i < bilder.length; i++) {
     if (!bilder[i]) { console.error(`  ✗ Feld ${i} ist leer – Hintergrund zu nah am Motiv?`); continue; }
     console.log(`  ✓ ${schreibe(i, bilder[i])}`);

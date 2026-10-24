@@ -93,6 +93,73 @@ function freistellen(ctx, w, h, toleranz, weich) {
   return { r: Math.round(r), g: Math.round(g), b: Math.round(b) };
 }
 
+/**
+ * Wo das Blatt leer ist – und damit, wo ein Baum aufhört.
+ *
+ * ---
+ *
+ * **Der Fehler, den das behebt, stand im gebackenen Atlas.**
+ *
+ * Der erste Anlauf teilte das Blatt in acht gleich breite Spalten. Ein
+ * Modell zeichnet die Bäume aber verschieden breit: Die Eiche war breiter
+ * als ihre Spalte und bekam eine **glatt abgeschnittene Krone**, und in die
+ * Nachbarspalten ragten Splitter von ihr hinein.
+ *
+ * Also wird nicht gerechnet, sondern nachgesehen: Welche Bildspalten sind
+ * vollständig durchsichtig? Dazwischen liegt je ein Baum. Das ist zugleich
+ * nachsichtig gegen ungleiche Abstände – das Modell muss nicht ausmessen.
+ */
+function luecken(ctx, w, h, erwartet) {
+  const d = ctx.getImageData(0, 0, w, h).data;
+  const deckung = new Int32Array(w);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 16) deckung[x]++;
+  }
+  /* Eine Spalte gilt als leer, wenn fast nichts darin steht – ein paar
+     Streupunkte aus der weichen Kante sollen keine Lücke schliessen. */
+  const schwelle = Math.max(1, Math.round(h * 0.004));
+  const gruppen = [];
+  let von = -1;
+  for (let x = 0; x < w; x++) {
+    const voll = deckung[x] > schwelle;
+    if (voll && von < 0) von = x;
+    if (!voll && von >= 0) { gruppen.push([von, x - 1]); von = -1; }
+  }
+  if (von >= 0) gruppen.push([von, w - 1]);
+  /* Winzige Reste – Blattspitzen, die allein stehen – an den Nachbarn
+     anschliessen, statt sie als eigenen Baum zu zählen. */
+  let breit = gruppen.filter(([a, b]) => b - a > w * 0.01);
+
+  /*
+   * **Und wenn sich zwei Kronen berühren, gibt es keine Lücke.**
+   *
+   * Gemessen an einem gelieferten Blatt: acht Bäume, aber nur **sechs**
+   * Gruppen – zweimal griffen benachbarte Kronen ineinander. Eine Lücke von
+   * null Bildpunkten Breite findet keine Schwelle.
+   *
+   * Dann wird nicht gesucht, sondern geteilt: Die breiteste Gruppe bekommt
+   * einen Schnitt an ihrer **dünnsten** Stelle – dort, wo am wenigsten Laub
+   * steht, also zwischen zwei Kronen und nicht mitten durch eine. Gesucht
+   * wird nur im mittleren Bereich, damit der Schnitt nicht am Rand einer
+   * Krone entlanggeht.
+   */
+  while (erwartet && breit.length < erwartet && breit.length > 0) {
+    let i = 0;
+    for (let k = 1; k < breit.length; k++) {
+      if (breit[k][1] - breit[k][0] > breit[i][1] - breit[i][0]) i = k;
+    }
+    const [a, b] = breit[i];
+    const rand = Math.round((b - a) * 0.2);
+    let bestX = -1, bestW = Infinity;
+    for (let x = a + rand; x <= b - rand; x++) {
+      if (deckung[x] < bestW) { bestW = deckung[x]; bestX = x; }
+    }
+    if (bestX < 0 || b - a < 8) break;
+    breit = [...breit.slice(0, i), [a, bestX - 1], [bestX, b], ...breit.slice(i + 1)];
+  }
+  return breit;
+}
+
 /** Der Kasten, in dem das Bild deckt. */
 function kasten(ctx, w, h) {
   const d = ctx.getImageData(0, 0, w, h).data;
@@ -175,7 +242,7 @@ function einpassen(quelle, k, soll, vertrag, hoechstens) {
  * nebeneinander sieht. Das ist der einzige verlässliche Weg zu einem Satz,
  * der zusammengehört.
  */
-window.freistelle = async (url, { spalten = 1, zeilen = 1, soll, vertrag, toleranz, weich, hoechstens }) => {
+window.freistelle = async (url, { spalten = 1, zeilen = 1, soll, vertrag, toleranz, weich, hoechstens, nachLuecken = false, schonFrei = false }) => {
   const bild = await new Promise((fertig, scheitern) => {
     const i = new Image();
     i.onload = () => fertig(i);
@@ -183,10 +250,51 @@ window.freistelle = async (url, { spalten = 1, zeilen = 1, soll, vertrag, tolera
     i.src = url;
   });
 
-  const tw = Math.floor(bild.width / spalten);
-  const th = Math.floor(bild.height / zeilen);
   const aus = [];
   let grund = null;
+
+  if (nachLuecken) {
+    /*
+     * **Erst freistellen, dann teilen.**
+     *
+     * Umgekehrt ginge es nicht: Die Lücken sieht man erst, wenn der
+     * Hintergrund weg ist.
+     */
+    const ganz = document.createElement('canvas');
+    ganz.width = bild.width; ganz.height = bild.height;
+    const gctx = ganz.getContext('2d', { willReadFrequently: true });
+    gctx.drawImage(bild, 0, 0);
+    /*
+     * **Ein schon freigestelltes Bild wird nicht noch einmal freigestellt.**
+     *
+     * Wer die Durchsichtigkeit mitbringt, hat sie meist von einem Werkzeug,
+     * das mehr sieht als eine Flutfüllung – weiche Blattränder vor allem.
+     * Die Flutfüllung noch einmal darüberlaufen zu lassen, nähme nichts weg
+     * und liesse nur Reste stehen, wo der Rand schon halb durchsichtig ist.
+     *
+     * Geteilt und eingepasst wird trotzdem: Ein Blatt mit acht Bäumen ist
+     * auch freigestellt noch kein Satz aus acht Dateien.
+     */
+    grund = schonFrei
+      ? { r: -1, g: -1, b: -1 }
+      : freistellen(gctx, bild.width, bild.height, toleranz, weich);
+
+    const gruppen = luecken(gctx, bild.width, bild.height, spalten);
+    for (const [x0, x1] of gruppen) {
+      const bw = x1 - x0 + 1;
+      const teil = document.createElement('canvas');
+      teil.width = bw; teil.height = bild.height;
+      const tctx = teil.getContext('2d', { willReadFrequently: true });
+      tctx.drawImage(ganz, x0, 0, bw, bild.height, 0, 0, bw, bild.height);
+      const k = kasten(tctx, bw, bild.height);
+      if (!k) { aus.push(null); continue; }
+      aus.push(einpassen(teil, k, soll, vertrag, hoechstens).toDataURL('image/png'));
+    }
+    return { bilder: aus, grund, gruppen: gruppen.length, teilbreite: 0, teilhoehe: bild.height };
+  }
+
+  const tw = Math.floor(bild.width / spalten);
+  const th = Math.floor(bild.height / zeilen);
 
   for (let z = 0; z < zeilen; z++) {
     for (let s = 0; s < spalten; s++) {
