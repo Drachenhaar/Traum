@@ -13,6 +13,8 @@
     "test": "node scripts/test.mjs",
     "atlas": "node scripts/atlas-backen.mjs",
     "freistellen": "node scripts/freistellen.mjs",
+    "film": "node scripts/film.mjs",
+    "relief": "node scripts/relief3d.mjs",
     "bilder": "node scripts/bilder-pruefen.mjs"
   },
   "dependencies": {
