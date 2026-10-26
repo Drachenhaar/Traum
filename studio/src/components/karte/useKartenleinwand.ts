@@ -91,12 +91,31 @@ export interface Messung {
   msGrund: number;
   /** Insgesamt gebackene Reliefkacheln. */
   grundGebacken: number;
+  /**
+   * Wie viele Kacheln noch im Ofen warten – Bewuchs und Grund.
+   *
+   * ---
+   *
+   * **Die Zahl, die „ist das Bild fertig?" überhaupt beantwortbar macht.**
+   *
+   * Sie fehlte, und die Lücke war still: Eine Kachel, die noch gar nicht
+   * gebacken ist, zählt weder als `vorschau` noch als `veraltet` – gibt es
+   * auch in der gröberen Stufe nichts, zeichnet der Maler an ihrer Stelle
+   * **nichts** und erhöht keinen der beiden Zähler. Von aussen sah ein Bild
+   * mit einem Loch genauso aus wie ein fertiges.
+   *
+   * Aufgefallen ist es der Bildprüfung: In einem von mehreren Läufen fehlte
+   * im Osten genau ein Kachelrechteck, und der Vergleich schlug an. Die
+   * Prüfung hatte recht gegen ihre eigene Wartebedingung.
+   */
+  wartend: number;
+  grundWartend: number;
 }
 
 export const messung: Messung = {
   staffage: 0, msStreuen: 0, kacheln: 0, bytes: 0, gebacken: 0, msGebacken: 0,
   verdraengt: 0, veraltet: 0, vorschau: 0, stufe: 0, msLetztesBild: 0, bilder: 0,
-  grundkacheln: 0, msGrund: 0, grundGebacken: 0,
+  grundkacheln: 0, msGrund: 0, grundGebacken: 0, wartend: 0, grundWartend: 0,
 };
 
 /** Damit „keine Gebirge" nicht bei jedem Bild eine neue leere Liste ist. */
@@ -455,7 +474,9 @@ export function useKartenleinwand({
       messung.stufe = bericht.stufe;
       messung.msLetztesBild = performance.now() - t0;
       messung.bilder++;
+      messung.wartend = werk.wartend();
       if (grund) {
+        messung.grundWartend = grund.wartend();
         messung.grundkacheln = grund.anzahl();
         messung.msGrund = grund.msGebacken;
         messung.grundGebacken = grund.gebacken;

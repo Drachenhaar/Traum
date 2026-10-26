@@ -467,7 +467,40 @@ npx tsc --noEmit     # Typprüfung
 npm test             # 48 Suiten, jede in eigenem Prozess
 npm run build        # tsc + vite build
 npm run klassen      # NACH dem Bauen: Deckkraftklassen gegen das echte CSS
+npm run bilder       # NACH dem Bauen: sieht die Karte noch aus wie gestern?
 ```
+
+### Die Bildprüfung
+
+Vier Szenen, verglichen gegen Vorlagen in `tests/bilder/`. Alle vier
+zeichnen durch die **echten** Maler – ohne React, ohne Gesten, also bis auf
+den Bildpunkt wiederholbar; gemessen über viele Läufe: Abweichung null.
+
+Drei setzen ihre Kacheln selbst aneinander, eine geht durch `maler.ts` und
+bewacht damit auch das Setzen selbst.
+
+Zwei weitere Szenen nehmen die ganze Anwendung auf und sind **stillgelegt**:
+Sie haben einen offenen Fehler im Renderer aufgedeckt – dieselbe Karte kommt
+nicht zuverlässig gleich heraus. Siehe `AUSSENSICHT.md`, Abschnitt 6.
+
+```bash
+npm run bilder -- --neu        # Vorlagen neu schreiben (nach gewollter Änderung)
+npm run bilder -- --rauschen   # den Rauschboden messen
+```
+
+**Sie hat keine Meinung darüber, ob es schön ist.** Sie sagt nur, dass sich
+etwas geändert hat und wie viel. Ob die Änderung gewollt war, entscheidet ein
+Mensch und schreibt die Vorlagen neu. Automatisch passiert das nie – eine
+Prüfung, die ihre Vorlage still nachzieht, ist ein Tagebuch.
+
+**Sie läuft nicht in der CI, und das ist Absicht.** Die Vorlagen sind auf
+*einem* Rechner entstanden; ein anderer zeichnet Kantenglättung und Schrift
+geringfügig anders, und eine Prüfung, die auf dem Bauserver grundlos
+anschlägt, wird nach dem dritten Mal abgeschaltet. Dazu kommt, dass
+Playwright hier nicht in den Abhängigkeiten steht, sondern im Container
+liegt. Wer sie in die CI holen will, muss beides lösen: Playwright
+installieren **und** die Vorlagen dort erzeugen, wo sie auch verglichen
+werden.
 
 **Alle vier, und `npm run klassen` zuletzt.** Genau das wurde im
 Dreibücher-Umbau umgangen – siehe Abschnitt 6.

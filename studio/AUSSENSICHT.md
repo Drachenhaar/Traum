@@ -281,3 +281,60 @@ Sie gelten in **beiden** Welten — Werk wie Produkt:
 3. **Die Sicherung erzwingen, solange es kein Konto gibt** (1.4). Nicht
    erinnern — beim allerersten Schliessen des Buches **einmal** eine Datei
    ablegen lassen, und danach nie wieder fragen.
+
+---
+
+## 6. Ein offener Fehler, gefunden von der Bildprüfung
+
+*Nachgetragen am Tag, an dem es `npm run bilder` zum ersten Mal gab.*
+
+**Die Karte zeigt manchmal ein Loch.** Ein scharfkantiges, kachelgrosses
+Rechteck mitten im Wald, durch das das Papier scheint. Es verschwindet,
+sobald man schiebt oder zoomt — und es kommt nicht jedes Mal.
+
+### Was gemessen ist
+
+Dieselbe Karte, derselbe Startwert, derselbe Rechner, zweimal hintereinander
+gezeichnet: bis zu **1,4 % der Bildpunkte unterschiedlich**, immer
+kachelförmig, meist am Südrand eines Waldes. In etwa jedem zweiten Lauf.
+
+Das Bild wird dabei **stabil** — es flackert nicht, es wird fertig. Nur eben
+in zwei verschiedenen Zuständen. Und alle Zähler des Kartenwerks sagen
+„fertig": leere Warteschlange, keine veraltete Kachel, keine Vorschau. Eine
+Kachel, die nirgends steht, zählt nirgends mit.
+
+### Was davon behoben ist
+
+`entwerte()` warf **vorgemerkte** Kacheln aus der Warteschlange — „auch
+hinfällig". Das war falsch: Eine vorgemerkte Kachel ist noch gar nicht
+gebacken, an ihr ist nichts veraltet, und wer sie backt, backt sie aus den
+heutigen Daten. Hinausgeworfen stand sie nirgends mehr, und ob jemand sie
+erneut anfordert, hing daran, ob danach überhaupt noch ein Bild gezeichnet
+wurde.
+
+Das ist behoben. Die Fälle wurden seltener — **beseitigt sind sie nicht.**
+
+### Was offen ist
+
+Die zweite Ursache ist nicht gefunden. Festgestellt, aber nicht erklärt:
+
+- Die Kachelmaler selbst sind nachweislich eindeutig — vier Bildprüfungen,
+  die durch sie zeichnen, kommen bitgleich heraus, über viele Läufe.
+- Der Fehler tritt also oberhalb davon auf, im Zusammenspiel von React,
+  Zwischenspeicher und Bildtakt.
+- Verdächtig bleibt alles, was eine sichtbare Kachel verlieren kann, ohne
+  dass sie erneut angefordert wird.
+
+### Warum das hier steht und nicht in einem Nebensatz
+
+Es ist ein Fehler in dem, was ausgeliefert wird. Wer die Karte benutzt, kann
+ein Loch in seinem Wald sehen und wird denken, er habe etwas kaputtgemacht.
+
+Und es ist ein Beleg für den Wert der Prüfung, die ihn gefunden hat: Er war
+die ganze Zeit da. Niemandem ist er aufgefallen — auch mir nicht, über viele
+Bildschirmfotos hinweg, die ich in dieser Zeit beurteilt habe.
+
+Die beiden Szenen, die ihn zeigen, stehen in `scripts/bilder/szenen.mjs` und
+sind **stillgelegt**: Sie würden rot stehen, ohne dass jemand etwas geändert
+hat, und eine Prüfung, die grundlos schreit, wird abgeschaltet. Am Tag der
+Behebung muss nur das `aus` entfernt werden.

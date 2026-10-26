@@ -12,7 +12,8 @@
     "klassen": "node scripts/klassen-pruefen.mjs",
     "test": "node scripts/test.mjs",
     "atlas": "node scripts/atlas-backen.mjs",
-    "freistellen": "node scripts/freistellen.mjs"
+    "freistellen": "node scripts/freistellen.mjs",
+    "bilder": "node scripts/bilder-pruefen.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",
