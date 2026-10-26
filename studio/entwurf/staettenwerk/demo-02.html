@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Dragoncore – Stättenwerk / Stilprobe 02</title>
+<style>
+:root{font-family:Georgia,'Times New Roman',serif;color:#3c4138;background:#eee8da}*{box-sizing:border-box}body{margin:0;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:18px}main{width:min(960px,100%);background:#f9f4e8;border:1px solid #d7c7ab;box-shadow:0 18px 65px #514d3d25;border-radius:18px;overflow:hidden}header{display:flex;justify-content:space-between;gap:16px;align-items:center;padding:17px 22px 10px}h1{font-size:clamp(19px,3.7vw,29px);font-weight:normal;margin:0;letter-spacing:.03em}.sub{font:12px system-ui,sans-serif;color:#7f7566;letter-spacing:.03em;margin:4px 0 0}.tiny{font:12px system-ui,sans-serif;color:#91826c}canvas{width:100%;height:auto;display:block;touch-action:none;cursor:grab}canvas.dragging{cursor:grabbing}footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 18px 17px;border-top:1px solid #e8ddc9}.actions{display:flex;flex-wrap:wrap;gap:8px}button{background:#f9f4e8;color:#4b574a;border:1px solid #c1b49d;border-radius:999px;padding:9px 13px;font:13px system-ui,sans-serif;cursor:pointer}button:hover{background:#eee6d4}button.primary{background:#465f51;color:#f9f5ed;border-color:#465f51}button:focus-visible{outline:2px solid #b2854e;outline-offset:3px}.hint{font:12px system-ui,sans-serif;color:#706955}small{display:block;margin:0 20px 15px;color:#8e816f;font:11px system-ui,sans-serif} @media(max-width:600px){body{padding:0;background:#f9f4e8;align-items:flex-start}main{border:0;border-radius:0;box-shadow:none}header{padding:16px 15px 10px}footer{padding:12px 15px}.tiny{display:none}}
+</style></head>
+<body><main>
+<header><div><h1>Dragoncore <span style="color:#b49c75">·</span> Stättenwerk</h1><p class="sub">Echte Artbook-Bäume · verfeinerte Häuser · frei verschiebbar</p></div><span class="tiny">STILPROBE 02</span></header>
+<canvas id="world" width="1200" height="860" role="img" aria-label="Interaktive gemalte Karte mit drei versetzbaren Häusern, Bäumen, Weg und Wasser"></canvas>
+<footer><div class="actions"><button id="add" class="primary">+ Haus setzen</button><button id="reset">Zurücksetzen</button><button id="light">Abendlicht: an</button><button id="forest">Bäume: gemalt</button></div><span class="hint" id="status">Häuser mit dem Finger verschieben</span></footer>
+<small>Stilprobe mit vorhandenen Dragoncore-Baumassets. Häuser sind noch gezeichnete Platzhalter. Deine gespeicherten Karten bleiben unverändert.</small>
+</main>
+<script>
+(()=>{
+const c=document.getElementById('world'),g=c.getContext('2d'),status=document.getElementById('status');
+const W=1200,H=860;let golden=true, dragging=null, last=null,down=null, moved=false;const initial=()=>[
+{id:'h1',kind:'house',x:434,y:411,s:1.05,roof:'#64808a',tone:'#f1dfb7',variant:0},
+{id:'h2',kind:'house',x:730,y:340,s:.81,roof:'#8c695d',tone:'#eed8b1',variant:1},
+{id:'h3',kind:'house',x:862,y:567,s:.98,roof:'#658173',tone:'#e8d6ad',variant:2}];
+let objects=initial();
+let gemalt=true;
+const baumBilder=['wald_00.png','wald_03.png','wald_05.png'].map(datei=>{
+  const bild=new Image();
+  bild.onload=()=>draw();
+  bild.onerror=()=>draw();
+  bild.src='../../assets/karte/artbook/'+datei;
+  return bild;
+});
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function polygon(points,fill,stroke='#0000',w=1){g.beginPath();g.moveTo(...points[0]);for(let i=1;i<points.length;i++)g.lineTo(...points[i]);g.closePath();g.fillStyle=fill;g.fill();if(stroke!=='#0000'){g.strokeStyle=stroke;g.lineWidth=w;g.stroke()}}
+function stroke(points,color,width){g.beginPath();g.moveTo(...points[0]);for(let i=1;i<points.length;i++)g.lineTo(...points[i]);g.strokeStyle=color;g.lineWidth=width;g.lineCap='round';g.lineJoin='round';g.stroke()}
+function ellipse(x,y,rx,ry,color){g.beginPath();g.ellipse(x,y,rx,ry,0,0,Math.PI*2);g.fillStyle=color;g.fill()}
+const rnd=(seed)=>{let z=seed>>>0;return ()=>{z=(1664525*z+1013904223)>>>0;return z/4294967296}};
+const sprigs=(()=>{const r=rnd(49), a=[];for(let i=0;i<115;i++){const x=80+r()*1060,y=90+r()*620;if((x<400&&y>520)||(Math.abs(y-(490+55*Math.sin(x/160)))<48))continue;a.push({x,y,r:1+r()*3})}return a})();
+function ground(){const bg=g.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#e7e7d3');bg.addColorStop(.6,'#dfe2ca');bg.addColorStop(1,'#d4dcc6');g.fillStyle=bg;g.fillRect(0,0,W,H);
+// hills, broad quiet planes, not a dense fantasy collage
+ellipse(245,145,490,240,'#d9dfc5');ellipse(1090,200,510,280,'#d9ddc1');
+// distant water, a single curving ribbon
+const water=g.createLinearGradient(0,480,0,840);water.addColorStop(0,'#9cbac0');water.addColorStop(.7,'#7daeb4');water.addColorStop(1,'#739da9');g.beginPath();g.moveTo(0,618);g.bezierCurveTo(170,568,253,590,371,642);g.bezierCurveTo(496,701,590,674,727,730);g.bezierCurveTo(852,783,1076,751,1200,740);g.lineTo(1200,H);g.lineTo(0,H);g.closePath();g.fillStyle=water;g.fill();
+g.strokeStyle='#f4f2dd';g.lineWidth=9;g.beginPath();g.moveTo(0,615);g.bezierCurveTo(170,564,253,586,371,639);g.bezierCurveTo(496,699,590,670,727,728);g.bezierCurveTo(852,781,1076,749,1200,738);g.stroke();
+// one calm path with organic geometry
+g.beginPath();g.moveTo(60,355);g.bezierCurveTo(210,400,360,465,555,458);g.bezierCurveTo(738,450,867,462,1077,620);g.strokeStyle='#b9ac91';g.lineWidth=49;g.lineCap='round';g.stroke();g.strokeStyle='#d8c7a7';g.lineWidth=41;g.stroke();g.strokeStyle='#e3d4b7';g.lineWidth=21;g.stroke();
+// delicate sparse grass
+for(const v of sprigs){g.strokeStyle=v.r<2?'#a9ba98':'#b5c6a2';g.lineWidth=1.3;g.beginPath();g.moveTo(v.x,v.y);g.lineTo(v.x-v.r,v.y-2*v.r);g.moveTo(v.x,v.y);g.lineTo(v.x+v.r,v.y-1.5*v.r);g.stroke()}
+// few water glimmers
+for(let i=0;i<14;i++){let x=30+i*80,y=680+38*Math.sin(x/230)+i*3;stroke([[x,y],[x+23,y-2]],'#c3dad2',1.9)}
+}
+function tree(x,y,s=1,nummer=0){
+const bild=baumBilder[nummer];
+if(gemalt && bild && bild.complete && bild.naturalWidth>0){
+  const h=165*s,w=h*.8;
+  ellipse(x+8,y+6,34*s,10*s,'#526a5830');
+  g.drawImage(bild,x-w/2,y-h,w,h);
+  return;
+}
+g.save();g.translate(x,y);g.scale(s,s);ellipse(0,8,42,12,'#526a5830');polygon([[-7,0],[-5,-64],[5,-64],[10,0]],'#8b7e65');ellipse(-17,-78,34,34,'#829783');ellipse(15,-89,43,41,'#708b75');ellipse(-7,-111,42,40,'#91a48a');ellipse(12,-109,25,25,'#a6b49a');ellipse(-27,-104,13,10,'#b8c7a6');g.restore()}
+function house(o,selected=false){g.save();g.translate(o.x,o.y);g.scale(o.s,o.s);
+const roof=o.roof,tone=o.tone;ellipse(8,8,111,26,'#39483830');
+// stone foundation
+polygon([[-81,-8],[0,24],[84,-9],[1,-40]],'#a6a18b');
+// right side and front: consistent oblique elevated map view
+polygon([[0,-102],[77,-131],[77,-39],[0,-5]],'#c9b58e','#9a8c72',1.7);
+polygon([[-79,-132],[0,-101],[0,-5],[-79,-40]],tone,'#a49678',1.7);
+// roof planes with clear ridge and two slopes
+polygon([[-98,-137],[-13,-178],[92,-146],[4,-104]],roof,'#556b6b',2);
+polygon([[-98,-137],[4,-104],[-3,-86],[-100,-121]],shade(roof,-18),'#59635d',1.2);
+polygon([[4,-104],[92,-146],[93,-130],[-3,-86]],shade(roof,-26),'#53615b',1.2);
+// roof chimney
+polygon([[37,-160],[48,-165],[48,-197],[37,-192]],'#a27c68');polygon([[48,-165],[61,-159],[61,-187],[48,-197]],'#866756');polygon([[37,-192],[48,-197],[61,-187],[50,-182]],'#bb9b7b');
+// Feine, in jeder Variante feste Pinselspuren statt glatter Computerflächen.
+const zufall=rnd([...o.id].reduce((a,ch)=>a*31+ch.charCodeAt(0),19));
+g.save();g.beginPath();g.moveTo(-98,-137);g.lineTo(-13,-178);g.lineTo(92,-146);g.lineTo(4,-104);g.closePath();g.clip();
+for(let i=0;i<27;i++){
+  const x=-92+zufall()*180,y=-174+zufall()*67;
+  stroke([[x,y],[x+12+zufall()*26,y+4+zufall()*7]],shade(roof,i%2?-10:16),.75+zufall()*.8);
+}
+g.restore();
+// Leichter Putz: kleine Schatten und Reflexe innerhalb der Stirnwand.
+g.save();g.beginPath();g.moveTo(-79,-132);g.lineTo(0,-101);g.lineTo(0,-5);g.lineTo(-79,-40);g.closePath();g.clip();
+for(let i=0;i<21;i++){
+  const x=-80+zufall()*80,y=-112+zufall()*96;
+  stroke([[x,y],[x+3+zufall()*13,y+1]],i%3===0?'#fbebcc':'#cfbd9d',.7);
+}
+g.restore();
+stroke([[-64,-143],[26,-110]],shade(roof,-13),1.2);stroke([[17,-170],[99,-144]],shade(roof,15),1.2);
+// Drei diskrete Gebäudefamilien teilen Maßstab, Fußpunkt und Licht.
+if(o.variant===1){
+  // Ein kleines Dachfenster des Küstenhauses.
+  polygon([[9,-153],[27,-165],[41,-143],[22,-139]],'#dbc8a0','#897a64',1.4);
+  polygon([[9,-153],[27,-165],[39,-159],[22,-148]],shade(roof,-18),'#526366',1.2);
+  stroke([[26,-149],[26,-141]],'#766b58',1.5);
+}else if(o.variant===2){
+  // Dunkles Fachwerk: der Waldort ist keine Kopie der Küstenhäuser.
+  stroke([[-76,-77],[-4,-47]],'#9b775d',4.1);
+  stroke([[-48,-124],[-47,-19]],'#94745c',3.4);
+  stroke([[-76,-127],[-4,-96]],'#a88367',2.4);
+}
+// oak door in front face
+polygon([[-32,-58],[-9,-49],[-9,-4],[-32,-13]],'#725a45','#544638',1.5);ellipse(-13,-29,2.2,2.2,'#dfb983');
+// two lit windows; when light off neutral blue
+const win=golden?'#efce8b':'#a9c1be';polygon([[-69,-96],[-48,-88],[-48,-63],[-69,-71]],win,'#7c7361',2.4);
+polygon([[26,-88],[51,-98],[51,-67],[26,-56]],win,'#7c7361',2.4);
+stroke([[-58,-92],[-58,-66]],'#8a7560',1.4);stroke([[39,-94],[39,-64]],'#8a7560',1.4);
+// quiet natural elements and one lamp only
+ellipse(-72,-24,18,9,'#718766');ellipse(-85,-37,16,16,'#819c78');ellipse(-64,-39,18,18,'#87a47c');
+if(golden){ellipse(40,-55,13,9,'#e6c77d36');ellipse(-16,-58,11,12,'#e6c77d27')}
+if(selected){g.setLineDash([7,7]);g.strokeStyle='#c28d4f';g.lineWidth=3;g.beginPath();g.ellipse(0,8,109,32,0,0,Math.PI*2);g.stroke();g.setLineDash([])}
+g.restore()}
+function shade(hex,n){const rgb=hex.match(/[\da-f]{2}/ig).map(x=>parseInt(x,16));return '#'+rgb.map(x=>clamp(x+n,0,255).toString(16).padStart(2,'0')).join('')}
+function bridge(){g.save();g.translate(650,695);g.rotate(.2);ellipse(0,12,91,18,'#324b4930');polygon([[-82,-13],[-71,-25],[79,-25],[92,-13]],'#ae916e');polygon([[-82,-13],[92,-13],[82,0],[-74,0]],'#cbb18a');for(let i=-60;i<=75;i+=20)stroke([[i,-19],[i+9,-1]],'#a28a6e',1.6);g.restore()}
+function draw(){g.clearRect(0,0,W,H);ground();tree(202,310,1.07,0);tree(985,300,.78,2);bridge();for(const o of [...objects].sort((a,b)=>a.y-b.y))house(o,o===dragging);if(golden){let fog=g.createLinearGradient(0,0,W,H);fog.addColorStop(0,'#f8d6a51c');fog.addColorStop(1,'#f4e6c414');g.fillStyle=fog;g.fillRect(0,0,W,H)} // border shading
+let vign=g.createRadialGradient(W/2,H/2,H*.25,W/2,H/2,W*.84);vign.addColorStop(0,'#faf3e500');vign.addColorStop(1,'#45554720');g.fillStyle=vign;g.fillRect(0,0,W,H)}
+function point(e){const b=c.getBoundingClientRect();return{x:(e.clientX-b.left)*W/b.width,y:(e.clientY-b.top)*H/b.height}}
+function hit(p){return [...objects].reverse().find(o=>Math.abs(p.x-o.x)<92*o.s&&p.y<o.y+17*o.s&&p.y>o.y-195*o.s)||null}
+c.addEventListener('pointerdown',e=>{const p=point(e);dragging=hit(p);last=p;down=p;moved=false;if(dragging){c.setPointerCapture(e.pointerId);c.classList.add('dragging');status.textContent='Haus verschieben · Position wird direkt verändert';draw()}});
+c.addEventListener('pointermove',e=>{if(!dragging||!last)return;const p=point(e);dragging.x=clamp(dragging.x+p.x-last.x,110,W-110);dragging.y=clamp(dragging.y+p.y-last.y,185,605);if(Math.hypot(p.x-down.x,p.y-down.y)>4)moved=true;last=p;draw()});
+function end(){if(dragging){dragging=null;last=null;c.classList.remove('dragging');status.textContent=moved?'Haus verschoben – genau so bleibt die Karte editierbar':'Häuser mit dem Finger verschieben';draw()}}
+c.addEventListener('pointerup',end);c.addEventListener('pointercancel',end);
+document.getElementById('add').onclick=()=>{if(objects.length>=9){status.textContent='Maximal neun Häuser in dieser kleinen Testsiedlung';return}const j=objects.length;objects.push({id:'h'+(j+1),kind:'house',x:345+(j%4)*145,y:390+Math.floor(j/4)*110,s:.75+((j%3)*.12),roof:['#64808a','#8c695d','#658173'][j%3],tone:'#efdfbb',variant:j%3});status.textContent='Neues Haus hinzugefügt – mit dem Finger verschieben';draw()};
+document.getElementById('reset').onclick=()=>{objects=initial();status.textContent='Dorf auf Anfang zurückgesetzt';draw()};
+document.getElementById('light').onclick=e=>{golden=!golden;e.target.textContent='Abendlicht: '+(golden?'an':'aus');draw()};
+document.getElementById('forest').onclick=e=>{
+  gemalt=!gemalt;
+  e.target.textContent='Bäume: '+(gemalt?'gemalt':'gezeichnet');
+  status.textContent=gemalt?'Die Original-Assets aus Dragoncore werden verwendet':'Die Bäume zeigen die einfachen Pinsel-Platzhalter';
+  draw();
+};
+draw();
+})();
+</script>
+</body></html>
