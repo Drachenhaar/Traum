@@ -66,6 +66,6 @@ export function staettenStaffage(staetten: readonly Staettenobjekt[]): Staffage[
     art: 'bauwerk', variante: s.variante,
     x: s.bei[0], y: s.bei[1], h: s.hoehe,
     dreh: 0, spiegel: false,
-    lage: 'bewuchs', ebene: EBENE.bauwerk,
+    lage: 'bewuchs' as const, ebene: EBENE.bauwerk,
   }));
 }
