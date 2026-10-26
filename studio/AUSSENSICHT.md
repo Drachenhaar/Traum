@@ -281,3 +281,72 @@ Sie gelten in **beiden** Welten — Werk wie Produkt:
 3. **Die Sicherung erzwingen, solange es kein Konto gibt** (1.4). Nicht
    erinnern — beim allerersten Schliessen des Buches **einmal** eine Datei
    ablegen lassen, und danach nie wieder fragen.
+
+---
+
+## 6. Das Loch im Wald — gefunden von der Bildprüfung, behoben
+
+*Nachgetragen am Tag, an dem es `npm run bilder` zum ersten Mal gab;
+abgeschlossen drei Tage später.*
+
+**Die Karte zeigte manchmal ein Loch.** Ein scharfkantiges, kachelgrosses
+Rechteck mitten im Wald, durch das das Papier schien. Es verschwand, sobald
+man schob oder zoomte — und es kam nicht jedes Mal.
+
+### Was gemessen war
+
+Dieselbe Karte, derselbe Startwert, derselbe Rechner, zweimal hintereinander
+gezeichnet: bis zu **1,4 % der Bildpunkte unterschiedlich**, immer
+kachelförmig, meist am Südrand eines Waldes. In etwa jedem zweiten Lauf.
+
+Das Bild wurde dabei **stabil** — es flackerte nicht, es wurde fertig. Nur
+eben in zwei verschiedenen Zuständen. Und alle Zähler des Kartenwerks sagten
+„fertig": leere Warteschlange, keine veraltete Kachel, keine Vorschau.
+
+### Die Ursache
+
+**Im Bildtakt wird zuerst gezeichnet und danach gebacken.** Erst gehen die
+vorhandenen Kacheln auf die Leinwand, dann nimmt das Kachelwerk sein Budget
+und backt, was noch fehlt — und am Ende wird nur dann ein weiteres Bild
+angefordert, wenn *noch etwas im Ofen ist*.
+
+Was im letzten Schluck des Budgets entsteht, ist damit nirgends zu sehen:
+gebacken, aber nach dem Zeichnen, und niemand fordert ein neues Bild an,
+weil die Warteschlange ja gerade leer geworden ist. Deshalb war es
+unregelmässig — es traf nur die Läufe, in denen das Budget die Schlange
+genau aufbrauchte.
+
+Behoben in `useKartenleinwand.ts` mit einer einzigen zusätzlichen
+Bedingung: *Wer etwas gebacken hat, muss es auch zeigen.*
+
+### Zwei falsche Fährten, der Ehrlichkeit wegen
+
+Ich habe die Ursache zweimal am falschen Ort vermutet, und beide Male klang
+die Erklärung gut.
+
+Zuerst die Erkennung des Stillstands, dann `entwerte()`, das vorgemerkte
+Kacheln aus der Warteschlange warf. Das Letztere habe ich geändert und
+dabei behauptet, es sei die Ursache. Die Gegenprobe sagt etwas anderes:
+Baut man den Filter wieder ein, **bleibt die Bildprüfung grün**. Die
+Änderung steht trotzdem — eine vorgemerkte Kachel ist nichts Veraltetes —,
+aber sie steht auf dem Argument, nicht auf einer Messung. Der Kommentar in
+`kachelwerk.ts` sagt das inzwischen selbst.
+
+Gefunden wurde die Ursache erst, als ich aufgehört habe zu schliessen und
+angefangen habe zu messen: Ich habe die Kachelspeicher nach aussen gelegt
+und nachgesehen. Alle fünfundzwanzig sichtbaren Kacheln lagen vollständig
+und über acht Läufe **bitgleich** im Speicher. Nicht die Kacheln fehlten,
+sondern das Bild, das sie hätte zeigen müssen. Danach war es eine Frage von
+Minuten.
+
+### Was das über die Prüfung sagt
+
+Der Fehler war die ganze Zeit da. Niemandem ist er aufgefallen — auch mir
+nicht, über viele Bildschirmfotos hinweg, die ich in dieser Zeit beurteilt
+habe. Ein Mensch sieht ein Loch im Wald nicht, wenn er auf die Berge schaut.
+
+Die beiden Szenen, die ihn zeigten, waren eine Zeit lang stillgelegt: Sie
+hätten rot gestanden, ohne dass jemand etwas geändert hatte, und eine
+Prüfung, die grundlos schreit, wird abgeschaltet. **Sie sind jetzt scharf**
+und über zehn Läufe bei 0,0000 %. Nimmt man die Behebung wieder heraus,
+meldet `landschaft` 0,2 % mit einem Abstand von 206.

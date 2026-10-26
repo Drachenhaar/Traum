@@ -80,7 +80,7 @@ const { staffageAus, BAUMGRENZE } = await import(join(bau, 'streuwerk.mjs'));
 const { hoeheUeberall } = await import(join(bau, 'gebirge.mjs'));
 const { stilbuchFuer, stilbuchAus } = await import(join(bau, 'stilbuch.mjs'));
 const { maleStaffage } = await import(join(bau, 'waldwerk.mjs'));
-const { maleLage } = await import(join(bau, 'maler.mjs'));
+const { maleLage, nochEinBild } = await import(join(bau, 'maler.mjs'));
 const { ARTBOOK: PROBESTIL } = await import(join(bau, 'stil.mjs'));
 
 let geprueft = 0;
@@ -317,6 +317,64 @@ pruefe('ein Stilwechsel leert alles', () => {
   assert.equal(w.anzahl(), 0);
   assert.equal(w.veraltete(), 0);
   assert.equal(w.nachsehen(0, 0, 2), undefined);
+});
+
+pruefe('Entwerten rührt die Warteschlange nicht an', () => {
+  /*
+   * **Diese Prüfung steht hier, weil die Bildprüfung sie nicht sehen kann.**
+   *
+   * `entwerte()` filterte die Warteschlange mit: Was im Kasten vorgemerkt
+   * war, flog hinaus. Das ist falsch – eine vorgemerkte Kachel ist noch gar
+   * nicht gebacken, an ihr ist nichts veraltet –, aber die Gegenprobe zeigt,
+   * dass die Bildprüfung grün bleibt, wenn man den Filter wieder einbaut.
+   * Ohne diese Zeilen wäre die Zusage also unbewacht.
+   */
+  const w = werk({ budgetMs: 0 });
+  for (let j = 0; j <= 1; j++) {
+    for (let i = 0; i <= 1; i++) w.anfordern(i, j, 2, { x: 0, y: 0 });
+  }
+  assert.equal(w.wartend(), 4, 'die Warteschlange ist nicht gefüllt');
+  w.entwerte({ x0: 0, y0: 0, x1: 1000, y1: 1000 });
+  assert.equal(w.wartend(), 4, 'das Entwerten hat Vorgemerktes weggeworfen');
+});
+
+/* =======================================================================
+ * 2b · DER BILDTAKT
+ * ==================================================================== */
+
+console.log('\n2b · Der Bildtakt');
+
+const leer = { stufe: 2, kacheln: 4, vorschau: 0, veraltet: 0, offen: false };
+
+pruefe('ist alles fertig und nichts gebacken, folgt kein Bild', () => {
+  assert.equal(nochEinBild(false, false, leer, leer), false);
+  assert.equal(nochEinBild(false, false, leer, undefined), false);
+});
+
+pruefe('was gerade gebacken wurde, verlangt noch ein Bild', () => {
+  /*
+   * **Das kachelgrosse Loch im Wald, als Zahl.**
+   *
+   * Im Bildtakt wird zuerst gezeichnet und danach gebacken. Wer nur fragt
+   * „ist noch etwas im Ofen?", übersieht genau den Fall, in dem der letzte
+   * Schluck des Budgets die Warteschlange leert: Die Kachel ist da, steht
+   * aber auf keinem Bild, und niemand fordert eines an. Im Bild war das ein
+   * scharfkantiges Rechteck, durch das das Papier schien – wochenlang, und
+   * nur manchmal.
+   *
+   * Hier ist es eine Zeile. Das ist der ganze Grund, warum die Entscheidung
+   * `nochEinBild` heisst und nicht `if` im React-Haken.
+   */
+  assert.equal(nochEinBild(false, true, leer, leer), true,
+    'die zuletzt gebackene Kachel kommt nie zur Anzeige');
+});
+
+pruefe('ein Ofen mit Inhalt und eine Vorschau verlangen auch ein Bild', () => {
+  assert.equal(nochEinBild(true, false, leer, leer), true, 'offener Ofen übersehen');
+  assert.equal(nochEinBild(false, false, { ...leer, vorschau: 1 }, leer), true,
+    'eine geborgte Kachel bleibt unscharf stehen');
+  assert.equal(nochEinBild(false, false, leer, { ...leer, veraltet: 1 }), true,
+    'ein veralteter Grund bleibt veraltet stehen');
 });
 
 /* =======================================================================

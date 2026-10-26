@@ -467,7 +467,45 @@ npx tsc --noEmit     # Typprüfung
 npm test             # 48 Suiten, jede in eigenem Prozess
 npm run build        # tsc + vite build
 npm run klassen      # NACH dem Bauen: Deckkraftklassen gegen das echte CSS
+npm run bilder       # NACH dem Bauen: sieht die Karte noch aus wie gestern?
 ```
+
+### Die Bildprüfung
+
+Sechs Szenen, verglichen gegen Vorlagen in `tests/bilder/`. Jede bewacht
+einen Fehler, den es wirklich gab – der Massstab für die Aufnahme in die
+Liste steht in `scripts/bilder/szenen.mjs`.
+
+**Vier Kachelszenen** zeichnen durch die **echten** Maler, ohne React und
+ohne Gesten, und sind damit bis auf den Bildpunkt wiederholbar. Drei setzen
+ihre vier Kacheln selbst aneinander, die vierte geht durch `maler.ts` und
+bewacht so auch das Setzen.
+
+**Zwei Kartenszenen** nehmen die ganze Anwendung auf, in der Grundsicht und
+ohne eine einzige Geste. Sie waren eine Zeit lang stillgelegt, weil sie
+einen offenen Fehler im Bildtakt aufgedeckt hatten – dieselbe Karte kam
+nicht zuverlässig gleich heraus. Der ist behoben; die Szenen sind scharf und
+über zehn Läufe bei 0,0000 %. Die Geschichte steht in `AUSSENSICHT.md`,
+Abschnitt 6 – auch die zwei falschen Fährten.
+
+```bash
+npm run bilder -- --neu        # Vorlagen neu schreiben (nach gewollter Änderung)
+npm run bilder -- --rauschen   # den Rauschboden messen
+```
+
+**Sie hat keine Meinung darüber, ob es schön ist.** Sie sagt nur, dass sich
+etwas geändert hat und wie viel. Ob die Änderung gewollt war, entscheidet ein
+Mensch und schreibt die Vorlagen neu. Automatisch passiert das nie – eine
+Prüfung, die ihre Vorlage still nachzieht, ist ein Tagebuch.
+
+**Sie läuft nicht in der CI, und das ist Absicht.** Die Vorlagen sind auf
+*einem* Rechner entstanden; ein anderer zeichnet Kantenglättung und Schrift
+geringfügig anders, und eine Prüfung, die auf dem Bauserver grundlos
+anschlägt, wird nach dem dritten Mal abgeschaltet. Dazu kommt, dass
+Playwright hier nicht in den Abhängigkeiten steht, sondern im Container
+liegt. Wer sie in die CI holen will, muss beides lösen: Playwright
+installieren **und** die Vorlagen dort erzeugen, wo sie auch verglichen
+werden.
 
 **Alle vier, und `npm run klassen` zuletzt.** Genau das wurde im
 Dreibücher-Umbau umgangen – siehe Abschnitt 6.

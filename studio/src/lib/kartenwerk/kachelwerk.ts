@@ -353,13 +353,35 @@ export class Kachelwerk {
       this.alt.set(s, k);
       weg++;
     }
-    /* Vorgemerkte Kacheln in diesem Bereich sind auch hinfällig. */
-    this.warteschlange = this.warteschlange.filter((w) => {
-      const m = kachelmass(w.stufe);
-      const x0 = w.i * m, y0 = w.j * m;
-      return x0 + m < kasten.x0 - rand || x0 > kasten.x1 + rand
-        || y0 + m < kasten.y0 - rand || y0 > kasten.y1 + rand;
-    });
+    /*
+     * **Die Warteschlange bleibt, wie sie ist.**
+     *
+     * Hier wurde sie gefiltert: Was in diesem Kasten vorgemerkt war, flog
+     * hinaus – „auch hinfällig". Das war falsch, und zwar auf die teuerste
+     * Art: Eine vorgemerkte Kachel ist **noch gar nicht gebacken**. An ihr
+     * ist nichts veraltet; wer sie backt, backt sie ohnehin aus den
+     * heutigen Daten. Hinausgeworfen ist sie dagegen nirgends mehr – nicht
+     * frisch, nicht alt, nicht vorgemerkt –, und ob jemand sie erneut
+     * anfordert, hängt daran, ob danach noch ein Bild gezeichnet wird.
+     *
+     * Der Gewinn des Filterns war, eine Kachel nicht zweimal zu backen.
+     * Dafür ist er zu teuer.
+     *
+     * ---
+     *
+     * **Was hier ausdrücklich nicht stand.**
+     *
+     * Dieser Absatz hat eine Zeit lang behauptet, das kachelförmige Loch
+     * im Wald komme von diesem Filter. Das war eine Vermutung, und sie war
+     * falsch. Das Loch hatte eine andere Ursache, in der Reihenfolge von
+     * Zeichnen und Backen – nachzulesen in `useKartenleinwand.ts`.
+     *
+     * Die Gegenprobe sagt es deutlich: Baut man den Filter wieder ein,
+     * **bleibt die Bildprüfung grün**. Diese Zeilen hier stehen also nicht
+     * auf einem gemessenen Fehler, sondern allein auf dem Argument darüber
+     * – eine vorgemerkte Kachel ist nichts Veraltetes, und Arbeit
+     * wegzuwerfen, die noch keiner getan hat, kann nichts verbessern.
+     */
     return weg;
   }
 
