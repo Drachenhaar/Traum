@@ -43,6 +43,46 @@ export interface Malbericht {
 }
 
 /**
+ * Muss nach diesem Bild noch eines folgen?
+ *
+ * ---
+ *
+ * **Warum das eine eigene Funktion ist und keine Bedingung im Haken.**
+ *
+ * Diese Frage hat genau einen Fehler produziert, der es bis zur
+ * Auslieferung geschafft hat – das kachelgrosse Loch im Wald. Als nackte
+ * `if`-Zeile mitten in einem React-Haken war sie von keinem Test zu
+ * erreichen; erst eine Bildprüfung, die die ganze Anwendung aufnimmt, hat
+ * sie gestellt, und das dauerte Tage.
+ *
+ * Hier benannt ist sie eine Rechnung über fünf Zahlen, und ein Test kann
+ * sie in einer Zeile befragen.
+ *
+ * ---
+ *
+ * **Die drei Gründe, und der dritte ist der unauffällige.**
+ *
+ * 1. Es ist noch etwas im Ofen (`offen`).
+ * 2. Auf der Leinwand steht etwas Vorläufiges – eine geborgte oder eine
+ *    veraltete Kachel –, das nachgezogen werden muss.
+ * 3. **Es wurde gerade etwas gebacken** (`frischGebacken`).
+ *
+ * Der dritte folgt aus der Reihenfolge im Bildtakt: erst zeichnen, dann
+ * backen. Was beim Backen entsteht, ist also noch nicht zu sehen. Fehlt
+ * dieser Grund, verschwindet die zuletzt gebackene Kachel genau dann für
+ * immer, wenn das Backen die Warteschlange leert – denn dann ist auch Grund
+ * 1 weg, und niemand fordert mehr ein Bild an.
+ */
+export function nochEinBild(
+  offen: boolean,
+  frischGebacken: boolean,
+  ...berichte: (Malbericht | undefined)[]
+): boolean {
+  if (offen || frischGebacken) return true;
+  return berichte.some((b) => !!b && (b.vorschau > 0 || b.veraltet > 0));
+}
+
+/**
  * Eine Lage in die Sicht malen.
  *
  * `breitePx` ist die Breite des Zielbereichs in **Bildpunkten des Geräts**,

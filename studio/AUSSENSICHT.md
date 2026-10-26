@@ -284,57 +284,69 @@ Sie gelten in **beiden** Welten — Werk wie Produkt:
 
 ---
 
-## 6. Ein offener Fehler, gefunden von der Bildprüfung
+## 6. Das Loch im Wald — gefunden von der Bildprüfung, behoben
 
-*Nachgetragen am Tag, an dem es `npm run bilder` zum ersten Mal gab.*
+*Nachgetragen am Tag, an dem es `npm run bilder` zum ersten Mal gab;
+abgeschlossen drei Tage später.*
 
-**Die Karte zeigt manchmal ein Loch.** Ein scharfkantiges, kachelgrosses
-Rechteck mitten im Wald, durch das das Papier scheint. Es verschwindet,
-sobald man schiebt oder zoomt — und es kommt nicht jedes Mal.
+**Die Karte zeigte manchmal ein Loch.** Ein scharfkantiges, kachelgrosses
+Rechteck mitten im Wald, durch das das Papier schien. Es verschwand, sobald
+man schob oder zoomte — und es kam nicht jedes Mal.
 
-### Was gemessen ist
+### Was gemessen war
 
 Dieselbe Karte, derselbe Startwert, derselbe Rechner, zweimal hintereinander
 gezeichnet: bis zu **1,4 % der Bildpunkte unterschiedlich**, immer
 kachelförmig, meist am Südrand eines Waldes. In etwa jedem zweiten Lauf.
 
-Das Bild wird dabei **stabil** — es flackert nicht, es wird fertig. Nur eben
-in zwei verschiedenen Zuständen. Und alle Zähler des Kartenwerks sagen
-„fertig": leere Warteschlange, keine veraltete Kachel, keine Vorschau. Eine
-Kachel, die nirgends steht, zählt nirgends mit.
+Das Bild wurde dabei **stabil** — es flackerte nicht, es wurde fertig. Nur
+eben in zwei verschiedenen Zuständen. Und alle Zähler des Kartenwerks sagten
+„fertig": leere Warteschlange, keine veraltete Kachel, keine Vorschau.
 
-### Was davon behoben ist
+### Die Ursache
 
-`entwerte()` warf **vorgemerkte** Kacheln aus der Warteschlange — „auch
-hinfällig". Das war falsch: Eine vorgemerkte Kachel ist noch gar nicht
-gebacken, an ihr ist nichts veraltet, und wer sie backt, backt sie aus den
-heutigen Daten. Hinausgeworfen stand sie nirgends mehr, und ob jemand sie
-erneut anfordert, hing daran, ob danach überhaupt noch ein Bild gezeichnet
-wurde.
+**Im Bildtakt wird zuerst gezeichnet und danach gebacken.** Erst gehen die
+vorhandenen Kacheln auf die Leinwand, dann nimmt das Kachelwerk sein Budget
+und backt, was noch fehlt — und am Ende wird nur dann ein weiteres Bild
+angefordert, wenn *noch etwas im Ofen ist*.
 
-Das ist behoben. Die Fälle wurden seltener — **beseitigt sind sie nicht.**
+Was im letzten Schluck des Budgets entsteht, ist damit nirgends zu sehen:
+gebacken, aber nach dem Zeichnen, und niemand fordert ein neues Bild an,
+weil die Warteschlange ja gerade leer geworden ist. Deshalb war es
+unregelmässig — es traf nur die Läufe, in denen das Budget die Schlange
+genau aufbrauchte.
 
-### Was offen ist
+Behoben in `useKartenleinwand.ts` mit einer einzigen zusätzlichen
+Bedingung: *Wer etwas gebacken hat, muss es auch zeigen.*
 
-Die zweite Ursache ist nicht gefunden. Festgestellt, aber nicht erklärt:
+### Zwei falsche Fährten, der Ehrlichkeit wegen
 
-- Die Kachelmaler selbst sind nachweislich eindeutig — vier Bildprüfungen,
-  die durch sie zeichnen, kommen bitgleich heraus, über viele Läufe.
-- Der Fehler tritt also oberhalb davon auf, im Zusammenspiel von React,
-  Zwischenspeicher und Bildtakt.
-- Verdächtig bleibt alles, was eine sichtbare Kachel verlieren kann, ohne
-  dass sie erneut angefordert wird.
+Ich habe die Ursache zweimal am falschen Ort vermutet, und beide Male klang
+die Erklärung gut.
 
-### Warum das hier steht und nicht in einem Nebensatz
+Zuerst die Erkennung des Stillstands, dann `entwerte()`, das vorgemerkte
+Kacheln aus der Warteschlange warf. Das Letztere habe ich geändert und
+dabei behauptet, es sei die Ursache. Die Gegenprobe sagt etwas anderes:
+Baut man den Filter wieder ein, **bleibt die Bildprüfung grün**. Die
+Änderung steht trotzdem — eine vorgemerkte Kachel ist nichts Veraltetes —,
+aber sie steht auf dem Argument, nicht auf einer Messung. Der Kommentar in
+`kachelwerk.ts` sagt das inzwischen selbst.
 
-Es ist ein Fehler in dem, was ausgeliefert wird. Wer die Karte benutzt, kann
-ein Loch in seinem Wald sehen und wird denken, er habe etwas kaputtgemacht.
+Gefunden wurde die Ursache erst, als ich aufgehört habe zu schliessen und
+angefangen habe zu messen: Ich habe die Kachelspeicher nach aussen gelegt
+und nachgesehen. Alle fünfundzwanzig sichtbaren Kacheln lagen vollständig
+und über acht Läufe **bitgleich** im Speicher. Nicht die Kacheln fehlten,
+sondern das Bild, das sie hätte zeigen müssen. Danach war es eine Frage von
+Minuten.
 
-Und es ist ein Beleg für den Wert der Prüfung, die ihn gefunden hat: Er war
-die ganze Zeit da. Niemandem ist er aufgefallen — auch mir nicht, über viele
-Bildschirmfotos hinweg, die ich in dieser Zeit beurteilt habe.
+### Was das über die Prüfung sagt
 
-Die beiden Szenen, die ihn zeigen, stehen in `scripts/bilder/szenen.mjs` und
-sind **stillgelegt**: Sie würden rot stehen, ohne dass jemand etwas geändert
-hat, und eine Prüfung, die grundlos schreit, wird abgeschaltet. Am Tag der
-Behebung muss nur das `aus` entfernt werden.
+Der Fehler war die ganze Zeit da. Niemandem ist er aufgefallen — auch mir
+nicht, über viele Bildschirmfotos hinweg, die ich in dieser Zeit beurteilt
+habe. Ein Mensch sieht ein Loch im Wald nicht, wenn er auf die Berge schaut.
+
+Die beiden Szenen, die ihn zeigten, waren eine Zeit lang stillgelegt: Sie
+hätten rot gestanden, ohne dass jemand etwas geändert hatte, und eine
+Prüfung, die grundlos schreit, wird abgeschaltet. **Sie sind jetzt scharf**
+und über zehn Läufe bei 0,0000 %. Nimmt man die Behebung wieder heraus,
+meldet `landschaft` 0,2 % mit einem Abstand von 206.

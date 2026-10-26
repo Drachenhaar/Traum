@@ -54,7 +54,7 @@ import { ladeAtlas, type Atlas } from '../../lib/kartenwerk/atlas';
 import { staffageAus } from '../../lib/kartenwerk/streuwerk';
 import { Staffageraster } from '../../lib/kartenwerk/raster';
 import { Kachelwerk, WERKPLAN, stufeFuer, type Kasten } from '../../lib/kartenwerk/kachelwerk';
-import { maleLage, type Sichtfeld } from '../../lib/kartenwerk/maler';
+import { maleLage, nochEinBild, type Sichtfeld } from '../../lib/kartenwerk/maler';
 import { maleStaffage } from '../../lib/kartenwerk/waldwerk';
 import { maleGebirge } from '../../lib/kartenwerk/gebirgswerk';
 import { gebirgskasten } from '../../lib/karte/gebirge';
@@ -456,12 +456,38 @@ export function useKartenleinwand({
        * das Gebirge erscheint zuletzt. Da es *unter* dem Wald liegt, sähe
        * man dann Bäume auf dem leeren Land schweben.
        */
+      const vorher = werk.gebacken + (grund ? grund.gebacken : 0);
       const offenGrund = grund ? grund.backeBudgetiert() : false;
       const offen = werk.backeBudgetiert();
-      if (
-        offen || offenGrund || bericht.vorschau > 0 || bericht.veraltet > 0 ||
-        (grundbericht && (grundbericht.vorschau > 0 || grundbericht.veraltet > 0))
-      ) anfordern();
+      const frischGebacken = werk.gebacken + (grund ? grund.gebacken : 0) !== vorher;
+      /*
+       * **Wer etwas gebacken hat, muss es auch zeigen.**
+       *
+       * Hier stand nur „noch etwas im Ofen?". Das übersieht den Fall, auf den
+       * es ankommt: In diesem Bild wurde **zuerst gezeichnet und danach
+       * gebacken**. Was beim Backen entsteht, ist also noch nicht auf der
+       * Leinwand – und wenn der Ofen dabei leer wird, fordert niemand mehr
+       * ein Bild an. Die zuletzt gebackene Kachel kommt dann nie zur
+       * Anzeige.
+       *
+       * Im Bild: ein scharfkantiges, kachelgrosses Rechteck mitten im Wald,
+       * durch das das Papier scheint. Es bleibt, bis jemand schiebt oder
+       * zoomt, und es kommt nicht jedes Mal – nur wenn der letzte Schluck
+       * des Budgets die Warteschlange genau leert.
+       *
+       * Gefunden hat es die Bildprüfung: dieselbe Karte, zweimal gezeichnet,
+       * bis zu 1,4 % Unterschied. Gesucht wurde zuerst an der falschen
+       * Stelle – alle fünfundzwanzig Kacheln lagen vollständig und in acht
+       * Läufen bitgleich im Speicher. Nicht die Kacheln fehlten, sondern das
+       * Bild, das sie hätte zeigen müssen.
+       *
+       * Die Entscheidung selbst liegt seitdem in `nochEinBild` – benannt,
+       * begründet und von Tests erreichbar, was sie als `if`-Zeile hier
+       * nicht war. Bewacht wird sie zusätzlich von der Szene `landschaft`:
+       * Nimmt man `frischGebacken` heraus, meldet sie 0,2 % Abweichung mit
+       * einem Abstand von 206 – das Loch, in Zahlen.
+       */
+      if (nochEinBild(offen || offenGrund, frischGebacken, bericht, grundbericht)) anfordern();
 
       messung.kacheln = werk.anzahl();
       messung.bytes = werk.bytes();

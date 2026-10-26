@@ -472,16 +472,21 @@ npm run bilder       # NACH dem Bauen: sieht die Karte noch aus wie gestern?
 
 ### Die Bildprüfung
 
-Vier Szenen, verglichen gegen Vorlagen in `tests/bilder/`. Alle vier
-zeichnen durch die **echten** Maler – ohne React, ohne Gesten, also bis auf
-den Bildpunkt wiederholbar; gemessen über viele Läufe: Abweichung null.
+Sechs Szenen, verglichen gegen Vorlagen in `tests/bilder/`. Jede bewacht
+einen Fehler, den es wirklich gab – der Massstab für die Aufnahme in die
+Liste steht in `scripts/bilder/szenen.mjs`.
 
-Drei setzen ihre Kacheln selbst aneinander, eine geht durch `maler.ts` und
-bewacht damit auch das Setzen selbst.
+**Vier Kachelszenen** zeichnen durch die **echten** Maler, ohne React und
+ohne Gesten, und sind damit bis auf den Bildpunkt wiederholbar. Drei setzen
+ihre vier Kacheln selbst aneinander, die vierte geht durch `maler.ts` und
+bewacht so auch das Setzen.
 
-Zwei weitere Szenen nehmen die ganze Anwendung auf und sind **stillgelegt**:
-Sie haben einen offenen Fehler im Renderer aufgedeckt – dieselbe Karte kommt
-nicht zuverlässig gleich heraus. Siehe `AUSSENSICHT.md`, Abschnitt 6.
+**Zwei Kartenszenen** nehmen die ganze Anwendung auf, in der Grundsicht und
+ohne eine einzige Geste. Sie waren eine Zeit lang stillgelegt, weil sie
+einen offenen Fehler im Bildtakt aufgedeckt hatten – dieselbe Karte kam
+nicht zuverlässig gleich heraus. Der ist behoben; die Szenen sind scharf und
+über zehn Läufe bei 0,0000 %. Die Geschichte steht in `AUSSENSICHT.md`,
+Abschnitt 6 – auch die zwei falschen Fährten.
 
 ```bash
 npm run bilder -- --neu        # Vorlagen neu schreiben (nach gewollter Änderung)

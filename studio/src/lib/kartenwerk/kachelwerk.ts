@@ -364,18 +364,23 @@ export class Kachelwerk {
      * frisch, nicht alt, nicht vorgemerkt –, und ob jemand sie erneut
      * anfordert, hängt daran, ob danach noch ein Bild gezeichnet wird.
      *
-     * Manchmal wurde keines gezeichnet. Dann blieb an ihrer Stelle ein
-     * **Loch**: ein scharfkantiges Rechteck, durch das das Papier schien,
-     * mitten im Wald – und es blieb, bis jemand schob oder zoomte.
-     *
-     * Gefunden hat es die Bildprüfung am Tag, an dem es sie gab: Dieselbe
-     * Karte kam in verschiedenen Läufen verschieden heraus, bis zu 1,4 %
-     * Unterschied, immer kachelförmig. Die Zähler sagten dabei „fertig" –
-     * keine Warteschlange, nichts veraltet, keine Vorschau –, denn eine
-     * Kachel, die nirgends steht, zählt nirgends mit.
-     *
      * Der Gewinn des Filterns war, eine Kachel nicht zweimal zu backen.
      * Dafür ist er zu teuer.
+     *
+     * ---
+     *
+     * **Was hier ausdrücklich nicht stand.**
+     *
+     * Dieser Absatz hat eine Zeit lang behauptet, das kachelförmige Loch
+     * im Wald komme von diesem Filter. Das war eine Vermutung, und sie war
+     * falsch. Das Loch hatte eine andere Ursache, in der Reihenfolge von
+     * Zeichnen und Backen – nachzulesen in `useKartenleinwand.ts`.
+     *
+     * Die Gegenprobe sagt es deutlich: Baut man den Filter wieder ein,
+     * **bleibt die Bildprüfung grün**. Diese Zeilen hier stehen also nicht
+     * auf einem gemessenen Fehler, sondern allein auf dem Argument darüber
+     * – eine vorgemerkte Kachel ist nichts Veraltetes, und Arbeit
+     * wegzuwerfen, die noch keiner getan hat, kann nichts verbessern.
      */
     return weg;
   }

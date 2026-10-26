@@ -176,29 +176,6 @@ export const SZENEN = [
       'Ein Gebirge, das als Reihe einzelner Berge zerfällt.',
     ],
     karte: LANDSCHAFT,
-    /*
-     * **Stillgelegt, und das ist der Fund dieser Prüfung.**
-     *
-     * Dieselbe Karte kommt in verschiedenen Läufen verschieden heraus – bis
-     * zu 1,4 %, immer kachelförmig: An einer Kachel fehlt der Wald, ein
-     * scharfkantiges Rechteck, durch das das Papier scheint. Dabei sagen
-     * alle Zähler „fertig": leere Warteschlange, nichts veraltet, keine
-     * Vorschau. Das Bild wird auch stabil – nur eben in zwei verschiedenen
-     * Zuständen.
-     *
-     * Das ist kein Mangel der Prüfung, sondern ein Fehler im Renderer, und
-     * er ist noch nicht gefunden. Ein Teil war `entwerte`, das vorgemerkte
-     * Kacheln aus der Warteschlange warf; das ist behoben und hat die Fälle
-     * seltener gemacht, aber nicht beseitigt.
-     *
-     * Solange er steht, kann diese Szene kein Wächter sein: Sie würde rot
-     * stehen, ohne dass jemand etwas geändert hat, und dann schaltet sie
-     * jemand ab. Sie bleibt hier stehen, damit sie am Tag der Behebung nur
-     * eingeschaltet werden muss.
-     *
-     * Siehe `AUSSENSICHT.md`.
-     */
-    aus: 'Der Renderer liefert dieselbe Karte nicht zuverlässig gleich – offener Fehler.',
   },
   {
     name: 'baumgrenze',
@@ -210,7 +187,5 @@ export const SZENEN = [
       'Bewuchskacheln, die nach einer Kammänderung mit ihrem alten Wald liegen bleiben.',
     ],
     karte: BAUMGRENZE,
-    /* Dieselbe offene Ursache wie bei `landschaft` – dort steht sie. */
-    aus: 'Der Renderer liefert dieselbe Karte nicht zuverlässig gleich – offener Fehler.',
   },
 ];
