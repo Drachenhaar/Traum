@@ -169,8 +169,8 @@ function wanderer(){
   const f=figur;
   const aktiv=f.bewegung;
   const schwing=Math.sin(f.schritt);
-  const hebung=Math.max(0,Math.sin(f.schritt));
-  const hebung2=Math.max(0,Math.sin(f.schritt+Math.PI));
+  const hebung=Math.max(0,Math.sin(f.schritt))*aktiv;
+  const hebung2=Math.max(0,Math.sin(f.schritt+Math.PI))*aktiv;
   const bob=aktiv*Math.abs(Math.sin(f.schritt*2))*1.25;
   const swing=schwing*aktiv*6.5;
   const arme=schwing*aktiv*3.2;
