@@ -145,6 +145,15 @@ export function Relief({
       kaesten.push({ x0: px, y0: py - SIEDLUNG_HOEHE * 1.2, x1: px, y1: py });
     }
 
+    /* Stätten gehören zum Relief-Ausschnitt, auch auf einer leeren Karte. */
+    for (const s of karte.staetten ?? []) {
+      let h = 0;
+      for (const f of folge) if (imPolygon(s.bei[0], s.bei[1], f.punkte)) h = hoehen.get(f.id) ?? 0;
+      const [px, py] = iso(s.bei[0], s.bei[1], h);
+      kaesten.push({ x0: px - s.hoehe * 1.1, y0: py - s.hoehe * 1.8,
+        x1: px + s.hoehe * 1.1, y1: py + s.hoehe * .2 });
+    }
+
     /* Die Bäume – dieselben wie flach, nur mit einem Grund unter den Füssen. */
     let gesamt = 0;
     const waelder = new Map<string, { baum: Baum; grund: number }[]>();
@@ -174,7 +183,7 @@ export function Relief({
     }
 
     return { folge, hoehen, sicht: reliefSicht(kaesten), waelder, ausgeduennt: schritt > 1 };
-  }, [karte.features, karte.marken]);
+  }, [karte.features, karte.marken, karte.staetten]);
 
   const farben = (f: Kartenfeature) =>
     f.art === 'wasser' ? stil.wasser : f.art === 'wald' ? stil.wald : stil.land;
@@ -386,6 +395,29 @@ export function Relief({
           );
         })}
 
+        {/* Einzelbauten erscheinen auch im erhobenen Blick, am selben Ort. */}
+        {(karte.staetten ?? []).map((s) => {
+          let h = 0;
+          for (const f of bild.folge) {
+            if (imPolygon(s.bei[0], s.bei[1], f.punkte)) h = bild.hoehen.get(f.id) ?? 0;
+          }
+          const [px, py] = iso(s.bei[0], s.bei[1], h);
+          const name = s.entryId ? namen.get(s.entryId) : undefined;
+          const gr = s.hoehe;
+          return (
+            <g key={`bauwerk_${s.id}`}>
+              <path d={`M ${px-gr*.5} ${py-gr*.5} L ${px} ${py-gr*1.1} L ${px+gr*.6} ${py-gr*.5} L ${px+gr*.6} ${py} L ${px-gr*.5} ${py} Z`}
+                fill={stil.land.flaeche} stroke={stil.marke} strokeWidth={1.6} />
+              <path d={`M ${px-gr*.56} ${py-gr*.52} L ${px} ${py-gr*1.22} L ${px+gr*.72} ${py-gr*.55} L ${px+gr*.5} ${py-gr*.44} L ${px} ${py-gr*.98} L ${px-gr*.5} ${py-gr*.35} Z`}
+                fill={stil.wald.stamm} stroke={stil.fels.schatten} strokeWidth={1.2} />
+              {name && <text x={px} y={py+gr*.5} textAnchor="middle"
+                fill={stil.marke} fontSize={bild.sicht.w * .018}
+                stroke={stil.papier} strokeWidth={bild.sicht.w * .004}
+                paintOrder="stroke">{name}</text>}
+            </g>
+          );
+        })}
+
         {/* Die Namen – über den Bäumen, wie auf der flachen Karte. */}
         {bild.folge.map((f) => {
           const name = f.entryId ? namen.get(f.entryId) : undefined;
@@ -417,7 +449,7 @@ export function Relief({
       </svg>
 
       {/* Leer heisst leer – Flächen *und* Siedlungen, wie auf der flachen Karte. */}
-      {karte.features.length === 0 && (karte.marken ?? []).length === 0 && (
+      {karte.features.length === 0 && (karte.marken ?? []).length === 0 && (karte.staetten ?? []).length === 0 && (
         <p className="pointer-events-none absolute inset-x-6 bottom-6 text-center text-sm text-ink-muted">
           Noch ist nichts gemalt. Leg die Karte flach, dann kannst du anfangen.
         </p>
