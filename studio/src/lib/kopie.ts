@@ -292,6 +292,12 @@ export function schreibeAb(
         id: newId('m'),
         entryId: m.entryId ? u.entries.get(m.entryId) : undefined,
       })),
+      /* Neue Bauwerks-Kennung und Verweis in der duplizierten Welt. */
+      staetten: k.staetten?.map((s) => ({
+        ...s,
+        id: newId('s'),
+        entryId: s.entryId ? u.entries.get(s.entryId) : undefined,
+      })),
     })),
 
     /*
