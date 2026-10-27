@@ -41,9 +41,11 @@ import {
   type Kartendokument,
   type Kartenfeature,
   type Kartenmarke,
+  type Staettenobjekt,
   type Gebirgskamm,
 } from '../../lib/karte/modell';
 import { SIEDLUNGEN, type Siedlung } from '../../lib/karte/siedlung';
+import { BAUFORMEN, type Bauform } from '../../lib/kartenwerk/staettenwerk';
 import { cx } from '../../lib/utils';
 
 export function WeltkarteSheet() {
@@ -93,6 +95,7 @@ type Schritt = {
    * zurücknähme, bekäme Flächen von vorhin und Gebirge von jetzt.
    */
   kaemme: Gebirgskamm[];
+  staetten: Staettenobjekt[];
 };
 
 function Karte() {
@@ -173,12 +176,13 @@ function Karte() {
       [
         ...karte.features.map((f) => f.entryId),
         ...(karte.marken ?? []).map((m) => m.entryId),
+        ...(karte.staetten ?? []).map((s) => s.entryId),
       ].filter((id): id is string => !!id),
     );
     const ohne = lebende.filter((e) => !belegt.has(e.id));
     const mit = lebende.filter((e) => belegt.has(e.id));
     return [...ohne, ...mit];
-  }, [lebende, karte.features, karte.marken]);
+  }, [lebende, karte.features, karte.marken, karte.staetten]);
   /*
    * Die Namen kommen aus dem Buch, nicht aus der Karte.
    *
@@ -195,7 +199,7 @@ function Karte() {
   const aendere = (naechste: Kartendokument) => {
     setVerlauf((v) => [
       ...v.slice(-(SCHRITTE - 1)),
-      { features: karte.features, marken: karte.marken ?? [], kaemme: karte.kaemme ?? [] },
+      { features: karte.features, marken: karte.marken ?? [], kaemme: karte.kaemme ?? [], staetten: karte.staetten ?? [] },
     ]);
     setEntwurf(naechste);
     void speichereKarte(naechste);
@@ -210,6 +214,7 @@ function Karte() {
       features: vorher.features,
       marken: vorher.marken,
       kaemme: vorher.kaemme,
+      staetten: vorher.staetten,
     };
     setEntwurf(naechste);
     setGewaehlt(undefined);
@@ -256,6 +261,17 @@ function Karte() {
    * Was gewählt ist, bestimmt, was man damit tun kann.
    */
   const marke = (karte.marken ?? []).find((m) => m.id === gewaehlt);
+  const staette = (karte.staetten ?? []).find((s) => s.id === gewaehlt);
+  const setzeStaette = (teil: Partial<Staettenobjekt>) => {
+    if (!staette) return;
+    aendere({ ...karte, staetten: (karte.staetten ?? []).map((s) =>
+      s.id === staette.id ? { ...s, ...teil } : s) });
+  };
+  const loescheStaette = () => {
+    if (!staette) return;
+    aendere({ ...karte, staetten: (karte.staetten ?? []).filter((s) => s.id !== staette.id) });
+    setGewaehlt(undefined);
+  };
 
   /*
    * Und ein drittes Bedienfeld, aus demselben Grund wie das zweite.
@@ -310,7 +326,9 @@ function Karte() {
         dasteht: Die <em>Bucht</em> frisst sich ins Land, die <em>Landzunge</em> wächst aus
         der Küste hinaus – beide genau dort, wo du sie ziehst. Und <em>Hütte</em>,{' '}
         <em>Dorf</em> und <em>Burg</em> werden nicht gemalt, sondern getippt: Sie stehen
-        genau da, wo du hintippst, und nirgends sonst.
+        genau da, wo du hintippst, und nirgends sonst. Ein <em>Haus</em>, <em>Turm</em>
+        oder eine <em>Brücke</em> ist dagegen ein einzelnes Bauwerk: Zum Verschieben
+        „Ansehen“ wählen und das Bauwerk mit dem Finger ziehen.
       </p>
 
       {/*
@@ -560,6 +578,46 @@ function Karte() {
           >
             <Trash2 size={16} aria-hidden />
             Gebirge entfernen
+          </button>
+        </section>
+      )}
+
+      {staette && (
+        <section className="card mt-4 p-4">
+          <h2 className="font-serif text-lg">Dieses Bauwerk</h2>
+          <p className="mt-1 text-sm text-ink-muted">Mit „Ansehen“ lässt es sich auf der Karte verschieben.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {BAUFORMEN.map((b) => (
+              <button
+                key={b.id} type="button"
+                onClick={() => setzeStaette({ bauform: b.id as Bauform })}
+                aria-pressed={staette.bauform === b.id}
+                className={cx('touch-target rounded-full border px-4 text-sm',
+                  staette.bauform === b.id
+                    ? 'border-brass-500 bg-brass-500 text-paper-50'
+                    : 'border-line bg-cream-50 text-ink-muted')}
+              >{b.name}</button>
+            ))}
+          </div>
+          <label htmlFor="karte-staette-eintrag" className="mt-4 block text-sm text-ink-muted">
+            Gehört zu einer Seite
+          </label>
+          <select id="karte-staette-eintrag" className="input-base mt-1 w-full"
+            value={staette.entryId ?? ''}
+            onChange={(e) => setzeStaette({ entryId: e.target.value || undefined })}>
+            <option value="">— namenlos —</option>
+            {geordnet.map((e) => <option key={e.id} value={e.id}>{e.title}</option>)}
+          </select>
+          {staette.entryId && (
+            <p className="mt-2 text-sm">
+              <Link className="text-brass-600 underline" to={`/eintrag/${staette.entryId}`}>
+                {namen.get(staette.entryId) ?? 'Zur Seite'}
+              </Link>
+            </p>
+          )}
+          <button type="button" onClick={loescheStaette}
+            className="touch-target mt-4 flex items-center gap-2 text-sm text-ink-muted">
+            <Trash2 size={16} aria-hidden />Bauwerk entfernen
           </button>
         </section>
       )}
