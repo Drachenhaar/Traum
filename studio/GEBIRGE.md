@@ -210,13 +210,61 @@ Wald:**
 4. Im Gebirgswerk nach dem Relief: über `gratpunkte` laufen und zeichnen,
    nach Höhe sortiert, von hinten nach vorn.
 
-Die **Auflösung** ist dabei die bindende Zahl, nicht der Geschmack. Es gilt
-dieselbe Schranke wie bei den Bäumen: `karteHoehe × 16,4` Bildpunkte, sonst
-sieht man es. Eine Felswand von 40 Karteneinheiten braucht **650 Punkte**.
-
 Das Relief bleibt darunter liegen. Es ist nicht das Provisorium, das die
 Bilder ablösen — es ist der Grund, auf dem sie stehen, und es trägt die
 Stellen, die kein Bild abdeckt.
+
+### Die Masse, gemessen statt geschätzt
+
+Hier stand „eine Felswand von 40 Karteneinheiten braucht 650 Punkte". Das war
+geschätzt. `npm run felsbogen` misst es stattdessen, und zwar am höchsten
+Grat des Hauptkamms, senkrecht zum Verlauf:
+
+| | |
+|---|---|
+| Gipfelhöhe | **98 Karteneinheiten** |
+| Fussbreite | **222 Karteneinheiten** |
+| Verhältnis | **2,27 : 1** |
+| zum Vergleich: ein Baum | 26 Einheiten |
+
+**Ein Gipfel ist also ein breiter Buckel und keine Zacke** — knapp vier
+Fichten hoch und achtmal so breit wie eine. Wer eine Felsnadel malt, malt
+gegen das, was darunter gerechnet wird, und der Widerspruch fällt genau dann
+auf, wenn man heranzoomt.
+
+Bei der **Auflösung** gilt die Schranke der Bäume nicht unverändert. Dort
+sind es `karteHoehe × 16,4`, weil man an einen Baum ganz heranfährt; ein
+Gipfel von 222 Einheiten Breite passt beim engsten Zoom längst nicht mehr
+aufs Bild. Massgeblich ist der nächste Zoom, bei dem er **ganz** zu sehen
+ist: 222 Einheiten auf 2048 Punkten, also 9,2 je Einheit — **900 Punkte
+Höhe, 2043 Breite**. Wer näher herangeht, sieht eine Vergrösserung, aber dort
+trägt die gerechnete Schattierung die Feinheit, und die hat keine
+Auflösungsgrenze.
+
+### Der Vorlagenbogen
+
+`npm run felsbogen` erzeugt `.testbau/felsbogen/felsbogen.png`: acht Felder in
+genau dieser Grösse, jedes mit
+
+- der **echten Silhouette** eines anderen Gipfels, aus `hoeheUeberall`
+  senkrecht zum Kamm geschnitten — die Linie, hinter der die gemalte Wand
+  verschwinden darf und vor der sie nicht herausragen sollte,
+- der **Fusslinie** bei 96 % der Höhe, auf der die Wand den Boden berührt,
+- dem **Rand**, in dem nichts stehen darf, damit die Glättung nicht
+  anschneidet,
+- dem **Lichtpfeil** von links oben,
+- und einem **Baum als Mass**.
+
+Ein erster Entwurf hat statt der Silhouette die Schattierung aus
+`maleGebirge` untergelegt. Das war die falsche Projektion: Die Schattierung
+sieht von **oben** auf das Gelände, eine gemalte Wand steht **aufrecht** wie
+ein Baum. Wer auf eine Draufsicht malt, malt eine Wand, die nie passt.
+
+**Eines sagt der Bogen auch über das Gebirge selbst:** Die acht Querschnitte
+sehen einander ähnlich. Die Zerklüftung verändert die Flanken, nicht die
+Grundform. Wenn die gemalten Berge mehr Eigenart haben sollen als der
+Untergrund hergibt, ist das keine Frage an den Pinsel, sondern an
+`GEBIRGE.gipfel`, `kerbe` und `schwankung`.
 
 ---
 

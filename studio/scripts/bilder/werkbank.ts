@@ -27,5 +27,5 @@ export { ARTBOOK } from '../../src/lib/karte/stil';
  * Schatten auf eine Fläche zu malen. Beide fragen dieselbe Funktion, und
  * genau deshalb stimmen Karte und Modell überein.
  */
-export { hoeheUeberall, gebirgskasten } from '../../src/lib/karte/gebirge';
+export { hoeheUeberall, gebirgskasten, GEBIRGE } from '../../src/lib/karte/gebirge';
 export { heileKarte } from '../../src/lib/karte/modell';

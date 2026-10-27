@@ -15,6 +15,7 @@
     "freistellen": "node scripts/freistellen.mjs",
     "film": "node scripts/film.mjs",
     "relief": "node scripts/relief3d.mjs",
+    "felsbogen": "node scripts/felsbogen.mjs",
     "bilder": "node scripts/bilder-pruefen.mjs"
   },
   "dependencies": {
