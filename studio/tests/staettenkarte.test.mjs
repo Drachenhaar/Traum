@@ -98,10 +98,13 @@ pruefe('Kachel-Entwertung umfasst Gebäudebild oberhalb des Bodenkontakts', () =
 pruefe('Buchseite und Weltimport behalten Bauwerke im Rückgängig und bei der Kopie', () => {
   const p = readFileSync(join(wurzel,'src/pages/book/Weltkarte.tsx'),'utf8');
   const port = readFileSync(join(wurzel,'src/lib/portability.ts'),'utf8');
+  const kopie = readFileSync(join(wurzel,'src/lib/kopie.ts'),'utf8');
   const k = readFileSync(join(wurzel,'src/components/karte/useKartenleinwand.ts'),'utf8');
   assert.match(p,/staetten: vorher\.staetten/);
   assert.match(p,/staetten: karte\.staetten \?\? \[\]/);
   assert.match(port,/staetten: k\.staetten\?\.map/);
+  assert.match(kopie,/staetten: k\.staetten\?\.map/);
+  assert.match(kopie,/id: newId\('s'\)/);
   assert.match(k,/werk\.entwerte\(staettenkasten/);
 });
 
