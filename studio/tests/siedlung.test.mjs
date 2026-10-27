@@ -356,7 +356,7 @@ pruefe('die Siedlungen sind auch im Relief da', () => {
    */
   const q = ohneProsa(lies('src/components/karte/Relief.tsx'));
   assert.match(q, /\(karte\.marken \?\? \[\]\)\.map\(/, 'das Relief zeichnet keine Marken');
-  assert.match(q, /\}, \[karte\.features, karte\.marken\]\)/,
+  assert.match(q, /\}, \[karte\.features, karte\.marken, karte\.staetten\]\)/,
     'das gerechnete Bild merkt eine neue Siedlung nicht');
   /*
    * **Innerhalb des Zeichenblocks nachsehen, nicht in der ganzen Datei.**
