@@ -65,8 +65,13 @@ const sandbox=createContext({
 });
 programm.runInContext(sandbox,{timeout:4000});
 assert.ok(typeof naechstesBild==='function','Es fehlt die Animationsschleife.');
-assert.ok(gezeichnet>0,'Beim Start wurde nichts gezeichnet.');
 let zeit=1000;
+// Der erste Bildaufbau findet absichtlich im Animationsrahmen statt.
+const ersterRahmen=naechstesBild;
+naechstesBild=null;
+ersterRahmen(zeit);
+zeit+=34;
+assert.ok(gezeichnet>0,'Im ersten Animationsrahmen wurde nichts gezeichnet.');
 for(let i=0;i<70;i++){const fn=naechstesBild;naechstesBild=null;fn(zeit);zeit+=34;}
 assert.ok(gezeichnet>100,'Die Szene rendert nicht fortlaufend.');
 // Auf freien Boden tippen: Ziel setzen, ohne ein Haus zu ziehen.
