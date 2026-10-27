@@ -188,6 +188,7 @@ const voll = {
    * Stelle – wer eine Liste manchmal als `undefined` zurückgibt, zwingt
    * jeden Leser, den Fall ein zweites Mal zu kennen.
    */
+  staetten: [],
   kaemme: [],
   createdAt: 1,
   updatedAt: 2,
