@@ -406,10 +406,32 @@ export function Relief({
           const gr = s.hoehe;
           return (
             <g key={`bauwerk_${s.id}`}>
-              <path d={`M ${px-gr*.5} ${py-gr*.5} L ${px} ${py-gr*1.1} L ${px+gr*.6} ${py-gr*.5} L ${px+gr*.6} ${py} L ${px-gr*.5} ${py} Z`}
-                fill={stil.land.flaeche} stroke={stil.marke} strokeWidth={1.6} />
-              <path d={`M ${px-gr*.56} ${py-gr*.52} L ${px} ${py-gr*1.22} L ${px+gr*.72} ${py-gr*.55} L ${px+gr*.5} ${py-gr*.44} L ${px} ${py-gr*.98} L ${px-gr*.5} ${py-gr*.35} Z`}
-                fill={stil.wald.stamm} stroke={stil.fels.schatten} strokeWidth={1.2} />
+              {s.bauform === 'bruecke' ? (
+                <path d={`M ${px-gr*1.2} ${py-gr*.35} L ${px+gr*1.15} ${py-gr*.35}
+                  L ${px+gr*1.15} ${py} L ${px+gr*.78} ${py-gr*.02}
+                  Q ${px} ${py-gr*.65} ${px-gr*.78} ${py-gr*.02}
+                  L ${px-gr*1.2} ${py} Z`}
+                  fill={stil.fels.hoehe} stroke={stil.marke} strokeWidth={1.5} />
+              ) : s.bauform === 'turm' ? (
+                <g>
+                  <path d={`M ${px-gr*.35} ${py-gr*1.1} L ${px+gr*.32} ${py-gr*1.1}
+                    L ${px+gr*.32} ${py} L ${px-gr*.35} ${py} Z`}
+                    fill={stil.land.flaeche} stroke={stil.marke} strokeWidth={1.5}/>
+                  <path d={`M ${px-gr*.49} ${py-gr*1.09} L ${px} ${py-gr*1.75}
+                    L ${px+gr*.49} ${py-gr*1.09} Z`}
+                    fill={stil.wald.stamm} stroke={stil.fels.schatten} strokeWidth={1.4}/>
+                </g>
+              ) : (
+                <g>
+                  <path d={`M ${px-gr*.5} ${py-gr*.5} L ${px} ${py-gr*1.1} L ${px+gr*.6} ${py-gr*.5}
+                    L ${px+gr*.6} ${py} L ${px-gr*.5} ${py} Z`}
+                    fill={stil.land.flaeche} stroke={stil.marke} strokeWidth={1.6} />
+                  <path d={`M ${px-gr*.56} ${py-gr*.52} L ${px} ${py-gr*1.22}
+                    L ${px+gr*.72} ${py-gr*.55} L ${px+gr*.5} ${py-gr*.44}
+                    L ${px} ${py-gr*.98} L ${px-gr*.5} ${py-gr*.35} Z`}
+                    fill={stil.wald.stamm} stroke={stil.fels.schatten} strokeWidth={1.2} />
+                </g>
+              )}
               {name && <text x={px} y={py+gr*.5} textAnchor="middle"
                 fill={stil.marke} fontSize={bild.sicht.w * .018}
                 stroke={stil.papier} strokeWidth={bild.sicht.w * .004}
