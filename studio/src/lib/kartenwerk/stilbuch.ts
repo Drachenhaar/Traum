@@ -43,6 +43,7 @@ import type { Kartenstil } from '../karte/stil';
 import { zeichneBaum } from '../../components/karte/baumzeichnung';
 import type { Baum } from '../karte/wald';
 import { bildEintrag, type Atlas } from './atlas';
+import { zeichneBauwerk } from './bauwerk';
 
 /**
  * Wie eine Art in einem Stil aussieht.
@@ -237,6 +238,12 @@ export function stilbuchFuer(stil: Kartenstil, atlas?: Atlas): Stilbuch {
  */
 function pinselEintraege(stil: Kartenstil): Record<string, Stileintrag> {
   return {
+    bauwerk: {
+      varianten: 3,
+      hoehe: 32,
+      ...ordnung('bauwerk'),
+      zeichne(ctx, s) { zeichneBauwerk(ctx, s, stil); },
+    },
     wald: {
       varianten: 3,
       /* `GROESSE` aus `baumzeichnung.ts`. Der Federbaum bleibt, wie er war. */
