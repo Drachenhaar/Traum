@@ -279,6 +279,45 @@ Untergrund hergibt, ist das keine Frage an den Pinsel, sondern an
 
 ---
 
+## 5a · Zwei Regler, die aus Blasen Fels machen
+
+Aus der Nähe sah das Relief lange aus wie **Seifenblasen**: geschlossene,
+runde Schleifen, keine Grate und Rinnen. Mehr Kontrast half nicht — er machte
+es schlimmer, weil mehr Kontrast eine Struktur deutlicher zeigt, die nicht
+stimmt.
+
+Die Ursache war dieselbe wie bei den Nebenrücken, nur eine Grössenordnung
+feiner: Die Zerklüftung fragte ein Rauschen **in der Fläche**, und isotropes
+Rauschen bildet geschlossene Schleifen. Eine Rinne läuft aber bergab.
+
+Der erste Anlauf war zu weit: Die Probe ganz an den Fusspunkt zu legen macht
+den Wert entlang der *ganzen* Falllinie konstant — jede Rinne wird ein
+durchgehender Streifen vom Grat bis zum Fuss, und ein gerader Kamm sieht aus
+wie **Kordsamt**.
+
+`GEBIRGE.zug` liegt dazwischen und ist der Regler: Die Probe wandert nur zu
+`zug` bergab mit, ändert sich also quer zum Hang voll und längs dazu
+dreimal langsamer.
+
+| `zug` | was man sieht |
+|---|---|
+| 1,0 | das Alte — Blasen |
+| **0,3** | Rinnen, die bergab zeigen und eine Länge haben |
+| 0,0 | Kordsamt |
+
+Erst danach wurde `kraft` von `0,46 + 0,42·t` auf `0,66 + 0,30·t` erhöht. Die
+Reihenfolge ist kein Zufall: **Mehr Kontrast ist nur dann eine Verbesserung,
+wenn das, was er zeigt, richtig ist.**
+
+Beide Regler sind von der Bildprüfung bewacht; die Gegenprobe meldet für
+jeden der beiden Irrwege über 50 % Abweichung in `gebirge-block`.
+
+In der Übersicht bleibt der Gewinn klein — dort mittelt sich jede Struktur
+weg. Das ist die Stelle, an der die gemalten Felswände gebraucht werden, und
+keine Zahl ersetzt sie.
+
+---
+
 ## 6 · Was ausdrücklich nicht passiert ist
 
 Keine zweite Kartenimplementierung. Keine Änderung an Wäldern, Flüssen,
