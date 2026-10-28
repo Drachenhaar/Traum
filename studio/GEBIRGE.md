@@ -216,49 +216,60 @@ Stellen, die kein Bild abdeckt.
 
 ### Die Masse, gemessen statt geschätzt
 
-Hier stand „eine Felswand von 40 Karteneinheiten braucht 650 Punkte". Das war
-geschätzt. `npm run felsbogen` misst es stattdessen, und zwar am höchsten
-Grat des Hauptkamms, senkrecht zum Verlauf:
+Eine Felswand ist **ein Stück Grat**, kein ganzer Berg. `gratpunkte` liefert
+alle 18 Einheiten einen Ort; eine Wand überlappt im Gebrauch also etwa drei
+Nachbarn, so wie ein Baum ein Stück Wald ist.
+
+Das war zweimal falsch, bevor es stimmte. Erst hiess es „eine Felswand von 40
+Karteneinheiten braucht 650 Punkte" — geschätzt. Dann wurde ein **ganzer
+Gipfel** vermessen, 98 hoch und 222 breit, und daraus eine Bildgrösse
+abgeleitet — die falsche Einheit.
 
 | | |
 |---|---|
-| Gipfelhöhe | **98 Karteneinheiten** |
-| Fussbreite | **222 Karteneinheiten** |
-| Verhältnis | **2,27 : 1** |
-| zum Vergleich: ein Baum | 26 Einheiten |
+| Wandhöhe | **48 Karteneinheiten** (Felsband, gemessen: 10–49, Mittel 32) |
+| Auflösung | **800 × 1040 Bildpunkte** |
+| Abstand beim Setzen | 18 Einheiten |
+| zum Vergleich: ein Baum | 26 Einheiten, 430 Punkte |
 
-**Ein Gipfel ist also ein breiter Buckel und keine Zacke** — knapp vier
-Fichten hoch und achtmal so breit wie eine. Wer eine Felsnadel malt, malt
-gegen das, was darunter gerechnet wird, und der Widerspruch fällt genau dann
-auf, wenn man heranzoomt.
+**Warum nicht ein Bild je Gipfel.** Ein Bild hat ein festes
+Seitenverhältnis, ein Gebirge nicht. Allein über `breite` und `hoehe` —
+beides Eigenschaften des einzelnen Kamms — reicht die Gipfelform von
+**0,85 : 1 bis 4,45 : 1**:
 
-Bei der **Auflösung** gilt die Schranke der Bäume nicht unverändert. Dort
-sind es `karteHoehe × 16,4`, weil man an einen Baum ganz heranfährt; ein
-Gipfel von 222 Einheiten Breite passt beim engsten Zoom längst nicht mehr
-aufs Bild. Massgeblich ist der nächste Zoom, bei dem er **ganz** zu sehen
-ist: 222 Einheiten auf 2048 Punkten, also 9,2 je Einheit — **900 Punkte
-Höhe, 2043 Breite**. Wer näher herangeht, sieht eine Vergrösserung, aber dort
-trägt die gerechnete Schattierung die Feinheit, und die hat keine
-Auflösungsgrenze.
+| `breite` | `hoehe` 0,60 | 0,78 | 0,95 |
+|---|---|---|---|
+| 55 | 1,35 : 1 | 1,04 : 1 | 0,85 : 1 |
+| 110 *(Vorgabe)* | 2,75 : 1 | 2,12 : 1 | 1,74 : 1 |
+| 180 | 4,45 : 1 | 3,42 : 1 | 2,81 : 1 |
+
+Ein ganzer Gipfel als ein Bild müsste dafür gezerrt werden. Eine Folge von
+Wandstücken muss es nicht: **Die Breite des Berges entsteht daraus, wie viele
+nebeneinanderstehen.** Damit ist die Frage „sollen die Berge schroffer
+werden?" auch keine Systemfrage — sie steht schon als Regler an jedem Kamm.
 
 ### Der Vorlagenbogen
 
 `npm run felsbogen` erzeugt `.testbau/felsbogen/felsbogen.png`: acht Felder in
 genau dieser Grösse, jedes mit
 
-- der **echten Silhouette** eines anderen Gipfels, aus `hoeheUeberall`
-  senkrecht zum Kamm geschnitten — die Linie, hinter der die gemalte Wand
-  verschwinden darf und vor der sie nicht herausragen sollte,
+- dem **Längsschnitt am Kamm entlang** aus `hoeheUeberall` — Zacken und
+  Scharten, also das, was eine Wand wirklich bedeckt,
 - der **Fusslinie** bei 96 % der Höhe, auf der die Wand den Boden berührt,
 - dem **Rand**, in dem nichts stehen darf, damit die Glättung nicht
   anschneidet,
 - dem **Lichtpfeil** von links oben,
 - und einem **Baum als Mass**.
 
-Ein erster Entwurf hat statt der Silhouette die Schattierung aus
-`maleGebirge` untergelegt. Das war die falsche Projektion: Die Schattierung
-sieht von **oben** auf das Gelände, eine gemalte Wand steht **aufrecht** wie
-ein Baum. Wer auf eine Draufsicht malt, malt eine Wand, die nie passt.
+Dazu oben ein Streifen, der den Zusammenhang zeigt: der Grat über mehrere
+Gipfel, die Baumgrenze, die Gratpunkte im echten Abstand und die acht Felder
+als Kästen darauf. Ohne ihn malt man acht Einzelberge.
+
+Die Unterlage war zweimal falsch. Erst lag die Schattierung aus `maleGebirge`
+darunter — die falsche **Projektion**: Sie sieht von oben auf das Gelände,
+eine gemalte Wand steht aufrecht wie ein Baum. Dann wurde **quer** zum Kamm
+geschnitten — das ist die Form eines Gipfels, nicht die einer Wand. Eine Wand
+steht mit ihrer Breite am Grat **entlang**.
 
 **Eines sagt der Bogen auch über das Gebirge selbst:** Die acht Querschnitte
 sehen einander ähnlich. Die Zerklüftung verändert die Flanken, nicht die

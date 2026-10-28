@@ -62,42 +62,44 @@ const wahl = (name, vorgabe) => {
 const FELDER = wahl('felder', 8);
 
 /**
- * **Die Masse kommen aus dem Querschnitt, nicht aus einer Vorstellung.**
+ * **Was eine Felswand ist – und was sie nicht ist.**
  *
- * Gemessen am höchsten Grat des Hauptkamms, senkrecht zum Verlauf: Der
- * Gipfel ist **98 Karteneinheiten hoch** und am Fuss **222 breit**. Das ist
- * ein Verhältnis von 2,27 zu 1 – ein breiter Buckel, keine Zacke. Ein
- * gemalter Zackengipfel stünde im Widerspruch zu dem, was darunter
- * gerechnet wird, und der Widerspruch fiele genau dann auf, wenn man
- * heranzoomt.
+ * Ein erster Anlauf hat sie auf einen ganzen Gipfel bemessen: 98
+ * Karteneinheiten hoch, 222 breit. Das war die falsche Einheit. Die
+ * Erweiterungsstelle `gratpunkte` liefert alle 18 Einheiten einen Ort auf
+ * dem Kamm, und `GEBIRGE.md` sagt dazu: „an den Gipfeln die grossen, in den
+ * Sätteln die kleinen". Eine Wand ist also ein **Stück Grat**, das sich mit
+ * seinen Nachbarn überlappt – wie ein Baum ein Stück Wald ist.
  *
- * Zum Vergleich: Ein Baum ist 26 Einheiten hoch. Ein Gipfel ist also nicht
- * haushoch über dem Wald, sondern knapp viermal so hoch wie eine Fichte.
+ * Das löst nebenbei ein Problem, das die ganze Gipfelrechnung hatte: Ein
+ * Bild hat ein festes Seitenverhältnis, ein Gebirge nicht. Gemessen reicht
+ * die Form über `breite` und `hoehe` von 0,85 zu 1 bis 4,45 zu 1 – beides
+ * Eigenschaften des einzelnen Kamms. Ein ganzer Gipfel als ein Bild müsste
+ * dafür gezerrt werden. Eine Folge von Wandstücken muss es nicht: Die Breite
+ * des Berges entsteht daraus, wie viele nebeneinanderstehen.
+ *
+ * ---
+ *
+ * **Die Höhe ist gemessen.** Eine Wand deckt das Felsband zwischen
+ * Baumgrenze und Grat. Senkrecht zum Hauptkamm gemessen, dort wo die Höhe
+ * `BAUMGRENZE.ende` übersteigt: 10 bis 49 Einheiten, im Mittel 32. Die
+ * grosse Wand bekommt also **48**.
+ *
+ * Bei 16,384 Bildpunkten je Einheit im engsten Zoom sind das **800 Punkte**.
+ * Zum Vergleich: ein Baum ist 26 Einheiten hoch und wird mit 430 gebacken.
  */
-const KARTE_HOEHE = 98;
-const BREITE_ZU_HOEHE = 2.27;
+const KARTE_HOEHE = 48;
+const BREITE_ZU_HOEHE = 1.3;
 /** Ein Baum, zum Vergleich daneben. */
 const BAUM_HOEHE = 26;
 /** Bildpunkte je Karteneinheit beim engsten Zoom, doppelte Dichte. */
 const PUNKTE_JE_EINHEIT = 16.384;
+/** Unterkante des Felsbandes: dort steht die Wand auf. */
+const BAND_UNTEN = 68;
+/** Der Vorgabeabstand von `gratpunkte` – so dicht stehen die Wände. */
+const GRATABSTAND = 18;
 
-/**
- * **Die Auflösung deckt den häufigen Fall, nicht den äussersten.**
- *
- * Beim engsten Zoom sind es 16,384 Bildpunkte je Karteneinheit; ein Gipfel
- * von 98 Einheiten bräuchte dann 1605 Punkte, bei 2,27 Breite also 3644 –
- * mal acht Varianten wäre das ein Atlas, den kein Telefon lädt.
- *
- * Beim engsten Zoom passt ein Gipfel von 222 Einheiten Breite aber ohnehin
- * nicht mehr aufs Bild. Der nächste Zoom, bei dem er **ganz** zu sehen ist,
- * deckt 222 Einheiten auf 2048 Punkten – 9,2 je Einheit, also 900 Punkte
- * Höhe. Das ist die Grösse, bei der man einen Berg wirklich ansieht.
- *
- * Wer näher herangeht, sieht eine Vergrösserung – aber dort trägt die
- * gerechnete Schattierung darunter die Feinheit, und die hat keine
- * Auflösungsgrenze.
- */
-const FELD_H = wahl('punkte', 900);
+const FELD_H = wahl('punkte', 800);
 const FELD_B = Math.round(FELD_H * BREITE_ZU_HOEHE);
 /** Wo der Fuss sitzt – derselbe Anker wie bei Baum und Unterholz. */
 const ANKER_Y = 0.96;
@@ -107,7 +109,7 @@ const RAND_FREI = 0.015;
 const SPALTEN = 2;
 const ZEILEN = Math.ceil(FELDER / SPALTEN);
 const LUFT = 48;
-const KOPF = 150;
+const KOPF = 560;
 
 rmSync(ARBEIT, { recursive: true, force: true });
 mkdirSync(ARBEIT, { recursive: true });
@@ -179,6 +181,106 @@ const bogen = await seite.evaluate(async (p) => {
     p.luft, 112,
   );
 
+  /* =====================================================================
+   * DER ZUSAMMENHANG – acht Wände nebeneinander ergeben einen Grat
+   * ================================================================== */
+  /*
+   * **Das wichtigste Feld des Bogens.**
+   *
+   * Ohne es malt man acht Einzelberge. Mit ihm sieht man, dass eine Wand ein
+   * Stück einer fortlaufenden Linie ist: Sie überlappt ihre Nachbarn, ihre
+   * linke Kante muss an deren rechte anschliessen können, und ihr eigener
+   * Umriss ist nie die ganze Geschichte.
+   *
+   * Gezeigt wird der Grat über 420 Einheiten – ungefähr das, was ein Zug auf
+   * dem Bildschirm einnimmt – mit den acht Feldern als Kästen darauf.
+   */
+  const zuX0 = ORTE[0].x - 40;
+  const zuX1 = ORTE[ORTE.length - 1].x + 40;
+  const zuB = breite - 2 * p.luft;
+  const zuH = 300;
+  const zuY = p.kopf - zuH - 40;
+  const jeZu = zuB / (zuX1 - zuX0);
+  const zuHoch = zuH / (W.GEBIRGE.vollhoehe * 0.95);
+
+  g.save();
+  g.beginPath();
+  g.moveTo(p.luft, zuY + zuH);
+  for (let px = 0; px <= zuB; px += 2) {
+    const sx = zuX0 + px / jeZu;
+    const e = W.hoeheUeberall(sx, 600, [kamm]) * W.GEBIRGE.vollhoehe;
+    g.lineTo(p.luft + px, zuY + zuH - e * zuHoch);
+  }
+  g.lineTo(p.luft + zuB, zuY + zuH);
+  g.closePath();
+  g.fillStyle = '#DED4C0';
+  g.fill();
+  g.strokeStyle = '#8A8171';
+  g.lineWidth = 2;
+  g.stroke();
+
+  /* Die Baumgrenze – darunter steht Wald, darüber die Wände. */
+  const grenzeY = zuY + zuH - p.bandUnten * zuHoch;
+  g.strokeStyle = '#7A8467';
+  g.setLineDash([10, 8]);
+  g.lineWidth = 2;
+  g.beginPath();
+  g.moveTo(p.luft, grenzeY);
+  g.lineTo(p.luft + zuB, grenzeY);
+  g.stroke();
+  g.setLineDash([]);
+  g.fillStyle = '#6B6047';
+  g.font = '22px Georgia, serif';
+  g.fillText('Baumgrenze', p.luft + 8, grenzeY - 10);
+
+  /* Die Gratpunkte, im echten Abstand – so dicht stehen die Wände. */
+  g.save();
+  g.strokeStyle = '#A8853F';
+  g.lineWidth = 1.5;
+  g.beginPath();
+  for (let sx = zuX0; sx <= zuX1; sx += p.abstand) {
+    const px = p.luft + (sx - zuX0) * jeZu;
+    g.moveTo(px, grenzeY - 7);
+    g.lineTo(px, grenzeY + 7);
+  }
+  g.stroke();
+  g.restore();
+
+  /* Die acht Felder als Kästen – sichtbar überlappend. */
+  const spanneE = p.feldB / p.punkteJeEinheit;
+  for (let n = 0; n < ORTE.length; n++) {
+    const kx = p.luft + (ORTE[n].x - spanneE / 2 - zuX0) * jeZu;
+    const kb = spanneE * jeZu;
+    g.strokeStyle = '#B8860B';
+    g.lineWidth = 2;
+    g.strokeRect(kx, grenzeY - p.karteHoehe * zuHoch, kb, p.karteHoehe * zuHoch);
+    g.fillStyle = '#A8853F';
+    g.font = '19px Georgia, serif';
+    g.fillText(String(n), kx + 6, grenzeY - p.karteHoehe * zuHoch + 22);
+  }
+  g.restore();
+
+  g.fillStyle = '#6B6047';
+  g.font = '24px Georgia, serif';
+  /*
+   * **Die Unterschrift sagte zuerst etwas Falsches.**
+   *
+   * Sie behauptete, die acht Kästen überlappten einander. Das tun sie
+   * nicht: Sie sitzen an acht verschiedenen Gipfeln, damit acht
+   * verschiedene Formen herauskommen. Es sind **Varianten**, keine
+   * Nachbarn. Überlappt wird erst beim Setzen – dort steht alle 18
+   * Einheiten eine Wand, und die Striche auf der Baumgrenze zeigen, wie
+   * dicht das ist.
+   */
+  g.fillText(
+    'Acht Varianten, an acht Gipfeln abgenommen. Keine ist ein ganzer Berg – eine Wand ist ein Stück Grat.',
+    p.luft, zuY - 44,
+  );
+  g.fillText(
+    `Gesetzt wird alle ${p.abstand} Einheiten (Striche): Jede Wand überlappt im Gebrauch etwa drei Nachbarn.`,
+    p.luft, zuY - 14,
+  );
+
   const felder = [];
   for (let n = 0; n < ORTE.length; n++) {
     const sp = n % p.spalten;
@@ -186,33 +288,34 @@ const bogen = await seite.evaluate(async (p) => {
     const x0 = p.luft + sp * (p.feldB + p.luft);
     const y0 = p.kopf + p.luft + ze * (p.feldH + p.luft);
 
-    /* ---- Die Unterlage: der echte Querschnitt ----------------------- */
+    /* ---- Die Unterlage: der Grat, am Kamm entlang -------------------- */
     /*
-     * **Warum ein Querschnitt und keine Schattierung.**
+     * **Zwei Irrtümer liegen hinter dieser Unterlage.**
      *
-     * Der erste Entwurf hat `maleGebirge` untergelegt. Das war die falsche
-     * Projektion: Die Schattierung sieht von **oben** auf das Gelände, eine
-     * gemalte Felswand steht aber **aufrecht** wie ein Baum. Wer auf eine
-     * Draufsicht malt, malt eine Wand, die nie passt.
+     * Der erste legte `maleGebirge` darunter – die falsche Projektion: Die
+     * Schattierung sieht von **oben** auf das Gelände, eine gemalte Wand
+     * steht **aufrecht** wie ein Baum.
      *
-     * Hier steht deshalb die Silhouette, die `hoeheUeberall` senkrecht zum
-     * Kamm wirklich liefert – die Linie, hinter der die gemalte Wand
-     * verschwinden darf und vor der sie nicht herausragen sollte.
+     * Der zweite schnitt **quer** zum Kamm. Das ist der Schnitt durch den
+     * ganzen Berg und damit die Form eines Gipfels, nicht die einer Wand.
+     * Eine Wand steht mit ihrer Breite **am Grat entlang** – also ist der
+     * Längsschnitt die Linie, die sie zu treffen hat. Erst der zeigt, was
+     * eine Wand wirklich bedeckt: Zacken und Scharten, nicht einen Buckel.
      */
     const mitteX = ORTE[n].x;
-    const prof = [];
-    const halb = (p.feldB / 2) / p.punkteJeEinheit;
-    for (let px = 0; px <= p.feldB; px += 2) {
-      const t = (px / p.feldB - 0.5) * 2 * halb;
-      prof.push([px, W.hoeheUeberall(mitteX, 600 + t, [kamm]) * W.GEBIRGE.vollhoehe]);
-    }
+    const spanne = p.feldB / p.punkteJeEinheit;
     const fussY = y0 + Math.round(p.feldH * p.ankerY);
     const jeEinheit = (fussY - y0) / p.karteHoehe;
+    const prof = [];
+    for (let px = 0; px <= p.feldB; px += 2) {
+      const sx = mitteX + (px / p.feldB - 0.5) * spanne;
+      prof.push([px, W.hoeheUeberall(sx, 600, [kamm]) * W.GEBIRGE.vollhoehe - p.bandUnten]);
+    }
 
     g.save();
     g.beginPath();
     g.moveTo(x0, fussY);
-    for (const [px, e] of prof) g.lineTo(x0 + px, fussY - e * jeEinheit);
+    for (const [px, e] of prof) g.lineTo(x0 + px, fussY - Math.max(0, e) * jeEinheit);
     g.lineTo(x0 + p.feldB, fussY);
     g.closePath();
     g.fillStyle = '#DED4C0';
@@ -227,19 +330,24 @@ const bogen = await seite.evaluate(async (p) => {
     /* ---- Ein Baum daneben, als Mass ---------------------------------- */
     /*
      * Ohne ihn liest man die Silhouette als „Berg" und malt etwas Hohes.
-     * Mit ihm sieht man, dass ein Gipfel knapp vier Fichten hoch ist – und
-     * malt etwas, das daneben bestehen kann.
+     * Mit ihm sieht man, dass eine Wand knapp zwei Fichten hoch ist.
      */
     const bh = p.baumHoehe * jeEinheit;
     const bx = x0 + p.feldB - 70;
     g.save();
-    g.fillStyle = '#7A8467';
+    /*
+     * Umriss statt Fläche: Gefüllt deckte der Baum ein Drittel des Feldes
+     * zu – also genau die Stelle, auf die gemalt werden soll. Das Mass soll
+     * man sehen, nicht umgehen müssen.
+     */
+    g.strokeStyle = '#7A8467';
+    g.lineWidth = 2.5;
     g.beginPath();
     g.moveTo(bx, fussY - bh);
     g.lineTo(bx - bh * 0.26, fussY);
     g.lineTo(bx + bh * 0.26, fussY);
     g.closePath();
-    g.fill();
+    g.stroke();
     g.fillStyle = '#6B6047';
     g.font = '22px Georgia, serif';
     g.fillText('Baum', bx - 30, fussY + 28);
@@ -260,7 +368,7 @@ const bogen = await seite.evaluate(async (p) => {
     g.restore();
 
     /* Die Fusslinie – hier berührt die Wand den Boden. */
-    const fy = y0 + Math.round(p.feldH * p.ankerY);
+    const fy = fussY;
     g.save();
     g.strokeStyle = '#A8853F';
     g.lineWidth = 3;
@@ -309,6 +417,7 @@ const bogen = await seite.evaluate(async (p) => {
   felder: FELDER, spalten: SPALTEN, zeilen: ZEILEN, luft: LUFT, kopf: KOPF,
   feldB: FELD_B, feldH: FELD_H, ankerY: ANKER_Y, randFrei: RAND_FREI,
   punkteJeEinheit: PUNKTE_JE_EINHEIT, karteHoehe: KARTE_HOEHE, baumHoehe: BAUM_HOEHE,
+  bandUnten: BAND_UNTEN, abstand: GRATABSTAND,
 });
 if (fehler.length) throw new Error(fehler[0]);
 
