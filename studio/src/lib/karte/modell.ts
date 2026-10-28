@@ -27,6 +27,8 @@
  */
 
 import { istSiedlung, type Siedlung } from './siedlung';
+import { istBauform, setzeStaette, type Bauform, type Staettenobjekt } from '../kartenwerk/staettenwerk';
+export type { Staettenobjekt } from '../kartenwerk/staettenwerk';
 
 import { neuerSeed } from './zufall';
 
@@ -165,6 +167,8 @@ export interface Kartendokument {
    * und eine Karte ohne Dörfer ist keine beschädigte Karte.
    */
   marken?: Kartenmarke[];
+  /** Frei gesetzte Gebäude. Anders als Siedlungszeichen werden sie als Staffage gemalt. */
+  staetten?: Staettenobjekt[];
   /**
    * Die Gebirgszüge. Darf fehlen – jede Karte von vor dieser Runde hat
    * keine, und eine Karte ohne Berge ist keine beschädigte Karte.
@@ -194,6 +198,7 @@ export function neueKarte(bookId: string): Kartendokument {
     styleId: 'artbook',
     features: [],
     marken: [],
+    staetten: [],
     kaemme: [],
     createdAt: jetzt,
     updatedAt: jetzt,
@@ -206,6 +211,10 @@ export function neuesFeature(art: Bedeutung, punkte: Punkt[]): Kartenfeature {
 
 export function neueMarke(art: Siedlung, bei: Punkt): Kartenmarke {
   return { id: neueId('m'), art, bei, seed: neuerSeed() };
+}
+
+export function neueStaette(art: Bauform, bei: Punkt): Staettenobjekt {
+  return setzeStaette(neueId('s'), art, bei, art === 'bruecke' ? 22 : 32, neuerSeed());
 }
 
 /**
@@ -325,6 +334,25 @@ export function heileKarte(roh: unknown): Kartendokument | undefined {
     });
   }
 
+  /* Einzelbauten bleiben durch Backup, Neubeginn und Heilung erhalten. */
+  const staetten: Staettenobjekt[] = [];
+  for (const rohStaette of Array.isArray(k.staetten) ? k.staetten : []) {
+    if (!rohStaette || typeof rohStaette !== 'object') continue;
+    const s = rohStaette as Record<string, unknown>;
+    if (typeof s.id !== 'string' || !s.id || !istBauform(s.bauform)) continue;
+    if (!Array.isArray(s.bei) || s.bei.length !== 2 || !s.bei.every(
+      (n) => typeof n === 'number' && Number.isFinite(n))) continue;
+    staetten.push({
+      id: s.id,
+      bauform: s.bauform,
+      bei: [s.bei[0] as number, s.bei[1] as number],
+      hoehe: klemme(s.hoehe, 8, 32, s.bauform === 'bruecke' ? 22 : 32),
+      variante: Math.floor(klemme(s.variante, 0, 1000, 0)),
+      seed: zahl(s.seed, 1),
+      entryId: typeof s.entryId === 'string' ? s.entryId : undefined,
+    });
+  }
+
   return {
     id: k.id,
     bookId: k.bookId,
@@ -351,6 +379,7 @@ export function heileKarte(roh: unknown): Kartendokument | undefined {
     styleId: typeof k.styleId === 'string' ? k.styleId : 'artbook',
     features,
     marken,
+    staetten,
     kaemme,
     createdAt: zahl(k.createdAt, Date.now()),
     updatedAt: zahl(k.updatedAt, Date.now()),
