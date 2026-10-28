@@ -27,6 +27,8 @@
  */
 
 import { istSiedlung, type Siedlung } from './siedlung';
+import type { Kartenweg } from './wege';
+export type { Kartenweg } from './wege';
 import { istBauform, setzeStaette, type Bauform, type Staettenobjekt } from '../kartenwerk/staettenwerk';
 export type { Staettenobjekt } from '../kartenwerk/staettenwerk';
 
@@ -169,6 +171,8 @@ export interface Kartendokument {
   marken?: Kartenmarke[];
   /** Frei gesetzte Gebäude. Anders als Siedlungszeichen werden sie als Staffage gemalt. */
   staetten?: Staettenobjekt[];
+  /** Frei gezeichnete Wege; nur ihre Mittellinie wird gespeichert. */
+  wege?: Kartenweg[];
   /**
    * Die Gebirgszüge. Darf fehlen – jede Karte von vor dieser Runde hat
    * keine, und eine Karte ohne Berge ist keine beschädigte Karte.
@@ -199,6 +203,7 @@ export function neueKarte(bookId: string): Kartendokument {
     features: [],
     marken: [],
     staetten: [],
+    wege: [],
     kaemme: [],
     createdAt: jetzt,
     updatedAt: jetzt,
@@ -211,6 +216,11 @@ export function neuesFeature(art: Bedeutung, punkte: Punkt[]): Kartenfeature {
 
 export function neueMarke(art: Siedlung, bei: Punkt): Kartenmarke {
   return { id: neueId('m'), art, bei, seed: neuerSeed() };
+}
+
+/** Der Weg bewahrt nur seine Linie, ohne damit neue Orte zu erfinden. */
+export function neuerWeg(punkte: Punkt[]): Kartenweg {
+  return { id: neueId('weg'), punkte: punkte.map(([x, y]) => [x, y]), seed: neuerSeed() };
 }
 
 export function neueStaette(art: Bauform, bei: Punkt): Staettenobjekt {
@@ -334,6 +344,25 @@ export function heileKarte(roh: unknown): Kartendokument | undefined {
     });
   }
 
+  /* Offene Wege: jede Strecke muss mindestens zwei gültige Punkte haben. */
+  const wege: Kartenweg[] = [];
+  for (const rohWeg of Array.isArray(k.wege) ? k.wege : []) {
+    if (!rohWeg || typeof rohWeg !== 'object') continue;
+    const w = rohWeg as Record<string, unknown>;
+    if (typeof w.id !== 'string' || !w.id) continue;
+    const punkte = (Array.isArray(w.punkte) ? w.punkte : [])
+      .filter((p): p is Punkt =>
+        Array.isArray(p) && p.length === 2 &&
+        p.every((n) => typeof n === 'number' && Number.isFinite(n)))
+      .slice(0, 400)
+      .map(([x, y]) => [x, y] as Punkt);
+    if (punkte.length < 2) continue;
+    wege.push({
+      id: w.id, punkte, seed: zahl(w.seed, 1),
+      entryId: typeof w.entryId === 'string' ? w.entryId : undefined,
+    });
+  }
+
   /* Einzelbauten bleiben durch Backup, Neubeginn und Heilung erhalten. */
   const staetten: Staettenobjekt[] = [];
   for (const rohStaette of Array.isArray(k.staetten) ? k.staetten : []) {
@@ -380,6 +409,7 @@ export function heileKarte(roh: unknown): Kartendokument | undefined {
     features,
     marken,
     staetten,
+    wege,
     kaemme,
     createdAt: zahl(k.createdAt, Date.now()),
     updatedAt: zahl(k.updatedAt, Date.now()),
