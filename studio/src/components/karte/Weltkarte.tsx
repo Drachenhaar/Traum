@@ -38,6 +38,7 @@ import {
   alsPfad,
   neueMarke,
   neuerKamm,
+  neueStaette,
   neuesFeature,
   type Bedeutung,
   type Kartendokument,
@@ -46,6 +47,7 @@ import {
 } from '../../lib/karte/modell';
 import { flaecheAus, flussAus } from '../../lib/karte/kontur';
 import { SIEDLUNGEN, alsSiedlungspfad, istSiedlung, type Siedlung } from '../../lib/karte/siedlung';
+import { BAUFORMEN, istBauform, verschiebeStaette, type Bauform } from '../../lib/kartenwerk/staettenwerk';
 import { buchtZiehen } from '../../lib/karte/bucht';
 import { landzungeZiehen } from '../../lib/karte/landzunge';
 import { kuestensaum, namenslage } from '../../lib/karte/kartografie';
@@ -78,7 +80,7 @@ import { cx } from '../../lib/utils';
  * bekommt kein mächtigeres Werkzeug, sondern ein Wort mehr.
  */
 export type Werkzeug =
-  | Bedeutung | 'waehlen' | 'bucht' | 'landzunge' | 'fluss' | 'gebirge' | Siedlung;
+  | Bedeutung | 'waehlen' | 'bucht' | 'landzunge' | 'fluss' | 'gebirge' | Siedlung | Bauform;
 
 interface Sicht {
   x: number;
@@ -166,6 +168,8 @@ export function Weltkarte({
    * unbrauchbar.
    */
   const [zieht, setZieht] = useState<{ id: string; i: number; p: Punkt } | null>(null);
+  /** Eine Stätte wird in der Vorschau bewegt, erst beim Loslassen gespeichert. */
+  const [ziehtStaette, setZiehtStaette] = useState<{ id: string; vorher: Punkt; bei: Punkt } | null>(null);
 
   /*
    * Die Finger.
@@ -318,6 +322,7 @@ export function Weltkarte({
        * Fleck.
        */
       setSpur(null);
+      setZiehtStaette(null);
       const { abstand, mitte: m } = abstandUndMitte();
       geste.current = { abstand, mitte: m, sicht };
       return;
@@ -341,6 +346,11 @@ export function Weltkarte({
     if (zieht && finger.current.size === 1) {
       bewegt.current = true;
       setZieht({ ...zieht, p: zuKarte(e.clientX, e.clientY) });
+      return;
+    }
+    if (ziehtStaette && finger.current.size === 1) {
+      bewegt.current = true;
+      setZiehtStaette({ ...ziehtStaette, bei: zuKarte(e.clientX, e.clientY) });
       return;
     }
     if (Math.hypot(e.clientX - vorher.x, e.clientY - vorher.y) > 1) bewegt.current = true;
@@ -389,6 +399,17 @@ export function Weltkarte({
      * ist kein Verschieben, und ein Schritt im Rückgängig, der nichts
      * ändert, ist einer, den niemand erklären kann.
      */
+    if (ziehtStaette) {
+      const z = ziehtStaette;
+      setZiehtStaette(null);
+      if (z.bei[0] !== z.vorher[0] || z.bei[1] !== z.vorher[1]) {
+        onChange({ ...karte, staetten: verschiebeStaette(karte.staetten ?? [], z.id, z.bei) });
+      }
+      onWaehle(z.id);
+      verbraucht.current = true;
+      return;
+    }
+
     if (zieht) {
       const g = (karte.kaemme ?? []).find((k) => k.id === zieht.id);
       const alt = g?.punkte[zieht.i];
@@ -427,6 +448,18 @@ export function Weltkarte({
      * Punkt etwas. Ein Tippen ist für eine Fläche zu wenig – für einen Ort
      * ist es genau richtig.
      */
+    if (istBauform(werkzeug)) {
+      const mitte: Punkt = [
+        spur.reduce((a, p) => a + p[0], 0) / spur.length,
+        spur.reduce((a, p) => a + p[1], 0) / spur.length,
+      ];
+      const bauteil = neueStaette(werkzeug, mitte);
+      onChange({ ...karte, staetten: [...(karte.staetten ?? []), bauteil] });
+      onWaehle(bauteil.id);
+      verbraucht.current = true;
+      return;
+    }
+
     if (istSiedlung(werkzeug)) {
       const mitte: Punkt = [
         spur.reduce((a, p) => a + p[0], 0) / spur.length,
@@ -790,6 +823,33 @@ export function Weltkarte({
             ))}
           </g>
 
+          {/* Die Fangbereiche der Bauwerke. Sie sind keine Flächen und keine Siedlungssymbole. */}
+          <g>
+            {(karte.staetten ?? []).map((s) => (
+              <circle
+                key={`bau_fang_${s.id}`}
+                cx={s.bei[0]}
+                cy={s.bei[1] - s.hoehe * .72}
+                r={s.hoehe * .85}
+                fill="transparent"
+                onPointerDown={(e) => {
+                  if (werkzeug !== 'waehlen') return;
+                  e.stopPropagation();
+                  finger.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                  bewegt.current = false;
+                  verbraucht.current = true;
+                  setSpur(null);
+                  setZiehtStaette({ id: s.id, vorher: s.bei, bei: s.bei });
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (werkzeug === 'waehlen' && !bewegt.current) onWaehle(s.id);
+                }}
+              />
+            ))}
+          </g>
+
           {/*
             Was gerade unter dem Finger entsteht.
 
@@ -882,6 +942,29 @@ export function Weltkarte({
                 strokeWidth={stil.strich * 2}
                 strokeDasharray={`${sicht.w * 0.014} ${sicht.w * 0.01}`}
               />
+            );
+          })}
+
+          {/* Die gewählte Stätte: beim Ziehen nur die Vorschau bewegen. */}
+          {(karte.staetten ?? []).map((s) => {
+            const lage = ziehtStaette?.id === s.id ? ziehtStaette.bei : s.bei;
+            if (gewaehlt !== s.id && ziehtStaette?.id !== s.id) return null;
+            return (
+              <g key={`bau_wahl_${s.id}`}>
+                <ellipse
+                  cx={lage[0]} cy={lage[1] - s.hoehe * .1}
+                  rx={s.hoehe * 1.05} ry={s.hoehe * .45}
+                  fill="none" stroke={stil.wahl} strokeWidth={Math.max(stil.strich, 1.4)}
+                  strokeDasharray={`${sicht.w * .009} ${sicht.w * .007}`}
+                />
+                {ziehtStaette?.id === s.id && (
+                  <path
+                    d={`M ${lage[0] - s.hoehe*.6} ${lage[1] - s.hoehe*.28} l 0 ${-s.hoehe*.67} l ${s.hoehe*.6} ${-s.hoehe*.43} l ${s.hoehe*.6} ${s.hoehe*.43} l 0 ${s.hoehe*.67} Z`}
+                    stroke={stil.wahl} fill={stil.land.flaeche} fillOpacity={.55}
+                    strokeWidth={stil.strich}
+                  />
+                )}
+              </g>
             );
           })}
 
@@ -1067,7 +1150,7 @@ export function Weltkarte({
           * ein Hinweis, der etwas über das Bild behauptet, was man im Bild
           * widerlegt sieht.
           */}
-        {karte.features.length === 0 && (karte.marken ?? []).length === 0 && !spur && (
+        {karte.features.length === 0 && (karte.marken ?? []).length === 0 && (karte.staetten ?? []).length === 0 && !spur && (
           <p className="pointer-events-none absolute inset-x-6 bottom-6 text-center text-sm text-ink-muted">
             {/*
               Auf der leeren Karte hat die Bucht nichts, worin sie liegen
@@ -1207,6 +1290,9 @@ export function Werkzeugleiste({
       </div>
       <div className="flex flex-wrap items-center gap-2">
         {SIEDLUNGEN.map((o) => knopf(o.id, o.name))}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {BAUFORMEN.map((o) => knopf(o.id, o.name))}
       </div>
     </div>
   );

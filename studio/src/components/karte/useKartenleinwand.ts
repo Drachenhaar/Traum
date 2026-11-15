@@ -52,6 +52,7 @@ import type { Kartenstil } from '../../lib/karte/stil';
 import { stilbuchFuer } from '../../lib/kartenwerk/stilbuch';
 import { ladeAtlas, type Atlas } from '../../lib/kartenwerk/atlas';
 import { staffageAus } from '../../lib/kartenwerk/streuwerk';
+import { staettenStaffage, staettenkasten, type Staettenobjekt } from '../../lib/kartenwerk/staettenwerk';
 import { Staffageraster } from '../../lib/kartenwerk/raster';
 import { Kachelwerk, WERKPLAN, stufeFuer, type Kasten } from '../../lib/kartenwerk/kachelwerk';
 import { maleLage, nochEinBild, type Sichtfeld } from '../../lib/kartenwerk/maler';
@@ -120,6 +121,7 @@ export const messung: Messung = {
 
 /** Damit „keine Gebirge" nicht bei jedem Bild eine neue leere Liste ist. */
 const LEER: Gebirgskamm[] = [];
+const LEERE_STAETTEN: Staettenobjekt[] = [];
 
 /** Der Kasten, den eine Fläche samt Bewuchs einnimmt. */
 function flaechenkasten(f: Kartenfeature): Kasten {
@@ -173,6 +175,7 @@ export function useKartenleinwand({
    * kein Gebirge tragen.
    */
   const kaemme = karte.kaemme ?? LEER;
+  const staetten = karte.staetten ?? LEERE_STAETTEN;
   const kaemmeRef = useRef(kaemme);
   kaemmeRef.current = kaemme;
 
@@ -192,11 +195,12 @@ export function useKartenleinwand({
      * Wald auf dem neuen Berg stehen – und zwar still, denn die Kacheln
      * sähen vollständig aus.
      */
-    const liste = staffageAus(karte.features, stilbuch, kaemme);
+    const liste = [...staffageAus(karte.features, stilbuch, kaemme), ...staettenStaffage(staetten)];
+    liste.sort((a, b) => (a.ebene - b.ebene) || (a.y - b.y));
     messung.msStreuen = performance.now() - t0;
     messung.staffage = liste.length;
     return liste;
-  }, [karte.features, stilbuch, kaemme]);
+  }, [karte.features, stilbuch, kaemme, staetten]);
 
   /*
    * Der Maler liest die Staffage aus einem Ref und nicht aus dem Abschluss.
@@ -219,6 +223,7 @@ export function useKartenleinwand({
   const vorigeKaemme = useRef<Gebirgskamm[] | null>(null);
   const stufeRef = useRef<number | undefined>(undefined);
   const vorigeFeatures = useRef<Kartenfeature[] | null>(null);
+  const vorigeStaetten = useRef<Staettenobjekt[] | null>(null);
   const vorigesBuch = useRef<ReturnType<typeof stilbuchFuer> | null>(null);
   const vorigerStil = useRef<Kartenstil | null>(null);
 
@@ -323,6 +328,23 @@ export function useKartenleinwand({
 
     vorigeFeatures.current = karte.features;
   }, [karte.features, stilbuch]);
+
+  /* Bauwerke entwerten nur ihren alten und neuen Platz – niemals die ganze Karte. */
+  useEffect(() => {
+    const werk = werkRef.current;
+    const vorher = vorigeStaetten.current;
+    vorigeStaetten.current = staetten;
+    if (!werk || vorher === null || vorher === staetten) return;
+    const alt = new Map(vorher.map((s) => [s.id, s]));
+    const neu = new Map(staetten.map((s) => [s.id, s]));
+    for (const [id, s] of neu) {
+      const a = alt.get(id);
+      if (a === s) continue;
+      werk.entwerte(staettenkasten(s));
+      if (a) werk.entwerte(staettenkasten(a));
+    }
+    for (const [id, s] of alt) if (!neu.has(id)) werk.entwerte(staettenkasten(s));
+  }, [staetten]);
 
   /*
    * Dasselbe für die Gebirge – getrennt, weil sie ein eigenes Werk haben.

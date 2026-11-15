@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dragoncore · Weltkarte – Handyvorschau</title>
+<style>
+:root{color-scheme:light;font-family:Georgia,'Times New Roman',serif;color:#374839;background:#e5e3d7}
+*{box-sizing:border-box}
+body{margin:0;padding:12px;min-height:100dvh;display:flex;justify-content:center;align-items:flex-start}
+main{width:min(920px,100%);background:#f7f1e3;border:1px solid #d5c9b5;border-radius:19px;overflow:hidden;box-shadow:0 14px 45px #36422f1c}
+header{padding:17px 20px 11px}
+h1{font-size:clamp(23px,3vw,32px);font-weight:normal;margin:0;letter-spacing:.02em}
+header p{font:13px system-ui,sans-serif;color:#706d5a;margin:6px 0 0}
+canvas{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair;border-block:1px solid #d6d9c7}
+.controls{padding:14px 16px 12px}
+.tools{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+button{padding:10px 14px;border-radius:999px;border:1px solid #b8b39e;background:#f7f1e3;color:#425044;font:13px system-ui,sans-serif;cursor:pointer;min-height:43px}
+button.selected{background:#435f51;border-color:#435f51;color:#fffaf0}
+button:focus-visible{outline:3px solid #9e7849;outline-offset:2px}
+#status{display:block;margin:8px 1px;color:#5d6757;font:13px system-ui,sans-serif;min-height:34px}
+small{font:11px/1.5 system-ui,sans-serif;color:#877e70;display:block;padding:0 17px 16px}
+@media(max-width:600px){body{padding:0;background:#f7f1e3}main{border:0;border-radius:0;box-shadow:none}header{padding:15px 15px 10px}.controls{padding:11px}.tools{gap:6px}button{padding:9px 12px;font-size:12px}}
+</style>
+</head>
+<body><main>
+<header><h1>Dragoncore <span style="color:#b69b71">·</span> Weltkarte</h1><p>Handy-Vorschau · Gebäude setzen, bewegen und eine kleine Welt erleben</p></header>
+<canvas id="karte" width="1120" height="780" aria-label="Interaktive Dragoncore-Landschaft mit Gebäuden und einer wandernden Person"></canvas>
+<section class="controls">
+<div class="tools" aria-label="Werkzeuge"><button id="sehen" class="selected">✋ Ansehen</button><button id="haus">+ Haus</button><button id="turm">+ Turm</button><button id="bruecke">+ Brücke</button><button id="loeschen">Entfernen</button></div>
+<div class="tools"><button id="zurueck">↶ Zurück</button><button id="neu">Zurücksetzen</button><button id="licht">Abendlicht: an</button><button id="wandern">Spaziergang: an</button></div>
+<span id="status" role="status">Wähle ein Bauwerk und tippe auf die Karte. Im Modus Ansehen kannst du es verschieben.</span>
+</section>
+<small>Einfacher spielbarer Test unserer neuen Kartenbedienung. Noch nicht die vollständige Dragoncore-App. Die echte Integration liegt im GitHub-Entwurf #99 und bleibt unveröffentlicht. Gebäude bleiben hier nur auf diesem Gerät gespeichert.</small>
+</main>
+<script>
+(function(){
+'use strict';
+const c=document.getElementById('karte'),g=c.getContext('2d'),status=document.getElementById('status');
+const W=c.width,H=c.height;
+const PAL={papier:'#e0e3cf',pfad:'#d8c9aa',wasser:'#91b5bb',laub:'#718a70',stein:'#9d9785',licht:'#efe1be'};
+let mode='sehen',gold=true,patrol=true,drag=null,dragStart=null,previous=null,moving=false;
+const defaults=()=>[
+ {id:'a',bauform:'haus',x:404,y:355,h:112,roof:'#697f85'},
+ {id:'b',bauform:'haus',x:695,y:317,h:91,roof:'#97796b'},
+ {id:'c',bauform:'haus',x:829,y:482,h:107,roof:'#748777'},
+ {id:'d',bauform:'bruecke',x:587,y:609,h:72,roof:'#998578'}
+];
+let staetten=defaults(),undo=[],counter=5;
+try {
+ const saved=JSON.parse(localStorage.getItem('dragoncore-karten-vorschau')||'null');
+ if(Array.isArray(saved)&&saved.length<40&&saved.every(o=>o&&typeof o.id==='string'&&['haus','turm','bruecke'].includes(o.bauform)&&Number.isFinite(o.x)&&Number.isFinite(o.y)&&Number.isFinite(o.h)))staetten=saved;
+}catch(_){}
+const person={x:295,y:385,goal:null,step:0,dir:1,level:0,patrolStep:0};
+const walk=[[295,385],[440,415],[570,425],[710,434],[864,460],[710,434],[570,425],[440,415]];
+const imgs=[0,3,5].map(n=>{const i=new Image();i.onload=()=>draw();i.src='../../assets/karte/artbook/wald_0'+n+'.png';return i;});
+function save(){try{localStorage.setItem('dragoncore-karten-vorschau',JSON.stringify(staetten));}catch(_){}}
+function remember(){undo.push(JSON.stringify(staetten));if(undo.length>40)undo.shift();}
+function setMode(m){
+ mode=m;
+ for(const id of ['sehen','haus','turm','bruecke','loeschen'])document.getElementById(id).classList.toggle('selected',id===m);
+ c.style.cursor=m==='sehen'?'grab':m==='loeschen'?'not-allowed':'crosshair';
+ status.textContent=m==='sehen'?'Ansehen: Gebäude ziehen oder freien Boden zum Spazieren antippen':m==='loeschen'?'Zum Entfernen ein Bauwerk antippen':'Auf die Landschaft tippen, um '+({haus:'ein Haus',turm:'einen Turm',bruecke:'eine Brücke'}[m])+' zu setzen.';
+}
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+function dot(x,y,rx,ry,col){g.beginPath();g.ellipse(x,y,rx,ry,0,0,Math.PI*2);g.fillStyle=col;g.fill()}
+function poly(pts,col,outline){g.beginPath();g.moveTo(pts[0][0],pts[0][1]);for(let j=1;j<pts.length;j++)g.lineTo(pts[j][0],pts[j][1]);g.closePath();g.fillStyle=col;g.fill();if(outline){g.strokeStyle=outline;g.lineWidth=1.5;g.stroke()}}
+function line(pts,col,w){g.beginPath();g.moveTo(pts[0][0],pts[0][1]);for(let j=1;j<pts.length;j++)g.lineTo(pts[j][0],pts[j][1]);g.strokeStyle=col;g.lineWidth=w;g.lineCap='round';g.lineJoin='round';g.stroke()}
+function ground(){
+ const bg=g.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#e6e5d5');bg.addColorStop(1,'#d7dfc8');g.fillStyle=bg;g.fillRect(0,0,W,H);
+ dot(200,90,380,185,'#dce0c8');dot(1015,95,450,190,'#d9ddc3');
+ // Ein einziger stiller Fluss, keine überfüllte Uferpromenade.
+ g.beginPath();g.moveTo(0,580);g.bezierCurveTo(177,535,263,585,365,620);g.bezierCurveTo(570,694,723,631,878,706);g.bezierCurveTo(960,745,1053,709,W,699);g.lineTo(W,H);g.lineTo(0,H);g.closePath();g.fillStyle='#8eb1b6';g.fill();
+ line([[15,579],[150,560],[250,582],[365,620]],'#e5e4d1',5);
+ // Breiter, handgemalter Weg.
+ g.beginPath();g.moveTo(60,302);g.bezierCurveTo(230,376,350,402,511,415);g.bezierCurveTo(730,431,890,459,1050,584);g.strokeStyle='#b9ac91';g.lineWidth=48;g.stroke();g.strokeStyle='#dbcdb0';g.lineWidth=40;g.stroke();g.strokeStyle='#e6d9bd';g.lineWidth=15;g.stroke();
+ // Kleine, sparsame Gräser; reproduzierbar, kein Zufall pro Bild.
+ for(let k=0;k<60;k++){let x=72+(k*167)%1000,y=138+(k*107)%410;if(y>330&&y<540&&x>175&&x<920)continue;line([[x,y],[x-2,y-5]],'#b0bf9b',1.2)}
+ for(let k=0;k<11;k++){let x=40+k*91;line([[x,713-(k%4)*7],[x+18,711-(k%4)*7]],'#c1d8d3',1.4)}
+}
+function tree(x,y,s,index){
+ const a=imgs[index];dot(x+9*s,y+8*s,41*s,13*s,'#425b4b20');
+ if(a.complete&&a.naturalWidth>0){const h=170*s;g.drawImage(a,x-h*.46,y-h,h*.92,h);return}
+ g.save();g.translate(x,y);g.scale(s,s);
+ poly([[-7,0],[-4,-65],[6,-65],[9,0]],'#7a7360');
+ dot(-15,-81,37,39,'#869c81');dot(16,-94,44,47,'#758c75');dot(-3,-119,43,40,'#9ead97');dot(-20,-107,16,13,'#b7c9a4');
+ g.restore();
+}
+function building(o,selected){
+ const h=o.h;g.save();g.translate(o.x,o.y);g.scale(h/110,h/110);
+ dot(9,5,o.bauform==='bruecke'?126:101,24,'#3f524427');
+ const lineColor='#857e71';
+ if(o.bauform==='bruecke'){
+  poly([[-120,-21],[-103,-43],[93,-43],[119,-21]],'#d9c19d',lineColor);
+  poly([[-120,-21],[119,-21],[108,2],[-108,2]],'#a58d70',lineColor);
+  for(let i=-96;i<=96;i+=27)line([[i,-28],[i+12,-6]],'#958269',1.6);
+ }else if(o.bauform==='turm'){
+  poly([[-35,-127],[15,-146],[15,-11],[-35,-24]],'#dfd0ae',lineColor);
+  poly([[15,-146],[58,-125],[58,-35],[15,-11]],'#bba98a',lineColor);
+  poly([[-52,-122],[8,-197],[74,-148],[17,-111]],o.roof,lineColor);
+  poly([[31,-89],[44,-95],[44,-68],[31,-63]],gold?'#f0d49b':'#aab8b4',lineColor);
+  line([[-19,-83],[-2,-78]],'#675d51',8);
+ }else{
+  poly([[-83,-124],[0,-94],[0,-5],[-83,-38]],'#eadbbc',lineColor);
+  poly([[0,-94],[82,-127],[82,-37],[0,-5]],'#c8b794',lineColor);
+  poly([[-101,-130],[-15,-179],[98,-150],[2,-100]],o.roof,lineColor);
+  poly([[-28,-63],[-8,-55],[-8,-6],[-28,-14]],'#80644a',lineColor);
+  poly([[-67,-91],[-47,-84],[-47,-59],[-67,-67]],gold?'#f0d49b':'#aab8b4',lineColor);
+  poly([[31,-91],[54,-101],[54,-68],[31,-57]],gold?'#f0d49b':'#aab8b4',lineColor);
+  line([[-59,-91],[-59,-63]],'#907c69',1.8);
+ }
+ if(selected){g.setLineDash([7,7]);g.beginPath();g.ellipse(0,2,117,31,0,0,Math.PI*2);g.strokeStyle='#ae7f42';g.lineWidth=3;g.stroke();g.setLineDash([])}
+ g.restore();
+}
+function traveler(){
+ const f=person,walk=f.level;g.save();g.translate(f.x,f.y);g.scale(f.dir,1);
+ dot(0,1,16,5,'#42514635');
+ const stride=Math.sin(f.step)*walk*5,up=Math.max(0,Math.sin(f.step))*walk*3;
+ line([[-4,-22],[-4-stride*.5,-12],[-6-stride,-2]],'#4e5852',5.5);
+ line([[5,-22],[5+stride*.5,-11],[6+stride,-2-up]],'#54605a',6);
+ poly([[-11,-56],[9,-57],[14,-26],[-15,-26]],'#687f70');
+ line([[10,-50],[13-stride*.5,-31]],'#809385',4);
+ line([[-9,-51],[-14+stride*.5,-32]],'#576e62',4);
+ dot(0,-69,10,13,'#d2b494');dot(-3,-79,10,6,'#756455');
+ g.restore();
+}
+function draw(){
+ g.clearRect(0,0,W,H);ground();
+ tree(160,270,.95,0);tree(961,258,.78,2);
+ const things=staetten.map(s=>({y:s.y,building:s}));things.push({y:person.y,person:true});
+ things.sort((a,b)=>a.y-b.y);
+ for(const q of things)q.person?traveler():building(q.building,q.building===drag);
+ if(gold){const fog=g.createLinearGradient(0,0,W,H);fog.addColorStop(0,'#fff0cf19');fog.addColorStop(1,'#f3e1c10c');g.fillStyle=fog;g.fillRect(0,0,W,H);}
+ const edge=g.createRadialGradient(W/2,H/2,190,W/2,H/2,800);edge.addColorStop(0,'#00000000');edge.addColorStop(1,'#354c3a12');g.fillStyle=edge;g.fillRect(0,0,W,H);
+}
+function update(dt){
+ if(!person.goal&&patrol){let p=walk[person.patrolStep];person.goal={x:p[0],y:p[1]};person.patrolStep=(person.patrolStep+1)%walk.length}
+ if(!person.goal){person.level=Math.max(0,person.level-dt*6);return}
+ let dx=person.goal.x-person.x,dy=person.goal.y-person.y,dist=Math.hypot(dx,dy);
+ if(dist<2){person.goal=null;person.level=0;return}
+ const step=Math.min(dist,55*dt);person.x+=dx/dist*step;person.y+=dy/dist*step;person.step+=step*.11;person.level=Math.min(1,person.level+dt*5);
+ if(Math.abs(dx)>1)person.dir=dx>0?1:-1;
+}
+function point(e){const r=c.getBoundingClientRect();return {x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}}
+function hit(p){for(let i=staetten.length-1;i>=0;i--){let o=staetten[i],w=(o.bauform==='bruecke'?130:92)*o.h/110,height=(o.bauform==='bruecke'?61:199)*o.h/110;if(Math.abs(p.x-o.x)<w&&p.y>o.y-height&&p.y<o.y+18)return o}return null}
+c.addEventListener('pointerdown',function(e){
+ const p=point(e),o=hit(p);
+ if(mode==='loeschen'){if(o){remember();staetten=staetten.filter(x=>x.id!==o.id);save();status.textContent='Bauwerk entfernt · Zurück stellt es wieder her.';draw()}return}
+ if(mode!=='sehen'){
+  if(staetten.length>=20){status.textContent='20 Gebäude reichen für diese ruhige Testszene.';return}
+  remember();staetten.push({id:'bau_'+Date.now()+'_'+counter++,bauform:mode,x:clamp(p.x,120,W-110),y:clamp(p.y,230,H-95),h:mode==='bruecke'?75:mode==='turm'?105:103,roof:['#697f85','#97796b','#748777'][counter%3]});
+  save();status.textContent='Bauwerk gesetzt. Mit „Ansehen“ kannst du es verschieben.';draw();return;
+ }
+ if(o){drag=o;dragStart=p;previous=JSON.stringify(staetten);moving=false;c.setPointerCapture(e.pointerId);status.textContent='Gebäude verschieben · Beim Loslassen wird gespeichert';draw();}
+ else{patrol=false;person.goal={x:clamp(p.x,80,W-80),y:clamp(p.y,270,H-150)};document.getElementById('wandern').textContent='Spaziergang: aus';status.textContent='Die Bewohnerin läuft zum gewählten Ort.'}
+});
+c.addEventListener('pointermove',function(e){
+ if(!drag||!dragStart)return;const p=point(e);drag.x=clamp(drag.x+p.x-dragStart.x,115,W-110);drag.y=clamp(drag.y+p.y-dragStart.y,215,H-90);
+ if(Math.hypot(p.x-dragStart.x,p.y-dragStart.y)>1)moving=true;dragStart=p;draw();
+});
+function released(){
+ if(drag){if(moving){undo.push(previous);save();status.textContent='Gebäude verschoben und gespeichert.'}drag=null;previous=null;dragStart=null;draw()}
+}
+c.addEventListener('pointerup',released);c.addEventListener('pointercancel',released);
+for(const id of ['sehen','haus','turm','bruecke','loeschen'])document.getElementById(id).onclick=()=>setMode(id);
+document.getElementById('zurueck').onclick=()=>{if(!undo.length){status.textContent='Noch nichts zum Zurücknehmen.';return}staetten=JSON.parse(undo.pop());save();status.textContent='Letzte Änderung zurückgenommen.';draw()};
+document.getElementById('neu').onclick=()=>{remember();staetten=defaults();save();setMode('sehen');status.textContent='Die Testszene ist wieder am Anfang.';draw()};
+document.getElementById('licht').onclick=e=>{gold=!gold;e.target.textContent='Abendlicht: '+(gold?'an':'aus');draw()};
+document.getElementById('wandern').onclick=e=>{patrol=!patrol;person.goal=null;e.target.textContent='Spaziergang: '+(patrol?'an':'aus');draw()};
+let last=0,lastDraw=0;function frame(t){
+ if(document.hidden){last=t;requestAnimationFrame(frame);return}
+ if(t-lastDraw>=32){let dt=Math.min(.05,(t-last)/1000||0);last=t;lastDraw=t;update(dt);draw()}
+ requestAnimationFrame(frame)
+}
+document.addEventListener('visibilitychange',()=>{last=0});
+requestAnimationFrame(frame);draw();
+})();
+</script></body></html>

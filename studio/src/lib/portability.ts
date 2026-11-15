@@ -486,6 +486,11 @@ export async function importBackup(
           ...m,
           entryId: m.entryId ? neu.get(m.entryId) : undefined,
         })),
+        /* Gebäude verweisen ebenfalls auf die neue Welt – niemals auf fremde Seiten. */
+        staetten: k.staetten?.map((s) => ({
+          ...s,
+          entryId: s.entryId ? neu.get(s.entryId) : undefined,
+        })),
       }));
     }
 
