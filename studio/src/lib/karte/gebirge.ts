@@ -77,6 +77,14 @@ export const GEBIRGE = {
    */
   weichheit: 0.3,
   /**
+   * Wie weit die Kerbenprobe den Hang hinabwandert.
+   *
+   * 1 wäre ein Rauschen in der Fläche – geschlossene Schleifen, Seifenblasen.
+   * 0 wäre eine Probe am Fusspunkt – Streifen vom Grat bis zum Fuss, Kordsamt.
+   * 0,3 ergibt Rinnen, die bergab zeigen und trotzdem eine Länge haben.
+   */
+  zug: 0.3,
+  /**
    * Wie hoch ein Gebirge im Kartenmaß steigt, bei `hoehe = 1`.
    *
    * Gebraucht für die Schattierung: Eine Neigung ergibt sich erst, wenn
@@ -332,8 +340,36 @@ export function hoeheAus(
    * Zerklüftung: feine Kerben, überall – auch auf dem Grat, denn ein
    * zerrissener Grat ist der Sinn der Sache. Nach unten begrenzt, damit sie
    * den Zug nie ganz durchschneidet.
+   *
+   * ---
+   *
+   * **Eine Rinne läuft bergab. Das war hier nicht so.**
+   *
+   * Hier stand `grat(k.seed, x, y, …)`, also ein Rauschen in der Fläche.
+   * Es ist derselbe Fehler, den die Nebenrücken ein paar Zeilen weiter oben
+   * schon einmal hatten, nur eine Grössenordnung feiner – und er fällt erst
+   * auf, wenn man nah herangeht: Isotropes Rauschen bildet **geschlossene
+   * Schleifen**, und das Relief sah aus wie Seifenblasen, nicht wie Fels.
+   * Mehr Kontrast machte es schlimmer, weil mehr Kontrast eine Struktur
+   * deutlicher zeigt, die nicht stimmt.
+   *
+   * **Der erste Anlauf war zu weit.** Die Probe ganz an den Fusspunkt zu
+   * legen – wie bei `laengs` – macht den Wert entlang der *ganzen*
+   * Falllinie konstant. Aus jeder Rinne wird ein durchgehender Streifen vom
+   * Grat bis zum Fuss, und ein gerader Kamm sieht aus wie Kordsamt.
+   *
+   * Richtig ist dazwischen, und `ZUG` ist der Regler. Die Probe wandert nur
+   * zu `ZUG` bergab mit: Quer zum Hang ändert sie sich voll, längs dazu
+   * dreimal langsamer. Daraus werden Rinnen, die eine Länge haben und
+   * trotzdem bergab zeigen.
+   *
+   * Bei `ZUG = 1` steht wieder genau das Alte da, bei 0 der Kordsamt.
+   * Gemessen und angesehen: 0,3 trägt, 0,7 ist schon wieder Blase.
    */
-  const kerben = 1 - k.zerkluftung * 0.42 * (1 - grat(k.seed, x, y, GEBIRGE.kerbe, 13));
+  const ux = d > 0 ? (x - fx) / d : 0;
+  const uy = d > 0 ? (y - fy) / d : 0;
+  const kerben = 1 - k.zerkluftung * 0.42
+    * (1 - grat(k.seed, fx + ux * d * GEBIRGE.zug, fy + uy * d * GEBIRGE.zug, GEBIRGE.kerbe, 13));
 
   const h = profil * kammhoehe * ruecken * kerben * k.hoehe;
   return h > 0 ? (h < 1 ? h : 1) : 0;

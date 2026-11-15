@@ -210,13 +210,111 @@ Wald:**
 4. Im Gebirgswerk nach dem Relief: über `gratpunkte` laufen und zeichnen,
    nach Höhe sortiert, von hinten nach vorn.
 
-Die **Auflösung** ist dabei die bindende Zahl, nicht der Geschmack. Es gilt
-dieselbe Schranke wie bei den Bäumen: `karteHoehe × 16,4` Bildpunkte, sonst
-sieht man es. Eine Felswand von 40 Karteneinheiten braucht **650 Punkte**.
-
 Das Relief bleibt darunter liegen. Es ist nicht das Provisorium, das die
 Bilder ablösen — es ist der Grund, auf dem sie stehen, und es trägt die
 Stellen, die kein Bild abdeckt.
+
+### Die Masse, gemessen statt geschätzt
+
+Eine Felswand ist **ein Stück Grat**, kein ganzer Berg. `gratpunkte` liefert
+alle 18 Einheiten einen Ort; eine Wand überlappt im Gebrauch also etwa drei
+Nachbarn, so wie ein Baum ein Stück Wald ist.
+
+Das war zweimal falsch, bevor es stimmte. Erst hiess es „eine Felswand von 40
+Karteneinheiten braucht 650 Punkte" — geschätzt. Dann wurde ein **ganzer
+Gipfel** vermessen, 98 hoch und 222 breit, und daraus eine Bildgrösse
+abgeleitet — die falsche Einheit.
+
+| | |
+|---|---|
+| Wandhöhe | **48 Karteneinheiten** (Felsband, gemessen: 10–49, Mittel 32) |
+| Auflösung | **800 × 1040 Bildpunkte** |
+| Abstand beim Setzen | 18 Einheiten |
+| zum Vergleich: ein Baum | 26 Einheiten, 430 Punkte |
+
+**Warum nicht ein Bild je Gipfel.** Ein Bild hat ein festes
+Seitenverhältnis, ein Gebirge nicht. Allein über `breite` und `hoehe` —
+beides Eigenschaften des einzelnen Kamms — reicht die Gipfelform von
+**0,85 : 1 bis 4,45 : 1**:
+
+| `breite` | `hoehe` 0,60 | 0,78 | 0,95 |
+|---|---|---|---|
+| 55 | 1,35 : 1 | 1,04 : 1 | 0,85 : 1 |
+| 110 *(Vorgabe)* | 2,75 : 1 | 2,12 : 1 | 1,74 : 1 |
+| 180 | 4,45 : 1 | 3,42 : 1 | 2,81 : 1 |
+
+Ein ganzer Gipfel als ein Bild müsste dafür gezerrt werden. Eine Folge von
+Wandstücken muss es nicht: **Die Breite des Berges entsteht daraus, wie viele
+nebeneinanderstehen.** Damit ist die Frage „sollen die Berge schroffer
+werden?" auch keine Systemfrage — sie steht schon als Regler an jedem Kamm.
+
+### Der Vorlagenbogen
+
+`npm run felsbogen` erzeugt `.testbau/felsbogen/felsbogen.png`: acht Felder in
+genau dieser Grösse, jedes mit
+
+- dem **Längsschnitt am Kamm entlang** aus `hoeheUeberall` — Zacken und
+  Scharten, also das, was eine Wand wirklich bedeckt,
+- der **Fusslinie** bei 96 % der Höhe, auf der die Wand den Boden berührt,
+- dem **Rand**, in dem nichts stehen darf, damit die Glättung nicht
+  anschneidet,
+- dem **Lichtpfeil** von links oben,
+- und einem **Baum als Mass**.
+
+Dazu oben ein Streifen, der den Zusammenhang zeigt: der Grat über mehrere
+Gipfel, die Baumgrenze, die Gratpunkte im echten Abstand und die acht Felder
+als Kästen darauf. Ohne ihn malt man acht Einzelberge.
+
+Die Unterlage war zweimal falsch. Erst lag die Schattierung aus `maleGebirge`
+darunter — die falsche **Projektion**: Sie sieht von oben auf das Gelände,
+eine gemalte Wand steht aufrecht wie ein Baum. Dann wurde **quer** zum Kamm
+geschnitten — das ist die Form eines Gipfels, nicht die einer Wand. Eine Wand
+steht mit ihrer Breite am Grat **entlang**.
+
+**Eines sagt der Bogen auch über das Gebirge selbst:** Die acht Querschnitte
+sehen einander ähnlich. Die Zerklüftung verändert die Flanken, nicht die
+Grundform. Wenn die gemalten Berge mehr Eigenart haben sollen als der
+Untergrund hergibt, ist das keine Frage an den Pinsel, sondern an
+`GEBIRGE.gipfel`, `kerbe` und `schwankung`.
+
+---
+
+## 5a · Zwei Regler, die aus Blasen Fels machen
+
+Aus der Nähe sah das Relief lange aus wie **Seifenblasen**: geschlossene,
+runde Schleifen, keine Grate und Rinnen. Mehr Kontrast half nicht — er machte
+es schlimmer, weil mehr Kontrast eine Struktur deutlicher zeigt, die nicht
+stimmt.
+
+Die Ursache war dieselbe wie bei den Nebenrücken, nur eine Grössenordnung
+feiner: Die Zerklüftung fragte ein Rauschen **in der Fläche**, und isotropes
+Rauschen bildet geschlossene Schleifen. Eine Rinne läuft aber bergab.
+
+Der erste Anlauf war zu weit: Die Probe ganz an den Fusspunkt zu legen macht
+den Wert entlang der *ganzen* Falllinie konstant — jede Rinne wird ein
+durchgehender Streifen vom Grat bis zum Fuss, und ein gerader Kamm sieht aus
+wie **Kordsamt**.
+
+`GEBIRGE.zug` liegt dazwischen und ist der Regler: Die Probe wandert nur zu
+`zug` bergab mit, ändert sich also quer zum Hang voll und längs dazu
+dreimal langsamer.
+
+| `zug` | was man sieht |
+|---|---|
+| 1,0 | das Alte — Blasen |
+| **0,3** | Rinnen, die bergab zeigen und eine Länge haben |
+| 0,0 | Kordsamt |
+
+Erst danach wurde `kraft` von `0,46 + 0,42·t` auf `0,66 + 0,30·t` erhöht. Die
+Reihenfolge ist kein Zufall: **Mehr Kontrast ist nur dann eine Verbesserung,
+wenn das, was er zeigt, richtig ist.**
+
+Beide Regler sind von der Bildprüfung bewacht; die Gegenprobe meldet für
+jeden der beiden Irrwege über 50 % Abweichung in `gebirge-block`.
+
+In der Übersicht bleibt der Gewinn klein — dort mittelt sich jede Struktur
+weg. Das ist die Stelle, an der die gemalten Felswände gebraucht werden, und
+keine Zahl ersetzt sie.
 
 ---
 

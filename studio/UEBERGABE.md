@@ -507,7 +507,34 @@ liegt. Wer sie in die CI holen will, muss beides lösen: Playwright
 installieren **und** die Vorlagen dort erzeugen, wo sie auch verglichen
 werden.
 
-**Alle vier, und `npm run klassen` zuletzt.** Genau das wurde im
+### Zwei Werkzeuge, die keine Prüfungen sind
+
+`npm run film` und `npm run relief` zeigen die Karte in Bewegung. Beide
+**prüfen nichts** und blockieren nichts; sie stehen hier, weil sie denselben
+Unterbau benutzen und weil ein Bild mehr erklärt als ein Absatz.
+
+```bash
+npm run film                      # eine Kamerafahrt den Gebirgskamm entlang
+npm run film -- --fahrt alle      # dazu eine Zoomfahrt an die Baumgrenze
+npm run relief                    # das Gebirge als drehbare Geometrie
+```
+
+Der Film zeichnet durch **dieselben Maler** wie das Buch – `maleGebirge`,
+`maleStaffage`, `maleLage` über dasselbe Kachelwerk. Er fügt genau eine Sache
+hinzu, die das Buch nicht hat: ein Sichtfeld, das sich zwischen zwei Bildern
+bewegt. Das Ergebnis liegt in `.testbau/film/`.
+
+Das Relief baut aus `hoeheUeberall` echte Geometrie und legt das gemalte
+Artbook-Bild darüber. Three.js zeichnet dabei **nichts von der Karte**: Es
+bekommt zwei fertige Bilder und macht daraus eine Fläche, die man drehen
+kann. Das Ergebnis ist ein Ordner in `.testbau/relief/` mit einer Seite, die
+sich öffnen lässt – ausserhalb der Versionsverwaltung, samt der 672 KB
+Three.js, die bei Bedarf aus der Paketquelle geholt werden.
+
+**Keines von beidem fasst das Buch an.** Der Beweis dafür ist die
+Bildprüfung: Sie stand nach dem Bau beider Werkzeuge auf 0,0000 %.
+
+**Alle fünf, und `npm run klassen` zuletzt.** Genau das wurde im
 Dreibücher-Umbau umgangen – siehe Abschnitt 6.
 
 `scripts/test.mjs` startet jede Suite einzeln, räumt `.testbau` auf und zeigt

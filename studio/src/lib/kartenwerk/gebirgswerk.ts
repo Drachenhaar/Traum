@@ -216,7 +216,20 @@ export function maleGebirge(
        * verbrennen. Nichts wird geklemmt, nichts geht verloren.
        */
       const s = Math.pow(lam, 0.62);
-      const kraft = 0.46 + 0.42 * t;
+      /*
+       * **Wie weit die Schattierung vom Grundton abweichen darf.**
+       *
+       * Hier stand `0.46 + 0.42 * t`. Am Fuss waren das 46 Prozent, und in
+       * der Übersicht wurde der ganze Zug dadurch zu einem grauen Schleier,
+       * der neben den Wäldern verlor.
+       *
+       * Die Zahl ist erst mit der Kerbenrichtung erhöht worden, und das ist
+       * kein Zufall: Vorher hat mehr Kraft das Bild **schlechter** gemacht,
+       * weil sie eine Struktur deutlicher zeigte, die nicht stimmte –
+       * geschlossene Blasen statt Rinnen. Mehr Kontrast ist nur dann eine
+       * Verbesserung, wenn das, was er zeigt, richtig ist.
+       */
+      const kraft = 0.66 + 0.30 * t;
       const mr = s < 0.5 ? br + (sr - br) * (1 - s * 2) : br + (lr - br) * (s * 2 - 1);
       const mg = s < 0.5 ? bg + (sg - bg) * (1 - s * 2) : bg + (lg - bg) * (s * 2 - 1);
       const mb = s < 0.5 ? bb + (sb - bb) * (1 - s * 2) : bb + (lb - bb) * (s * 2 - 1);
